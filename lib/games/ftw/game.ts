@@ -1,4 +1,5 @@
-import { ITEMS_PER_ROUND, Role } from "./constants";
+import type { Role, WithIdentity } from "@/lib/session/types";
+import { ITEMS_PER_ROUND } from "./constants";
 import { matchCount } from "./scoring";
 
 export type RoundStatus = "RANKING" | "GUESSING" | "REVEALED";
@@ -17,7 +18,7 @@ export interface CurrentRound {
   score?: number;
 }
 
-export interface GameState {
+export interface GameState extends WithIdentity {
   round: number;
   totals: Record<Role, number>;
   current: CurrentRound;
@@ -28,8 +29,6 @@ export interface GameState {
    * size since an already-seen prompt is never re-added - see addUsedPrompt.
    */
   usedPrompts: string[];
-  /** Display names the two players picked for themselves, keyed by p1/p2 - not by role, since role rotates every round. */
-  names: Partial<Record<Role, string>>;
   /** One entry per completed (REVEALED) round this session, oldest first - the session recap. */
   history: RoundRecord[];
 }
@@ -45,17 +44,6 @@ export interface RoundRecord {
 export function addUsedPrompt(usedPrompts: string[] | undefined, prompt: string): string[] {
   const used = usedPrompts ?? [];
   return used.includes(prompt) ? used : [...used, prompt];
-}
-
-const MAX_NAME_LENGTH = 24;
-
-/** Sets a player's display name. Always valid regardless of round status. */
-export function setName(game: GameState, role: Role, name: string): GameState {
-  const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
-  if (!trimmed) {
-    throw new Error("Name cannot be empty.");
-  }
-  return { ...game, names: { ...game.names, [role]: trimmed } };
 }
 
 export const masterOf = (round: number): Role => (round % 2 === 1 ? "p1" : "p2");

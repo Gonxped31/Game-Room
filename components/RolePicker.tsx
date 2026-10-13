@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Role } from "@/lib/constants";
+import { Role } from "@/lib/session/types";
 import Button from "./Button";
 
 interface RolePickerProps {
@@ -32,7 +32,7 @@ export default function RolePicker({ names, onPick }: RolePickerProps) {
         <p className="m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
           {otherName
             ? `${otherName} is already in. What's your name?`
-            : "What's your name? Roles swap every round - your partner joins next with their own."}
+            : "What's your name? Your partner joins next with their own."}
         </p>
         <input
           value={draft}

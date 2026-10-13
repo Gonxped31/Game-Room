@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ITEMS_PER_ROUND } from "@/lib/constants";
-import type { CurrentRound } from "@/lib/game";
-import { randomRound } from "@/lib/prompts";
+import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
+import type { CurrentRound } from "@/lib/games/ftw/game";
+import { randomRound } from "@/lib/games/ftw/prompts";
+import Button from "@/components/Button";
 import CardFace from "./CardFace";
 import CardTable, { CellState, TableRow } from "./CardTable";
 import Hand from "./Hand";
-import Button from "./Button";
 import CustomPromptForm from "./CustomPromptForm";
 
 const GHOST_SIZE = { width: 68, height: 102 }; // matches the min(15vw,68px) card width at its 2:3 aspect ratio

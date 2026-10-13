@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setName, setPrompt, submitGuess } from "./game";
+import { setIdentityName as setName } from "@/lib/session/identity";
+import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPrompt, submitGuess } from "./game";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 

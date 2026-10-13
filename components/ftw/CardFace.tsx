@@ -1,4 +1,4 @@
-import { NUMBER_GRADIENTS } from "@/lib/constants";
+import { NUMBER_GRADIENTS } from "@/lib/games/ftw/constants";
 
 export type CardBack = "m" | "g";
 

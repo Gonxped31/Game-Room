@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ITEMS_PER_ROUND } from "@/lib/constants";
-import type { CurrentRound } from "@/lib/game";
-import { customRound } from "@/lib/prompts";
-import Button from "./Button";
+import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
+import type { CurrentRound } from "@/lib/games/ftw/game";
+import { customRound } from "@/lib/games/ftw/prompts";
+import Button from "@/components/Button";
 
 interface CustomPromptFormProps {
   onApply: (round: CurrentRound) => void;

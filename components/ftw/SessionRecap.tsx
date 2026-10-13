@@ -1,5 +1,6 @@
-import { ITEMS_PER_ROUND, Role } from "@/lib/constants";
-import type { RoundRecord } from "@/lib/game";
+import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
+import type { RoundRecord } from "@/lib/games/ftw/game";
+import type { Role } from "@/lib/session/types";
 
 interface SessionRecapProps {
   history: RoundRecord[];

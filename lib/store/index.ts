@@ -1,5 +1,4 @@
 import type { FirebaseOptions } from "firebase/app";
-import type { GameState } from "@/lib/game";
 import { createFirebaseStore } from "./firebaseStore";
 import { createLocalStore } from "./localStore";
 import type { Store } from "./types";
@@ -18,12 +17,22 @@ const hasFirebaseConfig = Object.values(firebaseConfig).every((v) => typeof v ==
  * Picks the backend for a room's shared game state: Firebase when all
  * NEXT_PUBLIC_FIREBASE_* env vars are set, otherwise the localStorage
  * fallback (so two browser tabs on one machine still work for testing).
+ * Generic over any game's state shape - every game on this platform shares
+ * this store layer unchanged.
+ *
+ * The game slug is nested UNDER the room code (`games/{room}/{slug}`, not
+ * `games/{slug}/{room}`) so the existing Firebase rule
+ * (`games/$roomId: { ".read": true, ".write": true }`) already covers it via
+ * RTDB's rule cascade - no console changes needed to add a game. This also
+ * keeps two different games started under the same room code (unlikely, but
+ * possible if someone edits the URL path while keeping the hash) from
+ * clobbering each other's state.
  */
-export function createGameStore(room: string): Store<GameState> {
+export function createGameStore<T>(room: string, gameSlug: string): Store<T> {
   if (hasFirebaseConfig) {
-    return createFirebaseStore<GameState>(`games/${room}`, firebaseConfig);
+    return createFirebaseStore<T>(`games/${room}/${gameSlug}`, firebaseConfig);
   }
-  return createLocalStore<GameState>(`ftw:${room}`);
+  return createLocalStore<T>(`game:${gameSlug}:${room}`);
 }
 
 export type { Store } from "./types";

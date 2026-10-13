@@ -12,5 +12,3 @@ export const NUMBER_GRADIENTS: readonly [string, string][] = [
   ["#FFC25C", "#FF6A13"],
   ["#FF9CC4", "#E6287E"],
 ];
-
-export type Role = "p1" | "p2";

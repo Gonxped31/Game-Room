@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
 import type { ReactNode } from "react";
-import { GAME_TITLE } from "@/lib/constants";
+// TODO(stage 2): replace with a true app-level brand once the game picker lands.
+import { GAME_TITLE } from "@/lib/games/ftw/constants";
 import "./globals.css";
 
 const fredoka = Fredoka({
