@@ -10,9 +10,12 @@ interface CardSlotProps {
   /** "ok" shows a green check, "no" shows an orange cross; omit to show no badge. */
   badge?: "ok" | "no";
   badgeDelay?: number;
+  /** Omit to render a non-interactive slot (nothing happens here for this viewer right now). */
   onClick?: () => void;
   ariaLabel: string;
 }
+
+const slotClass = "h-full w-full rounded-[9px] border-0 p-0";
 
 export default function CardSlot({
   empty,
@@ -25,24 +28,19 @@ export default function CardSlot({
   onClick,
   ariaLabel,
 }: CardSlotProps) {
+  const content = empty ? null : <CardFace n={n} up={up} back={back} delay={delay} />;
+  const emptyStyle = empty ? "border-2 border-dashed border-white/60 bg-black/10 cursor-pointer" : "bg-transparent";
+
   return (
     <div className="relative aspect-[2/3] w-full">
-      {empty ? (
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          onClick={onClick}
-          className="h-full w-full cursor-pointer rounded-[9px] border-2 border-dashed border-white/60 bg-black/10 p-0"
-        />
-      ) : (
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          onClick={onClick}
-          className="h-full w-full cursor-pointer rounded-[9px] border-0 bg-transparent p-0"
-        >
-          <CardFace n={n} up={up} back={back} delay={delay} />
+      {onClick ? (
+        <button type="button" aria-label={ariaLabel} onClick={onClick} className={`${slotClass} ${emptyStyle} cursor-pointer`}>
+          {content}
         </button>
+      ) : (
+        <div role="img" aria-label={ariaLabel} className={`${slotClass} ${emptyStyle}`}>
+          {content}
+        </div>
       )}
       {badge ? (
         <span

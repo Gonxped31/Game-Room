@@ -73,5 +73,21 @@ npx tsc --noEmit # type-check only
   contexts (separate localStorage each, i.e. two different devices), confirming
   data really round-trips through Firebase and not an accidental local fallback.
   Role selection still never touches Firebase - stays in localStorage per the brief.
-- Stage 4: prompt bank, custom prompts, round swap polish, a11y, reduced motion.
+- **Stage 4 (done):** `lib/prompts.ts` (30 built-in prompts, each validated to have exactly
+  `ITEMS_PER_ROUND` unique items) backs "Shuffle prompt" and `CustomPromptForm`
+  ("Write my own prompt", validated client-side with an inline error). Both go through
+  `lib/game.ts`'s new `setPrompt` transition (valid only while RANKING) so the change is
+  shared through the store like any other write. "Next round" now picks a random prompt
+  that's never the one just played. Footer shows the player's role, not just the room.
+  Reduced motion verified with Playwright's `reducedMotion: "reduce"` emulation (`.flip-inner`
+  transition-duration is actually `0s`, not just visually subtle).
+  **Bug fixed in this pass:** `CardTable`'s master/guesser slots were both wired to the same
+  tap handler regardless of whose turn it was, so clicking the *other* player's empty slot
+  while placing could silently consume your selected card (the prototype guarded this
+  per-cell; the port had dropped that guard). Fixed by only passing `onTapMaster`/
+  `onTapGuesser` when that column is actually interactive for the current viewer right now
+  - `CardSlot` renders a plain `role="img"` div (not a button) when its column isn't
+  interactive, which also fixed a dead-button-in-tab-order a11y issue. Verified with a
+  Playwright regression test (select a card, click the other column, confirm the card is
+  still selected and unplaced).
 - Stage 5: README (setup, deploy, rename, known limitations).

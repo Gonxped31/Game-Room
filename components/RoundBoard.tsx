@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { ITEMS_PER_ROUND } from "@/lib/constants";
+import type { CurrentRound } from "@/lib/game";
+import { randomRound } from "@/lib/prompts";
 import CardTable, { CellState, TableRow } from "./CardTable";
 import Hand from "./Hand";
 import Button from "./Button";
+import CustomPromptForm from "./CustomPromptForm";
 
 export type RoundStatus = "RANKING" | "GUESSING" | "REVEALED";
 
@@ -23,13 +26,15 @@ interface RoundBoardProps {
   onLockIn: (order: string[]) => void;
   onSubmitGuess: (order: string[]) => void;
   onNextRound: () => void;
+  /** Swaps the round's prompt/items while still RANKING (shuffle or custom prompt). */
+  onChangePrompt: (round: CurrentRound) => void;
 }
 
 /**
  * One phase of a round (RANKING, GUESSING or REVEALED). The parent remounts
- * this component (via a `key` including status+round) whenever the phase
- * changes, so placement state and the reveal stagger always start fresh
- * without needing a reset effect.
+ * this component (via a `key` including round+status+item IDs) whenever the
+ * phase or the item set changes, so placement state and the reveal stagger
+ * always start fresh without needing a reset effect.
  */
 export default function RoundBoard({
   status,
@@ -43,6 +48,7 @@ export default function RoundBoard({
   onLockIn,
   onSubmitGuess,
   onNextRound,
+  onChangePrompt,
 }: RoundBoardProps) {
   const [assign, setAssign] = useState<Record<string, number>>({});
   const [sel, setSel] = useState<number | null>(null);
@@ -143,7 +149,7 @@ export default function RoundBoard({
   return (
     <div>
       {msg ? (
-        <p className="mb-3.5 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
+        <p aria-live="polite" className="mb-3.5 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
           {msg}
         </p>
       ) : null}
@@ -153,8 +159,8 @@ export default function RoundBoard({
         headLeft={isMaster ? "You · master" : "Master"}
         headRight={!isMaster ? "You · guesser" : "Guesser"}
         rows={rows}
-        onTapMaster={tapSlot}
-        onTapGuesser={tapSlot}
+        onTapMaster={placing && isMaster ? tapSlot : undefined}
+        onTapGuesser={placing && !isMaster ? tapSlot : undefined}
       />
 
       {placing ? (
@@ -163,11 +169,19 @@ export default function RoundBoard({
           <Button disabled={!ready} onClick={submit}>
             {isMaster ? "Lock in my ranking" : "Submit final guess"}
           </Button>
+          {isMaster ? (
+            <div>
+              <Button variant="sm" onClick={() => onChangePrompt(randomRound(prompt))}>
+                Shuffle prompt
+              </Button>
+              <CustomPromptForm onApply={onChangePrompt} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       {status === "REVEALED" && shown ? (
-        <div>
+        <div aria-live="polite">
           <div
             className="big-score mt-4 text-center text-7xl font-bold text-[#FFE14D]"
             style={{ textShadow: "0 4px 0 rgba(0,0,0,.35)", animationDelay: `${ITEMS_PER_ROUND * 0.25}s` }}

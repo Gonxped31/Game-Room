@@ -2,22 +2,14 @@
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { GAME_TITLE, Role } from "@/lib/constants";
-import { lockIn, makeRound, masterOf, newGame, nextRound as advanceRound, submitGuess } from "@/lib/game";
+import { type CurrentRound, lockIn, masterOf, newGame, nextRound as advanceRound, setPrompt, submitGuess } from "@/lib/game";
+import { randomRound } from "@/lib/prompts";
 import { createGameStore } from "@/lib/store";
 import { createLocalStore } from "@/lib/store/localStore";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RolePicker from "@/components/RolePicker";
 import RoundBoard from "@/components/RoundBoard";
-
-/**
- * Stage 2: wired to the real state machine (lib/game.ts) through the
- * backend-agnostic Store (lib/store), persisted to localStorage and synced
- * across tabs via the `storage` event. Still a single hardcoded prompt -
- * the prompt bank and custom prompts are Stage 4.
- */
-const SEED_PROMPT = "Pizza toppings";
-const SEED_LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 
 const DEFAULT_ROOM = "our-private-room-id";
 const noopSubscribe = () => () => {};
@@ -35,7 +27,7 @@ export default function Page() {
   // The first client to open an empty room creates it.
   useEffect(() => {
     if (game !== null) return;
-    gameStore.transaction((current) => (current ? undefined : newGame(makeRound(SEED_PROMPT, SEED_LABELS))));
+    gameStore.transaction((current) => (current ? undefined : newGame(randomRound())));
   }, [game, gameStore]);
 
   const status = game?.current.status;
@@ -69,11 +61,22 @@ export default function Page() {
     });
   };
 
+  const handleChangePrompt = (round: CurrentRound) => {
+    gameStore.transaction((current) => {
+      if (!current) return undefined;
+      try {
+        return setPrompt(current, round);
+      } catch {
+        return undefined;
+      }
+    });
+  };
+
   const handleNextRound = () => {
     gameStore.transaction((current) => {
       if (!current) return undefined;
       try {
-        return advanceRound(current, makeRound(SEED_PROMPT, SEED_LABELS));
+        return advanceRound(current, randomRound(current.current.prompt));
       } catch {
         return undefined;
       }
@@ -81,7 +84,7 @@ export default function Page() {
   };
 
   const handleResetGame = () => {
-    gameStore.set(newGame(makeRound(SEED_PROMPT, SEED_LABELS)));
+    gameStore.set(newGame(randomRound()));
   };
 
   return (
@@ -100,7 +103,7 @@ export default function Page() {
         <RolePicker onPick={(role) => meStore.set(role)} />
       ) : (
         <RoundBoard
-          key={`${game.round}-${status}`}
+          key={`${game.round}-${status}-${game.current.items.map((i) => i.id).join("|")}`}
           status={game.current.status}
           isMaster={isMaster}
           placing={placing}
@@ -112,10 +115,16 @@ export default function Page() {
           onLockIn={handleLockIn}
           onSubmitGuess={handleSubmitGuess}
           onNextRound={handleNextRound}
+          onChangePrompt={handleChangePrompt}
         />
       )}
 
-      <Footer room={room} onChangeRole={() => meStore.set(null)} onReset={handleResetGame} />
+      <Footer
+        room={room}
+        role={me ? (isMaster ? "Master" : "Guesser") : undefined}
+        onChangeRole={() => meStore.set(null)}
+        onReset={handleResetGame}
+      />
     </main>
   );
 }

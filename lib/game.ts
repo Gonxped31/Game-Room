@@ -84,6 +84,18 @@ export function submitGuess(game: GameState, order: string[]): GameState {
   };
 }
 
+/**
+ * Swaps in a different prompt/items while still RANKING (the master
+ * shuffling or writing a custom prompt before locking in). Not a status
+ * change - just replaces the round's content with a fresh, unstarted one.
+ */
+export function setPrompt(game: GameState, round: CurrentRound): GameState {
+  if (game.current.status !== "RANKING") {
+    throw new Error(`Cannot change the prompt while status is ${game.current.status}.`);
+  }
+  return { ...game, current: round };
+}
+
 /** REVEALED -> next round's RANKING. Roles swap because masterOf(round) alternates. */
 export function nextRound(game: GameState, round: CurrentRound): GameState {
   if (game.current.status !== "REVEALED") {

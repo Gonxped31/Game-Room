@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, submitGuess } from "./game";
+import { guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPrompt, submitGuess } from "./game";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 
@@ -96,6 +96,23 @@ describe("submitGuess", () => {
     const order = game.current.items.map((i) => i.id);
     const guessing = lockIn(game, order);
     expect(() => submitGuess(guessing, order.slice(0, 3))).toThrow();
+  });
+});
+
+describe("setPrompt", () => {
+  it("replaces the current round's prompt/items while still RANKING", () => {
+    const game = freshGame();
+    const swapped = setPrompt(game, makeRound("Vacation spots", ["Beach", "Mountains", "Big city", "Countryside", "Cruise"]));
+    expect(swapped.current.prompt).toBe("Vacation spots");
+    expect(swapped.current.status).toBe("RANKING");
+    expect(swapped.round).toBe(game.round);
+  });
+
+  it("rejects changing the prompt once the master has locked in", () => {
+    const game = freshGame();
+    const order = game.current.items.map((i) => i.id);
+    const guessing = lockIn(game, order);
+    expect(() => setPrompt(guessing, makeRound("X", ["A", "B", "C", "D", "E"]))).toThrow();
   });
 });
 

@@ -26,35 +26,26 @@ interface CardTableProps {
   headLeft: string;
   headRight: string;
   rows: TableRow[];
+  /** Omit to make the whole master column non-interactive for this viewer right now. */
   onTapMaster?: (id: string) => void;
+  /** Omit to make the whole guesser column non-interactive for this viewer right now. */
   onTapGuesser?: (id: string) => void;
 }
 
-function cellProps(cell: CellState, back: CardBack, ariaLabel: string, onClick?: () => void) {
-  if (cell.kind === "empty") {
-    return { empty: true as const, back, ariaLabel, onClick };
-  }
-  return {
-    empty: false as const,
-    back,
-    n: cell.n,
-    up: cell.up,
-    delay: cell.delay,
-    badge: cell.badge,
-    badgeDelay: cell.badgeDelay,
-    ariaLabel,
-    onClick,
-  };
+function describeCell(cell: CellState): string {
+  if (cell.kind === "empty") return "empty";
+  const state = cell.up ? `number ${cell.n ?? "unknown"}` : "face down";
+  if (cell.badge) return `${state}, ${cell.badge === "ok" ? "matched" : "did not match"}`;
+  return state;
 }
 
-export default function CardTable({
-  prompt,
-  headLeft,
-  headRight,
-  rows,
-  onTapMaster,
-  onTapGuesser,
-}: CardTableProps) {
+function cellProps(cell: CellState, back: CardBack, ariaLabel: string, onClick?: () => void) {
+  const common = { back, ariaLabel, onClick };
+  if (cell.kind === "empty") return { empty: true as const, ...common };
+  return { empty: false as const, n: cell.n, up: cell.up, delay: cell.delay, badge: cell.badge, badgeDelay: cell.badgeDelay, ...common };
+}
+
+export default function CardTable({ prompt, headLeft, headRight, rows, onTapMaster, onTapGuesser }: CardTableProps) {
   return (
     <div>
       <div className="mb-2 grid grid-cols-[min(17vw,76px)_1fr_min(17vw,76px)] items-center gap-2.5 text-center text-[13px] font-semibold leading-tight">
@@ -63,13 +54,13 @@ export default function CardTable({
         <span>{headRight}</span>
       </div>
       {rows.map((row) => (
-        <div
-          key={row.id}
-          className="mb-3 grid grid-cols-[min(17vw,76px)_1fr_min(17vw,76px)] items-center gap-2.5"
-        >
+        <div key={row.id} className="mb-3 grid grid-cols-[min(17vw,76px)_1fr_min(17vw,76px)] items-center gap-2.5">
           <CardSlot
-            {...cellProps(row.master, "m", `${row.label}, your ranking slot`, () =>
-              onTapMaster?.(row.id),
+            {...cellProps(
+              row.master,
+              "m",
+              `${headLeft}, ${row.label}: ${describeCell(row.master)}`,
+              onTapMaster && (() => onTapMaster(row.id)),
             )}
           />
           <div
@@ -82,8 +73,11 @@ export default function CardTable({
             {row.label}
           </div>
           <CardSlot
-            {...cellProps(row.guesser, "g", `${row.label}, guess slot`, () =>
-              onTapGuesser?.(row.id),
+            {...cellProps(
+              row.guesser,
+              "g",
+              `${headRight}, ${row.label}: ${describeCell(row.guesser)}`,
+              onTapGuesser && (() => onTapGuesser(row.id)),
             )}
           />
         </div>
