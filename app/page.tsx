@@ -76,7 +76,7 @@ export default function Page() {
     gameStore.transaction((current) => {
       if (!current) return undefined;
       try {
-        return advanceRound(current, randomRound(current.current.prompt));
+        return advanceRound(current, randomRound(current.usedPrompts ?? []));
       } catch {
         return undefined;
       }
@@ -109,6 +109,7 @@ export default function Page() {
           placing={placing}
           prompt={game.current.prompt}
           items={game.current.items}
+          usedPrompts={game.usedPrompts ?? []}
           masterOrder={game.current.masterOrder ?? null}
           guessOrder={game.current.guessOrder ?? null}
           score={game.current.score ?? null}

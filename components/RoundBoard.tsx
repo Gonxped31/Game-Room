@@ -20,6 +20,8 @@ interface RoundBoardProps {
   placing: boolean;
   prompt: string;
   items: Item[];
+  /** Every prompt seen this session, so "Shuffle prompt" doesn't repeat one - see lib/game.ts's usedPrompts. */
+  usedPrompts: string[];
   masterOrder: string[] | null;
   guessOrder: string[] | null;
   score: number | null;
@@ -42,6 +44,7 @@ export default function RoundBoard({
   placing,
   prompt,
   items,
+  usedPrompts,
   masterOrder,
   guessOrder,
   score,
@@ -171,7 +174,7 @@ export default function RoundBoard({
           </Button>
           {isMaster ? (
             <div>
-              <Button variant="sm" onClick={() => onChangePrompt(randomRound(prompt))}>
+              <Button variant="sm" onClick={() => onChangePrompt(randomRound(usedPrompts))}>
                 Shuffle prompt
               </Button>
               <CustomPromptForm onApply={onChangePrompt} />

@@ -21,6 +21,19 @@ export interface GameState {
   round: number;
   totals: Record<Role, number>;
   current: CurrentRound;
+  /**
+   * Every distinct prompt text seen this session (shuffled past, custom-
+   * written, or played), so the prompt bank doesn't repeat one within a
+   * session until every built-in prompt has come up. Capped at the bank's
+   * size since an already-seen prompt is never re-added - see addUsedPrompt.
+   */
+  usedPrompts: string[];
+}
+
+/** Records a prompt as seen this session, without duplicating an existing entry. */
+export function addUsedPrompt(usedPrompts: string[] | undefined, prompt: string): string[] {
+  const used = usedPrompts ?? [];
+  return used.includes(prompt) ? used : [...used, prompt];
 }
 
 export const masterOf = (round: number): Role => (round % 2 === 1 ? "p1" : "p2");
@@ -49,7 +62,7 @@ function isValidOrder(order: string[] | undefined, items: RoundItem[]): order is
 }
 
 export function newGame(firstRound: CurrentRound): GameState {
-  return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound };
+  return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt] };
 }
 
 /** RANKING -> GUESSING: the master locks in their ranking. */
@@ -93,7 +106,7 @@ export function setPrompt(game: GameState, round: CurrentRound): GameState {
   if (game.current.status !== "RANKING") {
     throw new Error(`Cannot change the prompt while status is ${game.current.status}.`);
   }
-  return { ...game, current: round };
+  return { ...game, current: round, usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt) };
 }
 
 /** REVEALED -> next round's RANKING. Roles swap because masterOf(round) alternates. */
@@ -101,5 +114,5 @@ export function nextRound(game: GameState, round: CurrentRound): GameState {
   if (game.current.status !== "REVEALED") {
     throw new Error(`Cannot advance to the next round while status is ${game.current.status}.`);
   }
-  return { round: game.round + 1, totals: game.totals, current: round };
+  return { round: game.round + 1, totals: game.totals, current: round, usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt) };
 }

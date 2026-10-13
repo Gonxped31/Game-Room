@@ -321,9 +321,20 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-/** Picks a random built-in prompt (never `avoidPrompt`), with its item order shuffled. */
-export function randomRound(avoidPrompt?: string): CurrentRound {
-  const pool = avoidPrompt ? PROMPTS.filter((p) => p.prompt !== avoidPrompt) : PROMPTS;
+/**
+ * Picks a random built-in prompt, excluding every prompt in `usedPrompts`
+ * (the session's history, so nothing repeats until the whole bank has come
+ * up). Once that exhausts the pool, it cycles: picks from the full bank
+ * again, still avoiding an immediate repeat of the very last prompt.
+ */
+export function randomRound(usedPrompts: string[] = []): CurrentRound {
+  const avoid = new Set(usedPrompts);
+  let pool = PROMPTS.filter((p) => !avoid.has(p.prompt));
+  if (pool.length === 0) {
+    const last = usedPrompts[usedPrompts.length - 1];
+    pool = PROMPTS.filter((p) => p.prompt !== last);
+    if (pool.length === 0) pool = PROMPTS; // only reachable if the whole bank is a single prompt
+  }
   const choice = pool[Math.floor(Math.random() * pool.length)];
   return makeRound(choice.prompt, shuffle(choice.items));
 }

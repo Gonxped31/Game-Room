@@ -41,10 +41,30 @@ describe("randomRound", () => {
     expect(round.items).toHaveLength(ITEMS_PER_ROUND);
   });
 
-  it("never repeats the avoided prompt", () => {
-    const avoid = PROMPTS[0].prompt;
+  it("never returns a prompt already in usedPrompts", () => {
+    const used = PROMPTS.slice(0, 50).map((p) => p.prompt);
     for (let i = 0; i < 50; i++) {
-      expect(randomRound(avoid).prompt).not.toBe(avoid);
+      expect(used).not.toContain(randomRound(used).prompt);
+    }
+  });
+
+  it("cycles through the entire bank once before any prompt repeats", () => {
+    const seen: string[] = [];
+    for (let i = 0; i < PROMPTS.length; i++) {
+      const { prompt } = randomRound(seen);
+      expect(seen, `prompt #${i + 1} should not repeat within one cycle`).not.toContain(prompt);
+      seen.push(prompt);
+    }
+    expect(new Set(seen).size).toBe(PROMPTS.length);
+  });
+
+  it("once the bank is exhausted, still avoids an immediate repeat of the last prompt", () => {
+    const allPrompts = PROMPTS.map((p) => p.prompt);
+    for (let i = 0; i < 20; i++) {
+      const last = allPrompts[allPrompts.length - 1];
+      const next = randomRound(allPrompts).prompt;
+      expect(next).not.toBe(last);
+      allPrompts.push(next);
     }
   });
 });

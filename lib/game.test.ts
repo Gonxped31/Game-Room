@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPrompt, submitGuess } from "./game";
+import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPrompt, submitGuess } from "./game";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 
@@ -38,6 +38,25 @@ describe("newGame", () => {
     expect(game.round).toBe(1);
     expect(game.totals).toEqual({ p1: 0, p2: 0 });
     expect(game.current.status).toBe("RANKING");
+  });
+
+  it("seeds usedPrompts with the first round's prompt", () => {
+    const game = freshGame();
+    expect(game.usedPrompts).toEqual(["Pizza toppings"]);
+  });
+});
+
+describe("addUsedPrompt", () => {
+  it("appends a prompt not seen before", () => {
+    expect(addUsedPrompt(["A"], "B")).toEqual(["A", "B"]);
+  });
+
+  it("does not duplicate a prompt already seen", () => {
+    expect(addUsedPrompt(["A", "B"], "B")).toEqual(["A", "B"]);
+  });
+
+  it("treats a missing list as empty", () => {
+    expect(addUsedPrompt(undefined, "A")).toEqual(["A"]);
   });
 });
 
@@ -106,6 +125,7 @@ describe("setPrompt", () => {
     expect(swapped.current.prompt).toBe("Vacation spots");
     expect(swapped.current.status).toBe("RANKING");
     expect(swapped.round).toBe(game.round);
+    expect(swapped.usedPrompts).toEqual(["Pizza toppings", "Vacation spots"]);
   });
 
   it("rejects changing the prompt once the master has locked in", () => {
@@ -127,6 +147,7 @@ describe("nextRound", () => {
     expect(round2.current.status).toBe("RANKING");
     expect(round2.current.masterOrder).toBeUndefined();
     expect(round2.current.guessOrder).toBeUndefined();
+    expect(round2.usedPrompts).toEqual(["Pizza toppings", "Vacation spots"]);
   });
 
   it("rejects advancing before the round is REVEALED", () => {

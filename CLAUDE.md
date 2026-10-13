@@ -52,6 +52,17 @@ npx tsc --noEmit # type-check only
   abort without writing. Firebase's real `transaction()` (Stage 3) aborts the same
   way when the updater returns `undefined`.
 
+## Post-launch additions
+
+- **No-repeat prompts within a session.** `GameState.usedPrompts` (lib/game.ts) tracks
+  every distinct prompt text seen this session - shuffled past, custom-written, or
+  played - and is never allowed to shrink or duplicate (`addUsedPrompt`). `randomRound`
+  (lib/prompts.ts) takes that list and excludes all of it, so neither "Shuffle prompt"
+  nor "Next round" repeats a prompt until the full 300-entry bank has come up once;
+  after that it cycles, still avoiding an immediate repeat of the very last prompt.
+  Tested: a full 300-pick cycle has zero duplicates (`lib/prompts.test.ts`), and a
+  60-shuffle Playwright run against the real UI came back with 60/60 unique prompts.
+
 ## Status
 
 - **Stage 1 (done):** static card-table UI in local component state, including the
