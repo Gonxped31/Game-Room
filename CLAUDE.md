@@ -62,6 +62,16 @@ npx tsc --noEmit # type-check only
   `lib/store` (localStorage + `storage` event), verified across two real tabs
   with Playwright: independent role pick, live cross-tab sync, and state restored
   after a hard refresh. Still one hardcoded prompt - the bank is Stage 4.
-- Stage 3: Firebase backend with transactions, same `Store<T>` interface.
+- **Stage 3 (done):** `lib/store/firebaseStore.ts` implements the same `Store<T>`
+  interface against Realtime Database (modular SDK): `onValue` for subscribe,
+  `set` for direct writes, `runTransaction` for `transaction()` (aborts on
+  `undefined`, same contract `lib/game.ts`'s thrown errors already produce).
+  `lib/store/index.ts` picks Firebase when all five `NEXT_PUBLIC_FIREBASE_*` env
+  vars are set, else falls back to localStorage - verified both ways: local mode
+  re-tested with `.env.local` removed, and Firebase mode tested against the real
+  `first-to-worst-74d1a` project across two fully isolated Playwright browser
+  contexts (separate localStorage each, i.e. two different devices), confirming
+  data really round-trips through Firebase and not an accidental local fallback.
+  Role selection still never touches Firebase - stays in localStorage per the brief.
 - Stage 4: prompt bank, custom prompts, round swap polish, a11y, reduced motion.
 - Stage 5: README (setup, deploy, rename, known limitations).
