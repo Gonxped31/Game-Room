@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>First to Worst</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--table:#128A94;--cw:min(17vw,76px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--table);color:#fff;font:500 16px/1.35 Fredoka,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:520px;margin:0 auto;padding:14px 16px 28px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.top h1{margin:0;font:700 22px/1 Fredoka;background:#fff;color:#000;padding:8px 12px;border-radius:9px;transform:rotate(-2deg);box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.score{background:#000;padding:6px 12px;border-radius:99px;font-weight:600;font-size:14px}
+.msg{background:#fff;color:#000;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.head,.row{display:grid;grid-template-columns:var(--cw) 1fr var(--cw);gap:10px;align-items:center}
+.head{font-size:13px;font-weight:600;margin-bottom:8px;text-align:center;line-height:1.1}
+.head span:nth-child(2){font-size:15px}
+.row{margin-bottom:12px}
+.topic{align-self:stretch;min-height:calc(var(--cw)*1.5);background:#fff;color:#000;border-radius:9px;padding:8px;text-align:center;font:700 15px/1.15 Fredoka;text-transform:uppercase;display:grid;place-items:center;box-shadow:0 2px 0 rgba(0,0,0,.25),0 4px 10px rgba(0,0,0,.25);transition:outline-color .3s}
+.topic.ok{outline:4px solid #B6FF3B}
+.cell{position:relative;width:100%;aspect-ratio:2/3}
+.slot{width:100%;height:100%;border:2px dashed rgba(255,255,255,.6);border-radius:9px;background:rgba(0,0,0,.12);cursor:pointer;padding:0}
+.fc{perspective:700px;width:100%;height:100%}
+.fi{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,1.25,.4,1) var(--d,0s)}
+.fc.up .fi{transform:rotateY(180deg)}
+.ff,.fb{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:9px;display:grid;place-items:center;border:1px solid #d6d6d6;box-shadow:0 2px 0 rgba(0,0,0,.25),0 4px 10px rgba(0,0,0,.25)}
+.ff{background:#fff;transform:rotateY(180deg)}
+.ff b{font:700 clamp(32px,10.5vw,50px)/1 Fredoka;-webkit-background-clip:text;background-clip:text;color:transparent}
+.fb.m{background:linear-gradient(180deg,#19c6e8,#7ed957 28%,#ffe14d 52%,#ff9a3c 76%,#ff3d8f);color:#fff}
+.fb.g{background:#fff}
+.fb i{font:700 clamp(10px,3vw,13px)/1.05 Fredoka;font-style:normal;text-align:center}
+.fb.g i{background:linear-gradient(#17a9c9 50%,#ff5a3c 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bd{position:absolute;right:-6px;top:-8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;color:#000;border:2px solid #000;animation:pop .4s both;animation-delay:var(--d)}
+.bd.ok{background:#B6FF3B}.bd.no{background:#FFB347}
+.hand{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0 6px;min-height:calc(var(--cw)*1.5)}
+.hand .cell{width:var(--cw);cursor:pointer;transition:transform .15s}
+.hand .cell.sel{transform:translateY(-12px) scale(1.06)}
+.hand .cell.sel .ff{outline:4px solid #FFE14D}
+.hint{text-align:center;font-size:14px;margin:0 0 8px;opacity:.95}
+.btn{font:700 18px Fredoka;background:#FF3D8F;color:#fff;border:0;border-radius:12px;padding:14px;width:100%;margin-top:10px;cursor:pointer;box-shadow:0 4px 0 #a3125b}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #a3125b}
+.btn:disabled{background:#0a5b62;box-shadow:none;color:#8fc3c7;cursor:not-allowed}
+.btn.alt{background:#fff;color:#000;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+.btn.sm{width:auto;font-size:14px;padding:8px 14px;margin:8px 8px 0 0}
+button:focus-visible,summary:focus-visible,textarea:focus-visible{outline:4px solid #FFE14D;outline-offset:2px}
+.big{font:700 72px/1 Fredoka;text-align:center;margin:16px 0 0;color:#FFE14D;text-shadow:0 4px 0 rgba(0,0,0,.35);animation:pop .6s cubic-bezier(.3,1.6,.5,1) both;animation-delay:var(--d)}
+@keyframes pop{from{transform:scale(.2) rotate(-10deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.fi{transition:none}.big,.bd{animation:none}}
+textarea{width:100%;min-height:110px;border:0;border-radius:10px;padding:10px;font:inherit;margin-top:8px}
+details{margin-top:12px}summary{cursor:pointer;font-weight:600}
+.foot{text-align:center;font-size:13px;margin-top:22px;opacity:.85}
+.foot button{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
+.mode{background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px;font-size:13px;margin-bottom:12px}
+.pick{display:grid;gap:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+/* ---------- CONFIG ---------- */
+const FIREBASE_CONFIG = null; // paste web config to play across devices; null = local test mode
+const ROOM = location.hash.slice(1) || "our-private-room-id";
+const PROMPTS = [
+  {p:"Pizza toppings",i:["Pepperoni","Mushrooms","Pineapple","Anchovies","Jalapenos"]},
+  {p:"Ways to spend a Sunday",i:["Long nap","Hike","Brunch","Cleaning","Video games"]},
+  {p:"Road trip snacks",i:["Chips","Gummy bears","Fruit","Beef jerky","Trail mix"]},
+  {p:"Movie genres",i:["Comedy","Horror","Romance","Sci-fi","Documentary"]},
+  {p:"Pets to own",i:["Dog","Cat","Parrot","Snake","Goldfish"]},
+  {p:"Breakfast foods",i:["Pancakes","Eggs","Cereal","Bacon","Yogurt"]},
+  {p:"Vacation spots",i:["Beach","Mountains","Big city","Countryside","Cruise"]},
+  {p:"Things to do alone",i:["Cat videos","Alone time","Left-overs","Country music","Pineapple on pizza"]}
+];
+
+/* ---------- LOGIC ---------- */
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a };
+const mkRound = s => ({ prompt:s.p, status:"RANKING", items:shuffle(s.i).map((label,k)=>({id:"i"+k+"_"+label.toLowerCase().replace(/\W+/g,""),label})) });
+const randomPrompt = avoid => mkRound(shuffle(PROMPTS.filter(x=>x.p!==avoid))[0]);
+const newGame = () => ({ round:1, totals:{p1:0,p2:0}, current:randomPrompt() });
+const masterOf = r => r%2===1 ? "p1" : "p2";
+const ITEMS_PER_ROUND = 5;
+// Per-card exact match: an item matches when master and guesser gave it the same number
+// (its index in the order + 1). Score = number of matches, 0 to 5. A score of 4 is impossible.
+const matches = (a, b) => a.filter((id, i) => b[i] === id).length;
+const G = [["#2DE0F5","#1B5BD6"],["#9BE564","#14934A"],["#FFF06A","#FFB800"],["#FFC25C","#FF6A13"],["#FF9CC4","#E6287E"]];
+const numStyle = n => ({ backgroundImage:`linear-gradient(180deg,${G[(n-1)%5][0]},${G[(n-1)%5][1]})` });
+
+function makeStore(){
+  if(FIREBASE_CONFIG && window.firebase){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const ref = firebase.database().ref("games/"+ROOM);
+    return { mode:"firebase", sub:cb=>{ref.on("value",s=>cb(s.val()));return()=>ref.off()}, set:v=>ref.set(v) };
+  }
+  const key="ftw:"+ROOM, subs=new Set();
+  const read=()=>{try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}};
+  window.addEventListener("storage",e=>e.key===key&&subs.forEach(f=>f(read())));
+  return { mode:"local", sub:cb=>{subs.add(cb);cb(read());return()=>subs.delete(cb)}, set:v=>{localStorage.setItem(key,JSON.stringify(v));subs.forEach(f=>f(v))} };
+}
+
+/* ---------- UI ---------- */
+const { useState, useEffect } = React;
+const html = htm.bind(React.createElement);
+
+// Flip card: front = gradient number on white, back = rainbow (master) or white (guesser) "RANK CARD"
+function Card({ n, up, back, d = 0 }) {
+  return html`<div className=${"fc" + (up ? " up" : "")} style=${{ "--d": d + "s" }}><div className="fi">
+    <div className="ff">${n ? html`<b style=${numStyle(n)}>${n}</b>` : null}</div>
+    <div className=${"fb " + back}><i>RANK<br/>CARD</i></div></div></div>`;
+}
+
+function CustomPrompt({ onApply }) {
+  const [t, setT] = useState("");
+  const [err, setErr] = useState("");
+  const go = () => {
+    const l = t.split("\n").map(s => s.trim()).filter(Boolean);
+    if (l.length !== ITEMS_PER_ROUND + 1) return setErr("Add a prompt on line 1, then exactly " + ITEMS_PER_ROUND + " items, one per line.");
+    setErr(""); onApply(mkRound({ p: l[0], i: l.slice(1) })); setT("");
+  };
+  return html`<details><summary>Write my own prompt</summary>
+    <textarea value=${t} onChange=${e => setT(e.target.value)} placeholder=${"Line 1: the prompt\nThen exactly " + ITEMS_PER_ROUND + " items, one per line"} />
+    ${err && html`<p className="msg" role="alert" style=${{ marginTop: 8, marginBottom: 0 }}>${err}</p>`}
+    <button className="btn alt sm" onClick=${go}>Use this prompt</button></details>`;
+}
+
+function App() {
+  const [store] = useState(makeStore);
+  const [g, setG] = useState(null);
+  const [me, setMe] = useState(localStorage.getItem("ftw:me:" + ROOM));
+  const [assign, setAssign] = useState({});
+  const [sel, setSel] = useState(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => store.sub(v => v ? setG(v) : store.set(newGame())), []);
+  const c = g && g.current, st = c && c.status;
+  useEffect(() => { setAssign({}); setSel(null); }, [g && g.round, c && c.prompt, st]);
+  useEffect(() => {
+    if (st !== "REVEALED") return setShown(false);
+    const t = setTimeout(() => setShown(true), 900); return () => clearTimeout(t);
+  }, [st, g && g.round]);
+
+  const isMaster = g && me === masterOf(g.round);
+  const placing = g && me && ((st === "RANKING" && isMaster) || (st === "GUESSING" && !isMaster));
+  useEffect(() => { document.title = (placing || st === "REVEALED") && me ? "▶ Your turn! · First to Worst" : "First to Worst"; }, [placing, st]);
+
+  const pick = w => { localStorage.setItem("ftw:me:" + ROOM, w); setMe(w); };
+  if (!g) return html`<div className="wrap"><p className="msg">Connecting to the room…</p></div>`;
+  const other = me === "p1" ? "p2" : "p1";
+  const n = ITEMS_PER_ROUND, ids = c.items.map(x => x.id);
+  const used = new Set(Object.values(assign));
+  const hand = Array.from({ length: n }, (_, i) => i + 1).filter(k => !used.has(k));
+  const ready = hand.length === 0;
+  const order = () => [...ids].sort((a, b) => assign[a] - assign[b]);
+  const setCur = p => store.set({ ...g, current: { ...c, ...p } });
+
+  const tapSlot = id => {
+    if (!placing) return;
+    if (sel) { setAssign({ ...assign, [id]: sel }); setSel(null); }
+    else if (assign[id]) { const a = { ...assign }; delete a[id]; setAssign(a); }
+  };
+  const submit = () => {
+    if (isMaster) return setCur({ status: "GUESSING", masterOrder: order() });
+    const o = order(), score = matches(o, c.masterOrder);
+    store.set({ ...g, totals: { ...g.totals, [me]: g.totals[me] + score }, current: { ...c, status: "REVEALED", guessOrder: o, score } });
+  };
+
+  // What each side of a row shows: { n, up, empty }
+  const side = (id, who) => {
+    const mine = (who === "m") === isMaster;               // is this my column?
+    const mNum = c.masterOrder ? c.masterOrder.indexOf(id) + 1 : 0;
+    const gNum = c.guessOrder ? c.guessOrder.indexOf(id) + 1 : 0;
+    if (st === "REVEALED") return { n: who === "m" ? mNum : gNum, up: shown };
+    if (mine && placing) return assign[id] ? { n: assign[id], up: true } : { empty: true };
+    if (who === "m" && st === "GUESSING") return { n: isMaster ? mNum : 0, up: false };
+    return { empty: true };
+  };
+
+  let msg = "";
+  if (st === "RANKING") msg = isMaster ? "Tap a number, then tap a topic slot. Rank from 1 (first) to " + n + " (worst)." : "The master is ranking the topics…";
+  else if (st === "GUESSING") msg = !isMaster ? "Master's cards are locked. Guess their ranking." : "Ranking locked. Your partner is guessing…";
+  else msg = shown ? "" : "Flipping cards…";
+
+  const delay = i => shown ? i * 0.25 : 0;
+  const Cell = ({ id, who, i }) => {
+    const s = side(id, who);
+    if (s.empty) return html`<div className="cell"><button className="slot" aria-label="Place card" onClick=${() => who === (isMaster ? "m" : "g") && tapSlot(id)} /></div>`;
+    const badge = st === "REVEALED" && who === "g" && shown && html`<span className=${"bd " + (c.masterOrder.indexOf(id) === c.guessOrder.indexOf(id) ? "ok" : "no")} style=${{ "--d": delay(i) + .6 + "s" }}>${c.masterOrder.indexOf(id) === c.guessOrder.indexOf(id) ? "✓" : "✕"}</span>`;
+    return html`<div className="cell" onClick=${() => who === (isMaster ? "m" : "g") && tapSlot(id)}><${Card} n=${s.n} up=${s.up} back=${who} d=${st === "REVEALED" ? delay(i) : 0} />${badge}</div>`;
+  };
+
+  let body;
+  if (!me) {
+    body = html`<div className="pick"><p className="msg">Who are you this round? Roles swap every round. Your partner picks the other one.</p>
+      <button className="btn" onClick=${() => pick("p1")}>I'm the master</button>
+      <button className="btn alt" onClick=${() => pick("p2")}>I'm the guesser</button></div>`;
+  } else {
+    body = html`<div>
+      ${msg && html`<p className="msg">${msg}</p>`}
+      <div className="head"><span>${isMaster ? "You · master" : "Master"}</span><span>${c.prompt}</span><span>${!isMaster ? "You · guesser" : "Guesser"}</span></div>
+      ${c.items.map((it, i) => html`<div className="row" key=${it.id}>
+        <${Cell} id=${it.id} who="m" i=${i} />
+        <div className=${"topic" + (st === "REVEALED" && shown && c.masterOrder.indexOf(it.id) === c.guessOrder.indexOf(it.id) ? " ok" : "")}>${it.label}</div>
+        <${Cell} id=${it.id} who="g" i=${i} /></div>`)}
+      ${placing && html`<div>
+        <div className="hand">${hand.map(k => html`<div key=${k} className=${"cell" + (sel === k ? " sel" : "")} onClick=${() => setSel(sel === k ? null : k)}><${Card} n=${k} up=${true} back=${isMaster ? "m" : "g"} /></div>`)}</div>
+        <button className="btn" disabled=${!ready} onClick=${submit}>${isMaster ? "Lock in my ranking" : "Submit final guess"}</button>
+        ${isMaster && html`<div><button className="btn alt sm" onClick=${() => setCur(randomPrompt(c.prompt))}>Shuffle prompt</button><${CustomPrompt} onApply=${r => setCur(r)} /></div>`}</div>`}
+      ${st === "REVEALED" && shown && html`<div>
+        <div className="big" style=${{ "--d": n * .25 + "s" }}>${c.score} / ${n}</div>
+        <p className="hint" style=${{ marginTop: 8 }}>${c.score === n ? "Perfect. You two are in sync." : c.score >= 3 ? "Pretty close!" : "Not even close. Time to talk."}</p>
+        <button className="btn" onClick=${() => store.set({ round: g.round + 1, totals: g.totals, current: randomPrompt(c.prompt) })}>Next round (roles swap)</button></div>`}
+    </div>`;
+  }
+
+  return html`<div className="wrap">
+    <div className="top"><h1>First to Worst</h1>${me && html`<div className="score">Round ${g.round} · You ${g.totals[me]} – ${g.totals[other]}</div>`}</div>
+    ${store.mode === "local" && html`<div className="mode">Local test mode: open this page in a second tab. Add a Firebase config to play across devices.</div>`}
+    ${body}
+    <p className="foot">Room: ${ROOM}<br/>
+      <button onClick=${() => { localStorage.removeItem("ftw:me:" + ROOM); setMe(null); }}>Change role</button> ·
+      <button onClick=${() => confirm("Reset the whole game?") && store.set(newGame())}>Reset game</button></p>
+  </div>`;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+</script>
+</body>
+</html>
