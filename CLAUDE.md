@@ -16,6 +16,7 @@ except where `references/instructions.md` overrides it — scoring in particular
 npm run dev      # dev server at localhost:3000
 npm run build    # production build (also type-checks)
 npm run lint     # eslint
+npm run test     # vitest (lib/*.test.ts)
 npx tsc --noEmit # type-check only
 ```
 
@@ -32,13 +33,35 @@ npx tsc --noEmit # type-check only
 - Local store (no Firebase env vars) and Firebase store share one interface so the UI
   never knows which backend is active.
 
+## Store design notes
+
+- `lib/store/types.ts` defines `Store<T>`: `subscribe(onChange)`, `getSnapshot()`,
+  `set(value)`, `transaction(updater)`. Shaped to drop straight into React's
+  `useSyncExternalStore` (not a plain `useEffect` + `setState`, which the project's
+  ESLint config flags as `react-hooks/set-state-in-effect`).
+- `lib/store/localStore.ts` is generic (`createLocalStore<T>(key, { crossTab })`) and
+  used for both the shared game state (`crossTab: true`, the default — syncs across
+  tabs/devices via the `storage` event, which is the whole point of local test mode)
+  and the per-tab "which role am I" value (`crossTab: false`). Two tabs in the same
+  browser share one `localStorage`, so without `crossTab: false` a role pick in one
+  tab would silently reassign the other tab's role too — this mirrors the
+  prototype's one-time-read behavior for role identity on purpose.
+- `transaction()` is how invalid/duplicate state transitions become safe no-ops
+  (double clicks, double tabs): the updater calls into `lib/game.ts`, which throws on
+  an invalid transition; the store layer catches that and returns `undefined` to
+  abort without writing. Firebase's real `transaction()` (Stage 3) aborts the same
+  way when the updater returns `undefined`.
+
 ## Status
 
 - **Stage 1 (done):** static card-table UI in local component state, including the
-  3D flip animation and the full RANKING → GUESSING → REVEALED loop (role-switch via
-  "Change role" to play both sides in one tab). No `lib/game.ts`, no store, no
-  persistence yet — intentional, arrives in Stage 2/3.
-- Stage 2: game logic/state machine + localStorage persistence + tests.
-- Stage 3: Firebase backend with transactions.
+  3D flip animation and the full RANKING → GUESSING → REVEALED loop.
+- **Stage 2 (done):** `lib/scoring.ts` and `lib/game.ts` as pure, tested functions
+  (18 Vitest cases: match scoring incl. the all-permutations "4 is impossible" check,
+  and valid/invalid state transitions). UI now reads/writes through
+  `lib/store` (localStorage + `storage` event), verified across two real tabs
+  with Playwright: independent role pick, live cross-tab sync, and state restored
+  after a hard refresh. Still one hardcoded prompt - the bank is Stage 4.
+- Stage 3: Firebase backend with transactions, same `Store<T>` interface.
 - Stage 4: prompt bank, custom prompts, round swap polish, a11y, reduced motion.
 - Stage 5: README (setup, deploy, rename, known limitations).
