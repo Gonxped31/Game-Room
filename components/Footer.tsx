@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 interface FooterProps {
   room: string;
   /** e.g. "Sam · Master", or undefined before a name/role is picked. */
@@ -24,7 +26,11 @@ export default function Footer({ room, identity, onReset, onNewRoom }: FooterPro
         className={linkClass}
       >
         New room
-      </button>
+      </button>{" "}
+      ·{" "}
+      <Link href="/" className={linkClass}>
+        All games
+      </Link>
     </p>
   );
 }

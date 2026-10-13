@@ -8,9 +8,10 @@ to Worst is the first game; see the Status section for others as they're added.
 
 ## Multi-game architecture
 
-- **Routing**: `/` is the game picker (built in the stage that adds it - see Status).
-  Each game lives at `/<slug>` (e.g. `/ftw`), with its own `#roomcode` hash exactly
-  like the original single-game app had at `/`.
+- **Routing**: `/` is the game picker (`lib/games/registry.ts` + `app/page.tsx`, a
+  server component with no session logic of its own). Each game lives at `/<slug>`
+  (e.g. `/ftw`), with its own `#roomcode` hash exactly like the original
+  single-game app had at `/`.
 - **`lib/session/`** - game-agnostic, shared by every game, changes rarely:
   - `types.ts` - `Role` (`"p1"|"p2"`, the two seats in any 1v1 game - never
     renamed per-game; a game maps its own role names, e.g. "Master"/"Guesser" or
@@ -233,5 +234,13 @@ game-agnostic.
   regression script (cross-tab sync, names/stickers, invite/recap, drag-drop,
   reduced-motion) against `/ftw` and a real-Firebase two-pair/four-player test
   confirming the new nested `games/{room}/ftw` path works and isolates correctly.
-  `/` is a temporary client-side redirect to `/ftw` (preserving the room hash)
-  until the real game picker lands in the next stage.
+- **Multi-game platform Stage 2 (done):** `lib/games/registry.ts` (`APP_TITLE`
+  "Game Night" + a flat `GAMES` array) backs a new `app/page.tsx` - a server
+  component listing games as link cards to `/<slug>`, replacing the Stage 1
+  redirect. `Footer` gained an "All games" link back to the picker. Root
+  `metadata.title` switched from FTW's `GAME_TITLE` to the platform's
+  `APP_TITLE`. Verified: `/` renders the picker with no redirect, clicking into
+  First to Worst lands on a fresh room, "All games" returns to the picker, and
+  the browser back button restores the room (hash intact) - standard navigation
+  history, no special-casing needed. Re-ran the FTW regression suite to confirm
+  the Footer addition didn't break anything.
