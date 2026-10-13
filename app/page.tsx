@@ -14,6 +14,7 @@ import {
   submitGuess,
 } from "@/lib/game";
 import { randomRound } from "@/lib/prompts";
+import { generateRoomCode } from "@/lib/room";
 import { createGameStore } from "@/lib/store";
 import { createLocalStore } from "@/lib/store/localStore";
 import Header from "@/components/Header";
@@ -21,13 +22,20 @@ import Footer from "@/components/Footer";
 import RolePicker from "@/components/RolePicker";
 import RoundBoard from "@/components/RoundBoard";
 import RoleStickers from "@/components/RoleStickers";
+import InviteLinkBanner from "@/components/InviteLinkBanner";
+import SessionRecap from "@/components/SessionRecap";
 
 const DEFAULT_ROOM = "our-private-room-id";
-const noopSubscribe = () => () => {};
+
+function subscribeToHash(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
 const getRoomSnapshot = () => (typeof window !== "undefined" ? window.location.hash.slice(1) || DEFAULT_ROOM : DEFAULT_ROOM);
 
 export default function Page() {
-  const room = useSyncExternalStore(noopSubscribe, getRoomSnapshot, () => DEFAULT_ROOM);
+  const room = useSyncExternalStore(subscribeToHash, getRoomSnapshot, () => DEFAULT_ROOM);
 
   const gameStore = useMemo(() => createGameStore(room), [room]);
   const game = useSyncExternalStore(gameStore.subscribe, gameStore.getSnapshot, () => null);
@@ -35,8 +43,18 @@ export default function Page() {
   const meStore = useMemo(() => createLocalStore<Role | null>(`ftw:me:${room}`, { crossTab: false }), [room]);
   const me = useSyncExternalStore(meStore.subscribe, meStore.getSnapshot, () => null);
 
-  // The first client to open an empty room creates it.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    // A visitor with no #room in the URL at all gets their own fresh private
+    // room instead of silently landing in the shared default - important now
+    // that multiple pairs can play at once. Bail before touching gameStore
+    // (still bound to the DEFAULT_ROOM placeholder this render) so we never
+    // read or write that shared room on the way to the real one.
+    if (!window.location.hash) {
+      window.location.hash = generateRoomCode();
+      return;
+    }
+    // The first client to open an empty (real) room creates it.
     if (game !== null) return;
     gameStore.transaction((current) => (current ? undefined : newGame(randomRound())));
   }, [game, gameStore]);
@@ -47,6 +65,7 @@ export default function Page() {
   const placing = game != null && me != null && ((status === "RANKING" && isMaster) || (status === "GUESSING" && !isMaster));
 
   const names = game?.names ?? {};
+  const bothJoined = Boolean(names.p1 && names.p2);
   const masterName = (game && names[masterOf(game.round)]) || "Master";
   const guesserName = (game && names[guesserOf(game.round)]) || "Guesser";
   const myRoleLabel = me != null ? (isMaster ? "Master" : "Guesser") : undefined;
@@ -116,6 +135,11 @@ export default function Page() {
     gameStore.set(newGame(randomRound()));
   };
 
+  const handleNewRoom = () => {
+    meStore.set(null);
+    window.location.hash = generateRoomCode();
+  };
+
   return (
     <main className="mx-auto max-w-[520px] px-4 pb-7 pt-3.5">
       <Header
@@ -132,7 +156,11 @@ export default function Page() {
         <RolePicker names={names} onPick={handlePick} />
       ) : (
         <>
-          {names.p1 && names.p2 ? <RoleStickers masterName={masterName} guesserName={guesserName} isMaster={isMaster} /> : null}
+          {bothJoined ? (
+            <RoleStickers masterName={masterName} guesserName={guesserName} isMaster={isMaster} />
+          ) : (
+            <InviteLinkBanner />
+          )}
           <RoundBoard
             key={`${game.round}-${status}-${game.current.items.map((i) => i.id).join("|")}`}
             status={game.current.status}
@@ -151,6 +179,7 @@ export default function Page() {
             onNextRound={handleNextRound}
             onChangePrompt={handleChangePrompt}
           />
+          <SessionRecap history={game.history ?? []} names={names} />
         </>
       )}
 
@@ -159,6 +188,7 @@ export default function Page() {
         identity={myRoleLabel ? (myName ? `${myName} · ${myRoleLabel}` : myRoleLabel) : undefined}
         onChangeRole={() => meStore.set(null)}
         onReset={handleResetGame}
+        onNewRoom={handleNewRoom}
       />
     </main>
   );

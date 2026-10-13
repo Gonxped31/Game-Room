@@ -49,6 +49,11 @@ describe("newGame", () => {
     const game = freshGame();
     expect(game.names).toEqual({});
   });
+
+  it("starts with empty history", () => {
+    const game = freshGame();
+    expect(game.history).toEqual([]);
+  });
 });
 
 describe("setName", () => {
@@ -140,6 +145,13 @@ describe("submitGuess", () => {
     expect(revealed.totals.p1).toBe(0);
   });
 
+  it("appends a record to history", () => {
+    const game = freshGame();
+    const order = game.current.items.map((i) => i.id);
+    const revealed = submitGuess(lockIn(game, order), order);
+    expect(revealed.history).toEqual([{ round: 1, prompt: "Pizza toppings", score: 5, master: "p1" }]);
+  });
+
   it("rejects submitting a guess when not GUESSING", () => {
     const game = freshGame();
     const order = game.current.items.map((i) => i.id);
@@ -184,6 +196,20 @@ describe("nextRound", () => {
     expect(round2.current.masterOrder).toBeUndefined();
     expect(round2.current.guessOrder).toBeUndefined();
     expect(round2.usedPrompts).toEqual(["Pizza toppings", "Vacation spots"]);
+    expect(round2.history).toEqual([{ round: 1, prompt: "Pizza toppings", score: 5, master: "p1" }]);
+  });
+
+  it("accumulates one history record per completed round", () => {
+    const game = freshGame();
+    const order1 = game.current.items.map((i) => i.id);
+    const revealed1 = submitGuess(lockIn(game, order1), order1);
+    const round2 = nextRound(revealed1, makeRound("Vacation spots", ["Beach", "Mountains", "Big city", "Countryside", "Cruise"]));
+    const order2 = [...round2.current.items.map((i) => i.id)].reverse(); // fully reversed -> score 1
+    const revealed2 = submitGuess(lockIn(round2, round2.current.items.map((i) => i.id)), order2);
+    expect(revealed2.history).toEqual([
+      { round: 1, prompt: "Pizza toppings", score: 5, master: "p1" },
+      { round: 2, prompt: "Vacation spots", score: 1, master: "p2" },
+    ]);
   });
 
   it("rejects advancing before the round is REVEALED", () => {

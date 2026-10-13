@@ -81,6 +81,33 @@ npx tsc --noEmit # type-check only
   just the local `ftw:me:<room>` key, reloading, picking the existing name, resuming
   mid-round) - zero console errors; all existing regression scripts' selectors were
   updated for the new aria-labels and name-entry flow and re-verified passing.
+- **Invite links + multi-pair rooms.** A visitor with no `#room` in the URL at all used
+  to silently land in the shared `"our-private-room-id"` default - fine for one pair,
+  but two unrelated pairs would collide in the same room. `lib/room.ts`'s
+  `generateRoomCode()` (6 chars, ambiguous characters like `i`/`l`/`0`/`o` excluded)
+  now gets assigned to `window.location.hash` on first visit instead, via a `useEffect`
+  in `app/page.tsx` that deliberately checks for the empty-hash case *before* touching
+  `gameStore` - otherwise the first render (still bound to the DEFAULT_ROOM placeholder)
+  would read/write the shared room for one tick before redirecting. The room's
+  `useSyncExternalStore` subscription now listens to the real `hashchange` event
+  (replacing a `noopSubscribe`), so both this auto-redirect and the new "New room"
+  footer link (generates a fresh code, clears local `me`) actually trigger a re-render.
+  `InviteLinkBanner` (clipboard copy of `window.location.href`, with a 2s "Copied!"
+  confirmation) shows in the sticker's slot whenever the room doesn't have both
+  players' names yet - `RoleStickers` takes over once it does. Verified: a bare visit
+  never touches `games/our-private-room-id`, two fully isolated Playwright contexts
+  visiting with no hash land in two different rooms and play simultaneously against
+  the real Firebase project with no data leaking between them (confirmed via each
+  room's footer), and clipboard-copy/`New room` both work end-to-end.
+- **Session recap.** `GameState.history` (`RoundRecord[]`: round, prompt, score, who was
+  master) gets one entry appended in `submitGuess` - the same place `totals` already
+  updates - and is preserved through `nextRound`/`setPrompt` like every other field,
+  reset to `[]` by `newGame`. `SessionRecap` renders it as a collapsible `<details>`
+  list ("Session recap (N rounds)") above the footer, each row showing the prompt in
+  bold and round/master/score underneath - split across two lines after a single-line
+  version wrapped awkwardly at 375px. Tested in `lib/game.test.ts` (one record per
+  round, correct master/score, survives a round transition) and visually confirmed
+  with Playwright.
 
 ## Status
 

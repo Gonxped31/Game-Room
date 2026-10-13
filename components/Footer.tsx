@@ -4,24 +4,31 @@ interface FooterProps {
   identity?: string;
   onChangeRole: () => void;
   onReset: () => void;
+  onNewRoom: () => void;
 }
 
-export default function Footer({ room, identity, onChangeRole, onReset }: FooterProps) {
+const linkClass = "cursor-pointer border-0 bg-transparent text-inherit underline";
+
+export default function Footer({ room, identity, onChangeRole, onReset, onNewRoom }: FooterProps) {
   return (
     <p className="mt-5.5 text-center text-[13px] opacity-85">
       Room: {room}
       {identity ? ` · ${identity}` : null}
       <br />
-      <button type="button" onClick={onChangeRole} className="cursor-pointer border-0 bg-transparent text-inherit underline">
+      <button type="button" onClick={onChangeRole} className={linkClass}>
         Change role
+      </button>{" "}
+      ·{" "}
+      <button type="button" onClick={() => confirm("Reset the whole game?") && onReset()} className={linkClass}>
+        Reset game
       </button>{" "}
       ·{" "}
       <button
         type="button"
-        onClick={() => confirm("Reset the whole game?") && onReset()}
-        className="cursor-pointer border-0 bg-transparent text-inherit underline"
+        onClick={() => confirm("Leave this room and start a brand new one?") && onNewRoom()}
+        className={linkClass}
       >
-        Reset game
+        New room
       </button>
     </p>
   );

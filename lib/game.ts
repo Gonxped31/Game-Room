@@ -30,6 +30,15 @@ export interface GameState {
   usedPrompts: string[];
   /** Display names the two players picked for themselves, keyed by p1/p2 - not by role, since role rotates every round. */
   names: Partial<Record<Role, string>>;
+  /** One entry per completed (REVEALED) round this session, oldest first - the session recap. */
+  history: RoundRecord[];
+}
+
+export interface RoundRecord {
+  round: number;
+  prompt: string;
+  score: number;
+  master: Role;
 }
 
 /** Records a prompt as seen this session, without duplicating an existing entry. */
@@ -75,7 +84,7 @@ function isValidOrder(order: string[] | undefined, items: RoundItem[]): order is
 }
 
 export function newGame(firstRound: CurrentRound): GameState {
-  return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], names: {} };
+  return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], names: {}, history: [] };
 }
 
 /** RANKING -> GUESSING: the master locks in their ranking. */
@@ -103,10 +112,12 @@ export function submitGuess(game: GameState, order: string[]): GameState {
   }
   const score = matchCount(current.masterOrder, order);
   const guesser = guesserOf(game.round);
+  const record: RoundRecord = { round: game.round, prompt: current.prompt, score, master: masterOf(game.round) };
   return {
     ...game,
     totals: { ...game.totals, [guesser]: game.totals[guesser] + score },
     current: { ...current, status: "REVEALED", guessOrder: order, score },
+    history: [...(game.history ?? []), record],
   };
 }
 
@@ -133,5 +144,6 @@ export function nextRound(game: GameState, round: CurrentRound): GameState {
     current: round,
     usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt),
     names: game.names,
+    history: game.history,
   };
 }

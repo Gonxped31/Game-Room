@@ -7,12 +7,15 @@ guess that ranking; both are revealed and scored. Roles swap every round, so two
 "sticker" badges always show who's master and who's guesser *this* round, with yours
 highlighted.
 
-No login, no accounts, no lobby - you share a link, you're in. The first time each of
-you opens it you type your name; after that, the game remembers who's who and exactly
-where you left off, even after closing the browser or restarting your computer -
-because the whole session (round, scores, names, everything) lives in the shared room,
-not on your device. See [Known limitations](#known-limitations) below for what the
-no-login trade-off costs.
+No login, no accounts, no lobby - opening the app with no link at all gives you a fresh
+private room with a "Copy invite link" button to send your partner; opening someone
+else's link drops you straight into their room. The first time each of you opens a room
+you type your name; after that, the game remembers who's who and exactly where you left
+off, even after closing the browser or restarting your computer - because the whole
+session (round, scores, names, the round-by-round recap, everything) lives in the
+shared room, not on your device. Any number of pairs can play at once - each room is
+independent. See [Known limitations](#known-limitations) below for what the no-login
+trade-off costs.
 
 ## Quick start (local test mode)
 
@@ -25,8 +28,9 @@ npm install
 npm run dev
 ```
 
-Open two tabs on [http://localhost:3000](http://localhost:3000) (same URL, same `#room`
-hash) and pick opposite roles in each.
+Open [http://localhost:3000](http://localhost:3000) - it'll redirect you to a random
+`#room` code. Copy that URL into a second tab (or use "Copy invite link" in-app) and
+name yourselves differently in each tab to play both sides.
 
 ## Playing across devices (Firebase)
 
