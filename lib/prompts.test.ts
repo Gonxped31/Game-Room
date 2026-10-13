@@ -18,6 +18,20 @@ describe("PROMPTS", () => {
     const prompts = PROMPTS.map((p) => p.prompt);
     expect(new Set(prompts).size).toBe(prompts.length);
   });
+
+  it("tags every prompt with a non-empty dev-only group", () => {
+    for (const { prompt, group } of PROMPTS) {
+      expect(group, `"${prompt}" group`).toBeTruthy();
+    }
+  });
+
+  it("never places more than 2 prompts of the same group next to each other", () => {
+    let run = 1;
+    for (let i = 1; i < PROMPTS.length; i++) {
+      run = PROMPTS[i].group === PROMPTS[i - 1].group ? run + 1 : 1;
+      expect(run, `run of "${PROMPTS[i].group}" ending at index ${i}`).toBeLessThanOrEqual(2);
+    }
+  });
 });
 
 describe("randomRound", () => {
