@@ -120,7 +120,17 @@ export default function RoundBoard({
       window.removeEventListener("pointercancel", onUp);
       if (!dragging) return; // let the native click fire for a plain tap
       setGhost(null);
+      // Suppresses the synthetic click a same-element release would still
+      // fire (so it doesn't re-toggle selection on top of the drop). When
+      // the drag ends over a DIFFERENT element - the normal case - no click
+      // ever fires at all, so nothing would otherwise clear this flag; a
+      // stale `true` would then silently swallow the next unrelated tap.
+      // Self-clear on the next tick: a same-element click (if any) is
+      // dispatched synchronously before this runs, so it's still caught.
       suppressNextClickRef.current = true;
+      setTimeout(() => {
+        suppressNextClickRef.current = false;
+      }, 0);
       const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>("[data-drop-id]");
       const dropId = target?.dataset.dropId;
       if (dropId) {
