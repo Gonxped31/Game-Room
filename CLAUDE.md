@@ -109,6 +109,48 @@ npx tsc --noEmit # type-check only
   round, correct master/score, survives a round transition) and visually confirmed
   with Playwright.
 
+## UI polish round (post-launch)
+
+- **Removed "Change role" from the footer.** It was a dev-testing affordance (playing
+  both sides in one tab) with no real use once two people are on two real devices - the
+  "Welcome back, which one are you?" screen in `RolePicker` already handles a device
+  that's lost its local `me` (new device, cleared storage) without it.
+- **Board withheld until both players have joined.** `app/page.tsx` now renders
+  `InviteLinkBanner` instead of `RoundBoard`/`SessionRecap` whenever `!bothJoined`, so a
+  lone first player can't start ranking before their partner is actually in the room.
+- **Primary action pinned to the screen, not just "stuck" on scroll.** `RoundBoard`'s
+  hand+submit (while placing) and "Next round" (once revealed) render in a
+  `position: fixed; bottom: 0` bar (`fixedBar`) instead of flowing at the end of a tall
+  card table - `position: sticky` was tried first but only locks in place once you've
+  scrolled far enough to reach it, which doesn't satisfy "no scrolling needed at all."
+  Because a `fixed` bar is pinned to the *viewport*, not to `RoundBoard`'s own box, it
+  also covers whatever else is at the bottom of the screen once scrolled all the way
+  down - including the Footer, which renders after `RoundBoard` in `app/page.tsx`. The
+  bottom-clearance padding for this therefore lives on `<main>` in `app/page.tsx`
+  (`hasFixedBar` computed there from `status`/`placing`/`bothJoined`), not inside
+  `RoundBoard` - padding added only inside `RoundBoard` left the Footer's "New room"
+  link unclickable once scrolled to the bottom, caught by a Playwright regression run
+  ("element intercepts pointer events"). Card/slot sizing also shrank from
+  `min(17vw,76px)` to `min(15vw,68px)` throughout (`CardTable`, `Hand`) specifically so
+  5 hand cards always fit on one row even at 375px - at the old size they wrapped to two
+  rows once all 5 were in hand, which both added height and made the fixed bar's own
+  height vary (181px vs 314px), compounding the clearance problem.
+- **Drag-and-drop to place cards**, additive to tap-to-place (not a replacement - if a
+  gesture never exceeds an 8px threshold it falls through as a normal click/select).
+  Built with native Pointer Events in `RoundBoard.tsx`'s `handleDragStart`, not the
+  HTML5 Drag and Drop API, which doesn't fire on touchscreens at all. `CardSlot` exposes
+  `data-drop-id` (only when a slot is actually interactive, mirroring the existing
+  `onClick` gating) so the drop handler can hit-test via
+  `document.elementFromPoint(...).closest("[data-drop-id]")` instead of threading refs
+  through `CardTable`. Dropping on an already-filled "mine" slot overwrites it, and the
+  displaced number simply reappears in hand (derived automatically, same as removing
+  any other assignment). `Hand` cards get `touch-action: none` so a real touch-drag
+  doesn't also scroll the page. Verified with real mouse-event sequences
+  (move/down/move/move/up, not just `.click()`): a plain tap still selects (no
+  regression), a drag places a card, a drag onto a filled slot swaps and returns the
+  old number to hand, and a ranking mixing drag + tap placements locks in successfully
+  - zero console errors throughout, and all prior regression scripts still pass.
+
 ## Status
 
 - **Stage 1 (done):** static card-table UI in local component state, including the

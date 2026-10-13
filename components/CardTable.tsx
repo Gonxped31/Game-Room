@@ -39,8 +39,8 @@ function describeCell(cell: CellState): string {
   return state;
 }
 
-function cellProps(cell: CellState, back: CardBack, ariaLabel: string, onClick?: () => void) {
-  const common = { back, ariaLabel, onClick };
+function cellProps(cell: CellState, back: CardBack, ariaLabel: string, dropId: string, onClick?: () => void) {
+  const common = { back, ariaLabel, onClick, dropId };
   if (cell.kind === "empty") return { empty: true as const, ...common };
   return { empty: false as const, n: cell.n, up: cell.up, delay: cell.delay, badge: cell.badge, badgeDelay: cell.badgeDelay, ...common };
 }
@@ -48,24 +48,25 @@ function cellProps(cell: CellState, back: CardBack, ariaLabel: string, onClick?:
 export default function CardTable({ prompt, headLeft, headRight, rows, onTapMaster, onTapGuesser }: CardTableProps) {
   return (
     <div>
-      <div className="mb-2 grid grid-cols-[min(17vw,76px)_1fr_min(17vw,76px)] items-center gap-2.5 text-center text-[13px] font-semibold leading-tight">
+      <div className="mb-1.5 grid grid-cols-[min(15vw,68px)_1fr_min(15vw,68px)] items-center gap-2 text-center text-[13px] font-semibold leading-tight">
         <span>{headLeft}</span>
         <span className="text-[15px]">{prompt}</span>
         <span>{headRight}</span>
       </div>
       {rows.map((row) => (
-        <div key={row.id} className="mb-3 grid grid-cols-[min(17vw,76px)_1fr_min(17vw,76px)] items-center gap-2.5">
+        <div key={row.id} className="mb-2 grid grid-cols-[min(15vw,68px)_1fr_min(15vw,68px)] items-center gap-2">
           <CardSlot
             {...cellProps(
               row.master,
               "m",
               `${headLeft}, ${row.label}: ${describeCell(row.master)}`,
+              row.id,
               onTapMaster && (() => onTapMaster(row.id)),
             )}
           />
           <div
             className={
-              "grid min-h-[calc(min(17vw,76px)*1.5)] place-items-center rounded-[9px] bg-white p-2 text-center font-bold uppercase text-black shadow-[0_2px_0_rgba(0,0,0,.25),0_4px_10px_rgba(0,0,0,.25)] transition-[outline-color] duration-300" +
+              "grid min-h-[calc(min(15vw,68px)*1.4)] place-items-center rounded-[9px] bg-white p-2 text-center font-bold uppercase text-black shadow-[0_2px_0_rgba(0,0,0,.25),0_4px_10px_rgba(0,0,0,.25)] transition-[outline-color] duration-300" +
               (row.matched ? " outline outline-4 outline-[#B6FF3B]" : " outline outline-4 outline-transparent")
             }
             style={{ fontSize: "15px" }}
@@ -77,6 +78,7 @@ export default function CardTable({ prompt, headLeft, headRight, rows, onTapMast
               row.guesser,
               "g",
               `${headRight}, ${row.label}: ${describeCell(row.guesser)}`,
+              row.id,
               onTapGuesser && (() => onTapGuesser(row.id)),
             )}
           />

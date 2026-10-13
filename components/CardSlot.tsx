@@ -13,6 +13,8 @@ interface CardSlotProps {
   /** Omit to render a non-interactive slot (nothing happens here for this viewer right now). */
   onClick?: () => void;
   ariaLabel: string;
+  /** Item id exposed as data-drop-id when interactive, so a dragged hand card can be dropped here. */
+  dropId?: string;
 }
 
 const slotClass = "h-full w-full rounded-[9px] border-0 p-0";
@@ -27,12 +29,13 @@ export default function CardSlot({
   badgeDelay = 0,
   onClick,
   ariaLabel,
+  dropId,
 }: CardSlotProps) {
   const content = empty ? null : <CardFace n={n} up={up} back={back} delay={delay} />;
   const emptyStyle = empty ? "border-2 border-dashed border-white/60 bg-black/10 cursor-pointer" : "bg-transparent";
 
   return (
-    <div className="relative aspect-[2/3] w-full">
+    <div className="relative aspect-[2/3] w-full" data-drop-id={onClick ? dropId : undefined}>
       {onClick ? (
         <button type="button" aria-label={ariaLabel} onClick={onClick} className={`${slotClass} ${emptyStyle} cursor-pointer`}>
           {content}

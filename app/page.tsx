@@ -140,8 +140,16 @@ export default function Page() {
     window.location.hash = generateRoomCode();
   };
 
+  // RoundBoard's primary action renders in a bar fixed to the viewport
+  // bottom while placing or revealed, which would otherwise cover the
+  // Footer once scrolled all the way down (it's pinned to the screen, not
+  // the page, so it sits over whatever is currently at the bottom - not
+  // just RoundBoard's own last row). Reserve clearance for it here, after
+  // the Footer, rather than inside RoundBoard itself.
+  const hasFixedBar = bothJoined && (placing || status === "REVEALED");
+
   return (
-    <main className="mx-auto max-w-[520px] px-4 pb-7 pt-3.5">
+    <main className={`mx-auto max-w-[520px] px-4 pt-3.5 ${hasFixedBar ? "pb-52" : "pb-7"}`}>
       <Header
         round={me && game ? game.round : undefined}
         myScore={me && game ? game.totals[me] : undefined}
@@ -154,13 +162,11 @@ export default function Page() {
         </p>
       ) : !me ? (
         <RolePicker names={names} onPick={handlePick} />
+      ) : !bothJoined ? (
+        <InviteLinkBanner />
       ) : (
         <>
-          {bothJoined ? (
-            <RoleStickers masterName={masterName} guesserName={guesserName} isMaster={isMaster} />
-          ) : (
-            <InviteLinkBanner />
-          )}
+          <RoleStickers masterName={masterName} guesserName={guesserName} isMaster={isMaster} />
           <RoundBoard
             key={`${game.round}-${status}-${game.current.items.map((i) => i.id).join("|")}`}
             status={game.current.status}
@@ -186,7 +192,6 @@ export default function Page() {
       <Footer
         room={room}
         identity={myRoleLabel ? (myName ? `${myName} · ${myRoleLabel}` : myRoleLabel) : undefined}
-        onChangeRole={() => meStore.set(null)}
         onReset={handleResetGame}
         onNewRoom={handleNewRoom}
       />
