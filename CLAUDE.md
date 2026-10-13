@@ -62,6 +62,25 @@ npx tsc --noEmit # type-check only
   after that it cycles, still avoiding an immediate repeat of the very last prompt.
   Tested: a full 300-pick cycle has zero duplicates (`lib/prompts.test.ts`), and a
   60-shuffle Playwright run against the real UI came back with 60/60 unique prompts.
+- **Named players + master/guesser stickers.** `GameState.names` (`Partial<Record<Role,
+  string>>`, lib/game.ts's `setName`) holds each player's display name, keyed by p1/p2
+  (not by role, since role rotates every round) - so it's part of the shared room state,
+  not local storage, and survives closing the browser or switching devices. `RolePicker`
+  now asks for a name instead of "I'm the master"/"I'm the guesser": the first player to
+  open an empty room names themself and becomes p1, the second names themself and
+  becomes p2; if both names are already set (a device that lost its local `me`), it
+  instead shows "Welcome back! Which one are you?" with the two existing names - no
+  retyping. `RoleStickers` renders two small pill badges ("👑 Sam · Master", "🔎 Alex ·
+  Guesser") near the top of the board once both names exist, outlining whichever one is
+  the current viewer. Names also replace the generic "Master"/"Guesser" text in
+  `CardTable`'s column headers, `RoundBoard`'s status messages, and the footer identity
+  line, falling back to those generic words for any name not yet set. Verified with a
+  Playwright run across two tabs naming themselves live (names sync into the second
+  tab's RolePicker in real time via the already-crossTab game store), a role swap
+  flipping which sticker is highlighted, and the "new device" recovery flow (clearing
+  just the local `ftw:me:<room>` key, reloading, picking the existing name, resuming
+  mid-round) - zero console errors; all existing regression scripts' selectors were
+  updated for the new aria-labels and name-entry flow and re-verified passing.
 
 ## Status
 

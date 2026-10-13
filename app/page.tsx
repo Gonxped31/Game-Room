@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { GAME_TITLE, Role } from "@/lib/constants";
-import { type CurrentRound, lockIn, masterOf, newGame, nextRound as advanceRound, setPrompt, submitGuess } from "@/lib/game";
+import {
+  type CurrentRound,
+  guesserOf,
+  lockIn,
+  masterOf,
+  newGame,
+  nextRound as advanceRound,
+  setName,
+  setPrompt,
+  submitGuess,
+} from "@/lib/game";
 import { randomRound } from "@/lib/prompts";
 import { createGameStore } from "@/lib/store";
 import { createLocalStore } from "@/lib/store/localStore";
@@ -10,6 +20,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RolePicker from "@/components/RolePicker";
 import RoundBoard from "@/components/RoundBoard";
+import RoleStickers from "@/components/RoleStickers";
 
 const DEFAULT_ROOM = "our-private-room-id";
 const noopSubscribe = () => () => {};
@@ -35,9 +46,27 @@ export default function Page() {
   const other: Role | null = me === "p1" ? "p2" : me === "p2" ? "p1" : null;
   const placing = game != null && me != null && ((status === "RANKING" && isMaster) || (status === "GUESSING" && !isMaster));
 
+  const names = game?.names ?? {};
+  const masterName = (game && names[masterOf(game.round)]) || "Master";
+  const guesserName = (game && names[guesserOf(game.round)]) || "Guesser";
+  const myRoleLabel = me != null ? (isMaster ? "Master" : "Guesser") : undefined;
+  const myName = me != null ? names[me] : undefined;
+
   useEffect(() => {
     document.title = placing || (status === "REVEALED" && me) ? `▶ Your turn! · ${GAME_TITLE}` : GAME_TITLE;
   }, [placing, status, me]);
+
+  const handlePick = (role: Role, name: string) => {
+    meStore.set(role);
+    gameStore.transaction((current) => {
+      if (!current) return undefined;
+      try {
+        return setName(current, role, name);
+      } catch {
+        return undefined;
+      }
+    });
+  };
 
   const handleLockIn = (order: string[]) => {
     gameStore.transaction((current) => {
@@ -100,29 +129,34 @@ export default function Page() {
           Connecting to the room…
         </p>
       ) : !me ? (
-        <RolePicker onPick={(role) => meStore.set(role)} />
+        <RolePicker names={names} onPick={handlePick} />
       ) : (
-        <RoundBoard
-          key={`${game.round}-${status}-${game.current.items.map((i) => i.id).join("|")}`}
-          status={game.current.status}
-          isMaster={isMaster}
-          placing={placing}
-          prompt={game.current.prompt}
-          items={game.current.items}
-          usedPrompts={game.usedPrompts ?? []}
-          masterOrder={game.current.masterOrder ?? null}
-          guessOrder={game.current.guessOrder ?? null}
-          score={game.current.score ?? null}
-          onLockIn={handleLockIn}
-          onSubmitGuess={handleSubmitGuess}
-          onNextRound={handleNextRound}
-          onChangePrompt={handleChangePrompt}
-        />
+        <>
+          {names.p1 && names.p2 ? <RoleStickers masterName={masterName} guesserName={guesserName} isMaster={isMaster} /> : null}
+          <RoundBoard
+            key={`${game.round}-${status}-${game.current.items.map((i) => i.id).join("|")}`}
+            status={game.current.status}
+            isMaster={isMaster}
+            placing={placing}
+            prompt={game.current.prompt}
+            items={game.current.items}
+            masterName={masterName}
+            guesserName={guesserName}
+            usedPrompts={game.usedPrompts ?? []}
+            masterOrder={game.current.masterOrder ?? null}
+            guessOrder={game.current.guessOrder ?? null}
+            score={game.current.score ?? null}
+            onLockIn={handleLockIn}
+            onSubmitGuess={handleSubmitGuess}
+            onNextRound={handleNextRound}
+            onChangePrompt={handleChangePrompt}
+          />
+        </>
       )}
 
       <Footer
         room={room}
-        role={me ? (isMaster ? "Master" : "Guesser") : undefined}
+        identity={myRoleLabel ? (myName ? `${myName} · ${myRoleLabel}` : myRoleLabel) : undefined}
         onChangeRole={() => meStore.set(null)}
         onReset={handleResetGame}
       />

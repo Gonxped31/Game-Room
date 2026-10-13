@@ -28,12 +28,25 @@ export interface GameState {
    * size since an already-seen prompt is never re-added - see addUsedPrompt.
    */
   usedPrompts: string[];
+  /** Display names the two players picked for themselves, keyed by p1/p2 - not by role, since role rotates every round. */
+  names: Partial<Record<Role, string>>;
 }
 
 /** Records a prompt as seen this session, without duplicating an existing entry. */
 export function addUsedPrompt(usedPrompts: string[] | undefined, prompt: string): string[] {
   const used = usedPrompts ?? [];
   return used.includes(prompt) ? used : [...used, prompt];
+}
+
+const MAX_NAME_LENGTH = 24;
+
+/** Sets a player's display name. Always valid regardless of round status. */
+export function setName(game: GameState, role: Role, name: string): GameState {
+  const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
+  if (!trimmed) {
+    throw new Error("Name cannot be empty.");
+  }
+  return { ...game, names: { ...game.names, [role]: trimmed } };
 }
 
 export const masterOf = (round: number): Role => (round % 2 === 1 ? "p1" : "p2");
@@ -62,7 +75,7 @@ function isValidOrder(order: string[] | undefined, items: RoundItem[]): order is
 }
 
 export function newGame(firstRound: CurrentRound): GameState {
-  return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt] };
+  return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], names: {} };
 }
 
 /** RANKING -> GUESSING: the master locks in their ranking. */
@@ -114,5 +127,11 @@ export function nextRound(game: GameState, round: CurrentRound): GameState {
   if (game.current.status !== "REVEALED") {
     throw new Error(`Cannot advance to the next round while status is ${game.current.status}.`);
   }
-  return { round: game.round + 1, totals: game.totals, current: round, usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt) };
+  return {
+    round: game.round + 1,
+    totals: game.totals,
+    current: round,
+    usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt),
+    names: game.names,
+  };
 }

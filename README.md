@@ -3,10 +3,16 @@
 A private, 2-player ranking game. One round: a prompt and exactly 5 topic cards
 (e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies, Jalapenos). The
 **master** privately ranks the topics 1 (best) to 5 (worst); the **guesser** tries to
-guess that ranking; both are revealed and scored. Roles swap every round.
+guess that ranking; both are revealed and scored. Roles swap every round, so two
+"sticker" badges always show who's master and who's guesser *this* round, with yours
+highlighted.
 
-No login, no accounts, no lobby - you share a link, you're in. See
-[Known limitations](#known-limitations) below for what that trade-off costs.
+No login, no accounts, no lobby - you share a link, you're in. The first time each of
+you opens it you type your name; after that, the game remembers who's who and exactly
+where you left off, even after closing the browser or restarting your computer -
+because the whole session (round, scores, names, everything) lives in the shared room,
+not on your device. See [Known limitations](#known-limitations) below for what the
+no-login trade-off costs.
 
 ## Quick start (local test mode)
 
@@ -92,11 +98,14 @@ room's URL. That's it - see the limitation below for what that means in practice
   if four cards land in their correct spot, the fifth has nowhere else to go but its
   correct spot too. So you'll only ever see 0, 1, 2, 3, or 5. This is expected, not a
   bug - `lib/scoring.test.ts` checks it across all 120 permutations of 5 items.
-- **Role selection is per-tab, not per-room.** Two tabs in the same browser share one
-  `localStorage`, so "which role am I" is deliberately *not* synced across tabs
-  (`lib/store/localStore.ts`'s `crossTab: false` option) - otherwise picking "master"
-  in one tab would silently reassign the other tab's role too. In normal use (two
-  different people, two different devices) this doesn't come up.
+- **"Which one am I" is remembered per-tab, not per-room.** Two tabs in the same
+  browser share one `localStorage`, so that specific fact - not the player's name, which
+  lives in the shared room state - is deliberately *not* synced across tabs
+  (`lib/store/localStore.ts`'s `crossTab: false` option) - otherwise picking a name in
+  one tab would silently reassign the other tab's identity too. If a device loses that
+  memory (new device, cleared storage), it just asks "Welcome back! Which one are you?"
+  with the two names already on the room - no retyping, no lost progress. In normal use
+  (two different people, two different devices) this doesn't come up at all.
 
 ## Deploying to Vercel
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPrompt, submitGuess } from "./game";
+import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setName, setPrompt, submitGuess } from "./game";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 
@@ -43,6 +43,42 @@ describe("newGame", () => {
   it("seeds usedPrompts with the first round's prompt", () => {
     const game = freshGame();
     expect(game.usedPrompts).toEqual(["Pizza toppings"]);
+  });
+
+  it("starts with no names set", () => {
+    const game = freshGame();
+    expect(game.names).toEqual({});
+  });
+});
+
+describe("setName", () => {
+  it("sets a player's name, trimmed", () => {
+    const game = setName(freshGame(), "p1", "  Sam  ");
+    expect(game.names.p1).toBe("Sam");
+  });
+
+  it("does not touch the other player's name", () => {
+    const game = setName(setName(freshGame(), "p1", "Sam"), "p2", "Alex");
+    expect(game.names).toEqual({ p1: "Sam", p2: "Alex" });
+  });
+
+  it("rejects an empty (or whitespace-only) name", () => {
+    expect(() => setName(freshGame(), "p1", "   ")).toThrow();
+  });
+
+  it("is valid regardless of round status", () => {
+    const game = freshGame();
+    const order = game.current.items.map((i) => i.id);
+    const revealed = submitGuess(lockIn(game, order), order);
+    expect(() => setName(revealed, "p1", "Sam")).not.toThrow();
+  });
+
+  it("survives a round transition", () => {
+    const game = setName(setName(freshGame(), "p1", "Sam"), "p2", "Alex");
+    const order = game.current.items.map((i) => i.id);
+    const revealed = submitGuess(lockIn(game, order), order);
+    const round2 = nextRound(revealed, makeRound("Vacation spots", ["Beach", "Mountains", "Big city", "Countryside", "Cruise"]));
+    expect(round2.names).toEqual({ p1: "Sam", p2: "Alex" });
   });
 });
 

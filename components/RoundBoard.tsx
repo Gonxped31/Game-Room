@@ -20,6 +20,8 @@ interface RoundBoardProps {
   placing: boolean;
   prompt: string;
   items: Item[];
+  masterName: string;
+  guesserName: string;
   /** Every prompt seen this session, so "Shuffle prompt" doesn't repeat one - see lib/game.ts's usedPrompts. */
   usedPrompts: string[];
   masterOrder: string[] | null;
@@ -44,6 +46,8 @@ export default function RoundBoard({
   placing,
   prompt,
   items,
+  masterName,
+  guesserName,
   usedPrompts,
   masterOrder,
   guessOrder,
@@ -135,9 +139,9 @@ export default function RoundBoard({
   if (status === "RANKING") {
     msg = isMaster
       ? `Tap a number, then tap a topic slot. Rank from 1 (first) to ${ITEMS_PER_ROUND} (worst).`
-      : "The master is ranking the topics…";
+      : `${masterName} is ranking the topics…`;
   } else if (status === "GUESSING") {
-    msg = !isMaster ? "Master's cards are locked. Guess their ranking." : "Ranking locked. Your partner is guessing…";
+    msg = !isMaster ? "Master's cards are locked. Guess their ranking." : `Ranking locked. ${guesserName} is guessing…`;
   } else {
     msg = shown ? "" : "Flipping cards…";
   }
@@ -159,8 +163,8 @@ export default function RoundBoard({
 
       <CardTable
         prompt={prompt}
-        headLeft={isMaster ? "You · master" : "Master"}
-        headRight={!isMaster ? "You · guesser" : "Guesser"}
+        headLeft={isMaster ? `${masterName} (You)` : masterName}
+        headRight={!isMaster ? `${guesserName} (You)` : guesserName}
         rows={rows}
         onTapMaster={placing && isMaster ? tapSlot : undefined}
         onTapGuesser={placing && !isMaster ? tapSlot : undefined}
