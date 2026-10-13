@@ -90,4 +90,9 @@ npx tsc --noEmit # type-check only
   interactive, which also fixed a dead-button-in-tab-order a11y issue. Verified with a
   Playwright regression test (select a card, click the other column, confirm the card is
   still selected and unplaced).
-- Stage 5: README (setup, deploy, rename, known limitations).
+- **Stage 5 (done):** README covers Firebase setup, recommended Realtime Database rules
+  (`games/$roomId` read/write, deny-by-default everywhere else - matches what's already
+  configured on the project behind `.env.local`), the five env vars, known limitations
+  (no auth/anti-cheat, the score quirk, role selection being per-tab not per-room),
+  Vercel deployment, and renaming via `GAME_TITLE`. All 5 build stages from the brief
+  are now complete.

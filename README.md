@@ -1,10 +1,134 @@
 # First to Worst
 
-A private 2-player ranking game. Full setup docs land in Stage 5.
+A private, 2-player ranking game. One round: a prompt and exactly 5 topic cards
+(e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies, Jalapenos). The
+**master** privately ranks the topics 1 (best) to 5 (worst); the **guesser** tries to
+guess that ranking; both are revealed and scored. Roles swap every round.
+
+No login, no accounts, no lobby - you share a link, you're in. See
+[Known limitations](#known-limitations) below for what that trade-off costs.
+
+## Quick start (local test mode)
+
+No setup required. This runs entirely in `localStorage`, synced across tabs on one
+machine via the `storage` event - handy for development, not for playing with someone
+on a different device.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open two tabs on [http://localhost:3000](http://localhost:3000) (same URL, same `#room`
+hash) and pick opposite roles in each.
+
+## Playing across devices (Firebase)
+
+For two different people on two different devices, wire up a free Firebase Realtime
+Database. The app automatically switches to it once the env vars below are set - no
+code changes needed.
+
+1. Create a project at [the Firebase console](https://console.firebase.google.com/).
+2. In the project, add a **Web app** (the `</>` icon on the project overview page) and
+   copy the config it gives you.
+3. Still in the console, go to **Build > Realtime Database** and create a database
+   (any region is fine).
+4. Open the **Rules** tab for that database and paste in the rules from
+   [Database rules](#database-rules) below, then publish.
+5. Copy `.env.example` to `.env.local` and fill in the five values from step 2:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   | Variable | Where to find it |
+   | --- | --- |
+   | `NEXT_PUBLIC_FIREBASE_API_KEY` | Web app config: `apiKey` |
+   | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Web app config: `authDomain` |
+   | `NEXT_PUBLIC_FIREBASE_DATABASE_URL` | Web app config: `databaseURL` (also on the Realtime Database page) |
+   | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Web app config: `projectId` |
+   | `NEXT_PUBLIC_FIREBASE_APP_ID` | Web app config: `appId` |
+
+6. `npm run dev` and open the app - share the URL (with your `#room` hash) with the
+   other player.
+
+All five are `NEXT_PUBLIC_*` because the Firebase web config isn't a secret - it's
+meant to ship in client bundles, same as every Firebase web app. `.env.local` is
+git-ignored; never commit it. Leave any of the five unset and the app falls back to
+local test mode automatically.
+
+### Database rules
+
+This game has no accounts, so there's no user identity to check - the only thing rules
+can reasonably scope access to is the room path itself:
+
+```json
+{
+  "rules": {
+    "games": {
+      "$roomId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
+```
+
+This denies everything outside `/games/<roomId>` by default (Realtime Database rules
+don't cascade upward), and allows read/write to a specific room to anyone who has that
+room's URL. That's it - see the limitation below for what that means in practice.
+
+## Known limitations
+
+- **No auth, no anti-cheat.** Anyone with your room's URL (`/#roomname`) can read or
+  write that room's state - including seeing the master's ranking before it's revealed,
+  or overwriting the game. The room name is a shared secret, not a real access
+  control. This game is built on the assumption that you trust the person you're
+  playing with; it is not designed to resist a motivated cheater.
+- **The score quirk.** A round's score is the count of topic cards where the master
+  and guesser assigned the exact same number (1-5) - see `lib/scoring.ts`. Because of
+  how permutations work, a score of exactly 4 out of 5 is mathematically impossible:
+  if four cards land in their correct spot, the fifth has nowhere else to go but its
+  correct spot too. So you'll only ever see 0, 1, 2, 3, or 5. This is expected, not a
+  bug - `lib/scoring.test.ts` checks it across all 120 permutations of 5 items.
+- **Role selection is per-tab, not per-room.** Two tabs in the same browser share one
+  `localStorage`, so "which role am I" is deliberately *not* synced across tabs
+  (`lib/store/localStore.ts`'s `crossTab: false` option) - otherwise picking "master"
+  in one tab would silently reassign the other tab's role too. In normal use (two
+  different people, two different devices) this doesn't come up.
+
+## Deploying to Vercel
+
+1. Push this repo to GitHub (or GitLab/Bitbucket).
+2. Import it at [vercel.com/new](https://vercel.com/new).
+3. Add the five `NEXT_PUBLIC_FIREBASE_*` environment variables from your `.env.local`
+   in the Vercel project's **Settings > Environment Variables** (skip this to ship in
+   local-only mode, which won't work for two separate players).
+4. Deploy. Share `https://<your-app>.vercel.app/#your-room-name` with the other player.
+
+## Renaming the game
+
+The working title is deliberately generic and holds no logos, box art, or other
+assets from the commercial game this is inspired by. To rename it, change one
+constant:
+
+```ts
+// lib/constants.ts
+export const GAME_TITLE = "First to Worst"; // change this
+```
+
+It drives the page title, the header pill, and the browser tab's "your turn"
+indicator - nothing else needs to change.
+
+## Development
+
+```bash
+npm run dev      # dev server at localhost:3000
+npm run build    # production build (also type-checks)
+npm run lint     # eslint
+npm run test     # vitest (lib/*.test.ts - scoring, state transitions, prompt bank)
+```
+
+See `CLAUDE.md` for the project's architecture, conventions, and stage-by-stage build
+history.
