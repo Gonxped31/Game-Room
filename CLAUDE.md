@@ -244,3 +244,33 @@ game-agnostic.
   the browser back button restores the room (hash intact) - standard navigation
   history, no special-casing needed. Re-ran the FTW regression suite to confirm
   the Footer addition didn't break anything.
+- **Multi-game platform Stage 3 (done):** `lib/games/ecard/game.ts` - E-Card's
+  pure state machine, no UI yet (that's the next stage). `Role` (p1/p2, the seat)
+  stays distinct from `EcRole` ("emperor"|"slave", the in-game role this round) -
+  `emperorSeatOf`/`ecRoleOfSeat`/`seatOfEcRole` convert between them.
+  `emperorSeatOf(round)` alternates by 3-round block (`Math.ceil(round/3)`, odd
+  block → p1), giving the 6/6 split over 12 rounds. `initiativeOf(round)`
+  alternates by absolute round number (not by block), matching the brief's
+  "Round 1 Emperor first, Round 2 Slave first" example. A round's hands reset
+  every round (`buildHand`: 1 special + 4 citizens per side, deterministic IDs
+  like `emperor-c1`) - not carried across rounds. `placeCard(game, role, cardId)`
+  validates turn order via `nextToPlace` (derived from `initiative` + which
+  placements already exist, not stored separately) and hand membership; a
+  second placement always reveals+resolves immediately via a tiny win table
+  (citizen vs citizen is the *only* reachable tie, since each side only ever
+  holds one copy of its own special card - emperor-vs-emperor can't happen). A
+  tie discards both cards and must go through `continueRound` (fresh exchange,
+  same round, same initiative, already-shrunken hands); a decisive result
+  updates `totals`/`history` and must go through `nextRound` (fresh 5-card deal
+  per the next round's schedule) - calling the wrong one of the two for the
+  current result throws, same no-op-via-transaction pattern as FTW.
+  `isGameComplete` is true once round 12 resolves decisively; `nextRound`
+  rejects advancing past it. Going to the 5th/final exchange (both sides down to
+  just their special card after 4 citizen-ties) naturally falls out of the hand-
+  shrinking logic with no special-casing - emperor vs slave is always decisive.
+  24 Vitest cases: schedule correctness (6/6 split, block-vs-round distinction
+  for seats vs initiative), the inverse seat/role conversions, turn-order and
+  hand-membership rejection, tie vs each decisive outcome (and their payouts -
+  1x to Emperor, 5x to Slave), `continueRound`/`nextRound` guard rejection in
+  both directions, and a full 12-round simulated game checking the seat split
+  and that `totals` reconciles exactly against summed `history` payouts.
