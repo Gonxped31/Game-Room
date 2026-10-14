@@ -25,7 +25,7 @@ import SessionRecap from "@/components/ftw/SessionRecap";
 export default function FirstToWorstPage() {
   const createInitialState = useCallback(() => newGame(randomRound()), []);
   const session = useGameSession({ gameSlug: "ftw", createInitialState });
-  const { room, game, me, other, names, bothJoined, pickIdentity, transact, setGame, newRoom } = session;
+  const { room, game, me, other, names, bothJoined, online, pickIdentity, transact, setGame, newRoom } = session;
 
   const status = game?.current.status;
   const isMaster = game != null && me === masterOf(game.round);
@@ -75,8 +75,8 @@ export default function FirstToWorstPage() {
         <>
           <RoleStickers
             roles={[
-              { emoji: "👑", label: "Master", name: masterName, isYou: isMaster },
-              { emoji: "🔎", label: "Guesser", name: guesserName, isYou: !isMaster },
+              { emoji: "👑", label: "Master", name: masterName, isYou: isMaster, online: online[masterOf(game.round)] },
+              { emoji: "🔎", label: "Guesser", name: guesserName, isYou: !isMaster, online: online[guesserOf(game.round)] },
             ]}
           />
           <RoundBoard

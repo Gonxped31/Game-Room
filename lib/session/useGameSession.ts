@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createGameStore, type Store } from "@/lib/store";
 import { createLocalStore } from "@/lib/store/localStore";
 import { setIdentityName } from "./identity";
+import { HEARTBEAT_INTERVAL_MS, isOnline, type Presence } from "./presence";
 import { generateRoomCode } from "./room";
 import type { Role, WithIdentity } from "./types";
 
@@ -27,6 +28,8 @@ export interface GameSession<TState extends WithIdentity> {
   other: Role | null;
   names: Partial<Record<Role, string>>;
   bothJoined: boolean;
+  /** True if that seat has sent a heartbeat recently - the other tab's "online" indicator. Always false for a seat nobody has picked yet. */
+  online: Partial<Record<Role, boolean>>;
   /** Claims a seat + records a display name - the RolePicker's onPick target. */
   pickIdentity: (role: Role, name: string) => void;
   /** Applies a pure state transition via the store's transaction; a thrown error (invalid move) becomes a safe no-op. */
@@ -56,6 +59,59 @@ export function useGameSession<TState extends WithIdentity>(opts: {
 
   const meStore = useMemo(() => createLocalStore<Role | null>(`me:${gameSlug}:${room}`, { crossTab: false }), [room, gameSlug]);
   const me = useSyncExternalStore(meStore.subscribe, meStore.getSnapshot, () => null);
+
+  // Presence lives in its own store path, not the game's own state - it
+  // changes on a timer unrelated to gameplay, and mixing it into the game
+  // object would mean every heartbeat write has to merge-and-preserve
+  // whatever the current game state happens to be instead of just "I'm
+  // here". One presence store per room (not per game), so a player shows as
+  // online/offline the same way regardless of which game they're in.
+  const presenceStore = useMemo(() => createGameStore<Presence>(room, "presence"), [room]);
+  const presence = useSyncExternalStore(presenceStore.subscribe, presenceStore.getSnapshot, () => null);
+
+  useEffect(() => {
+    if (!me) return;
+    const beat = () => presenceStore.transaction((current) => ({ ...current, [me]: Date.now() }));
+    beat();
+    const id = setInterval(beat, HEARTBEAT_INTERVAL_MS);
+    return () => {
+      clearInterval(id);
+      // Best-effort immediate "I left" signal for a clean navigation away
+      // (e.g. the back-to-games button) - if this write doesn't make it
+      // (closed tab, lost connection), the heartbeat simply going stale
+      // covers it instead, just a few seconds slower.
+      presenceStore.transaction((current) => {
+        if (!current) return undefined;
+        const next = { ...current };
+        delete next[me];
+        return next;
+      });
+    };
+  }, [me, presenceStore]);
+
+  // Nothing pushes a new value when a partner's heartbeat merely goes
+  // stale (no write happens, by definition) - this tick is what notices.
+  // Starts at null (not Date.now()) and only ever reads the clock inside
+  // the effect below, never during render - reading it during render is
+  // an unstable value an SSR/prerender pass would otherwise capture.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    // setTimeout(tick, 0), not a direct tick() call, so the first setState
+    // happens inside a callback (an external timer firing) rather than
+    // synchronously in the effect body itself.
+    const kickoff = setTimeout(tick, 0);
+    const id = setInterval(tick, HEARTBEAT_INTERVAL_MS);
+    return () => {
+      clearTimeout(kickoff);
+      clearInterval(id);
+    };
+  }, []);
+
+  const online: Partial<Record<Role, boolean>> = {
+    p1: isOnline(presence, "p1", now),
+    p2: isOnline(presence, "p2", now),
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -114,6 +170,7 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     other,
     names,
     bothJoined,
+    online,
     pickIdentity,
     transact,
     setGame: gameStore.set,

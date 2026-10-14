@@ -23,10 +23,34 @@ to Worst is the first game; see the Status section for others as they're added.
     `i`/`l`/`0`/`o` excluded).
   - `useGameSession.ts` - the hook every game's page calls once:
     `useGameSession({ gameSlug, createInitialState })` returns `{ room, game, me,
-    other, names, bothJoined, pickIdentity, transact, setGame, newRoom }`. Handles
-    room resolution (including auto-generating a fresh room for a bare visit - see
-    below), the store, and "who am I / has my partner joined". A game's page only
-    has to deal with its own rules on top of this.
+    other, names, bothJoined, online, pickIdentity, transact, setGame, newRoom }`.
+    Handles room resolution (including auto-generating a fresh room for a bare
+    visit - see below), the store, "who am I / has my partner joined", and presence
+    (see `presence.ts` below). A game's page only has to deal with its own rules on
+    top of this.
+  - `presence.ts` - a seat is "online" if its heartbeat (written every
+    `HEARTBEAT_INTERVAL_MS` by whichever tab holds that seat) is newer than
+    `STALE_AFTER_MS` (3 missed beats). Lives at its own store path
+    (`games/{room}/presence`, a sibling of `games/{room}/{slug}`), not inside any
+    game's own state - it changes on a timer unrelated to gameplay, and nesting it
+    in the game object would mean every heartbeat write has to merge-and-preserve
+    whatever the game state happens to be instead of just "I'm here". One presence
+    store per *room*, not per game, so a seat reads the same online/offline
+    regardless of which game is currently open. `useGameSession` writes its own
+    heartbeat on an interval while `me` is set, best-effort deletes it on unmount
+    (covers a clean "back to games" navigation near-instantly), and otherwise relies
+    purely on staleness (covers a closed tab/dead connection, ~`STALE_AFTER_MS`
+    slower). A local tick drives re-evaluating staleness even when the partner's
+    heartbeat simply stops arriving - no write ever happens on a timeout, so nothing
+    would otherwise re-render. That tick starts at `null` and is only ever set from
+    inside a `setTimeout`/`setInterval` callback, never read directly during
+    render - reading the live clock during render is what Next's Cache Components
+    flags as an unstable value a prerender could capture, and setting React state
+    synchronously in an effect body (rather than from a callback reacting to an
+    external timer) is what this project's `react-hooks/set-state-in-effect` ESLint
+    rule flags. `RoleStickers` renders an optional small green/gray dot per seat
+    when a game passes `online` through (e.g. `app/ftw/page.tsx`); omitting the prop
+    skips the dot entirely, so this is opt-in per game, not required.
 - **`lib/store/`** stays fully generic and untouched by the multi-game split -
   `createGameStore<T>(room, gameSlug)` is already backend-agnostic (Firebase when
   all five `NEXT_PUBLIC_FIREBASE_*` env vars are set, else `localStorage`). The

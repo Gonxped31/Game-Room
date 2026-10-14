@@ -5,6 +5,8 @@ export interface RoleStickerInfo {
   name: string;
   /** Highlights this sticker as the current viewer's own role. */
   isYou: boolean;
+  /** Whether this seat has a recent heartbeat - omit to skip the dot entirely (e.g. for a game that doesn't wire up presence). */
+  online?: boolean;
 }
 
 interface RoleStickersProps {
@@ -24,6 +26,13 @@ export default function RoleStickers({ roles }: RoleStickersProps) {
           className={`${base} ${role.isYou ? highlight : ""}`}
           style={{ transform: `rotate(${i % 2 === 0 ? -3 : 3}deg)` }}
         >
+          {role.online != null ? (
+            <span
+              aria-label={role.online ? "online" : "offline"}
+              className="mr-1 inline-block h-[7px] w-[7px] rounded-full align-middle"
+              style={{ backgroundColor: role.online ? "#3BC46A" : "#B9B9B9" }}
+            />
+          ) : null}
           {role.emoji} {role.name} · {role.label}
           {role.isYou ? " — You" : ""}
         </span>
