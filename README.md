@@ -16,13 +16,8 @@ across any of the games below, each room fully independent.
   Jalapenos). The **master** privately ranks the topics 1 (best) to 5 (worst); the
   **guesser** tries to guess that ranking; both are revealed and scored. Roles swap
   every round.
-- **E-Card** (`/ecard`) - a 12-round bluffing game adapted from *Kaiji*. Each round
-  one seat is Emperor, the other Slave; both place a card face-down each exchange.
-  Emperor beats Citizen, Citizen beats Slave, Slave beats Emperor, Citizen ties
-  Citizen (and the round continues on a tie). A decisive win pays the Emperor 1x or
-  the Slave 5x. Seats swap every 3 rounds; who places first alternates every round.
 
-See `CLAUDE.md` for the full architecture, both games' rules in detail, and how to
+See `CLAUDE.md` for the full architecture, this game's rules in detail, and how to
 add a new one.
 
 ## Quick start (local test mode)
@@ -107,10 +102,10 @@ These apply to every game on the platform:
 
 - **No auth, no anti-cheat.** Anyone with your room's URL (`/<game>#roomname`) can
   read or write that room's state - including seeing information that's only meant to
-  be revealed later (First to Worst's master ranking, an E-Card placement before it's
-  flipped), or overwriting the game. The room name is a shared secret, not a real
-  access control. These games are built on the assumption that you trust the person
-  you're playing with; none of them are designed to resist a motivated cheater.
+  be revealed later, like First to Worst's master ranking before the reveal - or
+  overwriting the game. The room name is a shared secret, not a real access control.
+  These games are built on the assumption that you trust the person you're playing
+  with; none of them are designed to resist a motivated cheater.
 - **"Which one am I" is remembered per-tab, not per-room.** Two tabs in the same
   browser share one `localStorage`, so that specific fact - not the player's name,
   which lives in the shared room state - is deliberately *not* synced across tabs
@@ -151,9 +146,6 @@ export const APP_TITLE = "Game Night"; // the picker's title
 
 // lib/games/ftw/constants.ts
 export const GAME_TITLE = "First to Worst"; // change this
-
-// lib/games/ecard/constants.ts
-export const GAME_TITLE = "E-Card"; // change this
 ```
 
 A game's `GAME_TITLE` drives its own page title, header pill, and browser-tab "your

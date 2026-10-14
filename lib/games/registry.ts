@@ -20,10 +20,4 @@ export const GAMES: GameEntry[] = [
     tagline: "Rank topics 1-to-5, then guess how your partner ranked them.",
     emoji: "🏆",
   },
-  {
-    slug: "ecard",
-    title: "E-Card",
-    tagline: "12 rounds of Emperor vs. Slave - a battle of bluffs and nerve.",
-    emoji: "👑",
-  },
 ];

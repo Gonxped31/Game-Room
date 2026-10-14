@@ -89,6 +89,30 @@ npx tsc --noEmit # type-check only
   tabs): a game's transition function throws on an invalid move; the store layer
   catches that and returns `undefined` to abort without writing. Firebase's real
   `transaction()` aborts the same way when the updater returns `undefined`.
+- **Two Realtime Database data-shape gotchas every game's `game.ts` should assume
+  from the start**, found while building (and since removed) a second game -
+  neither reproduces locally or in Vitest, only against the real Firebase project:
+  - **Dropped empty arrays.** RTDB omits a field entirely when writing an empty
+    array, so any `T[]` field that starts as `[]` round-trips as `undefined`, not
+    `[]`, the next time it's read - the symptom is a live `TypeError: ... is not
+    iterable`/`.filter is not a function` crash on the second real device. FTW
+    guards this for `usedPrompts` via `addUsedPrompt(usedPrompts: string[] |
+    undefined, ...)` - any new array field needs the same `value ?? []` treatment
+    on every read.
+  - **Explicit `undefined` is rejected, not dropped, on the way out.** Fixing
+    every *read* isn't enough - Firebase's `transaction()`/`set()` actively
+    throws (`"Data returned contains undefined in property ..."`) if the object
+    being *written* has an own property explicitly set to `undefined` (as
+    opposed to the property being absent, which is fine). A *spread* of an
+    object that's merely missing a key stays missing (safe), but an
+    object-literal key explicitly assigned a possibly-undefined expression
+    (`foo: maybeUndefined`) or a literal `undefined` (written to *clear* a
+    field) both create a real own-property-with-undefined-value that gets
+    rejected. The fix is to normalize every array field through a `value ?? []`
+    helper at the top of every exported state-transition function (so a
+    dropped-on-read array never gets re-spread into a write), and to clear an
+    optional field by building a fresh object without that key rather than
+    spreading the old one and setting it to `undefined`.
 
 ---
 
@@ -244,94 +268,15 @@ game-agnostic.
   the browser back button restores the room (hash intact) - standard navigation
   history, no special-casing needed. Re-ran the FTW regression suite to confirm
   the Footer addition didn't break anything.
-- **Multi-game platform Stage 3 (done):** `lib/games/ecard/game.ts` - E-Card's
-  pure state machine, no UI yet (that's the next stage). `Role` (p1/p2, the seat)
-  stays distinct from `EcRole` ("emperor"|"slave", the in-game role this round) -
-  `emperorSeatOf`/`ecRoleOfSeat`/`seatOfEcRole` convert between them.
-  `emperorSeatOf(round)` alternates by 3-round block (`Math.ceil(round/3)`, odd
-  block → p1), giving the 6/6 split over 12 rounds. `initiativeOf(round)`
-  alternates by absolute round number (not by block), matching the brief's
-  "Round 1 Emperor first, Round 2 Slave first" example. A round's hands reset
-  every round (`buildHand`: 1 special + 4 citizens per side, deterministic IDs
-  like `emperor-c1`) - not carried across rounds. `placeCard(game, role, cardId)`
-  validates turn order via `nextToPlace` (derived from `initiative` + which
-  placements already exist, not stored separately) and hand membership; a
-  second placement always reveals+resolves immediately via a tiny win table
-  (citizen vs citizen is the *only* reachable tie, since each side only ever
-  holds one copy of its own special card - emperor-vs-emperor can't happen). A
-  tie discards both cards and must go through `continueRound` (fresh exchange,
-  same round, same initiative, already-shrunken hands); a decisive result
-  updates `totals`/`history` and must go through `nextRound` (fresh 5-card deal
-  per the next round's schedule) - calling the wrong one of the two for the
-  current result throws, same no-op-via-transaction pattern as FTW.
-  `isGameComplete` is true once round 12 resolves decisively; `nextRound`
-  rejects advancing past it. Going to the 5th/final exchange (both sides down to
-  just their special card after 4 citizen-ties) naturally falls out of the hand-
-  shrinking logic with no special-casing - emperor vs slave is always decisive.
-  24 Vitest cases: schedule correctness (6/6 split, block-vs-round distinction
-  for seats vs initiative), the inverse seat/role conversions, turn-order and
-  hand-membership rejection, tie vs each decisive outcome (and their payouts -
-  1x to Emperor, 5x to Slave), `continueRound`/`nextRound` guard rejection in
-  both directions, and a full 12-round simulated game checking the seat split
-  and that `totals` reconciles exactly against summed `history` payouts.
-- **Multi-game platform Stage 4 (done):** `components/ecard/` (`CardFace` -
-  archetype-fronted, role-themed back, reusing FTW's 3D-flip CSS technique;
-  `Hand` - tap-to-play immediately, no select-then-place step since there's
-  only ever one slot to fill; `RoundBoard` - Emperor/Slave slot row, status
-  message, and a `position: fixed` bottom bar holding either the active
-  player's hand or Continue/Next-round, the same fixed-bar pattern FTW's UI
-  polish round established) and `app/ecard/page.tsx` wiring it all to
-  `useGameSession`. Verified locally across two tabs (role stickers, a forced
-  tie through `continueRound`, a decisive win, block-boundary seat swap).
-  **Two real-Firebase-only bugs found and fixed, neither of which the local
-  two-tab run or the Vitest suite could catch** (Realtime Database behaves
-  differently from an in-memory object in ways that only show up once state
-  has actually round-tripped through it):
-  - **Dropped empty arrays.** RTDB omits a field entirely when writing an
-    empty array, so `history: []`/`discard: []`/a fully-spent hand round-trip
-    as `undefined`, not `[]` - the first symptom was a live `TypeError:
-    game.history is not iterable` crash on the second real device, caught via
-    a Playwright console-error capture. (FTW already defends against this
-    exact class of bug for `usedPrompts`; E-Card's first draft hadn't
-    replicated it.)
-  - **Explicit `undefined` is rejected, not dropped, on the way out.**
-    Fixing every *read* of a possibly-dropped array wasn't enough - Firebase's
-    `transaction()`/`set()` actively throws (`"Data returned contains
-    undefined in property ..."`) if the object being *written* has an own
-    property explicitly set to `undefined` (as opposed to the property being
-    absent, which is fine). This is a different failure mode from the first
-    bug: a *spread* of an object that's merely missing a key stays missing
-    (safe), but an object-literal key explicitly assigned a
-    possibly-undefined expression (`discard: round.discard`) or a literal
-    `undefined` (`firstPlacement: undefined`, written to *clear* a field)
-    both create that real own-property-with-undefined-value Firebase rejects.
-    Fixed by normalizing every array field through a local `normalizeGame`/
-    `normalizeRound` helper at the top of every exported state-transition
-    function (so a dropped-on-read array never gets re-spread into a write),
-    and by rebuilding `continueRound`'s cleared round as a fresh object
-    instead of spreading the old one and nulling fields, so
-    `firstPlacement`/`secondPlacement`/`result` are genuinely *absent* on the
-    object that gets written, not present-with-value-undefined. Any future
-    game's `game.ts` should assume both of these from the start rather than
-    discovering them against real Firebase. Regression-tested in Vitest
-    (decisive exchange with discard already dropped - the specific gap the
-    first two array-drop tests missed; `continueRound`'s output has no own
-    `firstPlacement`/`secondPlacement`/`result` keys at all) and against the
-    real Firebase project (a two-isolated-context Playwright run through a
-    tie → `continueRound` → decisive exchange, zero console errors either
-    time).
-- **Multi-game platform Stage 5 (done):** polish + docs. E-Card's reduced-motion
-  support needed no new code - `CardFace` reuses FTW's `.flip-inner` class, and
-  `app/globals.css`'s `prefers-reduced-motion` override is keyed off that class
-  name globally, so it already applied; verified with a real two-device
-  Playwright run under `reducedMotion: "reduce"` confirming the flip's
-  `transitionDuration` computes to `0s`. Accessibility review of
-  `components/ecard/*` found it already at FTW's bar (every slot and card has
-  `role="img"` + a descriptive `aria-label`, every hand button has an
-  `aria-label` naming its archetype, the status message and both fixed action
-  bars are `aria-live="polite"`) - no changes needed. `README.md` rewritten for
-  the platform: the picker-first quick start, both games described briefly,
-  Firebase setup/rules section generalized (the existing single rule already
-  covers every game via the nested-path design, explained explicitly), and the
-  renaming section split into `APP_TITLE` (`lib/games/registry.ts`) plus each
-  game's own `GAME_TITLE`.
+- **E-Card, a second game, was built (Stages 3-5 of the multi-game platform
+  plan) and then removed.** It was a 12-round Emperor/Citizen/Slave bluffing
+  game adapted from *Kaiji*, fully built with its own `lib/games/ecard/` state
+  machine, `components/ecard/` UI, and `app/ecard/page.tsx`, verified end-to-end
+  including real cross-device Firebase play. Pulled after playtesting: the
+  bluffing tension depends on reading your opponent's face in person, which
+  doesn't translate to playing on separate phones. Removed cleanly via the
+  "adding a new game" pattern in reverse - delete its three directories, drop
+  its `lib/games/registry.ts` entry, nothing shared needed to change. The one
+  thing worth keeping from it is the Realtime Database gotchas above (now
+  folded into "Store design notes"), since those apply to any future game, not
+  just that one.
