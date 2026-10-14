@@ -171,34 +171,54 @@ game-agnostic.
 
 ### Post-launch additions
 
-- **Anime & Manga prompt category.** 51 entries tagged `group: "Anime & Manga"`,
-  taking the bank from 300 to 351. Deliberately narrow in *format*, not topic: every
-  entry is a "pick your favorite from this list" prompt about a favorite anime/manga
-  series, character, or power/technique - e.g. "Favorite anime protagonists" or
-  "Coolest anime special attacks" - not trivia, genre overviews, or open-ended
-  "what makes X good" prompts (an initial batch in that broader style was tried and
-  replaced after feedback that it didn't fit the rest of the category). About half
-  the entries are franchise-specific (Jujutsu Kaisen, Demon Slayer, Hunter x Hunter,
-  One Piece, Naruto, My Hero Academia, Attack on Titan, Dragon Ball, Spy x Family,
-  Chainsaw Man, Death Note, Fullmetal Alchemist - e.g. "Favorite Demon Slayer
-  breathing styles", "Favorite type of Nen in Hunter x Hunter"), the rest are
-  general-anime versions of the same three angles. Added/edited via one-off scripts
-  (not checked in - see `prompts.test.ts`'s own constraints instead) that add/remove
-  entries then re-run the same "largest remaining bucket first" greedy reorder the
-  original 300-entry bank was built with, so the whole bank - not just the changed
-  entries - gets re-interleaved to keep the existing "no more than 2 consecutive
-  prompts share a group" invariant (`prompts.test.ts`) holding globally, not just
-  locally around the edit. Categories remain dev-only
-  (`group` is never shown in the UI) - this added a new category tag, not a
-  user-facing category filter/picker.
+- **Prompt bank lives in `prompts.json`, grouped by category.** Originally a flat
+  TS array where the "no more than 2 consecutive prompts share a group" constraint
+  was baked into physical file order - editing it meant hand-picking an insertion
+  point and re-running a one-off reorder script across the whole file, error-prone
+  and not something a non-programmer could safely do. Now it's `{ "Category Name":
+  [{ prompt, items }, ...], ... }` - adding a prompt is "find your category's array,
+  add an entry", nothing else to think about. `prompts.ts` imports the JSON, flattens
+  it, and interleaves groups via `interleaveByGroup()` (a "largest remaining bucket
+  first" greedy pass) every time the module loads, so the ordering constraint is
+  enforced by code, not by crafted file order - editing the JSON can never
+  accidentally break it. `PromptEntry`'s `group` field stays dev-only either way
+  (never shown in the UI).
+- **Every category has at least 30 entries** (Romance & Flirting and Humor & Absurd
+  Scenarios deliberately exceed it - 43 and 38 respectively - since they're the most
+  replayed categories for a couples/friends game). Bank went from 300 to 1302 entries
+  across 41 categories in one pass: ~930 new entries drafted by parallel agents (one
+  per cluster of categories, each grounded with real examples pulled from that
+  category so new entries matched the existing voice/format - open preference
+  prompts stayed open preference, trivia-style categories like Geography/Space/
+  History stayed factually-grounded trivia), then merged with a dedupe pass (19
+  cross-batch duplicate prompt texts dropped, ~8 categories backfilled by a few
+  entries each to clear 30 after dedupe) and validated against the same
+  `prompts.test.ts` constraints as everything else. Verified live against real
+  Firebase afterward (zero console errors across the full expanded bank).
+- **Anime & Manga prompt category.** 51 entries, `group: "Anime & Manga"`.
+  Deliberately narrow in *format*, not topic: every entry is a "pick your favorite
+  from this list" prompt about a favorite anime/manga series, character, or
+  power/technique - e.g. "Favorite anime protagonists" or "Coolest anime special
+  attacks" - not trivia, genre overviews, or open-ended "what makes X good" prompts
+  (an initial batch in that broader style was tried and replaced after feedback that
+  it didn't fit the rest of the category). About half the entries are
+  franchise-specific (Jujutsu Kaisen, Demon Slayer, Hunter x Hunter, One Piece,
+  Naruto, My Hero Academia, Attack on Titan, Dragon Ball, Spy x Family, Chainsaw Man,
+  Death Note, Fullmetal Alchemist - e.g. "Favorite Demon Slayer breathing styles",
+  "Favorite type of Nen in Hunter x Hunter"), the rest are general-anime versions of
+  the same three angles.
+- **Pokémon prompt category (new group).** 30 entries, `group: "Pokémon"`, added
+  alongside the 30-per-category expansion above. Same "pick your favorite" format as
+  Anime & Manga - starters, types, Legendaries, Eeveelutions, regions, Gym Leaders,
+  games, etc. - covering real Pokémon/games only, nothing made up.
 - **No-repeat prompts within a session.** `GameState.usedPrompts` tracks
   every distinct prompt text seen this session - shuffled past, custom-written, or
   played - and is never allowed to shrink or duplicate (`addUsedPrompt`). `randomRound`
   takes that list and excludes all of it, so neither "Shuffle prompt"
-  nor "Next round" repeats a prompt until the full bank (323 entries as of the Anime
-  & Manga addition below) has come up once; after that it cycles, still avoiding an
-  immediate repeat of the very last prompt. Tested: a full-bank cycle has zero
-  duplicates, and a 60-shuffle Playwright run against the real UI came back with
+  nor "Next round" repeats a prompt until the full bank (1302 entries as of the
+  Pokémon/30-per-category expansion above) has come up once; after that it cycles,
+  still avoiding an immediate repeat of the very last prompt. Tested: a full-bank
+  cycle has zero duplicates, and a 60-shuffle Playwright run against the real UI came back with
   60/60 unique prompts.
 - **Named players + master/guesser stickers.** Each player's display name, keyed by
   p1/p2 (not by role, since role rotates every round) is part of the shared room
@@ -284,7 +304,7 @@ game-agnostic.
   `NEXT_PUBLIC_FIREBASE_*` env vars are set, else falls back to localStorage -
   verified both ways, including real cross-device play against the actual Firebase
   project.
-- **Stage 4 (done):** 300 built-in prompts, later expanded to 323 (see
+- **Stage 4 (done):** 300 built-in prompts, later expanded to 1302 (see
   "Anime & Manga prompt category" above) (each validated to have exactly
   `ITEMS_PER_ROUND` unique items) back "Shuffle prompt" and "Write my own prompt"
   (validated client-side with an inline error). "Next round" picks a random prompt
