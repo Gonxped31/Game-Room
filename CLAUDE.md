@@ -38,7 +38,9 @@ to Worst is the first game; see the Status section for others as they're added.
   code (unlikely, but possible if someone edits the URL path while keeping the
   hash) can't clobber each other's state.
 - **Shared, reusable as-is by any game**: `components/Button.tsx`, `Header.tsx`
-  (takes a `title` prop - no game-specific import), `Footer.tsx`, `RolePicker.tsx`,
+  (takes a `title` prop - no game-specific import; always renders a `←` link back to
+  `/`, so no game ever traps a player once they've started it), `Footer.tsx` (also
+  has an "All games" link, as a second way back), `RolePicker.tsx`,
   `InviteLinkBanner.tsx`, `RoleStickers.tsx` (takes a generic `roles:
   {emoji,label,name,isYou}[]` array, so each game supplies its own role names/emoji
   through the same pill-badge component).
