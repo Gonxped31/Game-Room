@@ -29,8 +29,11 @@ export default function RoleStickers({ roles }: RoleStickersProps) {
           {role.online != null ? (
             <span
               aria-label={role.online ? "online" : "offline"}
-              className="mr-1 inline-block h-[7px] w-[7px] rounded-full align-middle"
-              style={{ backgroundColor: role.online ? "#3BC46A" : "#B9B9B9" }}
+              className={`mr-1.5 inline-block h-3 w-3 rounded-full align-middle ${role.online ? "presence-dot-online" : ""}`}
+              style={{
+                backgroundColor: role.online ? "#22C55E" : "#6B7280",
+                border: role.online ? "1.5px solid #15803D" : "1.5px solid #4B5563",
+              }}
             />
           ) : null}
           {role.emoji} {role.name} · {role.label}
