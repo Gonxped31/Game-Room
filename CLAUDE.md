@@ -274,3 +274,49 @@ game-agnostic.
   1x to Emperor, 5x to Slave), `continueRound`/`nextRound` guard rejection in
   both directions, and a full 12-round simulated game checking the seat split
   and that `totals` reconciles exactly against summed `history` payouts.
+- **Multi-game platform Stage 4 (done):** `components/ecard/` (`CardFace` -
+  archetype-fronted, role-themed back, reusing FTW's 3D-flip CSS technique;
+  `Hand` - tap-to-play immediately, no select-then-place step since there's
+  only ever one slot to fill; `RoundBoard` - Emperor/Slave slot row, status
+  message, and a `position: fixed` bottom bar holding either the active
+  player's hand or Continue/Next-round, the same fixed-bar pattern FTW's UI
+  polish round established) and `app/ecard/page.tsx` wiring it all to
+  `useGameSession`. Verified locally across two tabs (role stickers, a forced
+  tie through `continueRound`, a decisive win, block-boundary seat swap).
+  **Two real-Firebase-only bugs found and fixed, neither of which the local
+  two-tab run or the Vitest suite could catch** (Realtime Database behaves
+  differently from an in-memory object in ways that only show up once state
+  has actually round-tripped through it):
+  - **Dropped empty arrays.** RTDB omits a field entirely when writing an
+    empty array, so `history: []`/`discard: []`/a fully-spent hand round-trip
+    as `undefined`, not `[]` - the first symptom was a live `TypeError:
+    game.history is not iterable` crash on the second real device, caught via
+    a Playwright console-error capture. (FTW already defends against this
+    exact class of bug for `usedPrompts`; E-Card's first draft hadn't
+    replicated it.)
+  - **Explicit `undefined` is rejected, not dropped, on the way out.**
+    Fixing every *read* of a possibly-dropped array wasn't enough - Firebase's
+    `transaction()`/`set()` actively throws (`"Data returned contains
+    undefined in property ..."`) if the object being *written* has an own
+    property explicitly set to `undefined` (as opposed to the property being
+    absent, which is fine). This is a different failure mode from the first
+    bug: a *spread* of an object that's merely missing a key stays missing
+    (safe), but an object-literal key explicitly assigned a
+    possibly-undefined expression (`discard: round.discard`) or a literal
+    `undefined` (`firstPlacement: undefined`, written to *clear* a field)
+    both create that real own-property-with-undefined-value Firebase rejects.
+    Fixed by normalizing every array field through a local `normalizeGame`/
+    `normalizeRound` helper at the top of every exported state-transition
+    function (so a dropped-on-read array never gets re-spread into a write),
+    and by rebuilding `continueRound`'s cleared round as a fresh object
+    instead of spreading the old one and nulling fields, so
+    `firstPlacement`/`secondPlacement`/`result` are genuinely *absent* on the
+    object that gets written, not present-with-value-undefined. Any future
+    game's `game.ts` should assume both of these from the start rather than
+    discovering them against real Firebase. Regression-tested in Vitest
+    (decisive exchange with discard already dropped - the specific gap the
+    first two array-drop tests missed; `continueRound`'s output has no own
+    `firstPlacement`/`secondPlacement`/`result` keys at all) and against the
+    real Firebase project (a two-isolated-context Playwright run through a
+    tie → `continueRound` → decisive exchange, zero console errors either
+    time).

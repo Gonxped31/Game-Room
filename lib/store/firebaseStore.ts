@@ -45,7 +45,15 @@ export function createFirebaseStore<T>(path: string, config: FirebaseOptions): S
       void firebaseSet(getRef(), value);
     },
     transaction(updater) {
-      void runTransaction(getRef(), (current: T | null) => updater(current ?? null));
+      // Firebase may invoke this speculatively with `null` even when real
+      // data exists on the server, if this ref's own internal transaction
+      // cache hasn't warmed up yet - a separate thing from the `onValue`
+      // subscription above, which can already have delivered real data to
+      // `cache` (and to the UI) by this point. Falling back to our own
+      // already-warm `cache` avoids treating that as "no data, abort": if
+      // the fallback turns out to be stale, Firebase's normal optimistic-
+      // concurrency retry re-invokes this with the real server value anyway.
+      void runTransaction(getRef(), (current: T | null) => updater(current ?? cache));
     },
   };
 }

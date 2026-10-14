@@ -16,6 +16,8 @@ export interface ECard {
 export interface Placement {
   role: EcRole;
   cardId: string;
+  /** Captured at placement time - once a round resolves, the card itself is removed from the hand arrays, so this is the only record of what was actually played. */
+  archetype: Archetype;
 }
 
 export interface RoundState {
@@ -73,6 +75,29 @@ export function initiativeOf(round: number): EcRole {
   return round % 2 === 1 ? "emperor" : "slave";
 }
 
+// Realtime Database drops empty arrays entirely on write, so a field that
+// starts as [] (history, discard, and hands once fully spent) round-trips
+// as undefined, not []. Every read of one of these fields goes through this
+// so the logic below never has to special-case "undefined vs empty".
+function arr<T>(value: T[] | undefined): T[] {
+  return value ?? [];
+}
+
+// Every exported function below normalizes its input through these before
+// building a return value, so a round-tripped-through-Firebase `undefined`
+// never gets re-spread (via `...game`/`...round`) into something we write
+// back out. Firebase's transaction/set rejects a write containing an
+// explicit `undefined` property outright ("Data returned contains
+// undefined in property...") - it does NOT just silently drop it the way
+// it does on the way *in*, so every array field has to be real by the time
+// it leaves one of these functions, not just by the time it's read.
+function normalizeRound(round: RoundState): RoundState {
+  return { ...round, emperorHand: arr(round.emperorHand), slaveHand: arr(round.slaveHand), discard: arr(round.discard) };
+}
+function normalizeGame(game: GameState): GameState {
+  return { ...game, history: arr(game.history), current: normalizeRound(game.current) };
+}
+
 /** Which role should place next, or null once both have placed (status REVEALED). */
 export function nextToPlace(round: RoundState): EcRole | null {
   if (round.status !== "PLACING") return null;
@@ -119,7 +144,8 @@ function resolveExchange(a: { role: EcRole; archetype: Archetype }, b: { role: E
 const PAYOUT_MULTIPLIER: Record<EcRole, number> = { emperor: 1, slave: 5 };
 
 /** Places a card face-down for `role` - the first placement of an exchange, or the second (which immediately reveals and resolves it). */
-export function placeCard(game: GameState, role: EcRole, cardId: string): GameState {
+export function placeCard(rawGame: GameState, role: EcRole, cardId: string): GameState {
+  const game = normalizeGame(rawGame);
   const round = game.current;
   if (round.status !== "PLACING") {
     throw new Error(`Cannot place a card while status is ${round.status}.`);
@@ -128,11 +154,12 @@ export function placeCard(game: GameState, role: EcRole, cardId: string): GameSt
     throw new Error(`It is not ${role}'s turn to place.`);
   }
   const hand = role === "emperor" ? round.emperorHand : round.slaveHand;
-  if (!hand.some((c) => c.id === cardId)) {
+  const cardInHand = hand.find((c) => c.id === cardId);
+  if (!cardInHand) {
     throw new Error(`Card ${cardId} is not in ${role}'s hand.`);
   }
 
-  const placement: Placement = { role, cardId };
+  const placement: Placement = { role, cardId, archetype: cardInHand.archetype };
   if (!round.firstPlacement) {
     return { ...game, current: { ...round, firstPlacement: placement } };
   }
@@ -143,10 +170,11 @@ export function placeCard(game: GameState, role: EcRole, cardId: string): GameSt
   const first = round.firstPlacement;
   const emperorPlacement = first.role === "emperor" ? first : placement;
   const slavePlacement = first.role === "slave" ? first : placement;
-  const emperorCard = round.emperorHand.find((c) => c.id === emperorPlacement.cardId)!;
-  const slaveCard = round.slaveHand.find((c) => c.id === slavePlacement.cardId)!;
 
-  const outcome = resolveExchange({ role: "emperor", archetype: emperorCard.archetype }, { role: "slave", archetype: slaveCard.archetype });
+  const outcome = resolveExchange(
+    { role: "emperor", archetype: emperorPlacement.archetype },
+    { role: "slave", archetype: slavePlacement.archetype },
+  );
   const emperorHand = round.emperorHand.filter((c) => c.id !== emperorPlacement.cardId);
   const slaveHand = round.slaveHand.filter((c) => c.id !== slavePlacement.cardId);
   const tie = outcome === "tie";
@@ -158,7 +186,9 @@ export function placeCard(game: GameState, role: EcRole, cardId: string): GameSt
     secondPlacement: placement,
     emperorHand,
     slaveHand,
-    discard: tie ? [...round.discard, emperorCard, slaveCard] : round.discard,
+    discard: tie
+      ? [...round.discard, { id: emperorPlacement.cardId, archetype: emperorPlacement.archetype }, { id: slavePlacement.cardId, archetype: slavePlacement.archetype }]
+      : round.discard,
     result: outcome,
   };
 
@@ -178,14 +208,26 @@ export function placeCard(game: GameState, role: EcRole, cardId: string): GameSt
 }
 
 /** Tie -> fresh exchange, same round, same initiative, shrunken hands already in place. */
-export function continueRound(game: GameState): GameState {
+export function continueRound(rawGame: GameState): GameState {
+  const game = normalizeGame(rawGame);
   const round = game.current;
   if (round.status !== "REVEALED" || round.result !== "tie") {
     throw new Error("Can only continue the round after a tied exchange.");
   }
+  // Firebase rejects a write containing an explicit `undefined` property
+  // outright, so firstPlacement/secondPlacement/result have to be omitted
+  // entirely (not set to undefined) to clear them - hence a fresh object
+  // instead of spreading `...round` and nulling fields.
   return {
     ...game,
-    current: { ...round, status: "PLACING", firstPlacement: undefined, secondPlacement: undefined, result: undefined },
+    current: {
+      round: round.round,
+      status: "PLACING",
+      initiative: round.initiative,
+      emperorHand: round.emperorHand,
+      slaveHand: round.slaveHand,
+      discard: round.discard,
+    },
   };
 }
 
@@ -194,7 +236,8 @@ export function isGameComplete(game: GameState): boolean {
 }
 
 /** Decisive result -> next round's fresh deal. Seats swap according to the schedule, not by choice. */
-export function nextRound(game: GameState): GameState {
+export function nextRound(rawGame: GameState): GameState {
+  const game = normalizeGame(rawGame);
   const round = game.current;
   if (round.status !== "REVEALED" || round.result === undefined || round.result === "tie") {
     throw new Error("Can only advance to the next round after a decisive result.");

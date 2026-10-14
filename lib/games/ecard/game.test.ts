@@ -231,6 +231,69 @@ describe("nextRound", () => {
   });
 });
 
+describe("tolerates Realtime Database dropping empty arrays", () => {
+  // RTDB omits a field entirely when its value is an empty array, so a
+  // round-trip through real Firebase turns `history: []`/`discard: []` into
+  // `history: undefined`/`discard: undefined`. Vitest's in-memory objects
+  // never do this on their own, so these cases simulate it explicitly -
+  // this exact gap caused a real "history is not iterable" crash caught by
+  // a live two-device Firebase run, not by the rest of this suite.
+  it("placeCard resolves a decisive exchange when history was dropped (undefined, not [])", () => {
+    const game = newGame();
+    const withDroppedHistory = { ...game, history: undefined } as unknown as GameState;
+    const afterFirst = placeCard(withDroppedHistory, "emperor", "emperor-special");
+    const revealed = placeCard(afterFirst, "slave", "slave-c1");
+    expect(revealed.history).toEqual([{ round: 1, winner: "emperor", winnerSeat: "p1", payout: 1 }]);
+  });
+
+  it("placeCard resolves a tie when discard was dropped (undefined, not [])", () => {
+    const game = newGame();
+    const withDroppedDiscard = { ...game, current: { ...game.current, discard: undefined } } as unknown as GameState;
+    const afterFirst = placeCard(withDroppedDiscard, "emperor", "emperor-c1");
+    const revealed = placeCard(afterFirst, "slave", "slave-c1");
+    expect(revealed.current.result).toBe("tie");
+    expect(revealed.current.discard).toHaveLength(2);
+  });
+
+  // The specific gap that slipped past the two tests above: a *decisive*
+  // exchange (the discard-less branch) with discard already dropped. Real
+  // Firebase rejected this outright ("Data returned contains undefined in
+  // property ...current.discard") rather than just mis-behaving locally,
+  // since writing an explicit `undefined` property is invalid, not merely
+  // non-iterable.
+  it("placeCard resolves a decisive exchange when discard was dropped (undefined, not []), without writing an explicit undefined", () => {
+    const game = newGame();
+    const withDroppedDiscard = { ...game, current: { ...game.current, discard: undefined } } as unknown as GameState;
+    const afterFirst = placeCard(withDroppedDiscard, "emperor", "emperor-special");
+    const revealed = placeCard(afterFirst, "slave", "slave-c1");
+    expect(revealed.current.result).toBe("emperor");
+    expect(revealed.current.discard).toEqual([]);
+    expect(JSON.stringify(revealed)).not.toContain("undefined");
+  });
+
+  it("continueRound omits firstPlacement/secondPlacement/result entirely rather than setting them to undefined", () => {
+    const game = newGame();
+    const afterFirst = placeCard(game, "emperor", citizenId(game.current.emperorHand));
+    const tied = placeCard(afterFirst, "slave", citizenId(afterFirst.current.slaveHand));
+    const continued = continueRound(tied);
+    expect(Object.prototype.hasOwnProperty.call(continued.current, "firstPlacement")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(continued.current, "secondPlacement")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(continued.current, "result")).toBe(false);
+  });
+
+  it("continueRound resolves a decisive exchange afterward even when history/discard were dropped on the way in", () => {
+    const game = newGame();
+    const afterFirst = placeCard(game, "emperor", citizenId(game.current.emperorHand));
+    const tied = placeCard(afterFirst, "slave", citizenId(afterFirst.current.slaveHand));
+    const strippedTied = { ...tied, history: undefined, current: { ...tied.current, discard: undefined } } as unknown as GameState;
+    const continued = continueRound(strippedTied);
+    const afterFirst2 = placeCard(continued, "emperor", specialId(continued.current.emperorHand));
+    const revealed = placeCard(afterFirst2, "slave", citizenId(afterFirst2.current.slaveHand));
+    expect(revealed.current.result).toBe("emperor");
+    expect(revealed.history).toEqual([{ round: 1, winner: "emperor", winnerSeat: "p1", payout: 1 }]);
+  });
+});
+
 describe("a full 12-round simulated game", () => {
   it("completes with a correct 6/6 Emperor split and consistent payout accounting", () => {
     let game: GameState = newGame();
