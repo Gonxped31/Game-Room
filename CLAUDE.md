@@ -171,19 +171,24 @@ game-agnostic.
 
 ### Post-launch additions
 
-- **Anime & Manga prompt category.** 23 entries tagged `group: "Anime & Manga"`,
-  taking the bank from 300 to 323. Deliberately narrow in *format*, not topic: every
-  entry is a "pick your favorite from this list" prompt about a favorite anime
+- **Anime & Manga prompt category.** 51 entries tagged `group: "Anime & Manga"`,
+  taking the bank from 300 to 351. Deliberately narrow in *format*, not topic: every
+  entry is a "pick your favorite from this list" prompt about a favorite anime/manga
   series, character, or power/technique - e.g. "Favorite anime protagonists" or
   "Coolest anime special attacks" - not trivia, genre overviews, or open-ended
   "what makes X good" prompts (an initial batch in that broader style was tried and
-  replaced after feedback that it didn't fit the rest of the category). Added/edited
-  via one-off scripts (not checked in - see `prompts.test.ts`'s own constraints
-  instead) that add/remove entries then re-run the same "largest remaining bucket
-  first" greedy reorder the original 300-entry bank was built with, so the whole
-  bank - not just the changed entries - gets re-interleaved to keep the existing "no
-  more than 2 consecutive prompts share a group" invariant (`prompts.test.ts`)
-  holding globally, not just locally around the edit. Categories remain dev-only
+  replaced after feedback that it didn't fit the rest of the category). About half
+  the entries are franchise-specific (Jujutsu Kaisen, Demon Slayer, Hunter x Hunter,
+  One Piece, Naruto, My Hero Academia, Attack on Titan, Dragon Ball, Spy x Family,
+  Chainsaw Man, Death Note, Fullmetal Alchemist - e.g. "Favorite Demon Slayer
+  breathing styles", "Favorite type of Nen in Hunter x Hunter"), the rest are
+  general-anime versions of the same three angles. Added/edited via one-off scripts
+  (not checked in - see `prompts.test.ts`'s own constraints instead) that add/remove
+  entries then re-run the same "largest remaining bucket first" greedy reorder the
+  original 300-entry bank was built with, so the whole bank - not just the changed
+  entries - gets re-interleaved to keep the existing "no more than 2 consecutive
+  prompts share a group" invariant (`prompts.test.ts`) holding globally, not just
+  locally around the edit. Categories remain dev-only
   (`group` is never shown in the UI) - this added a new category tag, not a
   user-facing category filter/picker.
 - **No-repeat prompts within a session.** `GameState.usedPrompts` tracks
