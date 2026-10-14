@@ -171,14 +171,26 @@ game-agnostic.
 
 ### Post-launch additions
 
+- **Anime & Manga prompt category.** 26 new entries (24 covering genres/tropes/art
+  style/trivia + 2 "pick a favorite from this list of well-known series") tagged
+  `group: "Anime & Manga"`, taking the bank from 300 to 326. Added via a one-off
+  script (not checked in - see `prompts.test.ts`'s own constraints instead) that
+  appends new entries then re-runs the same "largest remaining bucket first" greedy
+  reorder the original 300-entry bank was built with, so the whole bank - not just
+  the new entries - gets re-interleaved to keep the existing "no more than 2
+  consecutive prompts share a group" invariant (`prompts.test.ts`) holding globally,
+  not just locally around the insertion point. Categories remain dev-only (`group`
+  is never shown in the UI) - this added a new category tag, not a user-facing
+  category filter/picker.
 - **No-repeat prompts within a session.** `GameState.usedPrompts` tracks
   every distinct prompt text seen this session - shuffled past, custom-written, or
   played - and is never allowed to shrink or duplicate (`addUsedPrompt`). `randomRound`
   takes that list and excludes all of it, so neither "Shuffle prompt"
-  nor "Next round" repeats a prompt until the full 300-entry bank has come up once;
-  after that it cycles, still avoiding an immediate repeat of the very last prompt.
-  Tested: a full 300-pick cycle has zero duplicates, and a
-  60-shuffle Playwright run against the real UI came back with 60/60 unique prompts.
+  nor "Next round" repeats a prompt until the full bank (326 entries as of the Anime
+  & Manga addition below) has come up once; after that it cycles, still avoiding an
+  immediate repeat of the very last prompt. Tested: a full-bank cycle has zero
+  duplicates, and a 60-shuffle Playwright run against the real UI came back with
+  60/60 unique prompts.
 - **Named players + master/guesser stickers.** Each player's display name, keyed by
   p1/p2 (not by role, since role rotates every round) is part of the shared room
   state, not local storage, and survives closing the browser or switching devices.
@@ -263,7 +275,8 @@ game-agnostic.
   `NEXT_PUBLIC_FIREBASE_*` env vars are set, else falls back to localStorage -
   verified both ways, including real cross-device play against the actual Firebase
   project.
-- **Stage 4 (done):** 300 built-in prompts (each validated to have exactly
+- **Stage 4 (done):** 300 built-in prompts, later expanded to 326 (see
+  "Anime & Manga prompt category" above) (each validated to have exactly
   `ITEMS_PER_ROUND` unique items) back "Shuffle prompt" and "Write my own prompt"
   (validated client-side with an inline error). "Next round" picks a random prompt
   that's never the one just played. Reduced motion verified with Playwright's
