@@ -1,21 +1,29 @@
-# First to Worst
+# Game Night
 
-A private, 2-player ranking game. One round: a prompt and exactly 5 topic cards
-(e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies, Jalapenos). The
-**master** privately ranks the topics 1 (best) to 5 (worst); the **guesser** tries to
-guess that ranking; both are revealed and scored. Roles swap every round, so two
-"sticker" badges always show who's master and who's guesser *this* round, with yours
-highlighted.
+A small platform for private, link-based 2-player games. No login, no accounts, no
+lobby - open the app and pick a game from `/`, and you get a fresh private room with
+a "Copy invite link" button to send your partner. Opening someone else's link drops
+you straight into their room. The first time each of you opens a room you type your
+name; after that, the game remembers who's who and exactly where you left off, even
+after closing the browser or restarting your computer - because the whole session
+lives in the shared room, not on your device. Any number of pairs can play at once,
+across any of the games below, each room fully independent.
 
-No login, no accounts, no lobby - opening the app with no link at all gives you a fresh
-private room with a "Copy invite link" button to send your partner; opening someone
-else's link drops you straight into their room. The first time each of you opens a room
-you type your name; after that, the game remembers who's who and exactly where you left
-off, even after closing the browser or restarting your computer - because the whole
-session (round, scores, names, the round-by-round recap, everything) lives in the
-shared room, not on your device. Any number of pairs can play at once - each room is
-independent. See [Known limitations](#known-limitations) below for what the no-login
-trade-off costs.
+## The games
+
+- **First to Worst** (`/ftw`) - a ranking game. One round: a prompt and exactly 5
+  topic cards (e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies,
+  Jalapenos). The **master** privately ranks the topics 1 (best) to 5 (worst); the
+  **guesser** tries to guess that ranking; both are revealed and scored. Roles swap
+  every round.
+- **E-Card** (`/ecard`) - a 12-round bluffing game adapted from *Kaiji*. Each round
+  one seat is Emperor, the other Slave; both place a card face-down each exchange.
+  Emperor beats Citizen, Citizen beats Slave, Slave beats Emperor, Citizen ties
+  Citizen (and the round continues on a tie). A decisive win pays the Emperor 1x or
+  the Slave 5x. Seats swap every 3 rounds; who places first alternates every round.
+
+See `CLAUDE.md` for the full architecture, both games' rules in detail, and how to
+add a new one.
 
 ## Quick start (local test mode)
 
@@ -28,15 +36,16 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) - it'll redirect you to a random
-`#room` code. Copy that URL into a second tab (or use "Copy invite link" in-app) and
-name yourselves differently in each tab to play both sides.
+Open [http://localhost:3000](http://localhost:3000), pick a game - it'll drop you into
+a random `#room` code on that game's route. Copy that URL into a second tab (or use
+"Copy invite link" in-app) and name yourselves differently in each tab to play both
+sides.
 
 ## Playing across devices (Firebase)
 
 For two different people on two different devices, wire up a free Firebase Realtime
 Database. The app automatically switches to it once the env vars below are set - no
-code changes needed.
+code changes needed, and it's shared by every game on the platform.
 
 1. Create a project at [the Firebase console](https://console.firebase.google.com/).
 2. In the project, add a **Web app** (the `</>` icon on the project overview page) and
@@ -69,8 +78,8 @@ local test mode automatically.
 
 ### Database rules
 
-This game has no accounts, so there's no user identity to check - the only thing rules
-can reasonably scope access to is the room path itself:
+These games have no accounts, so there's no user identity to check - the only thing
+rules can reasonably scope access to is the room path itself:
 
 ```json
 {
@@ -87,29 +96,38 @@ can reasonably scope access to is the room path itself:
 
 This denies everything outside `/games/<roomId>` by default (Realtime Database rules
 don't cascade upward), and allows read/write to a specific room to anyone who has that
-room's URL. That's it - see the limitation below for what that means in practice.
+room's URL. Every game on the platform nests its own state *under* its room's path
+(`games/<roomId>/<gameSlug>`), so this single rule already covers every game - adding
+a new one needs no console changes. See the limitation below for what that single
+rule means in practice.
 
 ## Known limitations
 
-- **No auth, no anti-cheat.** Anyone with your room's URL (`/#roomname`) can read or
-  write that room's state - including seeing the master's ranking before it's revealed,
-  or overwriting the game. The room name is a shared secret, not a real access
-  control. This game is built on the assumption that you trust the person you're
-  playing with; it is not designed to resist a motivated cheater.
-- **The score quirk.** A round's score is the count of topic cards where the master
-  and guesser assigned the exact same number (1-5) - see `lib/scoring.ts`. Because of
-  how permutations work, a score of exactly 4 out of 5 is mathematically impossible:
-  if four cards land in their correct spot, the fifth has nowhere else to go but its
-  correct spot too. So you'll only ever see 0, 1, 2, 3, or 5. This is expected, not a
-  bug - `lib/scoring.test.ts` checks it across all 120 permutations of 5 items.
+These apply to every game on the platform:
+
+- **No auth, no anti-cheat.** Anyone with your room's URL (`/<game>#roomname`) can
+  read or write that room's state - including seeing information that's only meant to
+  be revealed later (First to Worst's master ranking, an E-Card placement before it's
+  flipped), or overwriting the game. The room name is a shared secret, not a real
+  access control. These games are built on the assumption that you trust the person
+  you're playing with; none of them are designed to resist a motivated cheater.
 - **"Which one am I" is remembered per-tab, not per-room.** Two tabs in the same
-  browser share one `localStorage`, so that specific fact - not the player's name, which
-  lives in the shared room state - is deliberately *not* synced across tabs
+  browser share one `localStorage`, so that specific fact - not the player's name,
+  which lives in the shared room state - is deliberately *not* synced across tabs
   (`lib/store/localStore.ts`'s `crossTab: false` option) - otherwise picking a name in
   one tab would silently reassign the other tab's identity too. If a device loses that
-  memory (new device, cleared storage), it just asks "Welcome back! Which one are you?"
-  with the two names already on the room - no retyping, no lost progress. In normal use
-  (two different people, two different devices) this doesn't come up at all.
+  memory (new device, cleared storage), it just asks "Welcome back! Which one are
+  you?" with the two names already on the room - no retyping, no lost progress. In
+  normal use (two different people, two different devices) this doesn't come up at
+  all.
+
+First to Worst has one additional quirk: a round's score is the count of topic cards
+where the master and guesser assigned the exact same number (1-5) - see
+`lib/games/ftw/scoring.ts`. Because of how permutations work, a score of exactly 4 out
+of 5 is mathematically impossible: if four cards land in their correct spot, the fifth
+has nowhere else to go but its correct spot too. So you'll only ever see 0, 1, 2, 3, or
+5. This is expected, not a bug - `lib/games/ftw/scoring.test.ts` checks it across all
+120 permutations of 5 items.
 
 ## Deploying to Vercel
 
@@ -118,21 +136,28 @@ room's URL. That's it - see the limitation below for what that means in practice
 3. Add the five `NEXT_PUBLIC_FIREBASE_*` environment variables from your `.env.local`
    in the Vercel project's **Settings > Environment Variables** (skip this to ship in
    local-only mode, which won't work for two separate players).
-4. Deploy. Share `https://<your-app>.vercel.app/#your-room-name` with the other player.
+4. Deploy. Share `https://<your-app>.vercel.app/<game>#your-room-name` with the other
+   player.
 
-## Renaming the game
+## Renaming
 
-The working title is deliberately generic and holds no logos, box art, or other
-assets from the commercial game this is inspired by. To rename it, change one
-constant:
+The platform's own name and each game's title are deliberately generic and hold no
+logos, box art, or other assets from the commercial games some of them are inspired
+by. To rename the platform itself, or any individual game:
 
 ```ts
-// lib/constants.ts
+// lib/games/registry.ts
+export const APP_TITLE = "Game Night"; // the picker's title
+
+// lib/games/ftw/constants.ts
 export const GAME_TITLE = "First to Worst"; // change this
+
+// lib/games/ecard/constants.ts
+export const GAME_TITLE = "E-Card"; // change this
 ```
 
-It drives the page title, the header pill, and the browser tab's "your turn"
-indicator - nothing else needs to change.
+A game's `GAME_TITLE` drives its own page title, header pill, and browser-tab "your
+turn" indicator - nothing else needs to change.
 
 ## Development
 
@@ -140,7 +165,7 @@ indicator - nothing else needs to change.
 npm run dev      # dev server at localhost:3000
 npm run build    # production build (also type-checks)
 npm run lint     # eslint
-npm run test     # vitest (lib/*.test.ts - scoring, state transitions, prompt bank)
+npm run test     # vitest (lib/**/*.test.ts - scoring, state transitions, prompt bank)
 ```
 
 See `CLAUDE.md` for the project's architecture, conventions, and stage-by-stage build

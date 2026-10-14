@@ -320,3 +320,18 @@ game-agnostic.
     real Firebase project (a two-isolated-context Playwright run through a
     tie → `continueRound` → decisive exchange, zero console errors either
     time).
+- **Multi-game platform Stage 5 (done):** polish + docs. E-Card's reduced-motion
+  support needed no new code - `CardFace` reuses FTW's `.flip-inner` class, and
+  `app/globals.css`'s `prefers-reduced-motion` override is keyed off that class
+  name globally, so it already applied; verified with a real two-device
+  Playwright run under `reducedMotion: "reduce"` confirming the flip's
+  `transitionDuration` computes to `0s`. Accessibility review of
+  `components/ecard/*` found it already at FTW's bar (every slot and card has
+  `role="img"` + a descriptive `aria-label`, every hand button has an
+  `aria-label` naming its archetype, the status message and both fixed action
+  bars are `aria-live="polite"`) - no changes needed. `README.md` rewritten for
+  the platform: the picker-first quick start, both games described briefly,
+  Firebase setup/rules section generalized (the existing single rule already
+  covers every game via the nested-path design, explained explicitly), and the
+  renaming section split into `APP_TITLE` (`lib/games/registry.ts`) plus each
+  game's own `GAME_TITLE`.
