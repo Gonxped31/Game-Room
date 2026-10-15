@@ -532,34 +532,73 @@ game-agnostic.
     both), a bogus code shows the inline error without navigating, and zero
     console errors throughout.
 - **Multi-game platform Stage 7 (done): Game Room picker redesign, join by room
-  name.** Two user-requested changes.
-  - **The picker (`app/page.tsx`) now matches the `references/game-room/*.png`
-    mockups** instead of a plain list of link cards. `lib/games/registry.ts`'s
-    `GameEntry` gained `image`/`tags`/`accentColor`/`accentShadowColor`/
-    `accentTextColor` (see "Adding a new game later" above); the per-game header
-    illustrations (`public/games/ftw-card.png`/`cocounsel-card.png`) are cropped
-    directly out of the mockup's own mobile PNG via a one-off Python/Pillow script
-    (not rebuilt as SVG - a deliberate choice, since these are the user's own
-    reference art). New `components/GamePickerCard.tsx` renders one `GameEntry` as
-    the full mockup card (see "Shared, reusable" above for why its "Start a room"
-    pill is a styled `<span>`, not a real `<button>`). `<main>` grows to
-    `md:max-w-[800px]` and the game grid switches to `md:grid-cols-2` - **the first
-    pass missed the desktop mockup's distinct two-column layout entirely**
-    (shipped only the single mobile-width column, unconditionally, matching
-    neither breakpoint), caught when the user pointed at
-    `references/game-room/Game Room, desktop@2x.png` directly. `JoinRoomForm`
-    is centered under the two-column grid at `md:max-w-[480px]` rather than
-    stretching full width, matching the mockup's proportions.
-  - **`JoinRoomForm.tsx` can also join by room name**, not just code - the
-    `lib/session/roomMeta.ts`/Store design notes entries above cover the
-    `roomsByName` index this needs (and the new Firebase rule it requires - see
-    README's "Database rules"). A typed code is always authoritative over a typed
-    name (ignored when a code is present); multiple rooms sharing a name render
-    an inline disambiguation list. Verified live: unique-name join routes
-    directly, an ambiguous name shared by two real rooms (one FTW, one
-    Co-Counsel, both actually named identically through `InviteLinkBanner`) lists
-    both and each routes correctly on click, and the existing join-by-code path
-    is unaffected (regression-checked). Zero console errors throughout.
+  name.** Went through two passes - the first matched only the mobile mockup
+  (missed the desktop mockup's two-column layout entirely, caught when the user
+  pointed at `references/game-room/Game Room, desktop@2x.png` directly); the
+  second was a ground-up rebuild against `references/game-room/game-room-ui-spec.md`
+  once the user pointed at that file specifically, since it turned out to
+  specify far more precisely than the mockup images alone conveyed (exact
+  breakpoint, dimensions, colors, states, motion, accessibility) - **including
+  that the card art should be code-drawn, not cropped screenshots**, reversing
+  the "use the reference PNGs directly" choice from the first pass (`public/
+  games/*.png` deleted).
+  - **Layout matches the spec's own breakpoint (760px, not Tailwind's `md:`
+    768px) via arbitrary `min-[760px]:` variants throughout**, not Tailwind's
+    built-in breakpoints - `app/page.tsx` sets its own `#0F7983` background
+    (deliberately distinct from FTW's `--table` `#128A94`, per spec, so white
+    text keeps 4.5:1 contrast - set on a wrapper div, `app/globals.css`'s
+    `--table` itself untouched), exact page padding (40/56/32px desktop,
+    24/16/24px mobile), and a flex-wrap card row (340px cards, 56px gap,
+    centered) that collapses to a single stacked column (max 440px, 20px gap,
+    no tilt) under 760px - the same flex-wrap mechanism the spec says handles
+    a 3rd+ game later, so no extra breakpoint logic needed for that case.
+  - **`lib/games/registry.ts`'s `GameEntry` redone to match the spec's per-game
+    token table exactly**: `ink` (title/chip-border/button-border-shadow-text
+    color), `textSecondary` (description color), `accentColor` (button fill),
+    `titleClassName`/`buttonTextClassName` (font family/weight/tracking/size,
+    e.g. Co-Counsel's Archivo 800 with `-0.02em` tracking vs FTW's default
+    Fredoka 700) - `image`/`emoji` dropped (no longer used).
+  - **`components/GamePickerCard.tsx`** rebuilt to the spec's exact card chrome
+    (20px/18px radius, padding, two-layer shadow) and motion (resting tilt
+    alternating -1.5°/+1.5° by card index, **desktop-only** - applied via a
+    `--tilt` CSS custom property consumed by an arbitrary-property class gated
+    behind `min-[760px]:`, not an unconditional inline `transform`, so it
+    genuinely doesn't exist below that breakpoint rather than just resetting to
+    0; straightens + lifts 6px on hover/focus, `motion-reduce:` disables the
+    transition). New `components/gameRoom/FtwArt.tsx` (the fanned five-card
+    hand, numerals gradient-filled via `background-clip:text` reusing
+    `NUMBER_GRADIENTS` from `lib/games/ftw/constants.ts` directly rather than
+    duplicating those hex values) and `CoCounselArt.tsx` (the blue/red split
+    panel, two mini claim cards, and the yellow "lens" mark) - both render two
+    full size variants (desktop/mobile numbers), toggled by visibility classes
+    at the 760px breakpoint, rather than stacking responsive arbitrary-value
+    classes on every one of the many positioned elements.
+  - **`components/JoinRoomForm.tsx` rebuilt around the spec's single-input +
+    Code/Name switch design**, replacing the previous two-separate-fields
+    version. The switch (`role="radiogroup"`, two `role="radio"` segments,
+    left/right arrow keys move the selection) only changes the placeholder/
+    helper text/`aria-label` - **the lookup itself always tries the typed value
+    as a room code first, then as a room name**, per the spec's "Behavior"
+    section, so getting the switch "wrong" still works. Each mode keeps its own
+    typed value in separate state (`codeValue`/`nameValue`) so switching back
+    restores what was there, while switching away starts that mode fresh - a
+    simpler equivalent to the spec's stated behavior than explicitly tracking
+    "did this value survive a mode switch." Exact states implemented: default/
+    disabled-until-typed, busy (`aria-busy`, disabled switch/input/button,
+    `cursor:progress`), not-found (red border, `aria-invalid`, `role="alert"`
+    linked via `aria-describedby`, cleared on edit or mode switch). One addition
+    beyond the spec (which assumes a single match): 2+ rooms sharing a name
+    render an inline disambiguation list instead of guessing, carried over from
+    the user's standing requirement that the spec itself doesn't mention.
+    `lib/session/roomMeta.ts`'s `roomsByName` index (and the Firebase rule it
+    needs - see README's "Database rules") is unchanged from the first pass.
+  - Verified live: desktop/mobile/exact-760px-edge screenshots against both
+    mockup images: switch keyboard nav and ARIA state; join-by-code, by a
+    unique name, by an ambiguous name (two real rooms, one FTW one Co-Counsel,
+    both actually named identically) showing the disambiguation list with both
+    routing correctly; the not-found error state and its clear-on-edit
+    behavior; card click-through with the per-game `aria-label`. Zero console
+    errors throughout, `tsc`/`eslint`/`vitest`/`next build` all clean.
 
 ---
 
