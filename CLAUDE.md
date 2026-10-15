@@ -542,7 +542,14 @@ game-agnostic.
     (not rebuilt as SVG - a deliberate choice, since these are the user's own
     reference art). New `components/GamePickerCard.tsx` renders one `GameEntry` as
     the full mockup card (see "Shared, reusable" above for why its "Start a room"
-    pill is a styled `<span>`, not a real `<button>`).
+    pill is a styled `<span>`, not a real `<button>`). `<main>` grows to
+    `md:max-w-[800px]` and the game grid switches to `md:grid-cols-2` - **the first
+    pass missed the desktop mockup's distinct two-column layout entirely**
+    (shipped only the single mobile-width column, unconditionally, matching
+    neither breakpoint), caught when the user pointed at
+    `references/game-room/Game Room, desktop@2x.png` directly. `JoinRoomForm`
+    is centered under the two-column grid at `md:max-w-[480px]` rather than
+    stretching full width, matching the mockup's proportions.
   - **`JoinRoomForm.tsx` can also join by room name**, not just code - the
     `lib/session/roomMeta.ts`/Store design notes entries above cover the
     `roomsByName` index this needs (and the new Firebase rule it requires - see
