@@ -188,9 +188,22 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     }
   }, [me, myName, meStore]);
 
-  const pickIdentity = (role: Role, name: string) => {
-    meStore.set(role);
-    gameStore.transaction((current) => {
+  // Only claims this device's own local seat (meStore) AFTER the shared
+  // write actually lands - NOT optimistically beforehand. Two devices
+  // racing to claim the same still-open seat (near-simultaneous taps) can
+  // both reach this function before either has seen the other's write;
+  // `setIdentityName` throws for whichever one's transaction updater gets
+  // re-invoked with the now-already-claimed seat (Firebase's normal
+  // optimistic-concurrency retry, or localStorage's synchronous re-read),
+  // so only the winner's transaction actually commits. Setting `meStore`
+  // unconditionally used to mean the loser of that race would believe it
+  // held a seat someone else actually has - unable to ever submit as the
+  // seat nobody now holds, since both devices would locally be "the same
+  // seat". Awaiting first (an async function is still assignable to this
+  // interface's `(role, name) => void` - callers that don't await it simply
+  // don't wait, which is fine) closes that gap.
+  const pickIdentity = async (role: Role, name: string) => {
+    const result = await gameStore.transaction((current) => {
       if (!current) return undefined;
       try {
         return setIdentityName(current, role, name);
@@ -198,6 +211,9 @@ export function useGameSession<TState extends WithIdentity>(opts: {
         return undefined;
       }
     });
+    if (result) {
+      meStore.set(role);
+    }
   };
 
   const transact: GameSession<TState>["transact"] = (updater) => {

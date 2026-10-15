@@ -48,7 +48,7 @@ export function createFirebaseStore<T>(path: string, config: FirebaseOptions): S
       const snapshot = await get(getRef());
       return (snapshot.val() as T | null) ?? null;
     },
-    transaction(updater) {
+    async transaction(updater) {
       // Firebase may invoke this speculatively with `null` even when real
       // data exists on the server, if this ref's own internal transaction
       // cache hasn't warmed up yet - a separate thing from the `onValue`
@@ -57,7 +57,9 @@ export function createFirebaseStore<T>(path: string, config: FirebaseOptions): S
       // already-warm `cache` avoids treating that as "no data, abort": if
       // the fallback turns out to be stale, Firebase's normal optimistic-
       // concurrency retry re-invokes this with the real server value anyway.
-      void runTransaction(getRef(), (current: T | null) => updater(current ?? cache));
+      const result = await runTransaction(getRef(), (current: T | null) => updater(current ?? cache));
+      if (!result.committed) return undefined;
+      return (result.snapshot.val() as T | null) ?? undefined;
     },
   };
 }

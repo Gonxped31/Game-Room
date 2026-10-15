@@ -70,9 +70,10 @@ export function createLocalStore<T>(key: string, options: LocalStoreOptions = {}
       return readRaw();
     },
     set: write,
-    transaction(updater) {
+    async transaction(updater) {
       const next = updater(snapshot());
       if (next !== undefined) write(next);
+      return next;
     },
   };
 }

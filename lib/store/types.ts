@@ -23,6 +23,14 @@ export interface Store<T> {
    * atomically (per-backend guarantee). Return `undefined` from `updater`
    * to abort without writing - this is how invalid/duplicate state
    * transitions become no-ops instead of corrupting shared state.
+   *
+   * Resolves to the value that was actually written, or `undefined` if the
+   * transaction aborted - most callers fire-and-forget this (ignoring the
+   * returned promise is fine), but it matters whenever a caller needs to
+   * know whether ITS specific attempt won a race against a concurrent one
+   * (e.g. two devices claiming the same seat at nearly the same moment -
+   * see useGameSession's `pickIdentity`), rather than just trusting the
+   * store's own snapshot to eventually reflect whatever won.
    */
-  transaction(updater: (current: T | null) => T | undefined): void;
+  transaction(updater: (current: T | null) => T | undefined): Promise<T | undefined>;
 }

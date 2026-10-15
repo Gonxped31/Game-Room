@@ -18,7 +18,47 @@ to Worst is the first game; see the Status section for others as they're added.
     "Emperor"/"Slave", onto p1/p2) and `WithIdentity` (`{ names:
     Partial<Record<Role,string>> }`, the shape every game's state must include).
   - `identity.ts` - `setIdentityName<T extends WithIdentity>(state, role, name)`,
-    generic over any game's state.
+    generic over any game's state. **Rejects claiming a seat someone else already
+    holds while the other seat is still open** - without this, two devices
+    tapping a role button at nearly the same moment (a real bug reported live:
+    "when someone picks a role, normally the other should not be able to pick
+    role - this doesn't work yet") could both succeed, since nothing previously
+    stopped a second write from silently overwriting the first. Worse for
+    Co-Counsel specifically: role → character name is a fixed 1:1 mapping (always
+    "Maya"/"Leo"), so both racing devices write the *identical* name value,
+    meaning neither the UI nor the shared state shows any conflict signal - both
+    devices believe they're the same seat, and the other seat never gets claimed.
+    Fixed with the same "throw to abort" pattern already used throughout this
+    codebase (FTW's `lockIn`, Co-Counsel's `game.ts` transitions), now applied to
+    identity claiming too: `setIdentityName` throws if `role` is already claimed
+    AND the other seat is still open (once *both* seats are claimed, re-writing
+    one is allowed again - that's the "Welcome back, which one are you?"
+    re-confirmation, not a race). `Store<T>.transaction()` (`lib/store/types.ts`)
+    was extended to resolve to the value actually written (or `undefined` if
+    aborted) instead of `void`, so `useGameSession`'s `pickIdentity` can await
+    that result and only claim this device's own local seat (`meStore`) *after*
+    the shared write actually lands - it used to set `meStore` optimistically
+    beforehand, which is what let the losing device believe it held a seat
+    someone else actually has. Every other `.transaction()` call site in the
+    codebase stays fire-and-forget (an async function is still assignable to a
+    `(role, name) => void`-shaped interface, so nothing else needed to change).
+    **Hit and fixed a real regression while live-testing this fix**: the new
+    guard code read `state.names[role]` directly, but a never-before-joined
+    room's state has no `names` key *at all* (Firebase drops an empty `{}` on
+    write - see "Store design notes" below), so the very first role pick on any
+    fresh room threw a `TypeError` that the caller's `catch` swallowed as a
+    rejection - silently breaking the ordinary, non-racing happy path for every
+    new room. A sequential-click test with generous delays didn't catch this
+    (it reused an already-claimed room); only a true concurrent-click Playwright
+    run against a *fresh* room surfaced it. Fixed by normalizing
+    `state.names ?? {}` before any read. Verified live against real Firebase
+    with three two-device Playwright runs: (1) two devices racing to claim the
+    same role - exactly one wins, the loser stays on `RolePicker` with both
+    buttons still enabled and successfully claims the other role, both end up
+    playing; (2) the normal sequential pick-one-then-the-other flow, unaffected;
+    (3) "Welcome back, which one are you?" after clearing one device's local
+    `me` - re-confirming an already-held role still works. Zero console errors
+    across all three.
   - `room.ts` - `generateRoomCode()`, a 6-char room code (ambiguous characters like
     `i`/`l`/`0`/`o` excluded).
   - `useGameSession.ts` - the hook every game's page calls once:
@@ -1061,3 +1101,17 @@ lock in one card, trying to find the matching pair while talking out loud.
     the Part/reveal screens, with the back link and theme toggle both
     visible and functional inline on every header shape; dark mode toggling
     and persistence are unaffected. Zero console errors throughout.
+- **Stage 9 (done): two devices racing to claim the same role could both
+  succeed.** User-reported: "when someone picks a role, normally the other
+  should not be able to pick role - this doesn't work yet." Root cause and
+  fix live in the shared `lib/session/identity.ts`/`useGameSession.ts` - see
+  the detailed write-up under "Multi-game architecture" above (this bug and
+  its fix apply to FTW's `RolePicker` too, not just Co-Counsel's, since both
+  go through the same `setIdentityName`/`pickIdentity`). The regression
+  hit and fixed *while verifying this fix live* - a fresh room's state has
+  no `names` key at all (Firebase drops an empty `{}` on write), and the new
+  guard code's first version read `state.names[role]` without normalizing
+  that first, breaking the ordinary first-role-pick happy path on every new
+  room - was caught specifically by testing against a brand-new Co-Counsel
+  room rather than a reused one, underscoring why this needed a live
+  two-device Playwright run and not just the unit tests.
