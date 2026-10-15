@@ -11,7 +11,7 @@ export default function BackButton() {
     <Link
       href="/"
       aria-label="Back to all games"
-      className="fixed left-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-lg leading-none text-white no-underline backdrop-blur-sm"
+      className="fixed left-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-lg leading-none text-white no-underline"
     >
       ←
     </Link>

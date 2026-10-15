@@ -19,8 +19,9 @@ export default function ClaimCard({ n, text, role, selected, onSelect }: ClaimCa
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={`flex min-h-16 w-full items-center gap-3 rounded-xl border-2 bg-white px-3.5 py-3 text-left ${selected ? "card-lift" : ""}`}
+      className={`flex min-h-16 w-full items-center gap-3 rounded-xl border-2 px-3.5 py-3 text-left ${selected ? "card-lift" : ""}`}
       style={{
+        backgroundColor: COLOR.white,
         borderColor: selected ? COLOR.ink : edgeColor,
         borderWidth: selected ? "3px" : "2px",
         boxShadow: selected ? `0 5px 0 ${COLOR.ink}` : "none",

@@ -74,6 +74,46 @@ textarea:focus-visible {
   animation: card-lift 0.12s ease-out both;
 }
 
+/* Co-Counsel: neutral/surface color tokens, swapped by a manual light/dark
+   toggle scoped to Co-Counsel's own root element (`[data-theme]` is only ever
+   set on app/cocounsel/page.tsx's wrapper div, never on <html> or <body>) -
+   see lib/games/cocounsel/useTheme.ts. Brand/role colors (investigator,
+   defendant, yellow, green, amber) stay plain hex in theme.ts, unconverted -
+   they're saturated enough to read on a dark background already. */
+:root {
+  --cc-ink: #1c1f3d;
+  --cc-paper: #ffffff;
+  --cc-white: #ffffff;
+  --cc-text2: #4a4f73;
+  --cc-card-edge-blue: #c9d0e8;
+  --cc-card-edge-red: #e8cfcc;
+  --cc-rule-blue: #e3e7f4;
+  --cc-rule-red: #f3e3e1;
+  --cc-gutter-blue: #5566b4;
+  --cc-gutter-red: #b0453d;
+  --cc-disabled-bg: #dde1ee;
+  --cc-disabled-text: #5c6286;
+  --cc-disabled-bg-warm: #e6dfe0;
+  --cc-disabled-text-warm: #6b5a5c;
+}
+
+[data-theme="dark"] {
+  --cc-ink: #e7e9f5;
+  --cc-paper: #14172b;
+  --cc-white: #1e2140;
+  --cc-text2: #a8adcf;
+  --cc-card-edge-blue: #343a66;
+  --cc-card-edge-red: #4a3238;
+  --cc-rule-blue: #22264a;
+  --cc-rule-red: #2e2230;
+  --cc-gutter-blue: #8d9ae8;
+  --cc-gutter-red: #e07c72;
+  --cc-disabled-bg: #2a2e52;
+  --cc-disabled-text: #8a90b8;
+  --cc-disabled-bg-warm: #332d30;
+  --cc-disabled-text-warm: #a8949a;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flip-inner {
     transition: none !important;

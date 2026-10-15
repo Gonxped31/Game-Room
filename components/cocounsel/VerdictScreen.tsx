@@ -57,7 +57,10 @@ export default function VerdictScreen({
         <Stamp color="green" rotate={-3}>
           {verdict.title}
         </Stamp>
-        <div className="mt-6 rounded-[6px] bg-white p-4 font-[family-name:var(--font-courier-prime)] text-[15px] leading-[26px]" style={{ color: COLOR.ink }}>
+        <div
+          className="mt-6 rounded-[6px] p-4 font-[family-name:var(--font-courier-prime)] text-[15px] leading-[26px]"
+          style={{ backgroundColor: COLOR.white, color: COLOR.ink }}
+        >
           {verdict.text}
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4">

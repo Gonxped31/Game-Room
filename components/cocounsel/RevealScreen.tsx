@@ -95,8 +95,8 @@ export default function RevealScreen({
               Case notes
             </div>
             <div
-              className="rounded-[6px] bg-white p-4 pt-5 font-[family-name:var(--font-courier-prime)] text-[15px] leading-[26px]"
-              style={{ color: COLOR.ink }}
+              className="rounded-[6px] p-4 pt-5 font-[family-name:var(--font-courier-prime)] text-[15px] leading-[26px]"
+              style={{ backgroundColor: COLOR.white, color: COLOR.ink }}
             >
               {theory}
             </div>

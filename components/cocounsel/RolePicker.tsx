@@ -3,7 +3,6 @@ import { COLOR } from "@/lib/games/cocounsel/theme";
 import Wordmark from "./Wordmark";
 
 interface RolePickerProps {
-  room: string;
   caseDef: CaseDefinition;
   investigatorTaken: boolean;
   defendantTaken: boolean;
@@ -16,9 +15,11 @@ interface RolePickerProps {
  * RolePicker; players pick a role, and the in-story character name comes
  * from the case data. When both roles are already claimed (a device with no
  * local `me`, e.g. after a rematch), both buttons stay enabled so either
- * player can re-confirm who they are.
+ * player can re-confirm who they are. No room code shown here - the shared
+ * 1v1 RolePicker doesn't show it either; only the Footer and the
+ * InviteLinkBanner step (right after this one) do.
  */
-export default function RolePicker({ room, caseDef, investigatorTaken, defendantTaken, onPickInvestigator, onPickDefendant }: RolePickerProps) {
+export default function RolePicker({ caseDef, investigatorTaken, defendantTaken, onPickInvestigator, onPickDefendant }: RolePickerProps) {
   const bothTaken = investigatorTaken && defendantTaken;
 
   return (
@@ -30,9 +31,6 @@ export default function RolePicker({ room, caseDef, investigatorTaken, defendant
         </p>
         <p className="mt-4 font-[family-name:var(--font-archivo)] text-base font-bold" style={{ color: COLOR.ink }}>
           {caseDef.title}
-        </p>
-        <p className="font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-          Room {room}
         </p>
         <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-[1.15]" style={{ color: COLOR.ink }}>
           {bothTaken ? "Welcome back! Which one are you?" : "Who are you this round?"}

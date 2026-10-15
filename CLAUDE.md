@@ -575,3 +575,79 @@ lock in one card, trying to find the matching pair while talking out loud.
     (via the state setter, from a plain click handler - not an effect) so
     generating a fresh room via "New room" correctly makes that device the
     creator of the *new* room, independent of whatever it was for the old one.
+- **Stage 4 (done, consistency pass):** three more user-requested changes, again
+  entirely scoped to `lib/games/cocounsel/`/`components/cocounsel/`/
+  `app/cocounsel/page.tsx`/the Co-Counsel-only block in `app/globals.css` - zero
+  diff to FTW, the picker, or the shared session layer.
+  - **Copy-link step matches FTW's, as its own separate screen.** The page's
+    branching now mirrors FTW's exact `!game → !me → !bothJoined → playing`
+    shape, with `showCasePicker` inserted ahead of it:
+    `!game → showCasePicker → !me → !bothJoined → playing`. `!me` shows
+    `RolePicker` (pick a role); `!bothJoined` now shows the literal shared
+    `components/InviteLinkBanner.tsx` (unchanged, not a Co-Counsel reskin) -
+    previously `!bothJoined` went straight back to `RolePicker` a second time,
+    with no distinct "waiting, copy the link" step at all. `CasePicker` and
+    `RolePicker` both had their embedded "Room X" / copy-link UI stripped
+    entirely (that's `InviteLinkBanner`'s job now, one step later, same as
+    FTW's own `RolePicker` not showing a room code either) - `CasePicker` is
+    now purely about the case, `RolePicker` purely about the role.
+  - **Back button matches FTW's style.** `BackButton.tsx`'s classes now
+    literally match the shared `Header`'s back-link (`bg-black/40`, `h-9 w-9`,
+    no `backdrop-blur-sm`) - still `position: fixed` rather than threaded
+    inline per-screen like FTW, since Co-Counsel has no single shared header
+    component the way FTW does (its screens split between `Wordmark`-topped
+    screens and full-bleed `HeaderBand`/`ResultsHeader` colored bands).
+  - **Co-Counsel-only manual light/dark toggle** - deliberately *not* shared
+    platform infrastructure; FTW is completely untouched and may get its own
+    independent toggle later if ever wanted. `lib/games/cocounsel/useTheme.ts`
+    holds `type ThemeMode = "light" | "dark"` state backed by `localStorage`
+    under the Co-Counsel-specific key `"cocounsel-theme"`. Unlike the
+    `isCreator` lazy-`useState`-initializer pattern (safe only because the JSX
+    depending on it stays gated behind `!game`), the theme is applied as a
+    `data-theme` attribute directly on the page's root wrapper div, which
+    renders unconditionally from the very first paint - so a lazy initializer
+    reading `localStorage` would hydration-mismatch for any returning
+    dark-mode visitor. `useTheme` instead starts at `"light"` on every render
+    (server and client's first paint alike) and only reads the real stored
+    value inside an effect via `setTimeout(fn, 0)` - the same
+    deferred-first-setState pattern `useGameSession`'s `now` tick already
+    uses - so a stored "dark" preference applies as a same-tick correction
+    right after mount instead of a server/client mismatch.
+    `components/cocounsel/ThemeToggle.tsx` is a sun/moon button mirroring
+    `BackButton`'s fixed top-left circle on the opposite (top-right) corner.
+    The swap mechanism needed no `dark:` Tailwind variant or
+    `@custom-variant` opt-in: every Co-Counsel component already reads colors
+    via `style={{color: COLOR.xxx}}`, never Tailwind color utility classes
+    (confirmed and enforced - see the `bg-white` note below), so
+    `lib/games/cocounsel/theme.ts`'s **neutral/surface** tokens (`ink`,
+    `paper`, `white`, `text2`, the card-edge/rule/gutter/disabled tokens)
+    became `var(--cc-xxx)` references, a source-of-truth-only change with
+    zero edits to any of their ~15 consuming files, since CSS variables
+    resolve at paint time regardless of which theme is active. Brand/role
+    colors (`investigator`/`defendant`/`yellow`/`green`/`amber`) stayed plain
+    hex - already saturated enough to read on a dark background, and part of
+    the game's identity rather than an eye-strain concern. `app/globals.css`
+    gained a "Co-Counsel:" scoped `:root { --cc-ink: ...; }` (light) +
+    `[data-theme="dark"] { --cc-ink: ...; }` block, following the existing
+    `stamp-land`/`card-lift` precedent of Co-Counsel-only rules living in
+    that same shared file.
+    **Bug found and fixed while verifying dark mode live**: seven components
+    (`ClaimCard`, `CasePicker`, `VerdictScreen`, `RecapScreen` ×2,
+    `TranscriptSheet`, `PartScreen`, `RevealScreen`) used Tailwind's literal
+    `bg-white` utility class for card surfaces instead of `COLOR.white`,
+    which is exactly the "never Tailwind color utility classes" rule this
+    whole mechanism depends on - undetectable by any automated check (tsc/
+    eslint/vitest/build all passed with it in place), only visible by
+    actually loading dark mode in a browser: those cards stayed hardcoded
+    white while their `COLOR.ink` text turned light, becoming unreadable.
+    Fixed by moving every instance to `style={{backgroundColor: COLOR.white}}`.
+    Verified via a live two-device Playwright run: the restructured flow
+    end-to-end (case pick → role pick → shared `InviteLinkBanner` while
+    waiting, confirmed via its own text rather than a custom box → second
+    device joins → play proceeds), confirming neither `CasePicker` nor
+    `RolePicker` show any room-code/copy-link UI; dark mode toggled and
+    confirmed to persist across a reload; screenshots of the case-picker,
+    role-pick, invite-link, and a Part screen in both themes (including the
+    `bg-white` fix); zero console errors throughout. A quick FTW regression
+    check confirmed its background/fonts/lack-of-theme-toggle are completely
+    unaffected.

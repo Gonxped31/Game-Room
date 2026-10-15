@@ -1,31 +1,21 @@
-"use client";
-
-import { useState } from "react";
 import type { CaseDefinition } from "@/lib/games/cocounsel/caseTypes";
 import { COLOR } from "@/lib/games/cocounsel/theme";
 import Button from "./Button";
 import Wordmark from "./Wordmark";
 
 interface CasePickerProps {
-  room: string;
   caseDef: CaseDefinition;
   onChoose: () => void;
 }
 
-/** The "Pick a case" screen - a static confirmation step in v1 (one real case), but shows all three tiers so the structure reads clearly for when more ship. */
-export default function CasePicker({ room, caseDef, onChoose }: CasePickerProps) {
-  const [copied, setCopied] = useState(false);
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // clipboard unavailable (permissions, insecure context) - the link is still right there in the address bar.
-    }
-  };
-
+/**
+ * The "Pick a case" screen - a static confirmation step in v1 (one real
+ * case), but shows all three tiers so the structure reads clearly for when
+ * more ship. Purely about the case itself - no room code or invite-link UI
+ * here; that's the shared InviteLinkBanner's job, one step later (after a
+ * role is picked), matching First to Worst's flow.
+ */
+export default function CasePicker({ caseDef, onChoose }: CasePickerProps) {
   return (
     <div className="px-4 pb-8 pt-3.5">
       <Wordmark />
@@ -36,20 +26,14 @@ export default function CasePicker({ room, caseDef, onChoose }: CasePickerProps)
         You both play the case you choose here.
       </p>
 
-      <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border-2 bg-white px-3.5 py-2.5" style={{ borderColor: COLOR.cardEdgeBlue }}>
-        <span className="font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: COLOR.ink }}>
-          Room {room}
-        </span>
-        <Button variant="secondary" className="!h-11 !w-auto shrink-0 px-4 text-sm" onClick={copyLink}>
-          {copied ? "Copied!" : "Copy room link"}
-        </Button>
-      </div>
-
       <div className="relative mt-7">
         <div className="absolute -top-3.5 left-4 rounded-t px-3 py-1 text-xs font-bold text-white" style={{ backgroundColor: COLOR.ink }}>
           Easy
         </div>
-        <div className="rounded-xl border-[3px] bg-white p-4 pt-6 shadow-[0_5px_0_rgba(0,0,0,.15)]" style={{ borderColor: COLOR.ink }}>
+        <div
+          className="rounded-xl border-[3px] p-4 pt-6 shadow-[0_5px_0_rgba(0,0,0,.15)]"
+          style={{ backgroundColor: COLOR.white, borderColor: COLOR.ink }}
+        >
           <h2 className="font-[family-name:var(--font-archivo)] text-xl font-extrabold leading-[1.15]" style={{ color: COLOR.ink }}>
             {caseDef.title}
           </h2>

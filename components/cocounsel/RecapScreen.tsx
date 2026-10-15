@@ -29,7 +29,7 @@ export default function RecapScreen({ caseDef, onBack }: RecapScreenProps) {
               Part {part.n}: {part.title}
             </h2>
             <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-[6px] bg-white p-3" style={{ borderLeft: `4px solid ${COLOR.investigator}` }}>
+              <div className="rounded-[6px] p-3" style={{ backgroundColor: COLOR.white, borderLeft: `4px solid ${COLOR.investigator}` }}>
                 <p className="text-xs font-bold" style={{ color: COLOR.investigator }}>
                   {caseDef.characters.investigator}, Investigator
                 </p>
@@ -37,7 +37,7 @@ export default function RecapScreen({ caseDef, onBack }: RecapScreenProps) {
                   {part.screens.investigator.info}
                 </p>
               </div>
-              <div className="rounded-[6px] bg-white p-3" style={{ borderLeft: `4px solid ${COLOR.defendant}` }}>
+              <div className="rounded-[6px] p-3" style={{ backgroundColor: COLOR.white, borderLeft: `4px solid ${COLOR.defendant}` }}>
                 <p className="text-xs font-bold" style={{ color: COLOR.defendant }}>
                   {caseDef.characters.defendant}, Defendant
                 </p>

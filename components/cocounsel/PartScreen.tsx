@@ -69,7 +69,7 @@ export default function PartScreen({
               <p className="mb-1 font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: COLOR.ink }}>
                 Your card
               </p>
-              <div className="relative aspect-[2/3] w-full rounded-xl border-[3px] bg-white p-3" style={{ borderColor: COLOR.ink }}>
+              <div className="relative aspect-[2/3] w-full rounded-xl border-[3px] p-3" style={{ backgroundColor: COLOR.white, borderColor: COLOR.ink }}>
                 <ExhibitTent n={lockedIndex + 1} />
                 <p className="mt-2 font-[family-name:var(--font-archivo)] text-base font-bold leading-[1.25]" style={{ color: COLOR.ink }}>
                   {lockedCard?.text}

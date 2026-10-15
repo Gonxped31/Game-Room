@@ -31,7 +31,7 @@ export default function TranscriptSheet({ text, role, label = "What you know" }:
   const gutterColor = role === "investigator" ? COLOR.gutterBlue : COLOR.gutterRed;
 
   return (
-    <div className="relative mt-4 rounded-[6px] bg-white shadow-[0_2px_6px_rgba(0,0,0,.12)]">
+    <div className="relative mt-4 rounded-[6px] shadow-[0_2px_6px_rgba(0,0,0,.12)]" style={{ backgroundColor: COLOR.white }}>
       <div className="absolute -top-[22px] left-3 rounded-t-[4px] px-3 py-1.5 text-xs font-bold text-white" style={{ backgroundColor: tabColor }}>
         {label}
       </div>

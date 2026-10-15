@@ -6,6 +6,8 @@ import { getCase } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
 import { classifyDuo, continueAfterReveal, focusPercent, type GameState, lockIn, newGame, screenOfRole, totalAttempts, trustPercent } from "@/lib/games/cocounsel/game";
 import { COLOR, CONTAINER_MAX_WIDTH_CLASS } from "@/lib/games/cocounsel/theme";
+import { useTheme } from "@/lib/games/cocounsel/useTheme";
+import InviteLinkBanner from "@/components/InviteLinkBanner";
 import BackButton from "@/components/cocounsel/BackButton";
 import CasePicker from "@/components/cocounsel/CasePicker";
 import Footer from "@/components/cocounsel/Footer";
@@ -13,6 +15,7 @@ import PartScreen from "@/components/cocounsel/PartScreen";
 import RecapScreen from "@/components/cocounsel/RecapScreen";
 import RevealScreen from "@/components/cocounsel/RevealScreen";
 import RolePicker from "@/components/cocounsel/RolePicker";
+import ThemeToggle from "@/components/cocounsel/ThemeToggle";
 import VerdictScreen from "@/components/cocounsel/VerdictScreen";
 
 const CASE_ID = "ruined-birthday";
@@ -22,6 +25,7 @@ export default function CoCounselPage() {
   const createInitialState = useCallback((): GameState => newGame(CASE_ID), []);
   const session = useGameSession<GameState>({ gameSlug: "cocounsel", createInitialState });
   const { room, game, me, names, bothJoined, pickIdentity, transact, setGame, newRoom } = session;
+  const { theme, toggleTheme } = useTheme();
 
   // Whoever visits with no #room in the URL at all is the one about to
   // generate a fresh room and share its link - only THAT device should see
@@ -82,8 +86,9 @@ export default function CoCounselPage() {
   };
 
   return (
-    <div className="min-h-screen w-full" style={{ backgroundColor: COLOR.paper }}>
+    <div className="min-h-screen w-full" data-theme={theme} style={{ backgroundColor: COLOR.paper }}>
       <BackButton />
+      <ThemeToggle theme={theme} onToggle={toggleTheme} />
       {/* pt-14 reserves a clear strip above all content for the fixed back
           button (top-3, 40px tall) so it never overlaps the Wordmark logo or
           a role-colored band's own top-left text. */}
@@ -99,16 +104,17 @@ export default function CoCounselPage() {
             Connecting to the room…
           </p>
         ) : showCasePicker ? (
-          <CasePicker room={room} caseDef={caseDef} onChoose={() => setCaseConfirmed(true)} />
-        ) : !bothJoined ? (
+          <CasePicker caseDef={caseDef} onChoose={() => setCaseConfirmed(true)} />
+        ) : !me ? (
           <RolePicker
-            room={room}
             caseDef={caseDef}
             investigatorTaken={investigatorTaken}
             defendantTaken={defendantTaken}
             onPickInvestigator={() => pickIdentity(INVESTIGATOR, caseDef.characters.investigator)}
             onPickDefendant={() => pickIdentity(DEFENDANT, caseDef.characters.defendant)}
           />
+        ) : !bothJoined ? (
+          <InviteLinkBanner />
         ) : game.phase === "CASE_DONE" ? (
           showRecap ? (
             <RecapScreen caseDef={caseDef} onBack={() => setShowRecap(false)} />
