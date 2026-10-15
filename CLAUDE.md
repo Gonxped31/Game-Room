@@ -51,6 +51,53 @@ to Worst is the first game; see the Status section for others as they're added.
     rule flags. `RoleStickers` renders an optional small green/gray dot per seat
     when a game passes `online` through (e.g. `app/ftw/page.tsx`); omitting the prop
     skips the dot entirely, so this is opt-in per game, not required.
+- **`lib/session/multiplayer/`** - a second, parallel session layer for games with
+  **3+ players**, since `lib/session/`'s `Role` is a closed `"p1"|"p2"` union by
+  design (its own doc comment says "never renamed per-game") and everything built on
+  it - `WithIdentity`, `useGameSession`'s `other`/`bothJoined`, `RolePicker`,
+  `Header`'s `myScore`/`theirScore` props - bakes in exactly 2 seats somewhere. Rather
+  than widen `Role` (which every existing 1v1 game, including FTW, depends on),
+  this is a **fully separate module that duplicates the small amount of
+  2-seat-shaped logic** instead of generalizing it - the same "parallel module over
+  shared abstraction" pattern as E-Card getting its own `lib/games/ecard/` instead of
+  reusing FTW's. Every file under the top-level `lib/session/` is untouched by this
+  (`git diff` on `types.ts`/`identity.ts`/`presence.ts`/`useGameSession.ts` is empty),
+  so FTW's behavior provably can't be affected.
+  - `types.ts` - `SeatId` (`string`, not a literal union - generated as `"p1".."pN"`
+    by `seatIds(maxPlayers)` since N varies per game) and `WithMultiplayerIdentity`
+    (`{ names: Partial<Record<SeatId,string>> }`, the N-player counterpart to
+    `WithIdentity`).
+  - `identity.ts` - `setMultiplayerIdentityName`, a direct counterpart to
+    `setIdentityName` generalized from `Role` to `SeatId`.
+  - `presence.ts` - re-exports `HEARTBEAT_INTERVAL_MS`/`STALE_AFTER_MS` from the 1v1
+    `presence.ts` (pure constants, no reason to duplicate those) and defines
+    `isSeatOnline`, the `SeatId`-generalized counterpart to `isOnline`.
+  - `useMultiplayerSession.ts` - the hook: `useMultiplayerSession({ gameSlug,
+    maxPlayers, createInitialState })` returns `{ room, game, seats, me, otherSeats,
+    names, joinedSeats, unclaimedSeats, allJoined, online, pickIdentity, transact,
+    setGame, newRoom }`. Mirrors `useGameSession` internally (same hash-based room
+    resolution duplicated rather than extracted into a shared hook, for the same
+    don't-touch-the-working-file reasoning; reuses `createGameStore` and
+    `generateRoomCode` **unchanged**, since neither has any player-count coupling to
+    begin with) - the only real differences are seat-count-driven: `online`/seat
+    lists are built by mapping over `seats` instead of two hardcoded `p1`/`p2`
+    object-literal entries, and `unclaimedSeats`/`allJoined` replace the 1v1 hook's
+    `!names.p1 ? "p1" : ...` chain and `bothJoined` boolean. Presence is written to
+    the same `games/{room}/presence` path the 1v1 layer uses (intentional - presence
+    is per-*room*, not per-game, and `SeatId` is a superset of `Role`'s two values,
+    so there's no shape conflict).
+  - **No game is built on this yet** - it's backend-only, added ahead of having a
+    specific 3+ player game in mind. `components/RoleStickers.tsx` would work for a
+    future N-player game's UI unchanged (already a generic `roles: {...}[]` array,
+    no count assumption); `RolePicker`/`Header` would not (hardcoded to exactly 2
+    seats/scores) and would need new N-player equivalents whenever a real game is
+    built on top of this. Verified end-to-end (room auto-creation, 3 distinct seats
+    claiming, the "room full" case, live presence, and store sync all working against
+    real Firebase) via a throwaway test page that was deleted before committing -
+    `lib/session/multiplayer/` ships with Vitest coverage for every pure function
+    (`seatIds`, `setMultiplayerIdentityName`, `isSeatOnline`) but, like
+    `useGameSession`, the hook itself has no unit test, consistent with this
+    project's pattern of verifying hooks live rather than in Vitest.
 - **`lib/store/`** stays fully generic and untouched by the multi-game split -
   `createGameStore<T>(room, gameSlug)` is already backend-agnostic (Firebase when
   all five `NEXT_PUBLIC_FIREBASE_*` env vars are set, else `localStorage`). The

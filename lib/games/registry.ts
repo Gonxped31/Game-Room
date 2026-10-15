@@ -6,12 +6,17 @@ export interface GameEntry {
   title: string;
   tagline: string;
   emoji: string;
+  /** How many players this game needs. Defaults to 2 (1v1) when omitted. */
+  maxPlayers?: number;
 }
 
 /**
  * Every game available from the picker. Adding a new 1v1 game later is just:
  * an entry here, its own lib/games/<slug>/ + components/<slug>/, and an
  * app/<slug>/page.tsx calling useGameSession - nothing shared needs to change.
+ * A 3+ player game instead calls useMultiplayerSession
+ * (lib/session/multiplayer/) - see CLAUDE.md's "Multi-game architecture"
+ * section for how that backend differs from the 1v1 one.
  */
 export const GAMES: GameEntry[] = [
   {
@@ -19,5 +24,6 @@ export const GAMES: GameEntry[] = [
     title: "First to Worst",
     tagline: "Rank topics 1-to-5, then guess how your partner ranked them.",
     emoji: "🏆",
+    maxPlayers: 2,
   },
 ];
