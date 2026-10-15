@@ -46,23 +46,34 @@ export default function CoCounselPage() {
   const isJoiner = isCreator === false;
 
   // Local, not synced - v1 has exactly one real case, so this is a static
-  // confirmation step (per the design doc's own note), not a shared choice.
-  // Only the creator (see isJoiner above) ever sees it at all, UNLESS
-  // forceCasePicker overrides it below.
+  // confirmation step (per the design doc's own note), not a shared choice -
+  // and since the creator already chose it when sharing the link, a joiner
+  // never gets to (re)select a case at all, not even via the back link
+  // (isJoiner gates showCasePicker unconditionally below; forceCasePicker
+  // alone can't override it).
   const [caseConfirmed, setCaseConfirmed] = useState(false);
-  // CasePicker is Co-Counsel's own "home" screen - every screen's back link
-  // (see components/cocounsel/BackLink.tsx) re-shows it via this, regardless
-  // of isJoiner/caseConfirmed, without touching the room, role claims, or
-  // game progress. Cleared once the player reconfirms via "Choose this
-  // case", resuming wherever the shared game state actually has them.
+  // CasePicker is Co-Counsel's own "home" screen for its OWNER - every
+  // screen's back link (see components/cocounsel/BackLink.tsx) re-shows it
+  // via this, without touching the room, role claims, or game progress.
+  // Cleared once the owner reconfirms via "Choose this case", resuming
+  // wherever the shared game state actually has them.
   const [forceCasePicker, setForceCasePicker] = useState(false);
-  const showCasePicker = forceCasePicker || (!isJoiner && !caseConfirmed);
-  const handleBackToCaseSelection = () => setForceCasePicker(true);
+  const showCasePicker = !isJoiner && (forceCasePicker || !caseConfirmed);
   // From CasePicker itself (Co-Counsel's "home"), back goes up a level to
-  // the game picker instead - CasePicker's own back link uses this, every
-  // other screen uses handleBackToCaseSelection above.
+  // the game picker instead - CasePicker's own back link uses this directly.
   const router = useRouter();
   const handleBackToGameRoom = () => router.push("/");
+  // Every other screen's back link uses this: the owner goes back to case
+  // selection, but a joiner has no case-selection "home" to return to at
+  // all (only the owner picks the case), so their back link leaves
+  // Co-Counsel entirely instead.
+  const handleBack = () => {
+    if (isJoiner) {
+      handleBackToGameRoom();
+    } else {
+      setForceCasePicker(true);
+    }
+  };
   const [showRecap, setShowRecap] = useState(false);
 
   const myScreen = me ? screenOfRole(me) : null;
@@ -148,11 +159,11 @@ export default function CoCounselPage() {
             defendantTaken={defendantTaken}
             onPickInvestigator={() => pickIdentity(INVESTIGATOR, caseDef.characters.investigator)}
             onPickDefendant={() => pickIdentity(DEFENDANT, caseDef.characters.defendant)}
-            onBack={handleBackToCaseSelection}
+            onBack={handleBack}
           />
         ) : !bothJoined ? (
           <div className="px-4 pt-3.5">
-            <Wordmark onBack={handleBackToCaseSelection} />
+            <Wordmark onBack={handleBack} />
             <div className="mt-4">
               <InviteLinkBanner
                 room={room}
@@ -166,7 +177,7 @@ export default function CoCounselPage() {
           </div>
         ) : game.phase === "CASE_DONE" ? (
           showRecap ? (
-            <RecapScreen caseDef={caseDef} onBackToVerdict={() => setShowRecap(false)} onBack={handleBackToCaseSelection} />
+            <RecapScreen caseDef={caseDef} onBackToVerdict={() => setShowRecap(false)} onBack={handleBack} />
           ) : // How the case ended is read back from the log's last entry, not
           // `lastReveal` (already cleared by continueAfterReveal by the time
           // CASE_DONE renders) - "solved" is the only celebratory ending;
@@ -180,7 +191,7 @@ export default function CoCounselPage() {
               verdict={game.log.at(-1)?.outcome === "judgeRevealed" ? caseDef.verdict : undefined}
               onSeeRecap={() => setShowRecap(true)}
               onStartNewCase={handleRematch}
-              onBack={handleBackToCaseSelection}
+              onBack={handleBack}
             />
           ) : (
             <VerdictScreen
@@ -194,7 +205,7 @@ export default function CoCounselPage() {
               totalParts={caseDef.parts.length}
               onSeeRecap={() => setShowRecap(true)}
               onRematch={handleRematch}
-              onBack={handleBackToCaseSelection}
+              onBack={handleBack}
             />
           )
         ) : game.phase === "REVEALED" && game.lastReveal ? (
@@ -225,7 +236,7 @@ export default function CoCounselPage() {
                 myRole={myRole}
                 onPickAgain={handleContinue}
                 onContinue={handleContinue}
-                onBack={handleBackToCaseSelection}
+                onBack={handleBack}
               />
             );
           })()
@@ -250,7 +261,7 @@ export default function CoCounselPage() {
                 maxAttempts={MAX_CASE_ATTEMPTS}
                 myLockedCardId={myLockedCardId}
                 onLockIn={handleLockIn}
-                onBack={handleBackToCaseSelection}
+                onBack={handleBack}
               />
             );
           })()

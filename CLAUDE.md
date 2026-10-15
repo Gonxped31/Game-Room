@@ -930,32 +930,40 @@ lock in one card, trying to find the matching pair while talking out loud.
     measured height is always its genuine intrinsic content height, regardless
     of the gutter's size. Verified live: a 10-line Part 1 transcript now shows
     exactly 10 ruled lines, not 31.
-- **Stage 7 (done): the back link goes to case selection, not the game
-  picker; a tier-badge visual bug fixed.** Two more user-reported issues.
-  - **`BackLink` no longer leaves Co-Counsel at all.** Per the user: "Pick a
-    case" is Co-Counsel's own default/home screen, and the back link should
-    return there - restarting a case (Rematch/"Start a new case") is the
-    *only* path that goes to RolePicker, and leaving the game entirely is
-    still available, just via the Footer's separate "All games" link, not the
-    back link. `BackLink.tsx` changed from a `<Link href="/">` to a plain
-    `<button onClick={onBack}>` (aria-label "Back to case selection"), and
-    every one of its 9 call sites (`Wordmark`/`HeaderBand`/`ResultsHeader`,
-    and each screen that renders them) threads an `onBack` prop down from
-    `app/cocounsel/page.tsx`'s new `handleBackToCaseSelection`. That sets a
-    new `forceCasePicker` state which ORs into `showCasePicker` (`forceCasePicker
-    || (!isJoiner && !caseConfirmed)`) - overriding the existing joiner/creator
-    gating so EITHER device can reach "Pick a case" via back, not just the
-    original creator. Nothing else about the room/role claims/game progress is
-    touched, so re-confirming via "Choose this case" (which also clears
-    `forceCasePicker`) resumes exactly wherever the shared game state actually
-    has the player, not a reset. `RecapScreen`'s pre-existing `onBack` prop
-    (its own "Back to the verdict" button, an unrelated concept) was renamed
-    to `onBackToVerdict` to free up `onBack` for the new shared meaning.
-    **Follow-up correction**: `CasePicker`'s own back link is the one
-    exception - from Co-Counsel's home screen, back goes up a level to the
-    game picker (`router.push("/")`, a new `handleBackToGameRoom` using
-    `next/navigation`'s `useRouter`) rather than re-showing itself as a
-    no-op. Every other screen still uses `handleBackToCaseSelection`.
+- **Stage 7 (done): the back link goes to case selection (owner only), not
+  the game picker; a tier-badge visual bug fixed.** Two more user-reported
+  issues, the first refined across two follow-up corrections.
+  - **`BackLink` no longer leaves Co-Counsel at all - for the room's
+    OWNER.** Per the user: "Pick a case" is Co-Counsel's own default/home
+    screen, and the back link should return there - restarting a case
+    (Rematch/"Start a new case") is the *only* path that goes to
+    `RolePicker`, and leaving the game entirely is still available via the
+    Footer's separate "All games" link, not the back link. `BackLink.tsx`
+    changed from a `<Link href="/">` to a plain `<button onClick={onBack}>`
+    (aria-label "Back to case selection"), threaded as a prop through
+    `Wordmark`/`HeaderBand`/`ResultsHeader` and every screen that renders
+    them. **A joiner never gets a case-selection "home" to return to at
+    all, though** - only the room's owner chose the case (the one who
+    shared the invite link), so a joiner's back link leaves Co-Counsel
+    entirely instead (this was a correction after the first pass let *any*
+    device reach `CasePicker` via back - re-tightened to check `isJoiner`).
+    `app/cocounsel/page.tsx`'s `handleBack` is the shared dispatcher every
+    non-`CasePicker` screen's `onBack` uses: `isJoiner` routes straight to
+    `handleBackToGameRoom` (`router.push("/")`); the owner instead sets
+    `forceCasePicker`, which `showCasePicker` ANDs with `!isJoiner`
+    (`!isJoiner && (forceCasePicker || !caseConfirmed)` - `isJoiner` gates
+    it unconditionally, `forceCasePicker` can never override that gate).
+    Nothing about the room/role claims/game progress is touched by setting
+    `forceCasePicker`, so the owner re-confirming via "Choose this case"
+    (which also clears it) resumes exactly wherever the shared game state
+    actually has them, not a reset. `CasePicker`'s OWN back link is a
+    separate case - from Co-Counsel's home screen, back goes up a level to
+    the game picker directly via `handleBackToGameRoom`, same as a joiner's
+    back link anywhere else, rather than re-showing itself as a no-op (this
+    screen is owner-only anyway, so no `isJoiner` branch is needed there).
+    `RecapScreen`'s pre-existing `onBack` prop (its own "Back to the
+    verdict" button, an unrelated concept) was renamed to `onBackToVerdict`
+    to free up `onBack` for the new shared meaning.
   - **The "Medium"/"Hard" tier tabs on `CasePicker` read as struck through**
     - the outer dashed box's own top border was visible THROUGH the tab,
     cutting across the tier name, because (unlike the solid ink-filled "Easy"
