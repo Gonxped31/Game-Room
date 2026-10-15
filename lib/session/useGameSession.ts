@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createGameStore, type Store } from "@/lib/store";
 import { createLocalStore } from "@/lib/store/localStore";
 import { setIdentityName } from "./identity";
 import { HEARTBEAT_INTERVAL_MS, isOnline, type Presence } from "./presence";
 import { generateRoomCode } from "./room";
-import type { RoomMeta } from "./roomMeta";
+import { roomNameIndexStore, type RoomMeta } from "./roomMeta";
 import type { Role, WithIdentity } from "./types";
 
 const DEFAULT_ROOM = "our-private-room-id";
@@ -155,6 +155,39 @@ export function useGameSession<TState extends WithIdentity>(opts: {
   const bothJoined = Boolean(names.p1 && names.p2);
   const other: Role | null = me === "p1" ? "p2" : me === "p2" ? "p1" : null;
 
+  // Self-heals a device whose claimed seat no longer has a name in the
+  // shared state - the signature of a game resetting itself in place (e.g.
+  // "Reset game"/"Rematch", which both wipe `names` back to `{}` as part of
+  // `createInitialState()`). `me` is a separate, local-only store that
+  // doesn't get touched by that reset, on EITHER device - without this,
+  // whichever device(s) still have `me` set would never re-show RolePicker
+  // (so `names` never gets repopulated) while `bothJoined` reads false,
+  // stranding them on an InviteLinkBanner they can never get past.
+  //
+  // `hadNameRef` distinguishes "my name was wiped out from under me" (clear
+  // `me`) from "I only just claimed this seat and the write hasn't landed
+  // yet" (do nothing) - `pickIdentity` sets `me` locally/synchronously but
+  // writes the shared name through `gameStore.transaction`, which can take a
+  // real round-trip on Firebase, so `names[me]` is legitimately still falsy
+  // for a moment right after picking - only a true true->false transition
+  // (not false the whole time) means an actual reset happened.
+  const hadNameRef = useRef(false);
+  const myName = me ? names[me] : undefined;
+  useEffect(() => {
+    if (!me) {
+      hadNameRef.current = false;
+      return;
+    }
+    if (myName) {
+      hadNameRef.current = true;
+      return;
+    }
+    if (hadNameRef.current) {
+      hadNameRef.current = false;
+      meStore.set(null);
+    }
+  }, [me, myName, meStore]);
+
   const pickIdentity = (role: Role, name: string) => {
     meStore.set(role);
     gameStore.transaction((current) => {
@@ -186,6 +219,7 @@ export function useGameSession<TState extends WithIdentity>(opts: {
   const roomName = meta?.name;
   const setRoomName = (name: string) => {
     const trimmed = name.trim();
+    const previousName = meta?.name;
     metaStore.transaction((current) => {
       // Build a fresh object rather than spreading `current` and setting
       // `name: undefined` to clear it - Firebase rejects an explicit
@@ -193,6 +227,23 @@ export function useGameSession<TState extends WithIdentity>(opts: {
       const base: RoomMeta = { gameSlug: current?.gameSlug ?? gameSlug };
       return trimmed ? { ...base, name: trimmed } : base;
     });
+    // Keep the room-name -> room-code index (lib/session/roomMeta.ts) roughly
+    // in sync, for "join a room by name" - best-effort, not atomic with the
+    // meta write above (a different store/path entirely), which is fine:
+    // findRoomsByName validates every candidate against its live meta, so a
+    // stale or momentarily-missing index entry here can't produce a wrong
+    // join, only a temporarily-incomplete one.
+    if (previousName && previousName.trim().toLowerCase() !== trimmed.toLowerCase()) {
+      roomNameIndexStore(previousName).transaction((current) => {
+        if (!current?.[room]) return undefined;
+        const next = { ...current };
+        delete next[room];
+        return next;
+      });
+    }
+    if (trimmed) {
+      roomNameIndexStore(trimmed).transaction((current) => ({ ...current, [room]: true }));
+    }
   };
 
   return {

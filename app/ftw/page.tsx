@@ -44,6 +44,9 @@ export default function FirstToWorstPage() {
   const handleSubmitGuess = (order: string[]) => transact((current) => submitGuess(current, order));
   const handleChangePrompt = (round: CurrentRound) => transact((current) => setPrompt(current, round));
   const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [])));
+  // Resetting the shared game state wipes `names` back to `{}`; both devices
+  // self-heal their own stale `me` claim automatically (useGameSession's
+  // hadNameRef effect), re-showing RolePicker to repopulate it.
   const handleResetGame = () => setGame(newGame(randomRound()));
 
   // RoundBoard's primary action renders in a bar fixed to the viewport

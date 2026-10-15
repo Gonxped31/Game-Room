@@ -35,4 +35,20 @@ export function createGameStore<T>(room: string, gameSlug: string): Store<T> {
   return createLocalStore<T>(`game:${gameSlug}:${room}`);
 }
 
+/**
+ * A room-name -> set-of-room-codes index, used by "join a room by name"
+ * (lib/session/roomMeta.ts) - a separate top-level path from `games/`, not
+ * nested under any room, so it needs its own Firebase rule (see README's
+ * "Database rules" section) rather than riding on the existing
+ * `games/$roomId` cascade. Deliberately NOT built on top of
+ * `createGameStore` (different path shape, different localStorage key
+ * scheme) to avoid touching that already-working function.
+ */
+export function createRoomNameIndexStore(normalizedName: string): Store<Record<string, true>> {
+  if (hasFirebaseConfig) {
+    return createFirebaseStore<Record<string, true>>(`roomsByName/${normalizedName}`, firebaseConfig);
+  }
+  return createLocalStore<Record<string, true>>(`roomsByName:${normalizedName}`);
+}
+
 export type { Store } from "./types";

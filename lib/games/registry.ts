@@ -8,6 +8,16 @@ export interface GameEntry {
   emoji: string;
   /** How many players this game needs. Defaults to 2 (1v1) when omitted. */
   maxPlayers?: number;
+  /** Path (under public/) to the card's header illustration. */
+  image: string;
+  /** Short descriptive pills shown under the tagline, e.g. "2 players". */
+  tags: string[];
+  /** "Start a room" pill's colors - mirrors the per-game accent props already
+   * passed to InviteLinkBanner, so the two pink/yellow "buttons" a player
+   * sees (picker card, then invite screen) read as the same brand. */
+  accentColor: string;
+  accentShadowColor: string;
+  accentTextColor: string;
 }
 
 /**
@@ -22,15 +32,25 @@ export const GAMES: GameEntry[] = [
   {
     slug: "ftw",
     title: "First to Worst",
-    tagline: "Rank topics 1-to-5, then guess how your partner ranked them.",
+    tagline: "Rank topics from 1 (best) to 5 (worst), then guess how your partner ranked them.",
     emoji: "🏆",
     maxPlayers: 2,
+    image: "/games/ftw-card.png",
+    tags: ["2 players", "Live or anytime"],
+    accentColor: "#FF3D8F",
+    accentShadowColor: "#a3125b",
+    accentTextColor: "#000000",
   },
   {
     slug: "cocounsel",
     title: "Co-Counsel",
-    tagline: "A cooperative mystery - talk it out to find the matching pair.",
+    tagline: "A cooperative mystery. Each of you knows half the story. Talk it out to find the matching pair.",
     emoji: "⚖️",
     maxPlayers: 2,
+    image: "/games/cocounsel-card.png",
+    tags: ["2 players", "Best on a call"],
+    accentColor: "#FFD23A",
+    accentShadowColor: "#1C1F3D",
+    accentTextColor: "#1C1F3D",
   },
 ];

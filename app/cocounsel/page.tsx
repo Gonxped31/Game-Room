@@ -8,6 +8,7 @@ import { classifyDuo, continueAfterReveal, focusPercent, type GameState, lockIn,
 import { COLOR, CONTAINER_MAX_WIDTH_CLASS } from "@/lib/games/cocounsel/theme";
 import { useTheme } from "@/lib/games/cocounsel/useTheme";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
+import AdjournedScreen from "@/components/cocounsel/AdjournedScreen";
 import BackButton from "@/components/cocounsel/BackButton";
 import CasePicker from "@/components/cocounsel/CasePicker";
 import Footer from "@/components/cocounsel/Footer";
@@ -71,6 +72,11 @@ export default function CoCounselPage() {
     transact((current) => lockIn(current, caseDef, me, cardId));
   };
   const handleContinue = () => transact((current) => continueAfterReveal(current, caseDef));
+  // Resetting the shared game state wipes `names` back to `{}`; both devices
+  // self-heal their own stale `me` claim automatically (useGameSession's
+  // hadNameRef effect), re-showing RolePicker to repopulate it.
+  // `caseConfirmed`/`isCreator` stay untouched - no case-reconfirmation
+  // screen, same room, straight back to RolePicker.
   const handleResetCase = () => setGame(newGame(CASE_ID));
   const handleRematch = () => {
     setGame(newGame(CASE_ID));
@@ -125,6 +131,20 @@ export default function CoCounselPage() {
         ) : game.phase === "CASE_DONE" ? (
           showRecap ? (
             <RecapScreen caseDef={caseDef} onBack={() => setShowRecap(false)} />
+          ) : // How the case ended is read back from the log's last entry, not
+          // `lastReveal` (already cleared by continueAfterReveal by the time
+          // CASE_DONE renders) - "solved" is the only celebratory ending;
+          // "judgeRevealed"/"adjourned" both mean the attempt budget ran out.
+          game.log.at(-1)?.outcome !== "solved" ? (
+            <AdjournedScreen
+              investigatorName={caseDef.characters.investigator}
+              defendantName={caseDef.characters.defendant}
+              endedPartIndex={game.partIndex}
+              totalParts={caseDef.parts.length}
+              verdict={game.log.at(-1)?.outcome === "judgeRevealed" ? caseDef.verdict : undefined}
+              onSeeRecap={() => setShowRecap(true)}
+              onStartNewCase={handleRematch}
+            />
           ) : (
             <VerdictScreen
               investigatorName={caseDef.characters.investigator}
@@ -147,7 +167,7 @@ export default function CoCounselPage() {
             const defendantCard = part.hands.defendant.find((c) => c.id === reveal.defendantCardId)!;
             const logEntry = game.log.at(-1)!;
             const isLastPart = game.partIndex >= caseDef.parts.length - 1;
-            const continueLabel = isLastPart ? "See the verdict" : `Continue to Part ${game.partIndex + 2}`;
+            const continueLabel = reveal.outcome === "adjourned" ? "See what happened" : isLastPart ? "See the verdict" : `Continue to Part ${game.partIndex + 2}`;
             return (
               <RevealScreen
                 investigatorName={caseDef.characters.investigator}

@@ -4,7 +4,7 @@ import type { CaseCard, CaseDefinition, CasePart, CaseScreen } from "./caseTypes
 
 export type Phase = "SELECTING" | "REVEALED" | "CASE_DONE";
 
-export type AttemptOutcome = "solved" | "trap" | "wrong" | "judgeRevealed";
+export type AttemptOutcome = "solved" | "trap" | "wrong" | "judgeRevealed" | "adjourned";
 
 export interface AttemptLogEntry {
   partIndex: number;
@@ -17,8 +17,14 @@ export interface AttemptLogEntry {
 }
 
 export interface RevealInfo {
-  outcome: "solved" | "retry" | "judgeRevealed";
-  /** The pair to DISPLAY - the correct pair when judgeRevealed, otherwise whatever was just played. */
+  outcome: "solved" | "retry" | "judgeRevealed" | "adjourned";
+  /**
+   * The pair to DISPLAY - the correct pair when judgeRevealed (the attempt
+   * budget ran out on the case's LAST Part, so the judge gives the answer on
+   * the way out), otherwise whatever was actually just played. "adjourned"
+   * (the budget ran out on an EARLIER Part) deliberately never reveals the
+   * correct pair - the case is dismissed without a resolution.
+   */
   investigatorCardId: string;
   defendantCardId: string;
   solvedOnFirstTry?: boolean;
@@ -141,10 +147,25 @@ export function lockIn(rawGame: GameState, caseDef: CaseDefinition, role: Role, 
   }
 
   const nextAttempts = game.attempts + 1;
-  const isJudgeMoment = nextAttempts >= MAX_CASE_ATTEMPTS;
+  const isLastPart = game.partIndex >= caseDef.parts.length - 1;
+  // Running out of the case-wide attempt budget ends the whole case right
+  // here, not just this Part (see continueAfterReveal below) - but the
+  // correct pair is only ever revealed if this happens to be the case's
+  // last Part ("judgeRevealed"); anywhere earlier ("adjourned") the case is
+  // dismissed without ever giving the answer.
+  const isCapReached = nextAttempts >= MAX_CASE_ATTEMPTS;
   const isTrap = part.traps.some((t) => t.pair[0] === investigatorCardId && t.pair[1] === defendantCardId);
-  const outcome: AttemptOutcome = isJudgeMoment ? "judgeRevealed" : isTrap ? "trap" : "wrong";
+  const outcome: AttemptOutcome = !isCapReached ? (isTrap ? "trap" : "wrong") : isLastPart ? "judgeRevealed" : "adjourned";
   const entry: AttemptLogEntry = { partIndex: game.partIndex, investigatorCard: investigatorCardId, defendantCard: defendantCardId, outcome, trustFlags, focusFlags };
+
+  let lastReveal: RevealInfo;
+  if (!isCapReached) {
+    lastReveal = { outcome: "retry", investigatorCardId, defendantCardId };
+  } else if (isLastPart) {
+    lastReveal = { outcome: "judgeRevealed", investigatorCardId: part.correct[0], defendantCardId: part.correct[1] };
+  } else {
+    lastReveal = { outcome: "adjourned", investigatorCardId, defendantCardId };
+  }
 
   return {
     ...game,
@@ -152,16 +173,17 @@ export function lockIn(rawGame: GameState, caseDef: CaseDefinition, role: Role, 
     attempts: nextAttempts,
     phase: "REVEALED",
     log: [...game.log, entry],
-    lastReveal: isJudgeMoment
-      ? { outcome: "judgeRevealed", investigatorCardId: part.correct[0], defendantCardId: part.correct[1] }
-      : { outcome: "retry", investigatorCardId, defendantCardId },
+    lastReveal,
   };
 }
 
 /**
  * Advances past a reveal: a retry clears the locks and goes back to
- * SELECTING for another attempt at the same Part; a solved/judge-revealed
- * Part advances to the next Part, or to CASE_DONE if that was the last one.
+ * SELECTING for another attempt at the same Part; a solved Part advances to
+ * the next Part, or to CASE_DONE if that was the last one. Running out of
+ * the case-wide attempt budget ("judgeRevealed" or "adjourned") always goes
+ * straight to CASE_DONE instead, regardless of which Part it happened on -
+ * see lockIn's isCapReached handling for how those two differ.
  * `attempts` is never reset here - the miss budget is case-wide, not
  * per-Part, so it has to carry across this transition unchanged.
  */
@@ -187,6 +209,14 @@ export function continueAfterReveal(rawGame: GameState, caseDef: CaseDefinition)
 
   if (lastReveal.outcome === "retry") {
     return { ...base, phase: "SELECTING", locks: {} };
+  }
+
+  // "judgeRevealed"/"adjourned" both mean the case-wide attempt budget ran
+  // out - the case ends right here regardless of Part index, unlike a
+  // genuine "solved", which is the only outcome that can still advance to
+  // the next Part.
+  if (lastReveal.outcome !== "solved") {
+    return { ...base, phase: "CASE_DONE", locks: {} };
   }
 
   const isLastPart = game.partIndex >= caseDef.parts.length - 1;

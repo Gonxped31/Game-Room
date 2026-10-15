@@ -1,6 +1,6 @@
 import { COLOR } from "@/lib/games/cocounsel/theme";
 
-export type StampColor = "green" | "amber" | "ink";
+export type StampColor = "green" | "amber" | "ink" | "red";
 
 interface StampProps {
   children: string;
@@ -10,7 +10,7 @@ interface StampProps {
   className?: string;
 }
 
-const HEX: Record<StampColor, string> = { green: COLOR.green, amber: COLOR.amber, ink: COLOR.ink };
+const HEX: Record<StampColor, string> = { green: COLOR.green, amber: COLOR.amber, ink: COLOR.ink, red: COLOR.defendant };
 
 /**
  * A rubber stamp, e.g. "WORKING THEORY" / "DOESN'T FIT" / "DOESN'T HOLD UP" /

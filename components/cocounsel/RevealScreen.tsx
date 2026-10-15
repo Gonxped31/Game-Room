@@ -30,7 +30,18 @@ interface RevealScreenProps {
 
 const STAMP_CONFIG: Record<AttemptOutcome, { color: StampColor; label: string; heading: string; body: string }> = {
   solved: { color: "green", label: "WORKING THEORY", heading: "Working theory accepted.", body: "" },
-  judgeRevealed: { color: "green", label: "WORKING THEORY", heading: "The judge reveals the pair.", body: "" },
+  judgeRevealed: {
+    color: "red",
+    label: "CASE ADJOURNED",
+    heading: "The judge reveals the pair, then dismisses the case.",
+    body: "Too many misreadings - the court has run out of patience.",
+  },
+  adjourned: {
+    color: "red",
+    label: "CASE ADJOURNED",
+    heading: "The judge dismisses the case.",
+    body: "Too many misreadings - the court has run out of patience. No ruling is given.",
+  },
   trap: { color: "amber", label: "DOESN'T FIT", heading: "Plausible, but something doesn't fit.", body: "Talk it through, then pick again." },
   wrong: { color: "ink", label: "DOESN'T HOLD UP", heading: "That doesn't hold up.", body: "Talk it through, then pick again." },
 };
@@ -56,7 +67,13 @@ export default function RevealScreen({
   onContinue,
 }: RevealScreenProps) {
   const cfg = STAMP_CONFIG[logOutcome];
-  const isFinal = logOutcome === "solved" || logOutcome === "judgeRevealed";
+  // "Final" just means no more retries at this Part - solved, judgeRevealed,
+  // and adjourned are all cap/solve outcomes rather than a plain miss.
+  const isFinal = logOutcome === "solved" || logOutcome === "judgeRevealed" || logOutcome === "adjourned";
+  // But "adjourned" must never show the Part's theory, even though it has
+  // one (only the case's LAST Part lacks a theory, and adjourned only ever
+  // happens on an EARLIER one) - the whole point is no answer is given.
+  const showTheory = isFinal && logOutcome !== "adjourned" && Boolean(theory);
 
   return (
     <div>
@@ -89,7 +106,7 @@ export default function RevealScreen({
           </p>
         ) : null}
 
-        {isFinal && theory ? (
+        {showTheory ? (
           <div className="relative mt-6">
             <div className="absolute -top-3.5 left-2 rounded-t px-3 py-1 text-xs font-bold text-white" style={{ backgroundColor: COLOR.ink }}>
               Case notes

@@ -51,6 +51,31 @@ to Worst is the first game; see the Status section for others as they're added.
     rule flags. `RoleStickers` renders an optional small green/gray dot per seat
     when a game passes `online` through (e.g. `app/ftw/page.tsx`); omitting the prop
     skips the dot entirely, so this is opt-in per game, not required.
+    **Self-heals a device whose seat claim (`me`) outlives the shared `names`
+    it was built on** - a game resetting its own state in place (e.g. FTW's
+    "Reset game", Co-Counsel's "Rematch"/"Start a new case") calls
+    `setGame(createInitialState())`, which wipes the shared `names` back to
+    `{}`, but `me` is a separate, local-only store on EACH device that
+    doesn't get touched by that write on either side. Without self-healing,
+    whichever device(s) still had `me` set would never re-show `RolePicker`
+    (so `names` never gets repopulated) while `bothJoined` reads false -
+    stranding them on an `InviteLinkBanner` they can never get past. A
+    `hadNameRef` ref (not component state - this doesn't need a re-render of
+    its own) tracks whether `names[me]` has been truthy at any point; only a
+    true→false transition (an actual reset) clears the local `me`, not
+    `names[me]` simply not having landed yet (`pickIdentity` sets `me`
+    locally/synchronously but writes the shared name through a
+    `gameStore.transaction`, which can take a real round-trip on Firebase).
+    **Found and fixed this session** after Co-Counsel's own "Start a new
+    case" (built for the Adjourned ending below) got stuck exactly this way
+    in live two-device testing - traced to last session's restructuring of
+    Co-Counsel's branching from `!bothJoined → RolePicker` to the split
+    `!me → RolePicker` / `!bothJoined → InviteLinkBanner` shape (to match
+    FTW's), which silently broke the "re-prompt for a role on reset"
+    behavior Co-Counsel's original design had relied on. FTW turned out to
+    have the identical latent bug in "Reset game" the whole time (same root
+    cause, just never exercised); this fix covers both without either game's
+    page needing any changes.
   - `roomMeta.ts` - `RoomMeta` (`{ gameSlug, name? }`), stored at `games/{room}/meta`
     (another sibling store path, like `presence`). `useGameSession` bootstraps
     `gameSlug` into it the first time a room's hash exists (backfilling an existing
@@ -65,6 +90,24 @@ to Worst is the first game; see the Status section for others as they're added.
     `{ gameSlug }` object rather than spreading the old value and setting
     `name: undefined` - the same Firebase-rejects-explicit-undefined lesson as
     everywhere else that clears an optional field.
+    **Also backs joining by room name, not just code.** `normalizeRoomName`
+    (trim + lowercase) and `findRoomsByName(name)` read a name→room-codes
+    index at `roomsByName/{normalizedName}` (via the new
+    `createRoomNameIndexStore`, see Store design notes) - a genuinely
+    separate top-level path from `games/`, not nested under any room, so it
+    needs its own Firebase rule rather than riding the existing
+    `games/$roomId` cascade (see README's "Database rules"). `setRoomName`
+    (in `useGameSession.ts`) keeps this index roughly in sync - removing the
+    room's old name entry and adding the new one - best-effort and NOT
+    atomic with the meta write (a different store/path entirely).
+    `findRoomsByName` tolerates that: every candidate code the index returns
+    gets validated against its own live `readRoomMeta` before being trusted,
+    which is also what makes a renamed-away room's stale index entry harmless
+    without needing a separate cleanup pass to be perfectly reliable.
+    `components/JoinRoomForm.tsx` treats a typed room code as authoritative
+    when present (name field ignored); given a name alone, zero matches is
+    "not found", one match routes directly, and 2+ matches renders an inline
+    disambiguation list (room code + game title per row) instead of guessing.
 - **`lib/session/multiplayer/`** - a second, parallel session layer for games with
   **3+ players**, since `lib/session/`'s `Role` is a closed `"p1"|"p2"` union by
   design (its own doc comment says "never renamed per-game") and everything built on
@@ -121,7 +164,11 @@ to Worst is the first game; see the Status section for others as they're added.
   covers every game via RTDB's rule cascade, with zero console changes needed to
   add a game. This also means two different games started under the same room
   code (unlikely, but possible if someone edits the URL path while keeping the
-  hash) can't clobber each other's state.
+  hash) can't clobber each other's state. `createRoomNameIndexStore(name)` is the
+  one exception - a separate top-level `roomsByName/` path backing "join a room by
+  name" (`lib/session/roomMeta.ts`), deliberately NOT built on `createGameStore`
+  (different path shape, different localStorage key scheme) so that already-working
+  function stays untouched; see Store design notes and README's "Database rules".
 - **Shared, reusable as-is by any game**: `components/Button.tsx`, `Header.tsx`
   (takes a `title` prop - no game-specific import; always renders a `←` link back to
   `/`, so no game ever traps a player once they've started it), `Footer.tsx` (also
@@ -133,9 +180,14 @@ to Worst is the first game; see the Status section for others as they're added.
   which passes none of them, stays pixel-identical), `RoleStickers.tsx` (takes a
   generic `roles: {emoji,label,name,isYou}[]` array, so each game supplies its own
   role names/emoji through the same pill-badge component), `JoinRoomForm.tsx` (the
-  picker page's "enter a room code to jump back in" box - looks up the code's
-  `RoomMeta` and routes to `/${gameSlug}#${code}`, with no game picked ahead of
-  time).
+  picker page's "enter a room code or name to jump back in" box - a code routes
+  directly via `RoomMeta`; a name goes through `findRoomsByName`, routing directly
+  for exactly one match or rendering an inline disambiguation list for more than
+  one - with no game picked ahead of time either way), `GamePickerCard.tsx` (one
+  `GameEntry` → the picker's per-game card - image band, tagline, info-pill tags,
+  and a themed "Start a room" pill; the whole card is a single `<Link>`, with the
+  pill rendered as a styled `<span>` rather than a real `<button>`, since nesting
+  an interactive element inside the anchor would be invalid HTML).
 - **Per-game, not shared**: each game gets `lib/games/<slug>/` (its own pure state
   machine + constants + tests, mirroring `lib/games/ftw/game.ts`'s pattern: throw on
   an invalid transition, no mutation, `Vitest` coverage for every transition and
@@ -143,9 +195,13 @@ to Worst is the first game; see the Status section for others as they're added.
   etc. - nothing about e.g. `CardFace.tsx`'s gradient-number design is reusable
   across games with a different theme). `app/<slug>/page.tsx` wires `useGameSession`
   to that game's own logic and components.
-- **Adding a new game later**: add an entry to `lib/games/registry.ts`, then its own
-  `lib/games/<slug>/`, `components/<slug>/`, `app/<slug>/page.tsx` - nothing shared
-  needs to change.
+- **Adding a new game later**: add a `GameEntry` to `lib/games/registry.ts` (now
+  including `image` - a header illustration under `public/games/` - `tags` - the
+  picker card's info pills, e.g. `["2 players", "Live or anytime"]` - and
+  `accentColor`/`accentShadowColor`/`accentTextColor` for its "Start a room" pill,
+  typically the same per-game palette already passed to `InviteLinkBanner`), then
+  its own `lib/games/<slug>/`, `components/<slug>/`, `app/<slug>/page.tsx` -
+  nothing else shared needs to change.
 
 ## Commands
 
@@ -475,6 +531,28 @@ game-agnostic.
     both games' Footers) and joining (routes to the exact right game and room for
     both), a bogus code shows the inline error without navigating, and zero
     console errors throughout.
+- **Multi-game platform Stage 7 (done): Game Room picker redesign, join by room
+  name.** Two user-requested changes.
+  - **The picker (`app/page.tsx`) now matches the `references/game-room/*.png`
+    mockups** instead of a plain list of link cards. `lib/games/registry.ts`'s
+    `GameEntry` gained `image`/`tags`/`accentColor`/`accentShadowColor`/
+    `accentTextColor` (see "Adding a new game later" above); the per-game header
+    illustrations (`public/games/ftw-card.png`/`cocounsel-card.png`) are cropped
+    directly out of the mockup's own mobile PNG via a one-off Python/Pillow script
+    (not rebuilt as SVG - a deliberate choice, since these are the user's own
+    reference art). New `components/GamePickerCard.tsx` renders one `GameEntry` as
+    the full mockup card (see "Shared, reusable" above for why its "Start a room"
+    pill is a styled `<span>`, not a real `<button>`).
+  - **`JoinRoomForm.tsx` can also join by room name**, not just code - the
+    `lib/session/roomMeta.ts`/Store design notes entries above cover the
+    `roomsByName` index this needs (and the new Firebase rule it requires - see
+    README's "Database rules"). A typed code is always authoritative over a typed
+    name (ignored when a code is present); multiple rooms sharing a name render
+    an inline disambiguation list. Verified live: unique-name join routes
+    directly, an ambiguous name shared by two real rooms (one FTW, one
+    Co-Counsel, both actually named identically through `InviteLinkBanner`) lists
+    both and each routes correctly on click, and the existing join-by-code path
+    is unaffected (regression-checked). Zero console errors throughout.
 
 ---
 
@@ -719,3 +797,62 @@ lock in one card, trying to find the matching pair while talking out loud.
     `bg-white` fix); zero console errors throughout. A quick FTW regression
     check confirmed its background/fonts/lack-of-theme-toggle are completely
     unaffected.
+- **Stage 5 (done): running out of attempts ends the whole case, not just the
+  current Part.** Previously the judge revealing the correct pair after the 3rd
+  total miss was a "freebie" - play continued to the next Part exactly as if it
+  had been solved, eventually reaching the normal celebratory `VerdictScreen`
+  regardless of how many Parts were actually judge-revealed. Now it's a genuine
+  loss state.
+  - **`game.ts`**: `AttemptOutcome`/`RevealInfo.outcome` split the old single
+    `"judgeRevealed"` cap-reached case into two. Reaching the cap on the case's
+    **last** Part is still `"judgeRevealed"` (the correct pair IS shown, same as
+    before). Reaching it on an **earlier** Part is now `"adjourned"` - shows what
+    was actually *played*, not the correct pair, since "only give the final
+    answer if they fail at the last Part" per the design rule. `continueAfterReveal`
+    sends *either* straight to `CASE_DONE` regardless of Part index (previously
+    only last-Part `judgeRevealed` did - an earlier-Part `judgeRevealed` used to
+    advance to the next Part, which can no longer happen since that situation
+    now produces `adjourned` instead). A solved reveal is still the only outcome
+    that can advance to the next Part. How the case ended is read back from
+    `game.log.at(-1)?.outcome` once `CASE_DONE` renders (`lastReveal` is already
+    cleared by then) - `"solved"` is the only celebratory ending.
+  - **New `components/cocounsel/AdjournedScreen.tsx`**, picked by
+    `app/cocounsel/page.tsx`'s `CASE_DONE` branch whenever the log's last entry
+    isn't `"solved"`, alongside (not replacing) `VerdictScreen`/`RecapScreen`.
+    States which Part the case ended on. If the ending was `"judgeRevealed"`
+    (last Part) shows `caseDef.verdict.text` as closure and offers "See the full
+    case file" (`RecapScreen`, unchanged); if `"adjourned"` (earlier Part), shows
+    only the dismissal message and **no** verdict/recap option at all - a
+    Recap would spoil every Part's correct pair regardless of how the case
+    actually ended, so it's only ever offered when nothing is left to protect.
+    Single action either way, "Start a new case", reusing the exact same
+    `setGame(newGame(CASE_ID))` handler the "Rematch" button already used (same
+    room, same roles, no case-reconfirmation screen) - confirmed via a
+    clarifying question before building this.
+  - **`Stamp.tsx`** gained a `"red"` `StampColor` (`COLOR.defendant`) for the
+    Adjourned framing, distinct from green (success)/amber (retry)/ink (wrong).
+    **`RevealScreen.tsx`**: `judgeRevealed`'s stamp also switched to red with
+    reworded copy (it no longer means "continue playing", it means "the case is
+    over, the judge is just telling you the answer first"); a new `showTheory`
+    check (`isFinal && outcome !== "adjourned"`) keeps `isFinal` covering all
+    three "no more retries" outcomes while still never revealing a Part's
+    `theory` for an `"adjourned"` ending, even though the Part itself has one
+    (only the case's last Part lacks a `theory` - adjourned only ever happens
+    earlier).
+  - **Found and fixed a real regression while verifying this live**: Co-Counsel's
+    new "Start a new case" button got both devices permanently stuck on
+    `InviteLinkBanner` after resetting. Root cause and fix are the shared
+    `useGameSession` self-healing-identity addition documented under
+    "Multi-game architecture" above - not specific to this feature, but this is
+    where it was caught (a prior session's restructuring of Co-Counsel's
+    branching had silently broken the "re-prompt for a role on reset" behavior
+    its original design depended on; FTW's own "Reset game" had the identical
+    latent bug the whole time, just never exercised).
+  - Verified live, two devices: a cap-out on an earlier Part - `AdjournedScreen`
+    shows no verdict/recap/answer at all, "Start a new case" resets in-place and
+    both devices correctly re-show `RolePicker` to reclaim their roles, reaching
+    fresh Part-1 gameplay again in the same room; a cap-out on the case's last
+    Part - the correct pair is revealed in `RevealScreen`, and `AdjournedScreen`
+    shows the case verdict text with "See the full case file" available; both
+    confirmed in dark mode too. The ordinary win path (solving every Part) is
+    completely unaffected - existing `VerdictScreen`/`RecapScreen` flow, unchanged.

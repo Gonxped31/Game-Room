@@ -88,16 +88,35 @@ describe("lockIn", () => {
     expect(revealed.log[0].outcome).toBe("wrong");
   });
 
-  it("the judge reveals the correct pair after the 3rd total miss (the case-wide budget), instead of what was actually played", () => {
+  it("running out of the case-wide budget on an EARLIER Part is 'adjourned' - no correct pair is revealed, just what was actually played", () => {
     let game = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2"); // miss 1
     game = continueAfterReveal(game, CASE);
     game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I3"), CASE, DEFENDANT, "D3"); // miss 2
-    expect(game.lastReveal?.outcome).toBe("retry"); // still 1 try left - not the judge yet
+    expect(game.lastReveal?.outcome).toBe("retry"); // still 1 try left - not adjourned yet
     game = continueAfterReveal(game, CASE);
     game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2"); // miss 3 - replaying the same wrong pair is fine
     expect(game.attempts).toBe(3);
-    expect(game.lastReveal).toEqual({ outcome: "judgeRevealed", investigatorCardId: "I1", defendantCardId: "D1" });
-    expect(game.log[2].outcome).toBe("judgeRevealed");
+    expect(game.partIndex).toBe(0); // still Part 1 - this budget ran out well before the last Part
+    // Shows what was actually played (I2/D2), NOT the correct pair (I1/D1) - unlike the last-Part case below.
+    expect(game.lastReveal).toEqual({ outcome: "adjourned", investigatorCardId: "I2", defendantCardId: "D2" });
+    expect(game.log[2].outcome).toBe("adjourned");
+  });
+
+  it("running out of the case-wide budget on the LAST Part is 'judgeRevealed' - the correct pair IS shown on the way out", () => {
+    // Fast-forward to Part 3 (the last) by solving Parts 1 and 2 on the first try.
+    let game = fresh();
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1"), CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I5"), CASE, DEFENDANT, "D4"), CASE);
+    expect(game.partIndex).toBe(2);
+
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I8"), CASE, DEFENDANT, "D8"); // miss 1
+    game = continueAfterReveal(game, CASE);
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I9"), CASE, DEFENDANT, "D9"); // miss 2
+    game = continueAfterReveal(game, CASE);
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I8"), CASE, DEFENDANT, "D8"); // miss 3
+    expect(game.attempts).toBe(3);
+    expect(game.lastReveal).toEqual({ outcome: "judgeRevealed", investigatorCardId: "I7", defendantCardId: "D7" });
+    expect(game.log.at(-1)?.outcome).toBe("judgeRevealed");
   });
 
   it("computes a Focus flag for a card contradicting an earlier Part's fact (the documented Part 3 memory lures)", () => {
@@ -173,6 +192,33 @@ describe("continueAfterReveal", () => {
     const done = continueAfterReveal(game, CASE);
     expect(done.phase).toBe("CASE_DONE");
     expect(done.partIndex).toBe(2); // unchanged - there is no Part 4 to advance to
+  });
+
+  it("running out of the budget on an EARLIER Part ends the case immediately, skipping the remaining Parts entirely", () => {
+    let game = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2"); // miss 1
+    game = continueAfterReveal(game, CASE);
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I3"), CASE, DEFENDANT, "D3"); // miss 2
+    game = continueAfterReveal(game, CASE);
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2"); // miss 3 - budget exhausted on Part 1
+    expect(game.lastReveal?.outcome).toBe("adjourned");
+    const done = continueAfterReveal(game, CASE);
+    expect(done.phase).toBe("CASE_DONE");
+    expect(done.partIndex).toBe(0); // never advanced past Part 1
+    expect(done.log.at(-1)?.outcome).toBe("adjourned");
+  });
+
+  it("running out of the budget on the LAST Part also ends the case (same as today's solved-on-the-last-Part path)", () => {
+    let game = fresh();
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1"), CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I5"), CASE, DEFENDANT, "D4"), CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I8"), CASE, DEFENDANT, "D8"), CASE); // miss 1
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I9"), CASE, DEFENDANT, "D9"), CASE); // miss 2
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I8"), CASE, DEFENDANT, "D8"); // miss 3 - budget exhausted on the last Part
+    expect(game.lastReveal?.outcome).toBe("judgeRevealed");
+    const done = continueAfterReveal(game, CASE);
+    expect(done.phase).toBe("CASE_DONE");
+    expect(done.partIndex).toBe(2);
+    expect(done.log.at(-1)?.outcome).toBe("judgeRevealed");
   });
 
   it("does not write an explicit undefined lastReveal (Firebase rejects that) - the key is simply absent", () => {

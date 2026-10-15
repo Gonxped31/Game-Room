@@ -1,4 +1,4 @@
-import { createGameStore } from "@/lib/store";
+import { createGameStore, createRoomNameIndexStore } from "@/lib/store";
 
 /**
  * Which game a room code belongs to, plus an optional human-friendly name -
@@ -31,4 +31,36 @@ export interface RoomMeta {
  */
 export function readRoomMeta(room: string): Promise<RoomMeta | null> {
   return createGameStore<RoomMeta>(room, "meta").readOnce();
+}
+
+/** Trim + lowercase, so "Birthday Crew" and "birthday crew" land in the same name-index bucket. */
+export function normalizeRoomName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/**
+ * The room-name -> room-codes index store for one (already normalized) name.
+ * `useGameSession.ts`'s `setRoomName` writes to this; `findRoomsByName` below
+ * reads it. Exported mainly for that writer - most callers want
+ * `findRoomsByName` instead.
+ */
+export function roomNameIndexStore(name: string) {
+  return createRoomNameIndexStore(normalizeRoomName(name));
+}
+
+/**
+ * Every room currently registered under `name` (case/whitespace-insensitive),
+ * validated live against each candidate's own meta - a renamed-away room
+ * leaves a stale index entry behind (best-effort cleanup only, see
+ * `useGameSession.ts`), so this is what actually filters those back out
+ * rather than trusting the index alone. What the picker's "join a room by
+ * name" form calls.
+ */
+export async function findRoomsByName(name: string): Promise<{ room: string; meta: RoomMeta }[]> {
+  const normalized = normalizeRoomName(name);
+  if (!normalized) return [];
+  const index = await createRoomNameIndexStore(normalized).readOnce();
+  const codes = Object.keys(index ?? {});
+  const candidates = await Promise.all(codes.map(async (room) => ({ room, meta: await readRoomMeta(room) })));
+  return candidates.filter((c): c is { room: string; meta: RoomMeta } => c.meta != null && normalizeRoomName(c.meta.name ?? "") === normalized);
 }

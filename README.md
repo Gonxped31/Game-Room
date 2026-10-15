@@ -89,17 +89,29 @@ rules can reasonably scope access to is the room path itself:
         ".read": true,
         ".write": true
       }
+    },
+    "roomsByName": {
+      "$normalizedName": {
+        ".read": true,
+        ".write": true
+      }
     }
   }
 }
 ```
 
-This denies everything outside `/games/<roomId>` by default (Realtime Database rules
-don't cascade upward), and allows read/write to a specific room to anyone who has that
-room's URL. Every game on the platform nests its own state *under* its room's path
-(`games/<roomId>/<gameSlug>`), so this single rule already covers every game - adding
-a new one needs no console changes. See the limitation below for what that single
-rule means in practice.
+The `games` block denies everything outside `/games/<roomId>` by default (Realtime
+Database rules don't cascade upward), and allows read/write to a specific room to
+anyone who has that room's URL. Every game on the platform nests its own state
+*under* its room's path (`games/<roomId>/<gameSlug>`), so this single rule already
+covers every game - adding a new one needs no console changes. See the limitation
+below for what that single rule means in practice.
+
+The `roomsByName` block is a separate top-level path (not nested under any room) that
+backs "join a room by name" - a small index from a room's normalized display name to
+its room code(s), written whenever a room is given a name via `InviteLinkBanner`. It
+needs this second rule block because it isn't reachable via the `games` cascade at
+all; local/no-Firebase dev mode needs no console change for this (or anything else).
 
 ## Known limitations
 
