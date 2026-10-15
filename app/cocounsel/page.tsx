@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useGameSession } from "@/lib/session/useGameSession";
 import { getCase } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
@@ -57,6 +58,11 @@ export default function CoCounselPage() {
   const [forceCasePicker, setForceCasePicker] = useState(false);
   const showCasePicker = forceCasePicker || (!isJoiner && !caseConfirmed);
   const handleBackToCaseSelection = () => setForceCasePicker(true);
+  // From CasePicker itself (Co-Counsel's "home"), back goes up a level to
+  // the game picker instead - CasePicker's own back link uses this, every
+  // other screen uses handleBackToCaseSelection above.
+  const router = useRouter();
+  const handleBackToGameRoom = () => router.push("/");
   const [showRecap, setShowRecap] = useState(false);
 
   const myScreen = me ? screenOfRole(me) : null;
@@ -133,7 +139,7 @@ export default function CoCounselPage() {
               setCaseConfirmed(true);
               setForceCasePicker(false);
             }}
-            onBack={handleBackToCaseSelection}
+            onBack={handleBackToGameRoom}
           />
         ) : !me ? (
           <RolePicker

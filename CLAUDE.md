@@ -951,6 +951,11 @@ lock in one card, trying to find the matching pair while talking out loud.
     has the player, not a reset. `RecapScreen`'s pre-existing `onBack` prop
     (its own "Back to the verdict" button, an unrelated concept) was renamed
     to `onBackToVerdict` to free up `onBack` for the new shared meaning.
+    **Follow-up correction**: `CasePicker`'s own back link is the one
+    exception - from Co-Counsel's home screen, back goes up a level to the
+    game picker (`router.push("/")`, a new `handleBackToGameRoom` using
+    `next/navigation`'s `useRouter`) rather than re-showing itself as a
+    no-op. Every other screen still uses `handleBackToCaseSelection`.
   - **The "Medium"/"Hard" tier tabs on `CasePicker` read as struck through**
     - the outer dashed box's own top border was visible THROUGH the tab,
     cutting across the tier name, because (unlike the solid ink-filled "Easy"
