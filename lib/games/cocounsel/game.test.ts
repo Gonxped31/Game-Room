@@ -88,13 +88,16 @@ describe("lockIn", () => {
     expect(revealed.log[0].outcome).toBe("wrong");
   });
 
-  it("the judge reveals the correct pair after the 2nd miss, instead of what was actually played", () => {
-    const afterFirstMiss = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2");
-    const retried = continueAfterReveal(afterFirstMiss, CASE);
-    const afterSecondMiss = lockIn(lockIn(retried, CASE, INVESTIGATOR, "I3"), CASE, DEFENDANT, "D3");
-    expect(afterSecondMiss.attempts).toBe(2);
-    expect(afterSecondMiss.lastReveal).toEqual({ outcome: "judgeRevealed", investigatorCardId: "I1", defendantCardId: "D1" });
-    expect(afterSecondMiss.log[1].outcome).toBe("judgeRevealed");
+  it("the judge reveals the correct pair after the 3rd total miss (the case-wide budget), instead of what was actually played", () => {
+    let game = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2"); // miss 1
+    game = continueAfterReveal(game, CASE);
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I3"), CASE, DEFENDANT, "D3"); // miss 2
+    expect(game.lastReveal?.outcome).toBe("retry"); // still 1 try left - not the judge yet
+    game = continueAfterReveal(game, CASE);
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2"); // miss 3 - replaying the same wrong pair is fine
+    expect(game.attempts).toBe(3);
+    expect(game.lastReveal).toEqual({ outcome: "judgeRevealed", investigatorCardId: "I1", defendantCardId: "D1" });
+    expect(game.log[2].outcome).toBe("judgeRevealed");
   });
 
   it("computes a Focus flag for a card contradicting an earlier Part's fact (the documented Part 3 memory lures)", () => {
@@ -109,6 +112,31 @@ describe("lockIn", () => {
     // I9 contradicts P2-D2 (Part 2, earlier) -> Focus. D9 contradicts P2-D1 (Part 2, earlier) -> Focus.
     expect(entry.trustFlags).toBe(0);
     expect(entry.focusFlags).toBe(2);
+  });
+
+  it("accumulates misses across Parts rather than resetting per Part, and the judge can trigger on the very first miss of a later Part", () => {
+    // Part 1: one miss, then solve (1 total miss used, 2 remaining).
+    let game = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2");
+    expect(game.attempts).toBe(1);
+    game = continueAfterReveal(game, CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1"), CASE);
+    expect(game.partIndex).toBe(1);
+    expect(game.attempts).toBe(1); // carried over, not reset by advancing to Part 2
+
+    // Part 2: one miss (2 total used, 1 remaining) - still a retry, not the judge.
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I4"), CASE, DEFENDANT, "D5");
+    expect(game.attempts).toBe(2);
+    expect(game.lastReveal?.outcome).toBe("retry");
+    game = continueAfterReveal(game, CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I5"), CASE, DEFENDANT, "D4"), CASE);
+    expect(game.partIndex).toBe(2);
+    expect(game.attempts).toBe(2); // still carried over
+
+    // Part 3: the very FIRST miss here is the 3rd total miss - the judge
+    // reveals immediately, with no retry offered for this Part at all.
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I8"), CASE, DEFENDANT, "D8");
+    expect(game.attempts).toBe(3);
+    expect(game.lastReveal).toEqual({ outcome: "judgeRevealed", investigatorCardId: "I7", defendantCardId: "D7" });
   });
 });
 
@@ -126,12 +154,12 @@ describe("continueAfterReveal", () => {
     expect(retried.partIndex).toBe(0);
   });
 
-  it("a solved Part advances to the next Part, resetting attempts and locks", () => {
+  it("a solved Part advances to the next Part, resetting locks but NOT the case-wide attempt count", () => {
     const solved = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1");
     const next = continueAfterReveal(solved, CASE);
     expect(next.phase).toBe("SELECTING");
     expect(next.partIndex).toBe(1);
-    expect(next.attempts).toBe(0);
+    expect(next.attempts).toBe(0); // zero misses so far in this playthrough, so still 0 - see the dedicated cross-Part test above for the carry-over behavior itself
     expect(next.locks).toEqual({});
   });
 

@@ -7,7 +7,11 @@
  */
 export const COLOR = {
   ink: "#1C1F3D",
-  paper: "#EEF0F6",
+  // The visual spec's own value is #EEF0F6 ("Docket Paper") - overridden to
+  // pure white per user request, so every surface that was styled to match
+  // the page background (the bottom action bar, the stamp's masking
+  // background) still reads correctly against it.
+  paper: "#FFFFFF",
   white: "#FFFFFF",
   investigator: "#2447D8",
   defendant: "#C8372D",
@@ -28,6 +32,16 @@ export const COLOR = {
   disabledBgWarm: "#E6DFE0",
   disabledTextWarm: "#6B5A5C",
 } as const;
+
+/**
+ * The content column's responsive max-width, shared by the main page wrapper
+ * and anything else that needs to align with it (e.g. PartScreen's fixed
+ * bottom action bar, which is in its own `position: fixed` stacking context
+ * and so can't just inherit a parent's width). Mobile stays at the original
+ * 480px "perfect for phone" width; wider viewports get noticeably more room
+ * without stretching into an empty-looking full-desktop-width layout.
+ */
+export const CONTAINER_MAX_WIDTH_CLASS = "max-w-[480px] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[720px]";
 
 export const RADIUS = {
   card: "12px",

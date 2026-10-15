@@ -6,5 +6,11 @@ export const GAME_TITLE = "Co-Counsel";
 export const INVESTIGATOR: Role = "p1";
 export const DEFENDANT: Role = "p2";
 
-/** A Part allows this many misses before the judge reveals the correct pair. */
-export const MAX_ATTEMPTS_PER_PART = 2;
+/**
+ * Misses allowed across the WHOLE case (not per Part - a deliberate deviation
+ * from the original design doc's "2 attempts per Part", per user request).
+ * The budget carries over between Parts; once it's used up, the judge reveals
+ * the correct pair immediately on the next miss, even if that's the very
+ * first attempt of a later Part.
+ */
+export const MAX_CASE_ATTEMPTS = 3;

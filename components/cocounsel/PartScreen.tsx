@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { CaseCard, CasePart } from "@/lib/games/cocounsel/caseTypes";
-import { COLOR } from "@/lib/games/cocounsel/theme";
+import { COLOR, CONTAINER_MAX_WIDTH_CLASS } from "@/lib/games/cocounsel/theme";
 import Button from "./Button";
 import ExhibitTent from "./ExhibitTent";
 import HeaderBand from "./HeaderBand";
@@ -126,7 +126,7 @@ export default function PartScreen({
         <Hand cards={hand} role={role} selectedId={selectedId} onToggle={(id) => setSelectedId((cur) => (cur === id ? null : id))} />
       </div>
       <div
-        className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-[480px] border-t px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
+        className={`fixed inset-x-0 bottom-0 z-20 mx-auto border-t px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 ${CONTAINER_MAX_WIDTH_CLASS}`}
         style={{ borderColor: COLOR.disabledBg, backgroundColor: COLOR.paper }}
       >
         <Button disabled={!selectedId} warmDisabled={role === "defendant"} onClick={() => selectedId && onLockIn(selectedId)}>

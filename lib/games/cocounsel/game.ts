@@ -1,5 +1,5 @@
 import type { Role, WithIdentity } from "@/lib/session/types";
-import { DEFENDANT, INVESTIGATOR, MAX_ATTEMPTS_PER_PART } from "./constants";
+import { DEFENDANT, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "./constants";
 import type { CaseCard, CaseDefinition, CasePart, CaseScreen } from "./caseTypes";
 
 export type Phase = "SELECTING" | "REVEALED" | "CASE_DONE";
@@ -27,7 +27,7 @@ export interface RevealInfo {
 export interface GameState extends WithIdentity {
   caseId: string;
   partIndex: number;
-  /** Misses so far in the CURRENT Part - resets to 0 each new Part. */
+  /** Misses so far across the WHOLE case - carries over between Parts, never resets until a new game. */
   attempts: number;
   phase: Phase;
   locks: Partial<Record<Role, string>>;
@@ -91,7 +91,10 @@ function flagsFor(caseDef: CaseDefinition, partIndex: number, holder: CaseScreen
 /**
  * Locks in `role`'s card for the current Part's current attempt. Once both
  * roles have locked in, resolves the pair immediately (no separate "reveal"
- * action) and records the attempt.
+ * action) and records the attempt. Misses draw from a case-wide budget
+ * (MAX_CASE_ATTEMPTS), not a per-Part one - the judge moment can happen on
+ * the very first miss of a Part if an earlier Part already used up the rest
+ * of the budget.
  */
 export function lockIn(rawGame: GameState, caseDef: CaseDefinition, role: Role, cardId: string): GameState {
   const game = normalizeGame(rawGame);
@@ -138,7 +141,7 @@ export function lockIn(rawGame: GameState, caseDef: CaseDefinition, role: Role, 
   }
 
   const nextAttempts = game.attempts + 1;
-  const isJudgeMoment = nextAttempts >= MAX_ATTEMPTS_PER_PART;
+  const isJudgeMoment = nextAttempts >= MAX_CASE_ATTEMPTS;
   const isTrap = part.traps.some((t) => t.pair[0] === investigatorCardId && t.pair[1] === defendantCardId);
   const outcome: AttemptOutcome = isJudgeMoment ? "judgeRevealed" : isTrap ? "trap" : "wrong";
   const entry: AttemptLogEntry = { partIndex: game.partIndex, investigatorCard: investigatorCardId, defendantCard: defendantCardId, outcome, trustFlags, focusFlags };
@@ -159,6 +162,8 @@ export function lockIn(rawGame: GameState, caseDef: CaseDefinition, role: Role, 
  * Advances past a reveal: a retry clears the locks and goes back to
  * SELECTING for another attempt at the same Part; a solved/judge-revealed
  * Part advances to the next Part, or to CASE_DONE if that was the last one.
+ * `attempts` is never reset here - the miss budget is case-wide, not
+ * per-Part, so it has to carry across this transition unchanged.
  */
 export function continueAfterReveal(rawGame: GameState, caseDef: CaseDefinition): GameState {
   const game = normalizeGame(rawGame);
@@ -188,7 +193,7 @@ export function continueAfterReveal(rawGame: GameState, caseDef: CaseDefinition)
   if (isLastPart) {
     return { ...base, phase: "CASE_DONE", locks: {} };
   }
-  return { ...base, phase: "SELECTING", partIndex: game.partIndex + 1, attempts: 0, locks: {} };
+  return { ...base, phase: "SELECTING", partIndex: game.partIndex + 1, locks: {} };
 }
 
 /** 100 x (1 - trustFlags / totalLockIns), clamped to [0,100]. No lock-ins yet = a perfect score (nothing to distrust). */

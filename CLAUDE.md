@@ -521,3 +521,57 @@ lock in one card, trying to find the matching pair while talking out loud.
   `aria-checked` + `aria-live` regions all behave correctly. Confirmed FTW is
   unaffected by the shared `app/layout.tsx`/`app/globals.css` additions via a live
   two-device FTW playthrough.
+- **Stage 3 (done, post-launch polish):** four user-requested changes, entirely
+  scoped to `lib/games/cocounsel/`/`components/cocounsel/`/`app/cocounsel/page.tsx`
+  - zero diff to any file outside that tree.
+  - **Back button.** `components/cocounsel/BackButton.tsx` - a fixed-position
+    `←` link to `/`, rendered once in the page (not threaded through every
+    screen component, unlike the shared 1v1 `Header`'s inline approach, since
+    Co-Counsel's screens don't share one common header shape). `<main>` carries
+    `pt-14` top clearance so the button never overlaps the Wordmark logo or a
+    role-colored band's own top-left text.
+  - **White, responsive layout.** `COLOR.paper` changed from the visual spec's
+    `#EEF0F6` to `#FFFFFF` (a deliberate, documented deviation from the spec,
+    per user request) - a single token change, since every consumer of
+    `COLOR.paper` (the page background, the bottom action bar, the stamp's
+    masking background) was already semantically "match the page background."
+    `CONTAINER_MAX_WIDTH_CLASS` (`lib/games/cocounsel/theme.ts`) replaces the
+    old fixed `max-w-[480px]`: `480px` on mobile (unchanged - "perfect for
+    phone") growing to `720px` by the `lg` breakpoint, shared between the main
+    page wrapper and `PartScreen`'s fixed bottom bar (a separate
+    `position:fixed` stacking context that can't inherit the page's width, so
+    it needs the same class applied directly to stay aligned).
+  - **3 tries per case, not 2 per Part.** `MAX_ATTEMPTS_PER_PART` (2) renamed
+    to `MAX_CASE_ATTEMPTS` (3) in `constants.ts` - a deliberate deviation from
+    the design doc's "2 attempts per Part" (its own "Still Open" section
+    already flagged this exact number as worth revisiting after a real
+    playthrough). The fix was almost entirely a one-line change:
+    `continueAfterReveal` no longer resets `attempts: 0` when advancing to the
+    next Part, so the existing "miss count hits the max → judge reveals"
+    check in `lockIn` automatically became case-wide instead of per-Part,
+    with no other logic changes needed. The judge can now trigger on the very
+    first miss of a Part if an earlier Part already spent the rest of the
+    budget - verified with a dedicated cross-Part accumulation test
+    (`game.test.ts`) and confirmed live against real Firebase.
+  - **The link-sharer picks the case.** Previously every device independently
+    saw (and had to tap through) the case-picker screen, even though it's
+    just a confirmation tap in v1 (one real case). Now only the device that
+    visits with no `#room` in the URL at all - the one about to generate a
+    fresh room and share its link - sees it; a device that opens an existing
+    link skips straight to role-pick. Implemented via a `useState` lazy
+    initializer reading `window.location.hash` (runs synchronously on the
+    very first client render, strictly before any effects - including
+    `useGameSession`'s own hash-generating effect - so it reliably observes
+    the hash before that effect can rewrite it). **Hit and fixed a real
+    hydration bug while building this**: the `showCasePicker` check was
+    initially placed *before* the existing `!game` loading-gate in the
+    screen's ternary chain, so it could render `CasePicker` before `game` had
+    resolved from `null` - a moment that's supposed to be universally
+    identical between server and every client (that's what makes the `!game`
+    branch hydration-safe to begin with) - producing a real "Hydration failed"
+    console error on the creator's own first load. Fixed by reordering the
+    ternary so `!game` is checked first, unconditionally, restoring that
+    universal-first-paint guarantee. `handleNewRoom` resets the captured flag
+    (via the state setter, from a plain click handler - not an effect) so
+    generating a fresh room via "New room" correctly makes that device the
+    creator of the *new* room, independent of whatever it was for the old one.
