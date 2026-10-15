@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CaseCard, CasePart } from "@/lib/games/cocounsel/caseTypes";
 import { COLOR, CONTAINER_MAX_WIDTH_CLASS } from "@/lib/games/cocounsel/theme";
+import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import ExhibitTent from "./ExhibitTent";
 import HeaderBand from "./HeaderBand";
@@ -25,6 +26,8 @@ interface PartScreenProps {
   myLockedCardId: string | null;
   onLockIn: (cardId: string) => void;
   onBack: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 /**
@@ -47,6 +50,8 @@ export default function PartScreen({
   myLockedCardId,
   onLockIn,
   onBack,
+  theme,
+  onToggleTheme,
 }: PartScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -65,6 +70,8 @@ export default function PartScreen({
           attemptsUsed={attemptsUsed}
           maxAttempts={maxAttempts}
           onBack={onBack}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
         />
         <div className="px-4 pt-5">
           <div className="grid grid-cols-2 gap-3">
@@ -121,6 +128,8 @@ export default function PartScreen({
         attemptsUsed={attemptsUsed}
         maxAttempts={maxAttempts}
         onBack={onBack}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
       />
       <div className="px-4 pb-32 pt-4">
         <TranscriptSheet text={info} role={role} />

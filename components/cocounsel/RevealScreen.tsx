@@ -1,6 +1,7 @@
 import type { CaseCard } from "@/lib/games/cocounsel/caseTypes";
 import type { AttemptOutcome } from "@/lib/games/cocounsel/game";
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import PartProgress from "./PartProgress";
 import ResultsHeader from "./ResultsHeader";
@@ -27,6 +28,8 @@ interface RevealScreenProps {
   onPickAgain: () => void;
   onContinue: () => void;
   onBack: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 const STAMP_CONFIG: Record<AttemptOutcome, { color: StampColor; label: string; heading: string; body: string }> = {
@@ -67,6 +70,8 @@ export default function RevealScreen({
   onPickAgain,
   onContinue,
   onBack,
+  theme,
+  onToggleTheme,
 }: RevealScreenProps) {
   const cfg = STAMP_CONFIG[logOutcome];
   // "Final" just means no more retries at this Part - solved, judgeRevealed,
@@ -79,7 +84,7 @@ export default function RevealScreen({
 
   return (
     <div>
-      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} />
+      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <div className="px-4 pb-8 pt-4">
         {solvedOnFirstTry ? (
           <p className="text-right font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: COLOR.ink }}>

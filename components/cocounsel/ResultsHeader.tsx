@@ -1,14 +1,18 @@
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import BackLink from "./BackLink";
+import ThemeToggle from "./ThemeToggle";
 
 interface ResultsHeaderProps {
   investigatorName: string;
   defendantName: string;
   onBack: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 /** The split blue/red band used on the reveal and verdict screens, with a small yellow "lens" mark at the seam. */
-export default function ResultsHeader({ investigatorName, defendantName, onBack }: ResultsHeaderProps) {
+export default function ResultsHeader({ investigatorName, defendantName, onBack, theme, onToggleTheme }: ResultsHeaderProps) {
   return (
     <div className="relative flex">
       <div className="flex-1 px-4 py-5 text-white" style={{ backgroundColor: COLOR.investigator }}>
@@ -19,6 +23,9 @@ export default function ResultsHeader({ investigatorName, defendantName, onBack 
         <div className="font-[family-name:var(--font-archivo)] text-sm font-bold opacity-90">Investigator</div>
       </div>
       <div className="flex-1 px-4 py-5 text-right text-white" style={{ backgroundColor: COLOR.defendant }}>
+        <div className="mb-2 flex justify-end">
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
         <div className="font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-none">{defendantName}</div>
         <div className="font-[family-name:var(--font-archivo)] text-sm font-bold opacity-90">Defendant</div>
       </div>

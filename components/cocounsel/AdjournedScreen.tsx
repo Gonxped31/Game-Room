@@ -1,5 +1,6 @@
 import type { CaseVerdict } from "@/lib/games/cocounsel/caseTypes";
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import ResultsHeader from "./ResultsHeader";
 import Stamp from "./Stamp";
@@ -22,6 +23,8 @@ interface AdjournedScreenProps {
   onSeeRecap?: () => void;
   onStartNewCase: () => void;
   onBack: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 /**
@@ -29,10 +32,21 @@ interface AdjournedScreenProps {
  * from (and rendered instead of) the celebratory VerdictScreen. Picked by
  * app/cocounsel/page.tsx via `game.log.at(-1)?.outcome !== "solved"`.
  */
-export default function AdjournedScreen({ investigatorName, defendantName, endedPartIndex, totalParts, verdict, onSeeRecap, onStartNewCase, onBack }: AdjournedScreenProps) {
+export default function AdjournedScreen({
+  investigatorName,
+  defendantName,
+  endedPartIndex,
+  totalParts,
+  verdict,
+  onSeeRecap,
+  onStartNewCase,
+  onBack,
+  theme,
+  onToggleTheme,
+}: AdjournedScreenProps) {
   return (
     <div>
-      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} />
+      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <div className="px-4 pb-8 pt-6">
         <Stamp color="red" rotate={-3}>
           Case Adjourned

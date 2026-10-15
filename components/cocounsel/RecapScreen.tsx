@@ -1,5 +1,6 @@
 import type { CaseDefinition } from "@/lib/games/cocounsel/caseTypes";
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import Wordmark from "./Wordmark";
 
@@ -8,13 +9,15 @@ interface RecapScreenProps {
   /** The bottom button - back to the verdict/adjourned screen this Recap was opened from, not Co-Counsel's case-selection "home" (that's onBack, the Wordmark's own back link). */
   onBackToVerdict: () => void;
   onBack: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 /** "See the full case file" - every Part side by side with both private screens, the first time either player sees the other's text. */
-export default function RecapScreen({ caseDef, onBackToVerdict, onBack }: RecapScreenProps) {
+export default function RecapScreen({ caseDef, onBackToVerdict, onBack, theme, onToggleTheme }: RecapScreenProps) {
   return (
     <div className="px-4 pb-8 pt-3.5">
-      <Wordmark onBack={onBack} />
+      <Wordmark onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-2xl font-extrabold" style={{ color: COLOR.ink }}>
         The full case file
       </h1>

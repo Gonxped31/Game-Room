@@ -16,7 +16,6 @@ import PartScreen from "@/components/cocounsel/PartScreen";
 import RecapScreen from "@/components/cocounsel/RecapScreen";
 import RevealScreen from "@/components/cocounsel/RevealScreen";
 import RolePicker from "@/components/cocounsel/RolePicker";
-import ThemeToggle from "@/components/cocounsel/ThemeToggle";
 import VerdictScreen from "@/components/cocounsel/VerdictScreen";
 import Wordmark from "@/components/cocounsel/Wordmark";
 
@@ -42,6 +41,17 @@ export default function CoCounselPage() {
   // uniformly null on the very first paint for both server and client (see
   // the `!game` branch below), so this value can't affect anything until
   // well after hydration has completed.
+  //
+  // This reliably needs the hash to already be settled on `window.location`
+  // by this component's very first render, which only a genuine fresh page
+  // load (or a plain `<a>`/raw-URL visit) guarantees - a client-side
+  // `router.push()` navigation from a different route does NOT reliably
+  // guarantee this (confirmed live: joining via the picker's "Join a room"
+  // form could show CasePicker to a joiner). `components/JoinRoomForm.tsx`
+  // therefore does a hard navigation (`window.location.href`, not
+  // `router.push`) specifically so this lazy initializer can stay simple and
+  // correct here, rather than this component trying to work around an
+  // unreliable signal.
   const [isCreator, setIsCreator] = useState<boolean | null>(() => (typeof window !== "undefined" ? window.location.hash === "" : null));
   const isJoiner = isCreator === false;
 
@@ -126,13 +136,12 @@ export default function CoCounselPage() {
 
   return (
     <div className="min-h-screen w-full" data-theme={theme} style={{ backgroundColor: COLOR.paper }}>
-      <ThemeToggle theme={theme} onToggle={toggleTheme} />
-      {/* pt-14 reserves a clear strip above all content for the fixed
-          ThemeToggle (top-3, 40px tall) so it never overlaps a role-colored
-          band's own top-right content. The back link itself is no longer
-          fixed - each screen now places it inline next to its own header
-          content (Wordmark, or a colored band's own top-left). */}
-      <main className={`mx-auto pt-14 font-[family-name:var(--font-archivo)] ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
+      {/* No fixed-position chrome anymore - the back link and theme toggle
+          are both inline within each screen's own header now (Wordmark, or
+          a colored band's own top row), so <main> needs no reserved top
+          clearance (a fixed ThemeToggle used to need pt-14 for this, which
+          showed as a visible white gap above full-bleed colored bands). */}
+      <main className={`mx-auto font-[family-name:var(--font-archivo)] ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
         {!game ? (
           // Checked FIRST, unconditionally, before showCasePicker - game is
           // uniformly null here for every environment (static prerender,
@@ -151,6 +160,8 @@ export default function CoCounselPage() {
               setForceCasePicker(false);
             }}
             onBack={handleBackToGameRoom}
+            theme={theme}
+            onToggleTheme={toggleTheme}
           />
         ) : !me ? (
           <RolePicker
@@ -160,10 +171,12 @@ export default function CoCounselPage() {
             onPickInvestigator={() => pickIdentity(INVESTIGATOR, caseDef.characters.investigator)}
             onPickDefendant={() => pickIdentity(DEFENDANT, caseDef.characters.defendant)}
             onBack={handleBack}
+            theme={theme}
+            onToggleTheme={toggleTheme}
           />
         ) : !bothJoined ? (
           <div className="px-4 pt-3.5">
-            <Wordmark onBack={handleBack} />
+            <Wordmark onBack={handleBack} theme={theme} onToggleTheme={toggleTheme} />
             <div className="mt-4">
               <InviteLinkBanner
                 room={room}
@@ -177,7 +190,7 @@ export default function CoCounselPage() {
           </div>
         ) : game.phase === "CASE_DONE" ? (
           showRecap ? (
-            <RecapScreen caseDef={caseDef} onBackToVerdict={() => setShowRecap(false)} onBack={handleBack} />
+            <RecapScreen caseDef={caseDef} onBackToVerdict={() => setShowRecap(false)} onBack={handleBack} theme={theme} onToggleTheme={toggleTheme} />
           ) : // How the case ended is read back from the log's last entry, not
           // `lastReveal` (already cleared by continueAfterReveal by the time
           // CASE_DONE renders) - "solved" is the only celebratory ending;
@@ -192,6 +205,8 @@ export default function CoCounselPage() {
               onSeeRecap={() => setShowRecap(true)}
               onStartNewCase={handleRematch}
               onBack={handleBack}
+              theme={theme}
+              onToggleTheme={toggleTheme}
             />
           ) : (
             <VerdictScreen
@@ -206,6 +221,8 @@ export default function CoCounselPage() {
               onSeeRecap={() => setShowRecap(true)}
               onRematch={handleRematch}
               onBack={handleBack}
+              theme={theme}
+              onToggleTheme={toggleTheme}
             />
           )
         ) : game.phase === "REVEALED" && game.lastReveal ? (
@@ -237,6 +254,8 @@ export default function CoCounselPage() {
                 onPickAgain={handleContinue}
                 onContinue={handleContinue}
                 onBack={handleBack}
+                theme={theme}
+                onToggleTheme={toggleTheme}
               />
             );
           })()
@@ -262,6 +281,8 @@ export default function CoCounselPage() {
                 myLockedCardId={myLockedCardId}
                 onLockIn={handleLockIn}
                 onBack={handleBack}
+                theme={theme}
+                onToggleTheme={toggleTheme}
               />
             );
           })()

@@ -1,6 +1,7 @@
 import type { CaseVerdict } from "@/lib/games/cocounsel/caseTypes";
 import type { DuoClassification } from "@/lib/games/cocounsel/game";
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import ResultsHeader from "./ResultsHeader";
 import Stamp from "./Stamp";
@@ -17,6 +18,8 @@ interface VerdictScreenProps {
   onSeeRecap: () => void;
   onRematch: () => void;
   onBack: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 function ScoreBar({ label, sub, value }: { label: string; sub: string; value: number }) {
@@ -51,10 +54,12 @@ export default function VerdictScreen({
   onSeeRecap,
   onRematch,
   onBack,
+  theme,
+  onToggleTheme,
 }: VerdictScreenProps) {
   return (
     <div>
-      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} />
+      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <div className="px-4 pb-8 pt-6">
         <Stamp color="green" rotate={-3}>
           {verdict.title}

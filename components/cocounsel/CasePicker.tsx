@@ -1,5 +1,6 @@
 import type { CaseDefinition } from "@/lib/games/cocounsel/caseTypes";
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import Wordmark from "./Wordmark";
 
@@ -7,6 +8,8 @@ interface CasePickerProps {
   caseDef: CaseDefinition;
   onChoose: () => void;
   onBack: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 /**
@@ -17,10 +20,10 @@ interface CasePickerProps {
  * role is picked), matching First to Worst's flow. This is also Co-Counsel's
  * own "home" screen - every other screen's back link returns here.
  */
-export default function CasePicker({ caseDef, onChoose, onBack }: CasePickerProps) {
+export default function CasePicker({ caseDef, onChoose, onBack, theme, onToggleTheme }: CasePickerProps) {
   return (
     <div className="px-4 pb-8 pt-3.5">
-      <Wordmark onBack={onBack} />
+      <Wordmark onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-[28px] font-extrabold leading-[1.1]" style={{ color: COLOR.ink }}>
         Pick a case
       </h1>

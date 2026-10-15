@@ -996,3 +996,68 @@ lock in one card, trying to find the matching pair while talking out loud.
     raising/enlarging them to match "Easy"'s exact offset/padding
     (`-top-3.5`/`py-1`, was `-top-3`/`py-0.5`) for a consistent notch across
     all three tier tabs.
+- **Stage 8 (done): a stuck "Joining…" button, a joiner seeing case
+  selection anyway, a white gap above full-bleed bands.** Three more
+  user-reported issues, the second a genuine regression from Stage 7's own
+  fix.
+  - **`JoinRoomForm`'s button could get permanently stuck reading "Joining…"**
+    after joining a room then leaving it (e.g. via the Footer's "All games"
+    link or browser back) and returning to the picker - the same category of
+    bug as the earlier `useGameSession` identity-stranding fix (see "Multi-
+    game architecture" above): Next's client-side navigation can reuse this
+    exact component instance rather than remounting it, so `status` was
+    never reset back to idle once a join succeeded (there'd seemed no need
+    to, since the page was about to navigate away). `goTo` now resets it
+    regardless.
+  - **Joining Co-Counsel through the picker's "Join a room" form (not a raw
+    shared link) could show the case-selection screen to a joiner** - a
+    second-order consequence of switching `goTo` from `router.push` to a
+    hard `window.location` navigation (below): `app/cocounsel/page.tsx`'s
+    `isCreator` reads `window.location.hash` via a `useState` lazy
+    initializer specifically because that's the ONE moment guaranteed to run
+    before `useGameSession`'s own hash-generating effect can rewrite it (see
+    that state's own doc comment) - correct for an organic page load, but a
+    client-side `router.push()` transition from a different route doesn't
+    reliably guarantee the destination's hash is already settled on
+    `window.location` by that same first-render moment, confirmed live. **An
+    initial fix attempt moved the detection into a `useEffect` instead**,
+    which broke the common case instead: `useGameSession`'s own hash-
+    generating effect fires first (`useGameSession` is called earlier in
+    this component, and React runs effects in hook-declaration order), so by
+    the time a *later*, independently-deferred effect re-checked the hash,
+    `useGameSession` had often already rewritten it from empty to a freshly
+    generated code - misreading genuine creators as joiners. Reverted that
+    attempt; the real fix is in `JoinRoomForm.tsx` instead (see below),
+    leaving `isCreator`'s lazy initializer exactly as it always was.
+  - **`JoinRoomForm.tsx`'s `goTo` now does a hard navigation**
+    (`window.location.href`, set from a `useEffect` reacting to a
+    `destination` state value - this project's `react-hooks/immutability`
+    lint rule disallows mutating `window.location` directly in a plain event
+    handler, "consider using an effect" - rather than `next/navigation`'s
+    `router.push`), sidestepping the whole class of client-side-navigation
+    timing/caching issues above: a genuine page load guarantees
+    `isCreator`'s lazy initializer sees a fully-settled URL, and leaves
+    nothing for a future "Joining…"-stuck bug like the one above to reuse
+    either.
+  - **A visible white gap sat above Co-Counsel's full-bleed colored bands**
+    (`HeaderBand`/`ResultsHeader`) - `<main>`'s `pt-14` top padding, still
+    reserved for the fixed-position `ThemeToggle` after Stage 7 moved the
+    back link inline (its own doc comment said as much at the time), pushed
+    every screen down uniformly, including bands meant to start flush with
+    the viewport's top edge. Fixed the same way Stage 7 fixed the back
+    link: `ThemeToggle.tsx` is no longer `position: fixed` - it's inline,
+    paired opposite `BackLink` in each of Co-Counsel's three header shapes
+    (`Wordmark`'s row via `justify-between`; `HeaderBand` gained its own
+    back-link+theme-toggle row, kept SEPARATE from the `PartProgress` row
+    below it since that row's own content already spans close to the full
+    content width - cramming a 5th element in risked overflow on narrow
+    viewports; `ResultsHeader`'s investigator half keeps `BackLink`,
+    `ThemeToggle` mirrors it on the defendant half). `<main>`'s `pt-14` is
+    gone entirely - nothing fixed-position remains that needs it.
+  - Verified live: the join-via-form flow no longer shows case selection to
+    a joiner while the owner's own fresh-visit flow is unaffected; the Join
+    button reads "Join" (not stuck) after leaving and returning to the
+    picker; the page's very top pixel is the band's own color (not white) on
+    the Part/reveal screens, with the back link and theme toggle both
+    visible and functional inline on every header shape; dark mode toggling
+    and persistence are unaffected. Zero console errors throughout.

@@ -1,7 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useId, useState } from "react";
 import { GAMES } from "@/lib/games/registry";
 import { findRoomsByName, readRoomMeta, type RoomMeta } from "@/lib/session/roomMeta";
 
@@ -56,19 +55,39 @@ function JoinModeSwitch({ mode, onChange, disabled }: { mode: Mode; onChange: (m
  * disambiguation list instead of guessing which one to open.
  */
 export default function JoinRoomForm() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("code");
   const [codeValue, setCodeValue] = useState("");
   const [nameValue, setNameValue] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [candidates, setCandidates] = useState<{ room: string; meta: RoomMeta }[] | null>(null);
+  const [destination, setDestination] = useState<string | null>(null);
   const errorId = useId();
 
   const value = mode === "code" ? codeValue : nameValue;
   const setValue = mode === "code" ? setCodeValue : setNameValue;
   const busy = status === "checking";
 
-  const goTo = (room: string, gameSlug: string) => router.push(`/${gameSlug}#${room}`);
+  // A hard navigation (window.location, not next/navigation's router.push) -
+  // deliberately NOT a client-side transition, triggered from an effect
+  // reacting to `destination` rather than mutating window.location directly
+  // in the click/submit handler. Two reasons for the hard navigation itself:
+  // (1) the destination game page's own "am I this room's creator"
+  // detection (app/cocounsel/page.tsx's isCreator) reads
+  // window.location.hash synchronously on its very first render, which a
+  // client-side push from a different route doesn't reliably guarantee is
+  // already settled by then - confirmed live, joining this way could show
+  // Co-Counsel's case-selection screen to a joiner. (2) belt-and-suspenders
+  // against the "Joining…" button getting stuck forever if this exact
+  // component instance were ever reused (not remounted) across a visit to
+  // the room and back - a genuine page load leaves nothing to reuse.
+  useEffect(() => {
+    if (destination) window.location.href = destination;
+  }, [destination]);
+
+  const goTo = (room: string, gameSlug: string) => {
+    setDestination(`/${gameSlug}#${room}`);
+    setStatus("idle");
+  };
 
   const changeMode = (next: Mode) => {
     setMode(next);
