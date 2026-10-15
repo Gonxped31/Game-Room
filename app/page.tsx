@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { APP_TITLE, GAMES } from "@/lib/games/registry";
+import JoinRoomForm from "@/components/JoinRoomForm";
 
 export default function GamePicker() {
   return (
@@ -25,6 +26,7 @@ export default function GamePicker() {
           </Link>
         ))}
       </div>
+      <JoinRoomForm />
     </main>
   );
 }

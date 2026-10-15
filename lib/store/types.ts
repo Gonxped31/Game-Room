@@ -8,6 +8,14 @@ export interface Store<T> {
   subscribe(onChange: () => void): () => void;
   /** Synchronously returns the current cached value, or null if nothing is stored yet. */
   getSnapshot(): T | null;
+  /**
+   * Reads the current value directly from the backend, independent of
+   * subscribe()/getSnapshot()'s cache - for a one-off lookup of a room this
+   * component isn't otherwise subscribed to (e.g. "join a room by code" on
+   * the picker page), where there's no live subscription to read a cache
+   * from in the first place.
+   */
+  readOnce(): Promise<T | null>;
   /** Unconditionally overwrites the stored value. */
   set(value: T): void;
   /**

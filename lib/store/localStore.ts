@@ -66,6 +66,9 @@ export function createLocalStore<T>(key: string, options: LocalStoreOptions = {}
       };
     },
     getSnapshot: snapshot,
+    async readOnce() {
+      return readRaw();
+    },
     set: write,
     transaction(updater) {
       const next = updater(snapshot());

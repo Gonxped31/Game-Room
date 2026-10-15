@@ -3,6 +3,8 @@ import { COLOR } from "@/lib/games/cocounsel/theme";
 
 interface FooterProps {
   room: string;
+  /** User-chosen room name, if any - shown alongside the raw code (still needed to rejoin by code). */
+  roomName?: string;
   identity?: string;
   onReset: () => void;
   onNewRoom: () => void;
@@ -11,10 +13,10 @@ interface FooterProps {
 const linkClass = "cursor-pointer border-0 bg-transparent p-0 underline";
 
 /** Same function as the shared components/Footer.tsx (room, reset, new room, all games), in Co-Counsel's own palette since the rest of its UI doesn't reuse FTW's visual language. */
-export default function Footer({ room, identity, onReset, onNewRoom }: FooterProps) {
+export default function Footer({ room, roomName, identity, onReset, onNewRoom }: FooterProps) {
   return (
     <p className="mt-6 px-4 text-center font-[family-name:var(--font-archivo)] text-[13px]" style={{ color: COLOR.text2 }}>
-      Room: {room}
+      Room: {roomName ? `${roomName} (${room})` : room}
       {identity ? ` · ${identity}` : null}
       <br />
       <button type="button" onClick={() => confirm("Reset the whole case?") && onReset()} className={linkClass} style={{ color: COLOR.text2 }}>

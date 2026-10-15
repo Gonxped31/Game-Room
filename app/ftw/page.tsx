@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { GAME_TITLE } from "@/lib/games/ftw/constants";
+import { CONTAINER_MAX_WIDTH_CLASS, GAME_TITLE } from "@/lib/games/ftw/constants";
 import {
   type CurrentRound,
   guesserOf,
@@ -25,7 +25,7 @@ import SessionRecap from "@/components/ftw/SessionRecap";
 export default function FirstToWorstPage() {
   const createInitialState = useCallback(() => newGame(randomRound()), []);
   const session = useGameSession({ gameSlug: "ftw", createInitialState });
-  const { room, game, me, other, names, bothJoined, online, pickIdentity, transact, setGame, newRoom } = session;
+  const { room, game, me, other, names, bothJoined, roomName, setRoomName, online, pickIdentity, transact, setGame, newRoom } = session;
 
   const status = game?.current.status;
   const isMaster = game != null && me === masterOf(game.round);
@@ -55,7 +55,7 @@ export default function FirstToWorstPage() {
   const hasFixedBar = bothJoined && (placing || status === "REVEALED");
 
   return (
-    <main className={`mx-auto max-w-[520px] px-4 pt-3.5 ${hasFixedBar ? "pb-52" : "pb-7"}`}>
+    <main className={`mx-auto px-4 pt-3.5 ${CONTAINER_MAX_WIDTH_CLASS} ${hasFixedBar ? "pb-52" : "pb-7"}`}>
       <Header
         title={GAME_TITLE}
         round={me && game ? game.round : undefined}
@@ -70,7 +70,7 @@ export default function FirstToWorstPage() {
       ) : !me ? (
         <RolePicker names={names} onPick={pickIdentity} />
       ) : !bothJoined ? (
-        <InviteLinkBanner />
+        <InviteLinkBanner room={room} roomName={roomName} onRenameRoom={setRoomName} />
       ) : (
         <>
           <RoleStickers
@@ -103,6 +103,7 @@ export default function FirstToWorstPage() {
 
       <Footer
         room={room}
+        roomName={roomName}
         identity={myRoleLabel ? (myName ? `${myName} · ${myRoleLabel}` : myRoleLabel) : undefined}
         onReset={handleResetGame}
         onNewRoom={newRoom}

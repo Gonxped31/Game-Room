@@ -1,5 +1,5 @@
 import { type FirebaseApp, type FirebaseOptions, getApp, getApps, initializeApp } from "firebase/app";
-import { type Database, getDatabase, onValue, ref, runTransaction, set as firebaseSet } from "firebase/database";
+import { type Database, get, getDatabase, onValue, ref, runTransaction, set as firebaseSet } from "firebase/database";
 import type { Store } from "./types";
 
 // A room's game lives under this one path for the whole session, so reuse a
@@ -43,6 +43,10 @@ export function createFirebaseStore<T>(path: string, config: FirebaseOptions): S
       // (optimistically, before the server ack), which updates `cache` and
       // notifies - no need to touch `cache` here directly.
       void firebaseSet(getRef(), value);
+    },
+    async readOnce() {
+      const snapshot = await get(getRef());
+      return (snapshot.val() as T | null) ?? null;
     },
     transaction(updater) {
       // Firebase may invoke this speculatively with `null` even when real

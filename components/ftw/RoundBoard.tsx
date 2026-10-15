@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
+import { CONTAINER_MAX_WIDTH_CLASS, ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
 import type { CurrentRound } from "@/lib/games/ftw/game";
 import { randomRound } from "@/lib/games/ftw/prompts";
 import Button from "@/components/Button";
@@ -215,8 +215,7 @@ export default function RoundBoard({
   // not here - this bar is pinned to the VIEWPORT, so it also covers the
   // Footer (which comes after this component in the document) once scrolled
   // all the way down, not just this component's own last row.
-  const fixedBar =
-    "fixed inset-x-0 bottom-0 z-20 mx-auto max-w-[520px] border-t border-white/15 bg-[#128A94] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-6px_14px_rgba(0,0,0,.25)]";
+  const fixedBar = `fixed inset-x-0 bottom-0 z-20 mx-auto border-t border-white/15 bg-[#128A94] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-6px_14px_rgba(0,0,0,.25)] ${CONTAINER_MAX_WIDTH_CLASS}`;
 
   return (
     <div>

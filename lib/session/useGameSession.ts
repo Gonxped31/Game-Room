@@ -6,6 +6,7 @@ import { createLocalStore } from "@/lib/store/localStore";
 import { setIdentityName } from "./identity";
 import { HEARTBEAT_INTERVAL_MS, isOnline, type Presence } from "./presence";
 import { generateRoomCode } from "./room";
+import type { RoomMeta } from "./roomMeta";
 import type { Role, WithIdentity } from "./types";
 
 const DEFAULT_ROOM = "our-private-room-id";
@@ -28,6 +29,10 @@ export interface GameSession<TState extends WithIdentity> {
   other: Role | null;
   names: Partial<Record<Role, string>>;
   bothJoined: boolean;
+  /** User-chosen room name, or undefined if nobody's set one - callers should fall back to showing `room` itself. */
+  roomName: string | undefined;
+  /** Sets (or, given an empty/whitespace-only string, clears) the room's name. */
+  setRoomName: (name: string) => void;
   /** True if that seat has sent a heartbeat recently - the other tab's "online" indicator. Always false for a seat nobody has picked yet. */
   online: Partial<Record<Role, boolean>>;
   /** Claims a seat + records a display name - the RolePicker's onPick target. */
@@ -68,6 +73,22 @@ export function useGameSession<TState extends WithIdentity>(opts: {
   // online/offline the same way regardless of which game they're in.
   const presenceStore = useMemo(() => createGameStore<Presence>(room, "presence"), [room]);
   const presence = useSyncExternalStore(presenceStore.subscribe, presenceStore.getSnapshot, () => null);
+
+  // Which game this room code belongs to, plus an optional display name -
+  // see lib/session/roomMeta.ts. A sibling store path to presence/the game's
+  // own state, for the same "changes independently, don't make every reader
+  // merge-and-preserve it" reasoning.
+  const metaStore = useMemo(() => createGameStore<RoomMeta>(room, "meta"), [room]);
+  const meta = useSyncExternalStore(metaStore.subscribe, metaStore.getSnapshot, () => null);
+
+  // Bootstraps `gameSlug` into a fresh room's meta (or backfills it into an
+  // existing room that predates this feature) - independent of `game`'s own
+  // churn (every lock-in, etc.), unlike the game-state-creation effect below,
+  // since this only needs to run once per room, not every time `game` changes.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash) return;
+    metaStore.transaction((current) => (current ? undefined : { gameSlug }));
+  }, [metaStore, gameSlug]);
 
   useEffect(() => {
     if (!me) return;
@@ -162,6 +183,18 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     window.location.hash = generateRoomCode();
   };
 
+  const roomName = meta?.name;
+  const setRoomName = (name: string) => {
+    const trimmed = name.trim();
+    metaStore.transaction((current) => {
+      // Build a fresh object rather than spreading `current` and setting
+      // `name: undefined` to clear it - Firebase rejects an explicit
+      // own-property-with-undefined-value on write (see Store design notes).
+      const base: RoomMeta = { gameSlug: current?.gameSlug ?? gameSlug };
+      return trimmed ? { ...base, name: trimmed } : base;
+    });
+  };
+
   return {
     room,
     game,
@@ -170,6 +203,8 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     other,
     names,
     bothJoined,
+    roomName,
+    setRoomName,
     online,
     pickIdentity,
     transact,

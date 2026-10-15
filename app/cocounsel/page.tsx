@@ -24,7 +24,7 @@ export default function CoCounselPage() {
   const caseDef = getCase(CASE_ID);
   const createInitialState = useCallback((): GameState => newGame(CASE_ID), []);
   const session = useGameSession<GameState>({ gameSlug: "cocounsel", createInitialState });
-  const { room, game, me, names, bothJoined, pickIdentity, transact, setGame, newRoom } = session;
+  const { room, game, me, names, bothJoined, roomName, setRoomName, pickIdentity, transact, setGame, newRoom } = session;
   const { theme, toggleTheme } = useTheme();
 
   // Whoever visits with no #room in the URL at all is the one about to
@@ -114,7 +114,14 @@ export default function CoCounselPage() {
             onPickDefendant={() => pickIdentity(DEFENDANT, caseDef.characters.defendant)}
           />
         ) : !bothJoined ? (
-          <InviteLinkBanner />
+          <InviteLinkBanner
+            room={room}
+            roomName={roomName}
+            onRenameRoom={setRoomName}
+            accentColor={COLOR.yellow}
+            accentShadowColor={COLOR.ink}
+            accentTextColor={COLOR.ink}
+          />
         ) : game.phase === "CASE_DONE" ? (
           showRecap ? (
             <RecapScreen caseDef={caseDef} onBack={() => setShowRecap(false)} />
@@ -192,6 +199,7 @@ export default function CoCounselPage() {
         {!showCasePicker && game ? (
           <Footer
             room={room}
+            roomName={roomName}
             identity={me ? `${caseDef.characters[myRole]} · ${myRole === "investigator" ? "Investigator" : "Defendant"}` : undefined}
             onReset={handleResetCase}
             onNewRoom={handleNewRoom}

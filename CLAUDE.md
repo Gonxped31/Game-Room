@@ -51,6 +51,20 @@ to Worst is the first game; see the Status section for others as they're added.
     rule flags. `RoleStickers` renders an optional small green/gray dot per seat
     when a game passes `online` through (e.g. `app/ftw/page.tsx`); omitting the prop
     skips the dot entirely, so this is opt-in per game, not required.
+  - `roomMeta.ts` - `RoomMeta` (`{ gameSlug, name? }`), stored at `games/{room}/meta`
+    (another sibling store path, like `presence`). `useGameSession` bootstraps
+    `gameSlug` into it the first time a room's hash exists (backfilling an existing
+    pre-this-feature room too, not just a fresh one - a no-op transaction once meta
+    already has a value), and exposes `roomName`/`setRoomName` so any game can let
+    players give their room an optional display name. This is what makes "join a
+    room by code" possible from the picker without asking which game it's for -
+    `readRoomMeta(room)` (a one-off lookup via `Store.readOnce()`, not the live
+    `subscribe`/`getSnapshot` pair everything else uses, since there's no ongoing
+    subscription to an arbitrary typed-in code) is how `components/JoinRoomForm.tsx`
+    finds out where to route. `setRoomName` clears the name by building a fresh
+    `{ gameSlug }` object rather than spreading the old value and setting
+    `name: undefined` - the same Firebase-rejects-explicit-undefined lesson as
+    everywhere else that clears an optional field.
 - **`lib/session/multiplayer/`** - a second, parallel session layer for games with
   **3+ players**, since `lib/session/`'s `Role` is a closed `"p1"|"p2"` union by
   design (its own doc comment says "never renamed per-game") and everything built on
@@ -111,10 +125,17 @@ to Worst is the first game; see the Status section for others as they're added.
 - **Shared, reusable as-is by any game**: `components/Button.tsx`, `Header.tsx`
   (takes a `title` prop - no game-specific import; always renders a `←` link back to
   `/`, so no game ever traps a player once they've started it), `Footer.tsx` (also
-  has an "All games" link, as a second way back), `RolePicker.tsx`,
-  `InviteLinkBanner.tsx`, `RoleStickers.tsx` (takes a generic `roles:
-  {emoji,label,name,isYou}[]` array, so each game supplies its own role names/emoji
-  through the same pill-badge component).
+  has an "All games" link, as a second way back; shows a user-set room name
+  alongside the raw code, via the `roomName` prop), `RolePicker.tsx`,
+  `InviteLinkBanner.tsx` (the `room`/`roomName`/`onRenameRoom` props back its
+  optional "name this room" field; `accentColor`/`accentShadowColor`/
+  `accentTextColor` theme its button - default to FTW's own pink so FTW's call site,
+  which passes none of them, stays pixel-identical), `RoleStickers.tsx` (takes a
+  generic `roles: {emoji,label,name,isYou}[]` array, so each game supplies its own
+  role names/emoji through the same pill-badge component), `JoinRoomForm.tsx` (the
+  picker page's "enter a room code to jump back in" box - looks up the code's
+  `RoomMeta` and routes to `/${gameSlug}#${code}`, with no game picked ahead of
+  time).
 - **Per-game, not shared**: each game gets `lib/games/<slug>/` (its own pure state
   machine + constants + tests, mirroring `lib/games/ftw/game.ts`'s pattern: throw on
   an invalid transition, no mutation, `Vitest` coverage for every transition and
@@ -150,7 +171,11 @@ npx tsc --noEmit # type-check only
 - `lib/store/types.ts` defines `Store<T>`: `subscribe(onChange)`, `getSnapshot()`,
   `set(value)`, `transaction(updater)`. Shaped to drop straight into React's
   `useSyncExternalStore` (not a plain `useEffect` + `setState`, which the project's
-  ESLint config flags as `react-hooks/set-state-in-effect`).
+  ESLint config flags as `react-hooks/set-state-in-effect`). Also `readOnce()`:
+  Promise<T|null>, a direct one-off backend read independent of `getSnapshot()`'s
+  cache (which only ever gets warm via an active `subscribe()`) - for looking up a
+  room this component isn't otherwise subscribed to, e.g. `lib/session/roomMeta.ts`'s
+  `readRoomMeta` backing the picker's "join a room by code" form.
 - `lib/store/localStore.ts` is generic (`createLocalStore<T>(key, { crossTab })`).
   `useGameSession` uses `crossTab: true` (the default) for the shared game state —
   syncs across tabs/devices via the `storage` event, the whole point of local test
@@ -407,6 +432,49 @@ game-agnostic.
   (footer identity line, round status text, etc.) still says things like "Master"/
   "Guesser" and keeps its own relationship-flavored prompt content - only the
   platform-level chrome and shared components changed, not FTW itself.
+- **Multi-game platform Stage 6 (done): responsive FTW, themed invite links, join
+  by room code.** Three user-requested changes.
+  - **FTW grows on desktop.** `lib/games/ftw/constants.ts` gained its own
+    `CONTAINER_MAX_WIDTH_CLASS` (`520px` mobile, unchanged, growing to `760px` by
+    the `lg` breakpoint) - duplicated from Co-Counsel's identical-in-spirit
+    constant rather than imported, consistent with this repo's per-game-layout
+    convention. Applied to both `app/ftw/page.tsx`'s `<main>` and
+    `RoundBoard.tsx`'s fixed bottom action bar (a separate `position:fixed`
+    stacking context that needs the same class applied directly to stay aligned,
+    same reasoning as `PartScreen`'s fixed bar in Co-Counsel). Verified the two
+    stay pixel-aligned at a 1280px viewport via a live two-device Playwright
+    game, not just visually.
+  - **`InviteLinkBanner`'s button is themed per game**, not hardcoded to FTW's
+    pink everywhere. Gained `accentColor`/`accentShadowColor`/`accentTextColor`
+    props, defaulting to FTW's existing pink/dark-pink/white so FTW's call site
+    (which passes none of them) stays pixel-identical; Co-Counsel's page passes
+    `COLOR.yellow`/`COLOR.ink`/`COLOR.ink`, so its invite screen reads as
+    Co-Counsel rather than FTW (and tracks Co-Counsel's own dark-mode toggle,
+    since `COLOR.ink` is itself a `var(--cc-ink)` reference). The colors override
+    `Button`'s own classes via an inline `style` prop (higher specificity than a
+    Tailwind arbitrary-value class), so `Button.tsx` itself needed no changes.
+  - **Join a room by code, from the picker.** `lib/session/roomMeta.ts` is a new
+    shared-session module (see "Multi-game architecture" above for the full
+    design) recording which game a room belongs to, plus an optional display
+    name; `useGameSession` now exposes `roomName`/`setRoomName`.
+    `components/JoinRoomForm.tsx` is a new box on the picker page (`app/page.tsx`)
+    - type a code (or paste a whole invite link; it strips everything before the
+    last `#`), and it looks up that code's `RoomMeta` and routes straight to
+    `/${gameSlug}#${code}` with no "which game?" prompt needed. An unrecognized
+    code shows an inline "we couldn't find that room" error instead of
+    navigating. The optional room name is set from `InviteLinkBanner` itself (a
+    "Name this room (optional)" field, pre-filled with any existing name, saving
+    on blur) - showing the raw code as the field's placeholder is the "defaults
+    to the ID" behavior; no separate placeholder/default-value plumbing needed,
+    since consumers (`Footer`, both games') just render `roomName || room`
+    wherever they'd previously shown the bare code. The store layer gained a new
+    `Store<T>.readOnce()` method for this (see "Store design notes") - a one-off
+    backend read, since the join form has no live subscription to a typed-in
+    code's room to read a cache from. Verified live: FTW's and Co-Counsel's rooms
+    both round-trip through naming (persists across a reload, shown correctly in
+    both games' Footers) and joining (routes to the exact right game and room for
+    both), a bogus code shows the inline error without navigating, and zero
+    console errors throughout.
 
 ---
 
