@@ -413,9 +413,30 @@ game-agnostic.
   which doesn't fire on touchscreens at all. `CardSlot` exposes `data-drop-id`
   (only when a slot is actually interactive) so the drop handler can hit-test via
   `document.elementFromPoint(...).closest("[data-drop-id]")` instead of threading
-  refs through `CardTable`. Dropping on an already-filled "mine" slot overwrites
-  it, and the displaced number simply reappears in hand. Verified with real
-  mouse-event sequences (move/down/move/move/up, not just `.click()`).
+  refs through `CardTable`. Dropping a HAND card on an already-filled "mine" slot
+  overwrites it, and the displaced number simply reappears in hand. Verified with
+  real mouse-event sequences (move/down/move/move/up, not just `.click()`).
+- **Drag-and-drop to reorder already-placed cards**, a later user-requested
+  addition: a placed card can be picked up directly off the board and dragged to a
+  DIFFERENT slot in one gesture, not just tap-to-remove-then-tap-to-replace.
+  `RoundBoard.tsx`'s old hand-only `handleDragStart` became a shared
+  `startDrag(n, fromSlotId, e)` (`fromSlotId` is `null` for a hand card, a slot id
+  for a board card), with `handleDragStart`/`handleBoardDragStart` as thin wrappers
+  - `CardSlot` gained an `onDragStart` prop (wired via `onPointerDown`, only when
+  the slot actually holds a card - nothing to pick up from an empty one) threaded
+  through `CardTable`'s new `onDragMaster`/`onDragGuesser` props, gated the same
+  `placing && isMaster`/`!isMaster` way `onTapMaster`/`onTapGuesser` already are.
+  Dropping a board card on an EMPTY slot moves it there (clearing the source);
+  dropping it on another FILLED slot swaps the two cards, so a full reorder never
+  has to round-trip through the hand - distinct from the hand-drop case above,
+  which still just overwrites-and-displaces-to-hand. Dropping on itself, or
+  releasing over nothing droppable, is a no-op (the card was never removed from
+  `assign` during the drag itself, only on a confirmed valid drop, so an aborted
+  drag can't lose it). Verified live: the exact move-move-move sequence the user
+  described (card 1 to an empty slot, card 3 into the now-empty first slot, card 1
+  into the now-empty third slot) producing the right final board state at each
+  step, a genuine swap onto an occupied slot, and that plain tap-to-select/-place
+  and tap-to-pick-up are completely unaffected.
 
 ### Status
 

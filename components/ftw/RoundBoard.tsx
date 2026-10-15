@@ -95,12 +95,19 @@ export default function RoundBoard({
     }
   };
 
-  // Drag-to-place: an addition to tap-to-place (tapSlot above), not a
-  // replacement - if a gesture never moves past the threshold it's left to
-  // fall through as a normal click (tap-to-select). Hit-testing uses
-  // data-drop-id (set on CardSlot only when that slot is interactive) via
-  // elementFromPoint, rather than wiring refs through CardTable/CardSlot.
-  const handleDragStart = (n: number, e: ReactPointerEvent<HTMLButtonElement>) => {
+  // Drag-to-place/-reorder: an addition to tap-to-place (tapSlot above), not
+  // a replacement - if a gesture never moves past the threshold it's left to
+  // fall through as a normal click (tap-to-select, or tap-to-pick-up for a
+  // placed card). Hit-testing uses data-drop-id (set on CardSlot only when
+  // that slot is interactive) via elementFromPoint, rather than wiring refs
+  // through CardTable/CardSlot. `fromSlotId` distinguishes the two sources:
+  // null for a hand card (existing behavior - assigns straight into the
+  // dropped-on slot, displacing whatever was there back to hand), or a slot
+  // id for a card picked up directly off the board - dropping that on an
+  // EMPTY slot moves it there (clearing the source), or on another FILLED
+  // slot swaps the two cards, so a full reorder never has to round-trip
+  // through the hand.
+  const startDrag = (n: number, fromSlotId: string | null, e: ReactPointerEvent<HTMLButtonElement>) => {
     if (!placing) return;
     const startX = e.clientX;
     const startY = e.clientY;
@@ -133,16 +140,33 @@ export default function RoundBoard({
       }, 0);
       const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>("[data-drop-id]");
       const dropId = target?.dataset.dropId;
-      if (dropId) {
+      if (!dropId) return; // released over nothing droppable - card stays exactly where it was
+      if (dropId === fromSlotId) return; // dropped back on itself - no-op
+
+      if (fromSlotId == null) {
         setAssign((a) => ({ ...a, [dropId]: n }));
-        setSel(null);
+      } else {
+        setAssign((a) => {
+          const next = { ...a };
+          const displaced = next[dropId];
+          if (displaced != null) {
+            next[fromSlotId] = displaced; // target was occupied - swap
+          } else {
+            delete next[fromSlotId]; // target was empty - move, clearing the source
+          }
+          next[dropId] = n;
+          return next;
+        });
       }
+      setSel(null);
     };
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
   };
+  const handleDragStart = (n: number, e: ReactPointerEvent<HTMLButtonElement>) => startDrag(n, null, e);
+  const handleBoardDragStart = (id: string, n: number, e: ReactPointerEvent<HTMLButtonElement>) => startDrag(n, id, e);
 
   const submit = () => {
     if (isMaster) {
@@ -249,6 +273,8 @@ export default function RoundBoard({
         rows={rows}
         onTapMaster={placing && isMaster ? tapSlot : undefined}
         onTapGuesser={placing && !isMaster ? tapSlot : undefined}
+        onDragMaster={placing && isMaster ? handleBoardDragStart : undefined}
+        onDragGuesser={placing && !isMaster ? handleBoardDragStart : undefined}
       />
 
       {placing ? (

@@ -1,3 +1,4 @@
+import type { PointerEvent as ReactPointerEvent } from "react";
 import CardFace, { CardBack } from "./CardFace";
 
 interface CardSlotProps {
@@ -12,8 +13,10 @@ interface CardSlotProps {
   badgeDelay?: number;
   /** Omit to render a non-interactive slot (nothing happens here for this viewer right now). */
   onClick?: () => void;
+  /** Starts a drag-to-move/-swap gesture for an already-placed card; tap-to-pick-up (onClick) still works independently. Only wired when the slot actually has a card (empty is false). */
+  onDragStart?: (e: ReactPointerEvent<HTMLButtonElement>) => void;
   ariaLabel: string;
-  /** Item id exposed as data-drop-id when interactive, so a dragged hand card can be dropped here. */
+  /** Item id exposed as data-drop-id when interactive, so a dragged hand OR board card can be dropped here. */
   dropId?: string;
 }
 
@@ -28,6 +31,7 @@ export default function CardSlot({
   badge,
   badgeDelay = 0,
   onClick,
+  onDragStart,
   ariaLabel,
   dropId,
 }: CardSlotProps) {
@@ -37,7 +41,14 @@ export default function CardSlot({
   return (
     <div className="relative aspect-[2/3] w-full" data-drop-id={onClick ? dropId : undefined}>
       {onClick ? (
-        <button type="button" aria-label={ariaLabel} onClick={onClick} className={`${slotClass} ${emptyStyle} cursor-pointer`}>
+        <button
+          type="button"
+          aria-label={ariaLabel}
+          onClick={onClick}
+          onPointerDown={!empty ? onDragStart : undefined}
+          style={!empty ? { touchAction: "none" } : undefined}
+          className={`${slotClass} ${emptyStyle} cursor-pointer`}
+        >
           {content}
         </button>
       ) : (

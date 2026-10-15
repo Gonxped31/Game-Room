@@ -1,3 +1,4 @@
+import type { PointerEvent as ReactPointerEvent } from "react";
 import CardSlot from "./CardSlot";
 import { CardBack } from "./CardFace";
 
@@ -30,6 +31,10 @@ interface CardTableProps {
   onTapMaster?: (id: string) => void;
   /** Omit to make the whole guesser column non-interactive for this viewer right now. */
   onTapGuesser?: (id: string) => void;
+  /** Starts a drag-to-move/-swap gesture for an already-placed master-column card. Omit to disable (e.g. not this viewer's turn to place). */
+  onDragMaster?: (id: string, n: number, e: ReactPointerEvent<HTMLButtonElement>) => void;
+  /** Same as onDragMaster, for the guesser column. */
+  onDragGuesser?: (id: string, n: number, e: ReactPointerEvent<HTMLButtonElement>) => void;
 }
 
 function describeCell(cell: CellState): string {
@@ -39,13 +44,27 @@ function describeCell(cell: CellState): string {
   return state;
 }
 
-function cellProps(cell: CellState, back: CardBack, ariaLabel: string, dropId: string, onClick?: () => void) {
-  const common = { back, ariaLabel, onClick, dropId };
-  if (cell.kind === "empty") return { empty: true as const, ...common };
-  return { empty: false as const, n: cell.n, up: cell.up, delay: cell.delay, badge: cell.badge, badgeDelay: cell.badgeDelay, ...common };
+/** Binds a drag-start handler to this cell's own id/number, or undefined if there's no card here to drag (or dragging is disabled for this column right now). */
+function dragHandlerFor(cell: CellState, id: string, onDrag?: (id: string, n: number, e: ReactPointerEvent<HTMLButtonElement>) => void) {
+  if (!onDrag || cell.kind !== "card" || cell.n == null) return undefined;
+  const n = cell.n;
+  return (e: ReactPointerEvent<HTMLButtonElement>) => onDrag(id, n, e);
 }
 
-export default function CardTable({ prompt, headLeft, headRight, rows, onTapMaster, onTapGuesser }: CardTableProps) {
+function cellProps(
+  cell: CellState,
+  back: CardBack,
+  ariaLabel: string,
+  dropId: string,
+  onClick?: () => void,
+  onDragStart?: (e: ReactPointerEvent<HTMLButtonElement>) => void,
+) {
+  const common = { back, ariaLabel, onClick, dropId };
+  if (cell.kind === "empty") return { empty: true as const, ...common };
+  return { empty: false as const, n: cell.n, up: cell.up, delay: cell.delay, badge: cell.badge, badgeDelay: cell.badgeDelay, onDragStart, ...common };
+}
+
+export default function CardTable({ prompt, headLeft, headRight, rows, onTapMaster, onTapGuesser, onDragMaster, onDragGuesser }: CardTableProps) {
   return (
     <div>
       <div className="mb-1.5 grid grid-cols-[min(15vw,68px)_1fr_min(15vw,68px)] items-center gap-2 text-center text-[13px] font-semibold leading-tight">
@@ -62,6 +81,7 @@ export default function CardTable({ prompt, headLeft, headRight, rows, onTapMast
               `${headLeft}, ${row.label}: ${describeCell(row.master)}`,
               row.id,
               onTapMaster && (() => onTapMaster(row.id)),
+              dragHandlerFor(row.master, row.id, onDragMaster),
             )}
           />
           <div
@@ -80,6 +100,7 @@ export default function CardTable({ prompt, headLeft, headRight, rows, onTapMast
               `${headRight}, ${row.label}: ${describeCell(row.guesser)}`,
               row.id,
               onTapGuesser && (() => onTapGuesser(row.id)),
+              dragHandlerFor(row.guesser, row.id, onDragGuesser),
             )}
           />
         </div>
