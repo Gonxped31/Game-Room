@@ -35,7 +35,15 @@ export default function TranscriptSheet({ text, role, label = "What you know" }:
       <div className="absolute -top-[22px] left-3 rounded-t-[4px] px-3 py-1.5 text-xs font-bold text-white" style={{ backgroundColor: tabColor }}>
         {label}
       </div>
-      <div className="flex overflow-hidden rounded-[6px] pt-2">
+      {/* items-start, not the flex default (stretch): the paragraph's measured
+          offsetHeight below must be its own intrinsic content height, never
+          inflated by matching the gutter's height - with the default stretch,
+          any transient overshoot in `lineCount` stretches the gutter taller,
+          which (via stretch) also stretches the paragraph, which gets
+          measured as taller than its real content, computing an even bigger
+          `lineCount` - an unbounded feedback loop that was rendering 30+
+          empty ruled lines for a 4-line paragraph. */}
+      <div className="flex items-start overflow-hidden rounded-[6px] pt-2">
         <div
           aria-hidden="true"
           className="flex w-10 shrink-0 flex-col items-end border-r-[3px] pr-2 pt-px font-[family-name:var(--font-courier-prime)] text-[15px]"

@@ -902,3 +902,31 @@ lock in one card, trying to find the matching pair while talking out loud.
     shows the case verdict text with "See the full case file" available; both
     confirmed in dark mode too. The ordinary win path (solving every Part) is
     completely unaffected - existing `VerdictScreen`/`RecapScreen` flow, unchanged.
+- **Stage 6 (done): back link moved inline, a `TranscriptSheet` line-count bug
+  fixed.** Two user-reported issues.
+  - **The back link is no longer `position: fixed` over the whole viewport** -
+    the user wanted it next to the logo, like the shared 1v1 `Header`'s inline
+    back-link, not floating disconnected in the screen's literal top-left
+    corner. `components/cocounsel/BackButton.tsx` (the old fixed component) is
+    deleted; new `BackLink.tsx` is the same visual treatment
+    (`bg-black/40`/`h-9 w-9`/white arrow) but a plain inline element, placed at
+    each of Co-Counsel's three header shapes: prepended into `Wordmark.tsx`
+    (covers `CasePicker`/`RolePicker`/`RecapScreen`, and `app/cocounsel/page.tsx`'s
+    `!bothJoined` branch, which gained a `Wordmark` above `InviteLinkBanner` -
+    previously that screen had no header at all), alongside `HeaderBand.tsx`'s
+    `PartProgress` row (the gameplay Part screen), and at the top of
+    `ResultsHeader.tsx`'s investigator half (reveal/verdict/adjourned screens).
+    `<main>`'s `pt-14` top clearance stays - it's still needed for the
+    still-fixed `ThemeToggle`, just no longer doubles as back-button clearance.
+  - **`TranscriptSheet.tsx`'s "What you know" sheet was rendering 30+ empty
+    ruled lines for a 4-line paragraph.** Root cause: the gutter (line numbers)
+    and the text `<p>` are flex row siblings under the *default* `align-items:
+    stretch` - the `<p>`'s measured `offsetHeight` (what computes `lineCount`,
+    driving how many line-number spans the gutter renders) was being inflated
+    to match the gutter's own rendered height via that stretch, which is
+    itself driven by `lineCount` - a circular dependency where any tiny
+    overshoot compounds every `ResizeObserver` tick with no ceiling. Fixed with
+    one class: `items-start` on the row breaks the stretch, so the paragraph's
+    measured height is always its genuine intrinsic content height, regardless
+    of the gutter's size. Verified live: a 10-line Part 1 transcript now shows
+    exactly 10 ruled lines, not 31.

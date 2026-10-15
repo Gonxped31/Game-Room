@@ -1,4 +1,5 @@
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import BackLink from "./BackLink";
 
 interface ResultsHeaderProps {
   investigatorName: string;
@@ -10,6 +11,9 @@ export default function ResultsHeader({ investigatorName, defendantName }: Resul
   return (
     <div className="relative flex">
       <div className="flex-1 px-4 py-5 text-white" style={{ backgroundColor: COLOR.investigator }}>
+        <div className="mb-2">
+          <BackLink />
+        </div>
         <div className="font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-none">{investigatorName}</div>
         <div className="font-[family-name:var(--font-archivo)] text-sm font-bold opacity-90">Investigator</div>
       </div>

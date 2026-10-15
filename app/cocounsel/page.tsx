@@ -9,7 +9,6 @@ import { COLOR, CONTAINER_MAX_WIDTH_CLASS } from "@/lib/games/cocounsel/theme";
 import { useTheme } from "@/lib/games/cocounsel/useTheme";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import AdjournedScreen from "@/components/cocounsel/AdjournedScreen";
-import BackButton from "@/components/cocounsel/BackButton";
 import CasePicker from "@/components/cocounsel/CasePicker";
 import Footer from "@/components/cocounsel/Footer";
 import PartScreen from "@/components/cocounsel/PartScreen";
@@ -18,6 +17,7 @@ import RevealScreen from "@/components/cocounsel/RevealScreen";
 import RolePicker from "@/components/cocounsel/RolePicker";
 import ThemeToggle from "@/components/cocounsel/ThemeToggle";
 import VerdictScreen from "@/components/cocounsel/VerdictScreen";
+import Wordmark from "@/components/cocounsel/Wordmark";
 
 const CASE_ID = "ruined-birthday";
 
@@ -93,11 +93,12 @@ export default function CoCounselPage() {
 
   return (
     <div className="min-h-screen w-full" data-theme={theme} style={{ backgroundColor: COLOR.paper }}>
-      <BackButton />
       <ThemeToggle theme={theme} onToggle={toggleTheme} />
-      {/* pt-14 reserves a clear strip above all content for the fixed back
-          button (top-3, 40px tall) so it never overlaps the Wordmark logo or
-          a role-colored band's own top-left text. */}
+      {/* pt-14 reserves a clear strip above all content for the fixed
+          ThemeToggle (top-3, 40px tall) so it never overlaps a role-colored
+          band's own top-right content. The back link itself is no longer
+          fixed - each screen now places it inline next to its own header
+          content (Wordmark, or a colored band's own top-left). */}
       <main className={`mx-auto pt-14 font-[family-name:var(--font-archivo)] ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
         {!game ? (
           // Checked FIRST, unconditionally, before showCasePicker - game is
@@ -120,14 +121,19 @@ export default function CoCounselPage() {
             onPickDefendant={() => pickIdentity(DEFENDANT, caseDef.characters.defendant)}
           />
         ) : !bothJoined ? (
-          <InviteLinkBanner
-            room={room}
-            roomName={roomName}
-            onRenameRoom={setRoomName}
-            accentColor={COLOR.yellow}
-            accentShadowColor={COLOR.ink}
-            accentTextColor={COLOR.ink}
-          />
+          <div className="px-4 pt-3.5">
+            <Wordmark />
+            <div className="mt-4">
+              <InviteLinkBanner
+                room={room}
+                roomName={roomName}
+                onRenameRoom={setRoomName}
+                accentColor={COLOR.yellow}
+                accentShadowColor={COLOR.ink}
+                accentTextColor={COLOR.ink}
+              />
+            </div>
+          </div>
         ) : game.phase === "CASE_DONE" ? (
           showRecap ? (
             <RecapScreen caseDef={caseDef} onBack={() => setShowRecap(false)} />

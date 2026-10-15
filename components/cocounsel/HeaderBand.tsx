@@ -1,4 +1,5 @@
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import BackLink from "./BackLink";
 import PartProgress from "./PartProgress";
 
 interface HeaderBandProps {
@@ -19,8 +20,11 @@ export default function HeaderBand({ role, characterName, roleLabel, totalParts,
 
   return (
     <div className="px-4 py-5 text-white" style={{ backgroundColor: bg }}>
-      <div className="mb-2">
-        <PartProgress totalParts={totalParts} currentPartIndex={currentPartIndex} attemptsUsed={attemptsUsed} maxAttempts={maxAttempts} tone="onColor" />
+      <div className="mb-2 flex items-center gap-2">
+        <BackLink />
+        <div className="min-w-0 flex-1">
+          <PartProgress totalParts={totalParts} currentPartIndex={currentPartIndex} attemptsUsed={attemptsUsed} maxAttempts={maxAttempts} tone="onColor" />
+        </div>
       </div>
       <h1 className="font-[family-name:var(--font-archivo)] text-[27px] font-extrabold leading-[1.1] tracking-[-0.01em]">{partTitle}</h1>
       <p className="m-0 font-[family-name:var(--font-archivo)] text-base font-medium">
