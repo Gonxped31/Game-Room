@@ -1,0 +1,118 @@
+{
+  "ruined-birthday": {
+    "id": "ruined-birthday",
+    "tier": "easy",
+    "title": "The Case of the Ruined Birthday",
+    "teaser": "A birthday dinner. A missing guest. Each of you knows half the story.",
+    "characters": { "investigator": "Maya", "defendant": "Leo" },
+    "parts": [
+      {
+        "n": 1,
+        "title": "The Empty Table",
+        "screens": {
+          "investigator": {
+            "info": "It's your birthday. You booked Bellini's for two at 8:00 PM tonight. Leo never showed and didn't answer your texts at 8:15 or 8:45. At 9:00 PM you walked to his apartment and found him at his PC, headset on, mid-match with his friends. When he saw you, he looked more shocked than guilty.",
+            "facts": [
+              { "id": "P1-I1", "text": "Maya booked Bellini's for 8:00 PM tonight, her birthday." },
+              { "id": "P1-I2", "text": "Leo was mid-match with his headset on, and looked more shocked than guilty." }
+            ]
+          },
+          "defendant": {
+            "info": "You were deep in an online match with friends. When Maya walks in, you're mortified. You had no idea tonight was the dinner. You also can't explain yourself yet: you've been quietly planning a birthday surprise for her for weeks, and you don't want to spoil it.",
+            "facts": [
+              { "id": "P1-D1", "text": "Leo had no idea the dinner was tonight." },
+              { "id": "P1-D2", "text": "Leo is secretly planning a birthday surprise for Maya." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I1", "text": "He looked shocked, not guilty.", "type": "correct", "contradicts": [] },
+            { "id": "I2", "text": "He doesn't care about my birthday.", "type": "trap", "contradicts": ["P1-D2"] },
+            { "id": "I3", "text": "He ignored my texts on purpose.", "type": "decoy", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D1", "text": "I had no idea tonight was the dinner.", "type": "correct", "contradicts": [] },
+            { "id": "D2", "text": "I forgot her birthday entirely.", "type": "trap", "contradicts": ["P1-D2"] },
+            { "id": "D3", "text": "I was too sick to come.", "type": "decoy", "contradicts": ["P1-I2"] }
+          ]
+        },
+        "correct": ["I1", "D1"],
+        "traps": [{ "pair": ["I2", "D2"] }],
+        "theory": "Leo didn't know the dinner was tonight. The question is why."
+      },
+      {
+        "n": 2,
+        "title": "The Buddy",
+        "screens": {
+          "investigator": {
+            "info": "As Leo shuts down his PC, his phone lights up on the desk. A message from his friend Dave, sent at 7:15 PM: \"Tournament starts in 15. You said you were free tonight, don't flake on us.\"",
+            "facts": [
+              { "id": "P2-I1", "text": "Dave's 7:15 PM text says Leo had already told him he was free tonight." }
+            ]
+          },
+          "defendant": {
+            "info": "You decide to be honest about this much: you told Dave days ago that you were free tonight, because you believed the birthday plans were on Saturday at 9:00 AM. Dave only reminded you about the match at 7:15. You're still hiding the surprise.",
+            "facts": [
+              { "id": "P2-D1", "text": "Leo told Dave he was free because he believed the plans were Saturday at 9:00 AM." },
+              { "id": "P2-D2", "text": "Dave only reminded Leo about the match. He didn't talk him out of anything." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I4", "text": "Dave talked him out of coming.", "type": "trap", "contradicts": ["P2-D2"] },
+            { "id": "I5", "text": "Leo had promised Dave his evening before Dave asked.", "type": "correct", "contradicts": [] },
+            { "id": "I6", "text": "Leo lied to me about having plans.", "type": "decoy", "contradicts": ["P2-D1"] }
+          ],
+          "defendant": [
+            { "id": "D4", "text": "I believed the birthday plans were Saturday morning.", "type": "correct", "contradicts": [] },
+            { "id": "D5", "text": "Dave pressured me into skipping the dinner.", "type": "trap", "contradicts": ["P2-I1"] },
+            { "id": "D6", "text": "I double-booked on purpose.", "type": "decoy", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I5", "D4"],
+        "traps": [{ "pair": ["I4", "D5"] }],
+        "theory": "Leo thought the plans were Saturday morning, and Dave is a bystander. Where did Leo get that idea?"
+      },
+      {
+        "n": 3,
+        "title": "The Invite",
+        "screens": {
+          "investigator": {
+            "info": "You ask to see the invite you sent three weeks ago. You're certain it said Friday at 8:00 PM, and you never edited it. Your confirmation email still says so. On Leo's laptop, the calendar shows \"Maya's birthday 🎂 — Bellini's\" on Saturday at 9:00 AM.",
+            "facts": [
+              { "id": "P3-I1", "text": "Maya sent the invite for Friday 8:00 PM and never edited it." },
+              { "id": "P3-I2", "text": "The invite on Leo's laptop shows Saturday 9:00 AM." }
+            ]
+          },
+          "defendant": {
+            "info": "You open your calendar and see the same thing: Saturday, 9:00 AM. You never touched the invite. Earlier this month you researched and booked a surprise baking masterclass for Maya on the shared laptop, using a VPN set to Tokyo so she wouldn't see it in the history. Your calendar app detects its time zone automatically.",
+            "facts": [
+              { "id": "P3-D1", "text": "Leo never edited the invite." },
+              { "id": "P3-D2", "text": "Leo used a Tokyo VPN on the laptop. His calendar auto-detects its time zone." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I7", "text": "The invite on his screen shows a different day and time than the one I sent.", "type": "correct", "contradicts": [] },
+            { "id": "I8", "text": "Leo changed the invite himself.", "type": "decoy", "contradicts": ["P3-D1"] },
+            { "id": "I9", "text": "Dave swapped my invite for a fake one.", "type": "memoryLure", "contradicts": ["P2-D2"] }
+          ],
+          "defendant": [
+            { "id": "D7", "text": "My calendar switched to Tokyo time while my VPN was on.", "type": "correct", "contradicts": [] },
+            { "id": "D8", "text": "Maya edited the invite after I accepted it.", "type": "trap", "contradicts": ["P3-I1"] },
+            { "id": "D9", "text": "I never opened the invite.", "type": "memoryLure", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I7", "D7"],
+        "traps": [{ "pair": ["I7", "D8"] }, { "pair": ["I9", "D9"] }]
+      }
+    ],
+    "verdict": {
+      "title": "NOT GUILTY",
+      "text": "Leo wasn't neglecting Maya's birthday, and Dave wasn't pulling the strings. A secret surprise, a VPN set to Tokyo, and a calendar that auto-detects its time zone moved a Friday-night dinner to Saturday morning. The baking masterclass was waiting for Saturday. Leo owes Maya one very good weekend."
+    }
+  }
+}

@@ -1,0 +1,206 @@
+import { describe, expect, it } from "vitest";
+import { getCase } from "./cases";
+import { DEFENDANT, INVESTIGATOR } from "./constants";
+import {
+  classifyDuo,
+  continueAfterReveal,
+  focusPercent,
+  type GameState,
+  lockIn,
+  newGame,
+  screenOfRole,
+  totalAttempts,
+  trustPercent,
+} from "./game";
+
+const CASE = getCase("ruined-birthday");
+
+function fresh(): GameState {
+  return newGame(CASE.id);
+}
+
+describe("screenOfRole", () => {
+  it("maps the investigator seat to the investigator screen and the defendant seat to the defendant screen", () => {
+    expect(screenOfRole(INVESTIGATOR)).toBe("investigator");
+    expect(screenOfRole(DEFENDANT)).toBe("defendant");
+  });
+});
+
+describe("newGame", () => {
+  it("starts Part 1, SELECTING, zero attempts, empty locks/log/names", () => {
+    const game = fresh();
+    expect(game.caseId).toBe("ruined-birthday");
+    expect(game.partIndex).toBe(0);
+    expect(game.attempts).toBe(0);
+    expect(game.phase).toBe("SELECTING");
+    expect(game.locks).toEqual({});
+    expect(game.log).toEqual([]);
+    expect(game.names).toEqual({});
+  });
+});
+
+describe("lockIn", () => {
+  it("rejects locking in while not SELECTING", () => {
+    const solved = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1");
+    expect(solved.phase).toBe("REVEALED");
+    expect(() => lockIn(solved, CASE, INVESTIGATOR, "I2")).toThrow();
+  });
+
+  it("rejects a role locking in twice before the other has locked in", () => {
+    const afterFirst = lockIn(fresh(), CASE, INVESTIGATOR, "I1");
+    expect(() => lockIn(afterFirst, CASE, INVESTIGATOR, "I2")).toThrow();
+  });
+
+  it("rejects a card that isn't in that role's hand for the current Part", () => {
+    expect(() => lockIn(fresh(), CASE, INVESTIGATOR, "D1")).toThrow();
+    expect(() => lockIn(fresh(), CASE, INVESTIGATOR, "I4")).toThrow(); // a Part 2 card, not available in Part 1
+  });
+
+  it("only transitions to REVEALED once both roles have locked in", () => {
+    const afterFirst = lockIn(fresh(), CASE, INVESTIGATOR, "I1");
+    expect(afterFirst.phase).toBe("SELECTING");
+    expect(afterFirst.locks).toEqual({ p1: "I1" });
+    const afterSecond = lockIn(afterFirst, CASE, DEFENDANT, "D1");
+    expect(afterSecond.phase).toBe("REVEALED");
+  });
+
+  it("resolves the correct pair as solved, with no flags and solvedOnFirstTry", () => {
+    const revealed = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1");
+    expect(revealed.lastReveal).toEqual({ outcome: "solved", investigatorCardId: "I1", defendantCardId: "D1", solvedOnFirstTry: true });
+    expect(revealed.log).toEqual([{ partIndex: 0, investigatorCard: "I1", defendantCard: "D1", outcome: "solved", trustFlags: 0, focusFlags: 0 }]);
+    expect(revealed.attempts).toBe(0); // a solve isn't a miss
+  });
+
+  it("resolves the documented Part 1 trap pair with a Trust flag from the investigator's card only", () => {
+    const revealed = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2");
+    expect(revealed.lastReveal?.outcome).toBe("retry"); // 1st miss, not the judge yet
+    expect(revealed.attempts).toBe(1);
+    const entry = revealed.log[0];
+    expect(entry.outcome).toBe("trap");
+    // I2 contradicts P1-D2 (defendant's own-Part fact) -> Trust flag.
+    // D2 contradicts P1-D2 too, but that's Defendant's OWN screen/Part -> no flag.
+    expect(entry.trustFlags).toBe(1);
+    expect(entry.focusFlags).toBe(0);
+  });
+
+  it("resolves a non-trap wrong pair as 'wrong', not 'trap'", () => {
+    const revealed = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I3"), CASE, DEFENDANT, "D3");
+    expect(revealed.log[0].outcome).toBe("wrong");
+  });
+
+  it("the judge reveals the correct pair after the 2nd miss, instead of what was actually played", () => {
+    const afterFirstMiss = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2");
+    const retried = continueAfterReveal(afterFirstMiss, CASE);
+    const afterSecondMiss = lockIn(lockIn(retried, CASE, INVESTIGATOR, "I3"), CASE, DEFENDANT, "D3");
+    expect(afterSecondMiss.attempts).toBe(2);
+    expect(afterSecondMiss.lastReveal).toEqual({ outcome: "judgeRevealed", investigatorCardId: "I1", defendantCardId: "D1" });
+    expect(afterSecondMiss.log[1].outcome).toBe("judgeRevealed");
+  });
+
+  it("computes a Focus flag for a card contradicting an earlier Part's fact (the documented Part 3 memory lures)", () => {
+    // Fast-forward to Part 3 by solving Parts 1 and 2 on the first try.
+    let game = fresh();
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1"), CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I5"), CASE, DEFENDANT, "D4"), CASE);
+    expect(game.partIndex).toBe(2);
+
+    const revealed = lockIn(lockIn(game, CASE, INVESTIGATOR, "I9"), CASE, DEFENDANT, "D9");
+    const entry = revealed.log.at(-1)!;
+    // I9 contradicts P2-D2 (Part 2, earlier) -> Focus. D9 contradicts P2-D1 (Part 2, earlier) -> Focus.
+    expect(entry.trustFlags).toBe(0);
+    expect(entry.focusFlags).toBe(2);
+  });
+});
+
+describe("continueAfterReveal", () => {
+  it("rejects continuing while not REVEALED", () => {
+    expect(() => continueAfterReveal(fresh(), CASE)).toThrow();
+  });
+
+  it("a retry clears the locks and returns to SELECTING, keeping the attempt count", () => {
+    const afterMiss = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2");
+    const retried = continueAfterReveal(afterMiss, CASE);
+    expect(retried.phase).toBe("SELECTING");
+    expect(retried.locks).toEqual({});
+    expect(retried.attempts).toBe(1);
+    expect(retried.partIndex).toBe(0);
+  });
+
+  it("a solved Part advances to the next Part, resetting attempts and locks", () => {
+    const solved = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1");
+    const next = continueAfterReveal(solved, CASE);
+    expect(next.phase).toBe("SELECTING");
+    expect(next.partIndex).toBe(1);
+    expect(next.attempts).toBe(0);
+    expect(next.locks).toEqual({});
+  });
+
+  it("solving the last Part goes to CASE_DONE instead of a Part 4", () => {
+    let game = fresh();
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1"), CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I5"), CASE, DEFENDANT, "D4"), CASE);
+    game = lockIn(lockIn(game, CASE, INVESTIGATOR, "I7"), CASE, DEFENDANT, "D7");
+    expect(game.phase).toBe("REVEALED");
+    expect(game.lastReveal?.outcome).toBe("solved");
+    const done = continueAfterReveal(game, CASE);
+    expect(done.phase).toBe("CASE_DONE");
+    expect(done.partIndex).toBe(2); // unchanged - there is no Part 4 to advance to
+  });
+
+  it("does not write an explicit undefined lastReveal (Firebase rejects that) - the key is simply absent", () => {
+    const solved = lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1");
+    const next = continueAfterReveal(solved, CASE);
+    expect(Object.prototype.hasOwnProperty.call(next, "lastReveal")).toBe(false);
+  });
+});
+
+describe("scoring", () => {
+  it("trustPercent/focusPercent are 100 with no lock-ins yet", () => {
+    expect(trustPercent([])).toBe(100);
+    expect(trustPercent(undefined)).toBe(100);
+    expect(focusPercent([])).toBe(100);
+    expect(focusPercent(undefined)).toBe(100);
+  });
+
+  it("trustPercent counts flags over every lock-in; focusPercent only counts Part 2+ lock-ins", () => {
+    const log = [
+      { partIndex: 0, investigatorCard: "I2", defendantCard: "D2", outcome: "trap" as const, trustFlags: 1, focusFlags: 0 },
+      { partIndex: 0, investigatorCard: "I1", defendantCard: "D1", outcome: "solved" as const, trustFlags: 0, focusFlags: 0 },
+      { partIndex: 2, investigatorCard: "I9", defendantCard: "D9", outcome: "trap" as const, trustFlags: 0, focusFlags: 2 },
+    ];
+    expect(trustPercent(log)).toBeCloseTo((100 * (1 - 1 / 3)));
+    // only the Part-2 (index 2) entry counts toward the focus denominator: 2
+    // flags on 1 lock-in is a raw formula result of 100*(1-2/1) = -100,
+    // which the function clamps to 0 rather than showing a negative percent.
+    expect(focusPercent(log)).toBe(0);
+  });
+
+  it("totalAttempts is just the log length", () => {
+    expect(totalAttempts(undefined)).toBe(0);
+    expect(totalAttempts([{ partIndex: 0, investigatorCard: "I1", defendantCard: "D1", outcome: "solved", trustFlags: 0, focusFlags: 0 }])).toBe(1);
+  });
+
+  it("classifies the duo per the documented table, evaluated top to bottom", () => {
+    expect(classifyDuo(95, 95)).toBe("Mind-Reading Team");
+    expect(classifyDuo(95, 50)).toBe("Loyal, Slightly Forgetful");
+    expect(classifyDuo(50, 95)).toBe("Sharp, Slightly Suspicious");
+    expect(classifyDuo(75, 80)).toBe("Solid Partners");
+    expect(classifyDuo(50, 50)).toBe("Still Learning Each Other");
+  });
+});
+
+describe("a full clean playthrough of the shipped case", () => {
+  it("solving every Part on the first try reaches CASE_DONE with a perfect score", () => {
+    let game = fresh();
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I1"), CASE, DEFENDANT, "D1"), CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I5"), CASE, DEFENDANT, "D4"), CASE);
+    game = continueAfterReveal(lockIn(lockIn(game, CASE, INVESTIGATOR, "I7"), CASE, DEFENDANT, "D7"), CASE);
+
+    expect(game.phase).toBe("CASE_DONE");
+    expect(game.log).toHaveLength(3);
+    expect(trustPercent(game.log)).toBe(100);
+    expect(focusPercent(game.log)).toBe(100);
+    expect(totalAttempts(game.log)).toBe(3);
+    expect(classifyDuo(trustPercent(game.log), focusPercent(game.log))).toBe("Mind-Reading Team");
+  });
+});

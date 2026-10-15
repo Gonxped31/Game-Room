@@ -407,3 +407,83 @@ game-agnostic.
   (footer identity line, round status text, etc.) still says things like "Master"/
   "Guesser" and keeps its own relationship-flavored prompt content - only the
   platform-level chrome and shared components changed, not FTW itself.
+
+---
+
+## Co-Counsel (`lib/games/cocounsel/`)
+
+A 2-player cooperative asymmetric deduction game, fully specified in
+`references/co-counsel/co-counsel-game-design.md` (rules, scoring, launch case
+content) and `references/co-counsel/co-counsel-visual-spec.md` (design tokens,
+component specs, screen-by-screen copy, motion, accessibility) - read those first for
+anything not covered here. One player is the **Investigator** (external evidence),
+the other the **Defendant** (internal facts); each "Part" of a case, both secretly
+lock in one card, trying to find the matching pair while talking out loud.
+
+- **Reuses the 1v1 `useGameSession`/`Role`/`WithIdentity` session layer unchanged** -
+  this is still fundamentally a 2-player game, just with a different
+  identity-claiming UI than FTW's name-entry `RolePicker` (players pick "I'm the
+  Investigator"/"I'm the Defendant", no name input - the in-story character names are
+  fixed by the case data, not typed). `Investigator = Role "p1"` and
+  `Defendant = Role "p2"` are **fixed** constants in `constants.ts` (unlike FTW's
+  `masterOf(round)`, these never rotate within a case).
+- **Case content lives in `cases.json`**, one file holding every case keyed by ID
+  (currently just `"ruined-birthday"`) - same "one JSON file, not one-per-entry"
+  shape as `lib/games/ftw/prompts.json`, for the same reason: content someone should
+  be able to hand-edit without touching code. `cases.ts` casts the import once
+  (`casesJson as unknown as CaseBank` - JSON imports infer widened types like `string`
+  instead of a literal union or `string[]` instead of a tuple, so the cast has to go
+  through `unknown` first) and exports `CASES`/`getCase(id)` so nothing else repeats
+  that cast. `caseTypes.ts` has the full shape (`CaseDefinition` → `CasePart` →
+  `screens`/`hands`/`correct`/`traps`/`theory`, plus `characters: {investigator,
+  defendant}` - implied throughout the design doc's prose but missing from its shown
+  JSON schema, added here since the UI needs it and must never hardcode "Maya"/"Leo").
+- **`caseValidator.ts`** implements the design doc's 8 "Validator checks", run
+  against the real `cases.json` in `caseValidator.test.ts` (mirrors how
+  `prompts.test.ts` validates `prompts.json`). One deliberate deviation from the
+  doc's literal wording: it says a memory-lure card should appear "from Part 2
+  onward", but the shipped case's own Part 2 has zero memory-lure cards (only Part 3
+  does) - Part 2 is the first Part with *any* earlier-Part facts to misremember in
+  the first place (Part 1 has none), so the validator's rule is "once the memory-lure
+  mechanic has appeared anywhere earlier in the case, every later Part must keep
+  using it" rather than a flat "every Part 2+", which would incorrectly flag the
+  shipped content. The content itself was transcribed verbatim, not changed, to
+  match this looser (and more accurate) rule.
+- **`game.ts`** follows the same pure/throw-on-invalid-transition pattern as
+  `lib/games/ftw/game.ts`. `Phase` is `"SELECTING" | "REVEALED" | "CASE_DONE"` -
+  simplified from the design doc's 4-value list (`SELECTING`/`REVEALED`/
+  `PART_DONE`/`CASE_DONE`), since `PART_DONE` and `REVEALED` render the same
+  card-flip screen with only the heading/button differing, driven by
+  `lastReveal.outcome` (`"solved" | "retry" | "judgeRevealed"`) rather than a
+  separate phase value. `lockIn(game, caseDef, role, cardId)` resolves the pair the
+  moment both roles have locked in; a miss increments `attempts`, and the 2nd miss
+  sets `outcome: "judgeRevealed"` - `lastReveal` then holds the *correct* pair to
+  display instead of what was actually played, matching "the judge simply reveals
+  the correct pair, no hint." `continueAfterReveal` rebuilds the returned object
+  explicitly (not `{...game, lastReveal: undefined}`) to clear `lastReveal` - the
+  same Firebase-rejects-explicit-undefined lesson from E-Card's `continueRound`.
+  Scores are **derived, not stored**: `trustPercent`/`focusPercent`/`classifyDuo`
+  are pure functions over `log`, computed from the doc's exact formulas and clamped
+  to `[0,100]` (the raw Focus formula can go negative if a Part has more focus flags
+  than Part-2+ lock-ins so far - clamped rather than shown as a negative percent).
+  Flag computation (`flagsFor`) looks up where a contradicted fact ID lives: same
+  Part + partner's screen → Trust flag; earlier Part (either screen) → Focus flag;
+  same Part + the card-holder's own screen → no flag, just a wrong answer.
+- **Firebase empty-array/empty-object lesson applied from the start** (not
+  rediscovered the hard way like E-Card): `locks: Partial<Record<Role,string>>` and
+  `log: AttemptLogEntry[]` both start empty and both get normalized on every read
+  (`normalizeGame`) before use, since RTDB drops empty arrays *and* empty objects on
+  write (confirmed by `useGameSession.ts`'s existing `names ?? {}` guard, which
+  exists for the identical reason).
+
+### Status
+
+- **Stage 1 (done):** case data (`cases.json`), types (`caseTypes.ts`), the
+  validator (`caseValidator.ts`), and the game state machine (`game.ts`) - no UI yet.
+  36 Vitest cases: schedule/transition correctness, hand/turn-order rejection, the
+  documented Part 1 trap pair's exact flag outcome, Focus-flag computation against
+  the documented Part 3 memory lures, the judge-reveals-after-2-misses path, every
+  validator check (including that the real shipped case passes cleanly), and a full
+  first-try playthrough of the whole case reaching a 100%/100% "Mind-Reading Team"
+  result. Verified: zero diff to any existing `lib/session/*` or `lib/games/ftw/*`
+  file.
