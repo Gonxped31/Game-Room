@@ -1,8 +1,8 @@
-# Game Night
+# Game Room
 
 A small platform for private, link-based 2-player games. No login, no accounts, no
 lobby - open the app and pick a game from `/`, and you get a fresh private room with
-a "Copy invite link" button to send your partner. Opening someone else's link drops
+a "Copy invite link" button to send the other player. Opening someone else's link drops
 you straight into their room. The first time each of you opens a room you type your
 name; after that, the game remembers who's who and exactly where you left off, even
 after closing the browser or restarting your computer - because the whole session
@@ -142,7 +142,7 @@ by. To rename the platform itself, or any individual game:
 
 ```ts
 // lib/games/registry.ts
-export const APP_TITLE = "Game Night"; // the picker's title
+export const APP_TITLE = "Game Room"; // the picker's title
 
 // lib/games/ftw/constants.ts
 export const GAME_TITLE = "First to Worst"; // change this

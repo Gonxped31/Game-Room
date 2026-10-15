@@ -326,8 +326,10 @@ game-agnostic.
   regression script (cross-tab sync, names/stickers, invite/recap, drag-drop,
   reduced-motion) against `/ftw` and a real-Firebase two-pair/four-player test
   confirming the new nested `games/{room}/ftw` path works and isolates correctly.
-- **Multi-game platform Stage 2 (done):** `lib/games/registry.ts` (`APP_TITLE`
-  "Game Night" + a flat `GAMES` array) backs a new `app/page.tsx` - a server
+- **Multi-game platform Stage 2 (done):** `lib/games/registry.ts` (`APP_TITLE`,
+  originally "Game Night" and later renamed to "Game Room" once the platform grew
+  games unrelated to romance/relationships - see below - + a flat `GAMES` array)
+  backs a new `app/page.tsx` - a server
   component listing games as link cards to `/<slug>`, replacing the Stage 1
   redirect. `Footer` gained an "All games" link back to the picker. Root
   `metadata.title` switched from FTW's `GAME_TITLE` to the platform's
@@ -348,3 +350,13 @@ game-agnostic.
   thing worth keeping from it is the Realtime Database gotchas above (now
   folded into "Store design notes"), since those apply to any future game, not
   just that one.
+- **Platform renamed "Game Night" → "Game Room".** `APP_TITLE`
+  (`lib/games/registry.ts`) drives the picker's title and root `metadata.title`, so
+  this was a one-line change there. Done because future games don't have to be about
+  romance/relationships the way FTW is - the two shared components that still said
+  "partner" (`RolePicker`'s "Your partner joins next..." and `InviteLinkBanner`'s
+  "Waiting for your partner to join?") were reworded to "the other player" for the
+  same reason, since any future game reuses those as-is. FTW's own in-game copy
+  (footer identity line, round status text, etc.) still says things like "Master"/
+  "Guesser" and keeps its own relationship-flavored prompt content - only the
+  platform-level chrome and shared components changed, not FTW itself.

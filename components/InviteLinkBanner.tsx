@@ -19,7 +19,7 @@ export default function InviteLinkBanner() {
 
   return (
     <div className="mb-3 rounded-xl bg-white px-3.5 py-2.5 text-center text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
-      <p className="m-0 font-semibold">Waiting for your partner to join?</p>
+      <p className="m-0 font-semibold">Waiting for the other player to join?</p>
       <Button onClick={copy}>{copied ? "Copied!" : "Copy invite link"}</Button>
     </div>
   );

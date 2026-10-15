@@ -1,5 +1,5 @@
 /** The platform's overall brand - shown on the picker and in the browser tab there. */
-export const APP_TITLE = "Game Night";
+export const APP_TITLE = "Game Room";
 
 export interface GameEntry {
   slug: string;
