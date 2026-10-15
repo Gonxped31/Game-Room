@@ -16,8 +16,13 @@ across any of the games below, each room fully independent.
   Jalapenos). The **master** privately ranks the topics 1 (best) to 5 (worst); the
   **guesser** tries to guess that ranking; both are revealed and scored. Roles swap
   every round.
+- **Co-Counsel** (`/cocounsel`) - a cooperative mystery. One player is the
+  Investigator (external evidence), the other the Defendant (internal facts); each
+  "Part" of a case, both secretly lock in one card, trying to find the matching
+  pair while talking it out loud. No live scores - how well you listened (Trust)
+  and remembered (Focus) only shows up at the end of the case.
 
-See `CLAUDE.md` for the full architecture, this game's rules in detail, and how to
+See `CLAUDE.md` for the full architecture, each game's rules in detail, and how to
 add a new one.
 
 ## Quick start (local test mode)

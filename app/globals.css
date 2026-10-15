@@ -45,6 +45,35 @@ textarea:focus-visible {
   animation: presence-pulse 1.8s ease-out infinite;
 }
 
+/* Co-Counsel: a rubber stamp "lands" ~0.3s after the reveal flip finishes -
+   scale+opacity only, so it composes with a separate static `transform:
+   rotate(...)` on the same element's wrapper instead of fighting over the
+   `transform` property (see components/cocounsel/Stamp.tsx). */
+@keyframes stamp-land {
+  from {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.stamp-land {
+  animation: stamp-land 0.25s ease-out 0.3s both;
+}
+
+/* Co-Counsel: a selected hand card lifts slightly. */
+@keyframes card-lift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-4px);
+  }
+}
+
+.card-lift {
+  animation: card-lift 0.12s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flip-inner {
     transition: none !important;
@@ -54,6 +83,10 @@ textarea:focus-visible {
     animation: none !important;
   }
   .presence-dot-online {
+    animation: none !important;
+  }
+  .stamp-land,
+  .card-lift {
     animation: none !important;
   }
 }

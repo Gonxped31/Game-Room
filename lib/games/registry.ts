@@ -26,4 +26,11 @@ export const GAMES: GameEntry[] = [
     emoji: "🏆",
     maxPlayers: 2,
   },
+  {
+    slug: "cocounsel",
+    title: "Co-Counsel",
+    tagline: "A cooperative mystery - talk it out to find the matching pair.",
+    emoji: "⚖️",
+    maxPlayers: 2,
+  },
 ];

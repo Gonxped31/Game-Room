@@ -487,3 +487,37 @@ lock in one card, trying to find the matching pair while talking out loud.
   first-try playthrough of the whole case reaching a 100%/100% "Mind-Reading Team"
   result. Verified: zero diff to any existing `lib/session/*` or `lib/games/ftw/*`
   file.
+- **Stage 2 (done):** the UI - `components/cocounsel/` (`Wordmark`, `Button`,
+  `Stamp`, `ExhibitTent`, `ClaimCard`/`Hand`, `TranscriptSheet`, `PartProgress`/
+  `HeaderBand`, `ResultsHeader`, `RevealCard`, `CasePicker`, `RolePicker`,
+  `PartScreen`, `RevealScreen`, `VerdictScreen`, `RecapScreen`, `Footer`) and
+  `app/cocounsel/page.tsx`. An entirely new visual system from FTW's, per the
+  visual spec: three new `next/font/google` loaders (Archivo, Archivo Narrow,
+  Courier Prime) added in `app/layout.tsx` alongside Fredoka without touching
+  `body`'s font (every Co-Counsel component opts in via `font-[family-name:...]`
+  utilities instead), and `lib/games/cocounsel/theme.ts` holding the design doc's
+  exact hex/radius tokens as plain named exports - same "inline Tailwind arbitrary
+  values, no CSS variable theme layer" convention as every other game's components
+  here, just a new palette. `RevealCard`'s flip reuses the literal `flip-inner`
+  class name from `components/ftw/CardFace.tsx`'s technique (new component, same
+  mechanics) so it inherits the existing global `prefers-reduced-motion` override
+  for free; two new keyframes (`stamp-land`, `card-lift`) were added to
+  `app/globals.css` alongside FTW's, with their own reduced-motion disable.
+  `RolePicker` (role-only, no name entry - the case fixes character names) and
+  `Footer` are new Co-Counsel-specific components, not the shared `components/`
+  ones, since nothing about this game's visual language matches FTW's. One
+  deliberate deviation from FTW's gating pattern: the role-pick screen shows
+  whenever `!bothJoined` (not `!me`), so "Rematch with swapped roles" (which resets
+  `names` to `{}`) re-prompts *both* devices to pick a role, even the one whose
+  local `me` is still set from the previous game - otherwise that device would get
+  stuck seeing a stale waiting screen instead of a chance to pick again.
+  Verified end-to-end against real Firebase with two isolated browser contexts: the
+  full 3-Part case (a first-try solve, a trap-then-retry solve, and a forced
+  judge-reveal after 2 misses - confirming the judge shows the *correct* pair, not
+  what was actually played), the verdict screen's Trust/Focus/duo classification,
+  the recap screen, and that a rematch correctly re-prompts both devices for a
+  role. Also verified: `prefers-reduced-motion` disables both the card flip and the
+  stamp-land animation, and the hand's `radiogroup`/`radio` roles +
+  `aria-checked` + `aria-live` regions all behave correctly. Confirmed FTW is
+  unaffected by the shared `app/layout.tsx`/`app/globals.css` additions via a live
+  two-device FTW playthrough.
