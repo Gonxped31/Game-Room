@@ -1,20 +1,26 @@
-import Link from "next/link";
+interface BackLinkProps {
+  onBack: () => void;
+  className?: string;
+}
 
 /**
- * Inline "back to the game picker" link - NOT fixed-positioned. Each
- * screen places it directly beside its own header content (the Wordmark
- * logo, or a colored band's title), matching the shared 1v1 Header's
- * inline back-link instead of floating disconnected over the whole
- * viewport (the previous `BackButton`, now removed).
+ * "Back to case selection" - Co-Counsel's own default/home screen (per user
+ * request), not the game picker. Unlike the shared 1v1 Header's back-link
+ * (a real `<Link href="/">` leaving the game), this is a plain in-page
+ * button: `onBack` re-shows CasePicker without touching the room, role
+ * claims, or game progress - restarting a case (Rematch/"Start a new case")
+ * is the only path that goes to RolePicker instead, and leaving Co-Counsel
+ * entirely is still available via the Footer's separate "All games" link.
  */
-export default function BackLink({ className = "" }: { className?: string }) {
+export default function BackLink({ onBack, className = "" }: BackLinkProps) {
   return (
-    <Link
-      href="/"
-      aria-label="Back to all games"
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/40 text-lg leading-none text-white no-underline ${className}`}
+    <button
+      type="button"
+      onClick={onBack}
+      aria-label="Back to case selection"
+      className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-black/40 text-lg leading-none text-white ${className}`}
     >
       ←
-    </Link>
+    </button>
   );
 }

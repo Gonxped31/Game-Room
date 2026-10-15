@@ -8,6 +8,7 @@ interface RolePickerProps {
   defendantTaken: boolean;
   onPickInvestigator: () => void;
   onPickDefendant: () => void;
+  onBack: () => void;
 }
 
 /**
@@ -19,13 +20,13 @@ interface RolePickerProps {
  * 1v1 RolePicker doesn't show it either; only the Footer and the
  * InviteLinkBanner step (right after this one) do.
  */
-export default function RolePicker({ caseDef, investigatorTaken, defendantTaken, onPickInvestigator, onPickDefendant }: RolePickerProps) {
+export default function RolePicker({ caseDef, investigatorTaken, defendantTaken, onPickInvestigator, onPickDefendant, onBack }: RolePickerProps) {
   const bothTaken = investigatorTaken && defendantTaken;
 
   return (
     <div>
       <div className="px-4 pb-5 pt-3.5">
-        <Wordmark />
+        <Wordmark onBack={onBack} />
         <p className="mt-2 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.text2 }}>
           Two sides of one story. Talk it out to solve it.
         </p>

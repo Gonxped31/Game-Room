@@ -26,6 +26,7 @@ interface RevealScreenProps {
   myRole: "investigator" | "defendant";
   onPickAgain: () => void;
   onContinue: () => void;
+  onBack: () => void;
 }
 
 const STAMP_CONFIG: Record<AttemptOutcome, { color: StampColor; label: string; heading: string; body: string }> = {
@@ -65,6 +66,7 @@ export default function RevealScreen({
   myRole,
   onPickAgain,
   onContinue,
+  onBack,
 }: RevealScreenProps) {
   const cfg = STAMP_CONFIG[logOutcome];
   // "Final" just means no more retries at this Part - solved, judgeRevealed,
@@ -77,7 +79,7 @@ export default function RevealScreen({
 
   return (
     <div>
-      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} />
+      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} />
       <div className="px-4 pb-8 pt-4">
         {solvedOnFirstTry ? (
           <p className="text-right font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: COLOR.ink }}>

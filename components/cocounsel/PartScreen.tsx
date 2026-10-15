@@ -24,6 +24,7 @@ interface PartScreenProps {
   /** Set once this device has locked in for the current attempt. */
   myLockedCardId: string | null;
   onLockIn: (cardId: string) => void;
+  onBack: () => void;
 }
 
 /**
@@ -45,6 +46,7 @@ export default function PartScreen({
   maxAttempts,
   myLockedCardId,
   onLockIn,
+  onBack,
 }: PartScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -62,6 +64,7 @@ export default function PartScreen({
           partTitle={part.title}
           attemptsUsed={attemptsUsed}
           maxAttempts={maxAttempts}
+          onBack={onBack}
         />
         <div className="px-4 pt-5">
           <div className="grid grid-cols-2 gap-3">
@@ -117,6 +120,7 @@ export default function PartScreen({
         partTitle={part.title}
         attemptsUsed={attemptsUsed}
         maxAttempts={maxAttempts}
+        onBack={onBack}
       />
       <div className="px-4 pb-32 pt-4">
         <TranscriptSheet text={info} role={role} />

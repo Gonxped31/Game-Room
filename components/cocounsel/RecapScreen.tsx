@@ -5,14 +5,16 @@ import Wordmark from "./Wordmark";
 
 interface RecapScreenProps {
   caseDef: CaseDefinition;
+  /** The bottom button - back to the verdict/adjourned screen this Recap was opened from, not Co-Counsel's case-selection "home" (that's onBack, the Wordmark's own back link). */
+  onBackToVerdict: () => void;
   onBack: () => void;
 }
 
 /** "See the full case file" - every Part side by side with both private screens, the first time either player sees the other's text. */
-export default function RecapScreen({ caseDef, onBack }: RecapScreenProps) {
+export default function RecapScreen({ caseDef, onBackToVerdict, onBack }: RecapScreenProps) {
   return (
     <div className="px-4 pb-8 pt-3.5">
-      <Wordmark />
+      <Wordmark onBack={onBack} />
       <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-2xl font-extrabold" style={{ color: COLOR.ink }}>
         The full case file
       </h1>
@@ -57,7 +59,7 @@ export default function RecapScreen({ caseDef, onBack }: RecapScreenProps) {
       })}
 
       <div className="mt-8">
-        <Button variant="secondary" onClick={onBack}>
+        <Button variant="secondary" onClick={onBackToVerdict}>
           Back to the verdict
         </Button>
       </div>

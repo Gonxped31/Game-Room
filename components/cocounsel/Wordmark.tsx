@@ -2,15 +2,20 @@ import { COLOR } from "@/lib/games/cocounsel/theme";
 import { GAME_TITLE } from "@/lib/games/cocounsel/constants";
 import BackLink from "./BackLink";
 
+interface WordmarkProps {
+  size?: "sm" | "lg";
+  onBack: () => void;
+}
+
 /** The back link + two-overlapping-circles mark + "Co-Counsel" text - every screen that shows this is a top-of-flow screen needing back nav right beside it. */
-export default function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
+export default function Wordmark({ size = "sm", onBack }: WordmarkProps) {
   const mark = size === "lg" ? 48 : 32;
   const circle = mark * 0.62;
   const overlap = mark * 0.32;
 
   return (
     <div className="flex items-center gap-2">
-      <BackLink />
+      <BackLink onBack={onBack} />
       <div aria-hidden="true" className="relative shrink-0" style={{ width: mark, height: mark }}>
         <div className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full" style={{ width: circle, height: circle, backgroundColor: COLOR.investigator }} />
         <div className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full" style={{ width: circle, height: circle, backgroundColor: COLOR.defendant }} />

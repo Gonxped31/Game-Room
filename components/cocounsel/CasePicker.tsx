@@ -6,6 +6,7 @@ import Wordmark from "./Wordmark";
 interface CasePickerProps {
   caseDef: CaseDefinition;
   onChoose: () => void;
+  onBack: () => void;
 }
 
 /**
@@ -13,12 +14,13 @@ interface CasePickerProps {
  * case), but shows all three tiers so the structure reads clearly for when
  * more ship. Purely about the case itself - no room code or invite-link UI
  * here; that's the shared InviteLinkBanner's job, one step later (after a
- * role is picked), matching First to Worst's flow.
+ * role is picked), matching First to Worst's flow. This is also Co-Counsel's
+ * own "home" screen - every other screen's back link returns here.
  */
-export default function CasePicker({ caseDef, onChoose }: CasePickerProps) {
+export default function CasePicker({ caseDef, onChoose, onBack }: CasePickerProps) {
   return (
     <div className="px-4 pb-8 pt-3.5">
-      <Wordmark />
+      <Wordmark onBack={onBack} />
       <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-[28px] font-extrabold leading-[1.1]" style={{ color: COLOR.ink }}>
         Pick a case
       </h1>
@@ -65,8 +67,8 @@ export default function CasePicker({ caseDef, onChoose }: CasePickerProps) {
       ).map(({ tier, body }) => (
         <div key={tier} className="relative mt-5">
           <div
-            className="absolute -top-3 left-4 rounded-t border-2 border-b-0 border-dashed px-3 py-0.5 text-xs font-bold"
-            style={{ borderColor: COLOR.text2, color: COLOR.text2 }}
+            className="absolute -top-3.5 left-4 rounded-t border-2 border-b-0 border-dashed px-3 py-1 text-xs font-bold"
+            style={{ borderColor: COLOR.text2, color: COLOR.text2, backgroundColor: COLOR.paper }}
           >
             {tier}
           </div>

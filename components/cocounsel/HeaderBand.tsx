@@ -12,16 +12,17 @@ interface HeaderBandProps {
   partTitle: string;
   attemptsUsed: number;
   maxAttempts: number;
+  onBack: () => void;
 }
 
 /** The full-width role-colored band shown during a Part: docket tabs, tries-left pips, title, "You're X, the Y". */
-export default function HeaderBand({ role, characterName, roleLabel, totalParts, currentPartIndex, partTitle, attemptsUsed, maxAttempts }: HeaderBandProps) {
+export default function HeaderBand({ role, characterName, roleLabel, totalParts, currentPartIndex, partTitle, attemptsUsed, maxAttempts, onBack }: HeaderBandProps) {
   const bg = role === "investigator" ? COLOR.investigator : COLOR.defendant;
 
   return (
     <div className="px-4 py-5 text-white" style={{ backgroundColor: bg }}>
       <div className="mb-2 flex items-center gap-2">
-        <BackLink />
+        <BackLink onBack={onBack} />
         <div className="min-w-0 flex-1">
           <PartProgress totalParts={totalParts} currentPartIndex={currentPartIndex} attemptsUsed={attemptsUsed} maxAttempts={maxAttempts} tone="onColor" />
         </div>

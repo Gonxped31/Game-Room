@@ -16,6 +16,7 @@ interface VerdictScreenProps {
   totalParts: number;
   onSeeRecap: () => void;
   onRematch: () => void;
+  onBack: () => void;
 }
 
 function ScoreBar({ label, sub, value }: { label: string; sub: string; value: number }) {
@@ -49,10 +50,11 @@ export default function VerdictScreen({
   totalParts,
   onSeeRecap,
   onRematch,
+  onBack,
 }: VerdictScreenProps) {
   return (
     <div>
-      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} />
+      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} />
       <div className="px-4 pb-8 pt-6">
         <Stamp color="green" rotate={-3}>
           {verdict.title}

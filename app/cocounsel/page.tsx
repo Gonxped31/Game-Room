@@ -46,9 +46,17 @@ export default function CoCounselPage() {
 
   // Local, not synced - v1 has exactly one real case, so this is a static
   // confirmation step (per the design doc's own note), not a shared choice.
-  // Only the creator (see isJoiner above) ever sees it at all.
+  // Only the creator (see isJoiner above) ever sees it at all, UNLESS
+  // forceCasePicker overrides it below.
   const [caseConfirmed, setCaseConfirmed] = useState(false);
-  const showCasePicker = !isJoiner && !caseConfirmed;
+  // CasePicker is Co-Counsel's own "home" screen - every screen's back link
+  // (see components/cocounsel/BackLink.tsx) re-shows it via this, regardless
+  // of isJoiner/caseConfirmed, without touching the room, role claims, or
+  // game progress. Cleared once the player reconfirms via "Choose this
+  // case", resuming wherever the shared game state actually has them.
+  const [forceCasePicker, setForceCasePicker] = useState(false);
+  const showCasePicker = forceCasePicker || (!isJoiner && !caseConfirmed);
+  const handleBackToCaseSelection = () => setForceCasePicker(true);
   const [showRecap, setShowRecap] = useState(false);
 
   const myScreen = me ? screenOfRole(me) : null;
@@ -74,12 +82,19 @@ export default function CoCounselPage() {
   const handleContinue = () => transact((current) => continueAfterReveal(current, caseDef));
   // Resetting the shared game state wipes `names` back to `{}`; both devices
   // self-heal their own stale `me` claim automatically (useGameSession's
-  // hadNameRef effect), re-showing RolePicker to repopulate it.
+  // hadNameRef effect), re-showing RolePicker to repopulate it - restarting a
+  // case goes to role selection, never case selection or the game picker.
   // `caseConfirmed`/`isCreator` stay untouched - no case-reconfirmation
-  // screen, same room, straight back to RolePicker.
-  const handleResetCase = () => setGame(newGame(CASE_ID));
+  // screen, same room, straight back to RolePicker. `forceCasePicker` is
+  // cleared defensively (nothing currently triggers a reset while it's
+  // active, since CasePicker's own screen has no reset affordance).
+  const handleResetCase = () => {
+    setGame(newGame(CASE_ID));
+    setForceCasePicker(false);
+  };
   const handleRematch = () => {
     setGame(newGame(CASE_ID));
+    setForceCasePicker(false);
     setShowRecap(false);
   };
   // Generating a brand new room via the footer's "New room" link makes this
@@ -88,6 +103,7 @@ export default function CoCounselPage() {
   const handleNewRoom = () => {
     setIsCreator(true);
     setCaseConfirmed(false);
+    setForceCasePicker(false);
     newRoom();
   };
 
@@ -111,7 +127,14 @@ export default function CoCounselPage() {
             Connecting to the room…
           </p>
         ) : showCasePicker ? (
-          <CasePicker caseDef={caseDef} onChoose={() => setCaseConfirmed(true)} />
+          <CasePicker
+            caseDef={caseDef}
+            onChoose={() => {
+              setCaseConfirmed(true);
+              setForceCasePicker(false);
+            }}
+            onBack={handleBackToCaseSelection}
+          />
         ) : !me ? (
           <RolePicker
             caseDef={caseDef}
@@ -119,10 +142,11 @@ export default function CoCounselPage() {
             defendantTaken={defendantTaken}
             onPickInvestigator={() => pickIdentity(INVESTIGATOR, caseDef.characters.investigator)}
             onPickDefendant={() => pickIdentity(DEFENDANT, caseDef.characters.defendant)}
+            onBack={handleBackToCaseSelection}
           />
         ) : !bothJoined ? (
           <div className="px-4 pt-3.5">
-            <Wordmark />
+            <Wordmark onBack={handleBackToCaseSelection} />
             <div className="mt-4">
               <InviteLinkBanner
                 room={room}
@@ -136,7 +160,7 @@ export default function CoCounselPage() {
           </div>
         ) : game.phase === "CASE_DONE" ? (
           showRecap ? (
-            <RecapScreen caseDef={caseDef} onBack={() => setShowRecap(false)} />
+            <RecapScreen caseDef={caseDef} onBackToVerdict={() => setShowRecap(false)} onBack={handleBackToCaseSelection} />
           ) : // How the case ended is read back from the log's last entry, not
           // `lastReveal` (already cleared by continueAfterReveal by the time
           // CASE_DONE renders) - "solved" is the only celebratory ending;
@@ -150,6 +174,7 @@ export default function CoCounselPage() {
               verdict={game.log.at(-1)?.outcome === "judgeRevealed" ? caseDef.verdict : undefined}
               onSeeRecap={() => setShowRecap(true)}
               onStartNewCase={handleRematch}
+              onBack={handleBackToCaseSelection}
             />
           ) : (
             <VerdictScreen
@@ -163,6 +188,7 @@ export default function CoCounselPage() {
               totalParts={caseDef.parts.length}
               onSeeRecap={() => setShowRecap(true)}
               onRematch={handleRematch}
+              onBack={handleBackToCaseSelection}
             />
           )
         ) : game.phase === "REVEALED" && game.lastReveal ? (
@@ -193,6 +219,7 @@ export default function CoCounselPage() {
                 myRole={myRole}
                 onPickAgain={handleContinue}
                 onContinue={handleContinue}
+                onBack={handleBackToCaseSelection}
               />
             );
           })()
@@ -217,6 +244,7 @@ export default function CoCounselPage() {
                 maxAttempts={MAX_CASE_ATTEMPTS}
                 myLockedCardId={myLockedCardId}
                 onLockIn={handleLockIn}
+                onBack={handleBackToCaseSelection}
               />
             );
           })()

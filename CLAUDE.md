@@ -930,3 +930,35 @@ lock in one card, trying to find the matching pair while talking out loud.
     measured height is always its genuine intrinsic content height, regardless
     of the gutter's size. Verified live: a 10-line Part 1 transcript now shows
     exactly 10 ruled lines, not 31.
+- **Stage 7 (done): the back link goes to case selection, not the game
+  picker; a tier-badge visual bug fixed.** Two more user-reported issues.
+  - **`BackLink` no longer leaves Co-Counsel at all.** Per the user: "Pick a
+    case" is Co-Counsel's own default/home screen, and the back link should
+    return there - restarting a case (Rematch/"Start a new case") is the
+    *only* path that goes to RolePicker, and leaving the game entirely is
+    still available, just via the Footer's separate "All games" link, not the
+    back link. `BackLink.tsx` changed from a `<Link href="/">` to a plain
+    `<button onClick={onBack}>` (aria-label "Back to case selection"), and
+    every one of its 9 call sites (`Wordmark`/`HeaderBand`/`ResultsHeader`,
+    and each screen that renders them) threads an `onBack` prop down from
+    `app/cocounsel/page.tsx`'s new `handleBackToCaseSelection`. That sets a
+    new `forceCasePicker` state which ORs into `showCasePicker` (`forceCasePicker
+    || (!isJoiner && !caseConfirmed)`) - overriding the existing joiner/creator
+    gating so EITHER device can reach "Pick a case" via back, not just the
+    original creator. Nothing else about the room/role claims/game progress is
+    touched, so re-confirming via "Choose this case" (which also clears
+    `forceCasePicker`) resumes exactly wherever the shared game state actually
+    has the player, not a reset. `RecapScreen`'s pre-existing `onBack` prop
+    (its own "Back to the verdict" button, an unrelated concept) was renamed
+    to `onBackToVerdict` to free up `onBack` for the new shared meaning.
+  - **The "Medium"/"Hard" tier tabs on `CasePicker` read as struck through**
+    - the outer dashed box's own top border was visible THROUGH the tab,
+    cutting across the tier name, because (unlike the solid ink-filled "Easy"
+    tab immediately above it, which is opaque) the dashed tier tabs had no
+    `backgroundColor` at all - transparent, so whatever the absolutely-
+    positioned tab visually overlapped (the box's own border) showed straight
+    through. Fixed by giving them `backgroundColor: COLOR.paper` (matching
+    the page background, like "Easy"'s solid fill masks its own overlap) and
+    raising/enlarging them to match "Easy"'s exact offset/padding
+    (`-top-3.5`/`py-1`, was `-top-3`/`py-0.5`) for a consistent notch across
+    all three tier tabs.

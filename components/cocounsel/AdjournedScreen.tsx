@@ -21,6 +21,7 @@ interface AdjournedScreenProps {
   verdict?: CaseVerdict;
   onSeeRecap?: () => void;
   onStartNewCase: () => void;
+  onBack: () => void;
 }
 
 /**
@@ -28,10 +29,10 @@ interface AdjournedScreenProps {
  * from (and rendered instead of) the celebratory VerdictScreen. Picked by
  * app/cocounsel/page.tsx via `game.log.at(-1)?.outcome !== "solved"`.
  */
-export default function AdjournedScreen({ investigatorName, defendantName, endedPartIndex, totalParts, verdict, onSeeRecap, onStartNewCase }: AdjournedScreenProps) {
+export default function AdjournedScreen({ investigatorName, defendantName, endedPartIndex, totalParts, verdict, onSeeRecap, onStartNewCase, onBack }: AdjournedScreenProps) {
   return (
     <div>
-      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} />
+      <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} />
       <div className="px-4 pb-8 pt-6">
         <Stamp color="red" rotate={-3}>
           Case Adjourned
