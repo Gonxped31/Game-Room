@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setIdentityName } from "./identity";
+import { releaseIdentityName, setIdentityName } from "./identity";
 import type { WithIdentity } from "./types";
 
 function fresh(): WithIdentity {
@@ -61,5 +61,37 @@ describe("setIdentityName", () => {
     // Also allows actually changing a settled seat's name, not just an exact echo.
     const renamed = setIdentityName(both, "p1", "Samuel");
     expect(renamed.names).toEqual({ p1: "Samuel", p2: "Alex" });
+  });
+});
+
+describe("releaseIdentityName", () => {
+  it("removes a claimed seat, freeing it for either device to pick again", () => {
+    const both = setIdentityName(setIdentityName(fresh(), "p1", "Sam"), "p2", "Alex");
+    const released = releaseIdentityName(both, "p1");
+    expect(released.names).toEqual({ p2: "Alex" });
+    expect("p1" in released.names).toBe(false);
+  });
+
+  it("does not touch the other seat", () => {
+    const both = setIdentityName(setIdentityName(fresh(), "p1", "Sam"), "p2", "Alex");
+    const released = releaseIdentityName(both, "p1");
+    expect(released.names.p2).toBe("Alex");
+  });
+
+  it("is a harmless no-op releasing a seat nobody holds", () => {
+    const state = fresh();
+    expect(releaseIdentityName(state, "p1")).toEqual(state);
+  });
+
+  it("is a harmless no-op on a state with no `names` key at all", () => {
+    const state = { names: undefined } as unknown as WithIdentity;
+    expect(releaseIdentityName(state, "p1")).toBe(state);
+  });
+
+  it("the freed seat can immediately be re-claimed by either role, same as any other open seat", () => {
+    const both = setIdentityName(setIdentityName(fresh(), "p1", "Sam"), "p2", "Alex");
+    const released = releaseIdentityName(both, "p1");
+    const reclaimed = setIdentityName(released, "p1", "Jordan");
+    expect(reclaimed.names).toEqual({ p1: "Jordan", p2: "Alex" });
   });
 });

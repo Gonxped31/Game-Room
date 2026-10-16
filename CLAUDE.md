@@ -1145,3 +1145,59 @@ lock in one card, trying to find the matching pair while talking out loud.
   room - was caught specifically by testing against a brand-new Co-Counsel
   room rather than a reused one, underscoring why this needed a live
   two-device Playwright run and not just the unit tests.
+- **Stage 10 (done): a deliberate "continue as X / switch role" choice when
+  rejoining a room, instead of always silently resuming the remembered
+  role.** User-requested, after noticing a device always auto-resumed
+  whichever role it played last time it had this room open - by design (a
+  seat claim is sticky in `localStorage` so a device never loses its seat on
+  an unrelated change), but the user wanted the option to override that.
+  - **`lib/session/identity.ts`** gained `releaseIdentityName(state, role)` -
+    the shared-state counterpart to `setIdentityName`, but it clears a seat
+    instead of claiming one (builds a fresh `names` object without that
+    role's key, the same Firebase-rejects-explicit-undefined pattern as
+    every other field-clearing spot in this codebase; a no-op, never throws,
+    releasing a seat nobody holds). `useGameSession.ts` gained
+    `releaseIdentity()`, pairing that with clearing this device's own local
+    `me` pointer - unlike `pickIdentity`, there's no race to guard against
+    (a device can only ever release its OWN seat, no competing writer to
+    lose to), so the local `me` is cleared immediately rather than waiting on
+    the shared transaction. Both are genuinely generic session primitives
+    (not Co-Counsel-specific internally) and live in the shared layer per
+    this file's own architecture split, but FTW doesn't call either one -
+    zero behavior change there, confirmed live.
+  - **Scoped to Co-Counsel's own `app/cocounsel/page.tsx` +
+    new `components/cocounsel/ConfirmRoleScreen.tsx`.** `isFreshGame`
+    (`partIndex === 0 && attempts === 0 && no locks set`) gates the whole
+    feature: a device with an already-remembered seat sees the new
+    "Welcome back! Last time you were X, the Y." confirm screen ONLY while
+    the case is still genuinely untouched - once there's any real progress,
+    reopening the room resumes straight into play exactly like before, with
+    no prompt at all (switching isn't offered once a match is active, so a
+    confirm screen with nothing to confirm would just be nagging on every
+    ordinary refresh/reopen). `roleConfirmedThisVisit` is local,
+    unpersisted `useState(false)` - resets on every fresh mount of the page
+    (i.e. every time the room is opened), which is what makes this
+    re-prompt on each rejoin rather than only the very first time ever; it's
+    also set `true` directly inside `RolePicker`'s own pick handlers, so a
+    brand-new pick (first time ever claiming a seat) is never immediately
+    followed by a redundant "continue as X?" prompt on the very next
+    render. "Continue" just sets that flag; "Switch role instead" calls
+    `releaseIdentity()`, which naturally falls through to the existing
+    `!me ? RolePicker` branch with the freed role now selectable again (or,
+    if the other player's seat was also already released the same way,
+    both roles open - the two devices effectively swap by each
+    independently choosing to let go of their own seat, not by one device
+    unilaterally overwriting the other's).
+  - Verified live against real Firebase, two isolated browser contexts: a
+    fresh pick never shows the confirm screen (no redundant prompt right
+    after picking); reloading a tab that already has a remembered seat shows
+    the confirm screen with correct, case-accurate copy; "Switch role
+    instead" frees the seat, returns to `RolePicker` with that role
+    re-pickable, and re-picking it works end-to-end; "Continue" on the other
+    device resumes normally; and - the key safety check - reloading AFTER a
+    card has actually been locked in resumes straight into the "Locked in,
+    waiting" state with no confirm screen at all, confirming the mid-game
+    guard holds. `tsc`/`eslint`/117 Vitest cases (5 new, covering
+    `releaseIdentityName`)/`next build` all clean. A quick live FTW
+    regression check (name entry, room creation) confirmed zero impact from
+    the two additive, FTW-unused `lib/session/` changes.

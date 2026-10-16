@@ -36,3 +36,26 @@ export function setIdentityName<T extends WithIdentity>(state: T, role: Role, na
   }
   return { ...state, names: { ...names, [role]: trimmed } };
 }
+
+/**
+ * Releases a player's own seat claim, freeing it back up for either device to
+ * pick again - the shared-state half of "let a device switch roles when
+ * rejoining a room," paired with clearing that device's own local seat
+ * pointer (`useGameSession`'s `releaseIdentity`). Generic over any game's
+ * state, same as `setIdentityName`. Unlike `setIdentityName`, this never
+ * throws - releasing a seat nobody holds (already released, or never
+ * claimed) is a harmless no-op, not a conflict.
+ *
+ * Builds a fresh `names` object without `role`'s key, rather than spreading
+ * and setting it to `undefined` - Firebase rejects an explicit
+ * own-property-with-undefined-value on write (see "Store design notes" in
+ * CLAUDE.md), the same lesson every other field-clearing spot in this
+ * codebase already follows.
+ */
+export function releaseIdentityName<T extends WithIdentity>(state: T, role: Role): T {
+  const names = state.names ?? {};
+  if (!names[role]) return state;
+  const next = { ...names };
+  delete next[role];
+  return { ...state, names: next };
+}

@@ -11,6 +11,7 @@ import { useTheme } from "@/lib/games/cocounsel/useTheme";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import AdjournedScreen from "@/components/cocounsel/AdjournedScreen";
 import CasePicker from "@/components/cocounsel/CasePicker";
+import ConfirmRoleScreen from "@/components/cocounsel/ConfirmRoleScreen";
 import Footer from "@/components/cocounsel/Footer";
 import PartScreen from "@/components/cocounsel/PartScreen";
 import RecapScreen from "@/components/cocounsel/RecapScreen";
@@ -25,7 +26,7 @@ export default function CoCounselPage() {
   const caseDef = getCase(CASE_ID);
   const createInitialState = useCallback((): GameState => newGame(CASE_ID), []);
   const session = useGameSession<GameState>({ gameSlug: "cocounsel", createInitialState });
-  const { room, game, me, names, bothJoined, roomName, setRoomName, pickIdentity, transact, setGame, newRoom } = session;
+  const { room, game, me, names, bothJoined, roomName, setRoomName, pickIdentity, releaseIdentity, transact, setGame, newRoom } = session;
   const { theme, toggleTheme } = useTheme();
 
   // Whoever visits with no #room in the URL at all is the one about to
@@ -91,6 +92,24 @@ export default function CoCounselPage() {
   const otherRole: "investigator" | "defendant" = myRole === "investigator" ? "defendant" : "investigator";
   const investigatorTaken = Boolean(names[INVESTIGATOR]);
   const defendantTaken = Boolean(names[DEFENDANT]);
+
+  // True while nothing has actually happened in the case yet - no card
+  // locked in, no miss, still Part 1. Reopening a room with a remembered
+  // seat (`me` already set from a previous visit) offers a "continue as X /
+  // switch role" choice ONLY while this holds, so switching can never pull a
+  // role out from under an already-active match; once there's real
+  // progress, resuming silently (today's behavior) is both safe and the
+  // only sensible option, so the choice is skipped entirely rather than
+  // nagging with a confirm screen that has nothing meaningful to offer.
+  const isFreshGame = Boolean(game) && game!.partIndex === 0 && game!.attempts === 0 && !game!.locks?.p1 && !game!.locks?.p2;
+  // Local to this page visit, not synced or persisted - resets to false on
+  // every fresh mount (i.e. every time the room is opened), which is what
+  // makes needsRoleConfirm below re-prompt on each (re)join rather than only
+  // once ever. Set true either by explicitly confirming on ConfirmRoleScreen
+  // or by picking a role fresh via RolePicker (so a brand-new pick is never
+  // immediately followed by a redundant "continue as X?" prompt).
+  const [roleConfirmedThisVisit, setRoleConfirmedThisVisit] = useState(false);
+  const needsRoleConfirm = Boolean(me) && isFreshGame && !roleConfirmedThisVisit;
 
   const phase = game?.phase;
   const isMyTurnToAct =
@@ -163,13 +182,29 @@ export default function CoCounselPage() {
             theme={theme}
             onToggleTheme={toggleTheme}
           />
+        ) : needsRoleConfirm ? (
+          <ConfirmRoleScreen
+            caseDef={caseDef}
+            myRole={myRole}
+            onContinue={() => setRoleConfirmedThisVisit(true)}
+            onSwitchRole={releaseIdentity}
+            onBack={handleBack}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
         ) : !me ? (
           <RolePicker
             caseDef={caseDef}
             investigatorTaken={investigatorTaken}
             defendantTaken={defendantTaken}
-            onPickInvestigator={() => pickIdentity(INVESTIGATOR, caseDef.characters.investigator)}
-            onPickDefendant={() => pickIdentity(DEFENDANT, caseDef.characters.defendant)}
+            onPickInvestigator={() => {
+              pickIdentity(INVESTIGATOR, caseDef.characters.investigator);
+              setRoleConfirmedThisVisit(true);
+            }}
+            onPickDefendant={() => {
+              pickIdentity(DEFENDANT, caseDef.characters.defendant);
+              setRoleConfirmedThisVisit(true);
+            }}
             onBack={handleBack}
             theme={theme}
             onToggleTheme={toggleTheme}
