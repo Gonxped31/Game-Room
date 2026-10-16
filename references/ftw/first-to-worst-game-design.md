@@ -1,5 +1,3 @@
-I want to build a private 2-player web game from the reference prototype in `reference/first-to-worst.html`. Read that file fully first. It is a working single-file prototype and it is the source of truth for the UI, flow, card layout and animations. Where this brief and the prototype disagree, this brief wins. Port it into a proper Next.js project and make it production-ready. Before writing code, give me a short plan (stack, file structure, build stages) and wait for my OK.
-
 ## What the game is
 "First to Worst": a ranking game for exactly two remote players, with no login, no accounts and no lobby. Every round has a prompt and exactly 5 topic cards (e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies, Jalapenos), plus exactly 5 number cards (1 to 5).
 - The MASTER privately ranks the topics by placing number cards on them (1 = first/best, 5 = worst).
