@@ -36,8 +36,13 @@ desktop layout entirely.
   Tailwind color classes. A `bg-white` broke dark mode in seven components and
   passed every automated check. Always look at both themes.
 - **Inputs have no default styling.** Tailwind's base styles make form fields
-  transparent and borderless, so give every input an explicit background and
-  border.
+  transparent and borderless, so give every input an explicit background (and a
+  border or shadow where it sits on a colored background). FTW's name field and
+  custom-prompt box were both invisible on the teal for a while.
+- **Server-rendered inputs can be typed into before hydration.** That text never
+  reaches React state, so adopt the field's DOM value on mount (see
+  `components/JoinRoomForm.tsx`). Inputs that only render after client data loads
+  (most game screens) don't have this problem.
 - **Accessibility patterns already in use; stay consistent:**
   - segmented switches: `role="radiogroup"`/`role="radio"` with arrow keys;
   - errors: `role="alert"` linked via `aria-describedby`, plus `aria-invalid`;
@@ -104,6 +109,13 @@ patterns.
   - real touch drag (FTW cards).
 - **Fonts can differ:** WebKit renders Fredoka visibly lighter than Chromium.
   Judge font weight on a real device.
+- **Known artifacts of Playwright's WebKit on Windows**, not proven iPhone bugs:
+  - FTW's hand cards show their mirrored "RANK CARD" back instead of the numbers
+    (3D card flips aren't drawn the way a real iPhone draws them).
+  - Fredoka's `ffl` ligature renders with a gap ("Shuff le").
+
+  Don't "fix" these from emulation alone; `docs/follow-ups.md` has the
+  real-iPhone check.
 
 ## 5. Done when
 

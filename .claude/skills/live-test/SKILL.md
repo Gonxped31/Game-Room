@@ -67,10 +67,10 @@ Copy the patterns from `scripts/two-players.mjs`:
 - `newPlayer(profile, label)` - a fresh context on a device profile (`"iphone"`,
   `"iphone-se"`, `"android"`, `"desktop"`, ...), i.e. a fresh guest ID, that
   collects console errors. Mix phones and desktops.
-- `fillJoinForm(page, label, value)` - types into the hub's join form and retries
-  until the app registers it. On slower (WebKit) profiles, text typed before the
-  page hydrates is lost, which is a known app bug. Use the same clear-then-type
-  retry for any controlled input you fill right after a page load.
+- `fillJoinForm(page, label, value)` - types into the hub's join form the instant
+  the page loads, then submits. That's deliberate: it guards the fix for text
+  typed before hydration being lost on slow phones. Don't add waits or retries
+  that would hide a regression.
 - `adminRead(path)` - reads emulator data while bypassing the rules (`Authorization:
   Bearer owner`). Use it to assert on the database itself (seats, names, game
   state) rather than only the UI.

@@ -43,7 +43,7 @@ export default function RolePicker({ names, canTakeOver, onPick }: RolePickerPro
           placeholder="Your name"
           maxLength={24}
           aria-label="Your name"
-          className="w-full rounded-xl border-0 p-3.5 text-lg text-black"
+          className="w-full rounded-xl border-0 bg-white p-3.5 text-lg text-black shadow-[0_3px_8px_rgba(0,0,0,.25)] placeholder:text-black/45"
         />
         {error ? (
           <p role="alert" className="m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">

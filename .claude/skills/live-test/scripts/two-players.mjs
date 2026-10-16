@@ -48,20 +48,14 @@ async function newPlayer(profile, label) {
 const hashOf = (page) => new URL(page.url()).hash.slice(1);
 
 /**
- * Types into the hub's join form and waits until the app has registered it.
- * Text typed before the page finishes hydrating shows in the field but never
- * reaches React state (seen on WebKit phone profiles), so it's retyped until
- * "Join" enables. That's a known app bug - see docs/follow-ups.md.
+ * Types into the hub's join form and submits. Typed immediately on purpose:
+ * the form must pick up text entered before the page finishes hydrating (a
+ * real bug on slow phones, fixed in JoinRoomForm - this guards against it
+ * coming back).
  */
 async function fillJoinForm(page, label, value) {
-  const join = page.getByRole("button", { name: "Join", exact: true });
-  await until(async () => {
-    // Clear first: re-setting the identical value isn't a change React notices.
-    await page.getByLabel(label).fill("");
-    await page.getByLabel(label).fill(value);
-    return join.isEnabled();
-  }, `the join form registering "${value}"`);
-  await join.click();
+  await page.getByLabel(label).fill(value);
+  await page.getByRole("button", { name: "Join", exact: true }).click({ timeout: 10000 });
 }
 
 async function placeAllCards(page, submitLabel) {

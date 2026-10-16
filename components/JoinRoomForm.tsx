@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CONNECTION_ERROR_MESSAGE, ensureGuestUid } from "@/lib/session/shared/auth";
 import { findRoomByName, readRoomMeta } from "@/lib/session/shared/roomActions";
 
@@ -60,6 +60,22 @@ export default function JoinRoomForm() {
   const value = mode === "code" ? codeValue : nameValue;
   const setValue = mode === "code" ? setCodeValue : setNameValue;
   const busy = status === "checking";
+
+  // This field is in the server-rendered HTML, so on a slow phone someone can
+  // type into it before React has hydrated. That text stays visible but never
+  // reaches state, and retyping the same text doesn't fire onChange either -
+  // so "Join" would stay disabled until they edit it. Adopt whatever is
+  // already in the field once hydrated. The form always starts in Code mode,
+  // so early text is a code. Deferred via setTimeout(fn, 0) per this repo's
+  // set-state-in-effect lint rule.
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const typed = inputRef.current?.value;
+      if (typed) setCodeValue((current) => current || typed);
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
 
   // A hard navigation (window.location, not next/navigation's router.push) -
   // deliberately NOT a client-side transition, triggered from an effect
@@ -137,6 +153,7 @@ export default function JoinRoomForm() {
       </p>
 
       <input
+        ref={inputRef}
         type="text"
         value={value}
         disabled={busy}
