@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createGameStore, type Store } from "@/lib/store";
 import { createLocalStore } from "@/lib/store/localStore";
-import { releaseIdentityName, setIdentityName } from "./identity";
+import { releaseAllIdentityNames, setIdentityName } from "./identity";
 import { HEARTBEAT_INTERVAL_MS, isOnline, type Presence } from "./presence";
 import { generateRoomCode } from "./room";
 import { roomNameIndexStore, type RoomMeta } from "./roomMeta";
@@ -35,16 +35,25 @@ export interface GameSession<TState extends WithIdentity> {
   setRoomName: (name: string) => void;
   /** True if that seat has sent a heartbeat recently - the other tab's "online" indicator. Always false for a seat nobody has picked yet. */
   online: Partial<Record<Role, boolean>>;
-  /** Claims a seat + records a display name - the RolePicker's onPick target. */
-  pickIdentity: (role: Role, name: string) => void;
   /**
-   * Gives up this device's own seat claim - clears `me` and frees the shared
-   * seat for either device to pick again, without touching the room or the
-   * rest of the game's state. A no-op if `me` isn't set. Lets a game offer a
-   * "switch role" choice when rejoining a room where a seat was already
-   * remembered, instead of always silently resuming it.
+   * Claims a seat + records a display name - the RolePicker's onPick
+   * target. Resolves once the shared write has settled (committed or
+   * rejected by a race) - most callers fire-and-forget this (ignoring the
+   * returned promise is fine), but a caller that needs to act specifically
+   * once ITS OWN claim has gone through (not just whenever `me` next
+   * happens to update, which could be for an unrelated reason) can await it.
    */
-  releaseIdentity: () => void;
+  pickIdentity: (role: Role, name: string) => Promise<void>;
+  /**
+   * Clears BOTH seats at once - this device's own local `me` pointer, and
+   * every seat's claim in the shared state - without touching the room or
+   * the rest of the game's state. Lets a game offer a genuine "switch role"
+   * choice when rejoining a room where a seat was already remembered:
+   * freeing only the initiating device's own seat wouldn't be enough (the
+   * other seat would still be taken, so there'd be nothing to actually
+   * switch to), so this opens both up for either device to pick again.
+   */
+  releaseAllIdentities: () => void;
   /** Applies a pure state transition via the store's transaction; a thrown error (invalid move) becomes a safe no-op. */
   transact: (updater: (current: TState) => TState) => void;
   /** Unconditionally overwrites the room's state - for a hard reset. */
@@ -224,17 +233,17 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     }
   };
 
-  // No race to guard against here, unlike pickIdentity above - a device can
-  // only ever release its OWN seat, so there's no competing concurrent
-  // writer to lose to. Clearing the local pointer immediately (rather than
-  // waiting on the shared transaction) is safe; the self-heal effect above
-  // would eventually reach the same result anyway once the shared write
-  // lands, this just avoids a visible delay before RolePicker reappears.
-  const releaseIdentity = () => {
-    if (!me) return;
-    const roleToRelease = me;
+  // No race to guard against here, unlike pickIdentity above - nothing else
+  // is trying to write `names` at the same moment this clears it. Clears
+  // THIS device's own local pointer immediately (rather than waiting on the
+  // shared transaction, which is safe since there's no concurrent writer to
+  // lose to) - the OTHER device's local `me` gets cleared by the self-heal
+  // effect above instead, once its own subscription observes the shared
+  // write (the exact same mechanism that already re-prompts both devices
+  // for a role after "Rematch"/"Reset case" wipe `names` back to `{}`).
+  const releaseAllIdentities = () => {
     meStore.set(null);
-    gameStore.transaction((current) => (current ? releaseIdentityName(current, roleToRelease) : undefined));
+    gameStore.transaction((current) => (current ? releaseAllIdentityNames(current) : undefined));
   };
 
   const transact: GameSession<TState>["transact"] = (updater) => {
@@ -295,7 +304,7 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     setRoomName,
     online,
     pickIdentity,
-    releaseIdentity,
+    releaseAllIdentities,
     transact,
     setGame: gameStore.set,
     newRoom,

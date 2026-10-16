@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGameSession } from "@/lib/session/useGameSession";
 import { getCase } from "@/lib/games/cocounsel/cases";
@@ -26,7 +26,7 @@ export default function CoCounselPage() {
   const caseDef = getCase(CASE_ID);
   const createInitialState = useCallback((): GameState => newGame(CASE_ID), []);
   const session = useGameSession<GameState>({ gameSlug: "cocounsel", createInitialState });
-  const { room, game, me, names, bothJoined, roomName, setRoomName, pickIdentity, releaseIdentity, transact, setGame, newRoom } = session;
+  const { room, game, me, names, bothJoined, roomName, setRoomName, pickIdentity, releaseAllIdentities, transact, setGame, newRoom } = session;
   const { theme, toggleTheme } = useTheme();
 
   // Whoever visits with no #room in the URL at all is the one about to
@@ -111,6 +111,58 @@ export default function CoCounselPage() {
   const [roleConfirmedThisVisit, setRoleConfirmedThisVisit] = useState(false);
   const needsRoleConfirm = Boolean(me) && isFreshGame && !roleConfirmedThisVisit;
 
+  // Guards the auto-assign effect below from racing against THIS device's
+  // own explicit pick (RolePicker's onPick handlers). pickIdentity only sets
+  // `me` AFTER its shared write is confirmed - but the shared write landing
+  // is what updates investigatorTaken/defendantTaken in the first place, and
+  // that update can reach this component (via the game store's own
+  // subscription) and re-render BEFORE the subsequent `meStore.set(role)`
+  // line actually runs, since they're two separate steps inside pickIdentity
+  // separated by an await. On that in-between render, `me` is still null
+  // while "the other role" now reads as the only open one - exactly the
+  // auto-assign trigger condition - so without this guard, a device picking
+  // Defendant could watch its own effect race in and silently hand it
+  // Investigator instead, picking Investigator out from under its own
+  // explicit click. A ref, not state: only ever read/written inside an
+  // effect or event handler below, never during render, which
+  // react-hooks/refs forbids.
+  const pickingRef = useRef(false);
+
+  // With exactly two roles, once one is taken the other is already decided -
+  // auto-claim it instead of making the second player tap a button whose
+  // outcome is no longer really a choice. Only fires while genuinely
+  // eligible to see RolePicker (game loaded, case confirmed, no seat of
+  // mine to confirm, no pick of my own already in flight) and while exactly
+  // one role is open: both open (nobody has picked yet) or both taken
+  // (nothing left to decide) leave this alone. That "exactly one open"
+  // condition is also what makes this safe after "switch role"
+  // (releaseAllIdentities, below) without any extra bookkeeping - releasing
+  // BOTH seats always leaves two open at first, so the device that asked to
+  // switch is never auto-assigned back into its own old role; only the
+  // OTHER device, still waiting once the switcher commits to a fresh pick,
+  // is.
+  //
+  // setRoleConfirmedThisVisit is called from pickIdentity's OWN .then(), not
+  // synchronously in the effect body - react-hooks/set-state-in-effect
+  // disallows the latter. This also keeps it correctly ordered: `me` only
+  // updates once pickIdentity's shared write actually lands, which is always
+  // at least one microtask after this synchronous .then() queues, so
+  // roleConfirmedThisVisit is reliably true by the render where `me` first
+  // reflects the auto-assigned role - no flash of a pointless confirm screen
+  // for a role this device never chose to remember.
+  useEffect(() => {
+    if (!game || showCasePicker || me || pickingRef.current) return;
+    if (investigatorTaken === defendantTaken) return;
+    pickingRef.current = true;
+    const assign = investigatorTaken
+      ? pickIdentity(DEFENDANT, caseDef.characters.defendant)
+      : pickIdentity(INVESTIGATOR, caseDef.characters.investigator);
+    assign.finally(() => {
+      pickingRef.current = false;
+    });
+    assign.then(() => setRoleConfirmedThisVisit(true));
+  }, [game, showCasePicker, me, investigatorTaken, defendantTaken, pickIdentity, caseDef]);
+
   const phase = game?.phase;
   const isMyTurnToAct =
     game != null &&
@@ -187,7 +239,7 @@ export default function CoCounselPage() {
             caseDef={caseDef}
             myRole={myRole}
             onContinue={() => setRoleConfirmedThisVisit(true)}
-            onSwitchRole={releaseIdentity}
+            onSwitchRole={releaseAllIdentities}
             onBack={handleBack}
             theme={theme}
             onToggleTheme={toggleTheme}
@@ -198,11 +250,17 @@ export default function CoCounselPage() {
             investigatorTaken={investigatorTaken}
             defendantTaken={defendantTaken}
             onPickInvestigator={() => {
-              pickIdentity(INVESTIGATOR, caseDef.characters.investigator);
+              pickingRef.current = true;
+              pickIdentity(INVESTIGATOR, caseDef.characters.investigator).finally(() => {
+                pickingRef.current = false;
+              });
               setRoleConfirmedThisVisit(true);
             }}
             onPickDefendant={() => {
-              pickIdentity(DEFENDANT, caseDef.characters.defendant);
+              pickingRef.current = true;
+              pickIdentity(DEFENDANT, caseDef.characters.defendant).finally(() => {
+                pickingRef.current = false;
+              });
               setRoleConfirmedThisVisit(true);
             }}
             onBack={handleBack}

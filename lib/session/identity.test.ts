@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { releaseIdentityName, setIdentityName } from "./identity";
+import { releaseAllIdentityNames, setIdentityName } from "./identity";
 import type { WithIdentity } from "./types";
 
 function fresh(): WithIdentity {
@@ -64,34 +64,33 @@ describe("setIdentityName", () => {
   });
 });
 
-describe("releaseIdentityName", () => {
-  it("removes a claimed seat, freeing it for either device to pick again", () => {
+describe("releaseAllIdentityNames", () => {
+  it("clears every claimed seat at once", () => {
     const both = setIdentityName(setIdentityName(fresh(), "p1", "Sam"), "p2", "Alex");
-    const released = releaseIdentityName(both, "p1");
-    expect(released.names).toEqual({ p2: "Alex" });
-    expect("p1" in released.names).toBe(false);
+    expect(releaseAllIdentityNames(both).names).toEqual({});
   });
 
-  it("does not touch the other seat", () => {
-    const both = setIdentityName(setIdentityName(fresh(), "p1", "Sam"), "p2", "Alex");
-    const released = releaseIdentityName(both, "p1");
-    expect(released.names.p2).toBe("Alex");
-  });
-
-  it("is a harmless no-op releasing a seat nobody holds", () => {
-    const state = fresh();
-    expect(releaseIdentityName(state, "p1")).toEqual(state);
+  it("is a harmless no-op on an already-empty room", () => {
+    expect(releaseAllIdentityNames(fresh()).names).toEqual({});
   });
 
   it("is a harmless no-op on a state with no `names` key at all", () => {
     const state = { names: undefined } as unknown as WithIdentity;
-    expect(releaseIdentityName(state, "p1")).toBe(state);
+    expect(releaseAllIdentityNames(state).names).toEqual({});
   });
 
-  it("the freed seat can immediately be re-claimed by either role, same as any other open seat", () => {
+  it("does not touch the rest of the state", () => {
+    interface MyGame extends WithIdentity {
+      round: number;
+    }
+    const game: MyGame = { round: 3, names: { p1: "Sam", p2: "Alex" } };
+    expect(releaseAllIdentityNames(game).round).toBe(3);
+  });
+
+  it("both seats can immediately be re-claimed by either role, same as a fresh room", () => {
     const both = setIdentityName(setIdentityName(fresh(), "p1", "Sam"), "p2", "Alex");
-    const released = releaseIdentityName(both, "p1");
-    const reclaimed = setIdentityName(released, "p1", "Jordan");
-    expect(reclaimed.names).toEqual({ p1: "Jordan", p2: "Alex" });
+    const released = releaseAllIdentityNames(both);
+    const reclaimed = setIdentityName(setIdentityName(released, "p2", "Jordan"), "p1", "Taylor");
+    expect(reclaimed.names).toEqual({ p1: "Taylor", p2: "Jordan" });
   });
 });

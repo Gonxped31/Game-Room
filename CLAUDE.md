@@ -1165,6 +1165,11 @@ lock in one card, trying to find the matching pair while talking out loud.
     (not Co-Counsel-specific internally) and live in the shared layer per
     this file's own architecture split, but FTW doesn't call either one -
     zero behavior change there, confirmed live.
+    **Superseded by Stage 11 below** - releasing only the initiating
+    device's own seat turned out not to be enough for a real "switch", so
+    neither `releaseIdentityName` nor `releaseIdentity` exist under those
+    names anymore; this paragraph is kept as the narrative record of how the
+    feature started.
   - **Scoped to Co-Counsel's own `app/cocounsel/page.tsx` +
     new `components/cocounsel/ConfirmRoleScreen.tsx`.** `isFreshGame`
     (`partIndex === 0 && attempts === 0 && no locks set`) gates the whole
@@ -1201,3 +1206,69 @@ lock in one card, trying to find the matching pair while talking out loud.
     `releaseIdentityName`)/`next build` all clean. A quick live FTW
     regression check (name entry, room creation) confirmed zero impact from
     the two additive, FTW-unused `lib/session/` changes.
+- **Stage 11 (done): auto-assign the remaining role, and make "switch role"
+  open the choice for BOTH players.** Two follow-up user requests building
+  directly on Stage 10's work.
+  - **Auto-assign.** With exactly two roles, once one is taken the other is
+    already decided - a new effect in `app/cocounsel/page.tsx` auto-claims
+    the sole open role the moment it becomes the only one left, instead of
+    making the second player tap a button whose outcome is no longer a real
+    choice. Fires only while genuinely eligible to see `RolePicker` (game
+    loaded, case confirmed, no seat of mine to confirm) and only when
+    exactly one role is open - both open (nobody's picked) or both taken
+    (nothing to decide) leave it alone, which is also what makes this safe
+    after a "switch role" release without any extra bookkeeping (see below).
+    **Hit and fixed a real self-race while verifying this live**:
+    `pickIdentity` sets `me` only AFTER its shared write is confirmed, but
+    the shared write landing is what updates `investigatorTaken`/
+    `defendantTaken` in the first place - and that update can reach this
+    component and re-render BEFORE the subsequent `meStore.set(role)` line
+    actually runs (they're two separate steps separated by an `await`). On
+    that in-between render, `me` was still null while the OTHER role
+    (not the one just clicked) now read as the only open one - exactly the
+    auto-assign trigger condition - so a device that explicitly clicked
+    "I'm the Defendant" could watch its OWN auto-assign effect race in and
+    silently hand it Investigator instead, overwriting its own explicit
+    pick. First caught by a live two-device Playwright run doing a genuine
+    swap (not just a fresh join) - a sequential-pick-only test wouldn't have
+    exercised this, since it only shows up when a device's own pick and its
+    own auto-assign effect can plausibly interleave. Fixed with a
+    `pickingRef` (a ref, not state - react-hooks/refs forbids reading a ref
+    during render, so it's only ever touched inside the effect and
+    `RolePicker`'s click handlers, never in the render body) set whenever a
+    pick - explicit or auto-assigned - is in flight on THIS device, which
+    the auto-assign effect checks and backs off from.
+  - **"Switch role instead" now opens the choice for both players, not just
+    the initiator.** `lib/session/identity.ts`'s `releaseIdentityName`
+    (Stage 10, single-seat) is replaced by `releaseAllIdentityNames` -
+    clears every seat at once, since with only two seats, releasing just the
+    initiator's own seat left the other one still held, so the only "open"
+    seat remaining was the very one just given up - not a real switch, just
+    an elaborate way to reclaim your own old role. `useGameSession.ts`'s
+    `releaseIdentity` is likewise replaced by `releaseAllIdentities`,
+    clearing this device's own local `me` immediately (as before - still no
+    race to guard against here) and writing an empty `names` to the shared
+    state. The OTHER player's device needs no new mechanism to notice - its
+    local `me` gets cleared by the same self-heal effect that already
+    re-prompts both devices after "Rematch"/"Reset case" wipe `names` back
+    to `{}`. Once both devices land back on a fully open `RolePicker`,
+    auto-assign (above) naturally completes the swap: the initiator must
+    pick manually (two roles open, nothing for auto-assign to decide), and
+    the moment they do, the OTHER device - still waiting - auto-claims
+    whichever role is left, with no click needed on their end either.
+  - Verified live against real Firebase, two isolated browser contexts: a
+    fresh join still requires the FIRST player to pick manually, but the
+    SECOND player gets auto-assigned the remaining role within half a
+    second, no click at all; reloading one device, clicking "Switch role
+    instead", and confirming BOTH devices land back on a fully open
+    `RolePicker` (not just the initiator's); the initiator manually picking
+    the role they didn't have before (the actual swap) while the other
+    device auto-assigns into the remaining one, instantly, with each
+    device's FINAL role correctly matching what was actually clicked (the
+    self-race bug above, confirmed fixed - before the fix, this exact
+    sequence silently gave the initiator back their OLD role instead of the
+    one they clicked); the mid-game guard re-verified unaffected now that a
+    fresh join auto-resolves the second seat. `tsc`/`eslint`/117 Vitest
+    cases (identity tests updated for `releaseAllIdentityNames`)/
+    `next build` all clean. FTW re-confirmed unaffected (name entry, room
+    creation) by the `lib/session/` changes, which it still doesn't call.

@@ -17,10 +17,17 @@ interface ConfirmRoleScreenProps {
 /**
  * Shown when rejoining a room where this device already has a remembered
  * seat - instead of always silently resuming it, this gives the deliberate
- * choice to continue as that role or hand it back and pick again. Only ever
- * shown while the case is still fresh (app/cocounsel/page.tsx gates this -
- * see `isFreshGame`), so switching can never pull a role out from under an
- * already-active match.
+ * choice to continue as that role or switch. "Switch role instead" opens
+ * BOTH seats back up (`onSwitchRole` is `useGameSession`'s
+ * `releaseAllIdentities`, not a single-seat release) - with only two roles,
+ * freeing just this device's own seat would leave nothing to actually
+ * switch to, since the other one would still be held. The other player's
+ * device picks up the resulting open RolePicker on its own (the same
+ * self-heal mechanism "Rematch" already relies on), and whichever role is
+ * still open once either side commits gets auto-assigned to the other -
+ * see the effect in app/cocounsel/page.tsx. Only ever shown while the case
+ * is still fresh (`isFreshGame`), so switching can never pull a role out
+ * from under an already-active match.
  */
 export default function ConfirmRoleScreen({ caseDef, myRole, onContinue, onSwitchRole, onBack, theme, onToggleTheme }: ConfirmRoleScreenProps) {
   const myName = caseDef.characters[myRole];
