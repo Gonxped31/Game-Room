@@ -89,8 +89,8 @@ out before the new client, and every room creation failed with
 3. Hard-reload, and test with a fresh room in a normal window plus a private
    window.
 
-If rooms in the old data shape exist, they stop loading under rules that don't
-expect them. Say so in the change summary.
+If a rules change makes existing rooms' data invalid (a renamed or newly required
+field), those rooms stop accepting writes. Say so in the change summary.
 
 ## Debugging `permission_denied`
 

@@ -50,8 +50,6 @@ export const ALL_GAMES: GameEntry[] = [
     buttonTextClassName: "text-[19px] font-bold",
   },
   {
-    // Hidden from the hub at the user's request; the game itself is
-    // untouched and still plays at /cocounsel. Unhide by deleting `hidden`.
     slug: "cocounsel",
     title: "Co-Counsel",
     description: "A cooperative mystery. Each of you knows half the story. Talk it out to find the matching pair.",
@@ -62,7 +60,6 @@ export const ALL_GAMES: GameEntry[] = [
     accentColor: "#FFD23A",
     titleClassName: "font-[family-name:var(--font-archivo)] font-extrabold tracking-[-0.02em]",
     buttonTextClassName: "font-[family-name:var(--font-archivo)] text-[18px] font-extrabold",
-    hidden: true,
   },
 ];
 

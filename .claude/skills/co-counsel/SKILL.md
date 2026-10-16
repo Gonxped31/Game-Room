@@ -18,11 +18,6 @@ A 2-player cooperative, asymmetric deduction game.
 - `references/co-counsel/co-counsel-visual-spec.md` - tokens, components, copy,
   motion, accessibility.
 - Mockups are in `references/co-counsel/Visual Design-png/`.
-- Build history and past decisions: `docs/history/co-counsel.md` (history, not
-  current docs).
-
-The game is currently **hidden from the hub picker**: its entry has `hidden: true`
-in `lib/games/registry.ts`. It still works by direct link.
 
 ## Roles and seats
 

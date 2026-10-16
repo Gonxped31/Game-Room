@@ -30,13 +30,11 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
     matching pair while talking it out loud.
   - There are no live scores. How well you listened (Trust) and remembered (Focus)
     only shows up at the end of the case.
-  - Currently hidden from the home page; it still works by direct link.
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
 game, the database-rules workflow and live two-player testing are Claude Code skills
-in `.claude/skills/`, and the build history is in `docs/history/`. The [system design diagram](https://claude.ai/artifact/7irnsMVYWNt9G1Qm4FzUF1)
-gives a visual, layer-by-layer walkthrough, but it predates the guest-ID rework
-described below.
+in `.claude/skills/`. The [system design diagram](https://claude.ai/artifact/7irnsMVYWNt9G1Qm4FzUF1)
+gives a visual, layer-by-layer walkthrough of the architecture.
 
 ## How rooms work
 
@@ -155,9 +153,9 @@ What the rules enforce:
 The rules are covered by emulator tests in `tests/rules/` (`npm run test:rules`).
 The header of `tests/rules/rooms.test.ts` has the checklist for adding a new game.
 
-**Deploy the app before the rules.** An older client can't create rooms under these
-rules. Rooms created before them aren't migrated and stop loading once the rules
-are live.
+**Deploy the app before the rules.** When a rules change alters what clients may
+write, the previous client's writes (room creation included) are refused until the
+new app is live.
 
 ## Known limitations
 
@@ -262,6 +260,5 @@ Open the app in a normal window and a private window to play both sides. If
 `npm run test:rules` later reports "port taken", an emulator from this is still
 running.
 
-See `CLAUDE.md` for the project's architecture and conventions, `.claude/skills/` for
-task guides (each game, adding a game, database rules, live testing), and
-`docs/history/` for the stage-by-stage build history.
+See `CLAUDE.md` for the project's architecture and conventions, and `.claude/skills/`
+for task guides (each game, adding a game, database rules, UI review, live testing).

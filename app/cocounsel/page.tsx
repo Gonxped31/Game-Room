@@ -117,20 +117,15 @@ export default function CoCounselPage() {
   const needsRoleConfirm = Boolean(me) && isFreshGame && !roleConfirmedThisVisit;
 
   // Guards the auto-assign effect below from racing against THIS device's
-  // own explicit pick (RolePicker's onPick handlers). pickIdentity only sets
-  // `me` AFTER its shared write is confirmed - but the shared write landing
-  // is what updates investigatorTaken/defendantTaken in the first place, and
-  // that update can reach this component (via the game store's own
-  // subscription) and re-render BEFORE the subsequent `meStore.set(role)`
-  // line actually runs, since they're two separate steps inside pickIdentity
-  // separated by an await. On that in-between render, `me` is still null
-  // while "the other role" now reads as the only open one - exactly the
-  // auto-assign trigger condition - so without this guard, a device picking
-  // Defendant could watch its own effect race in and silently hand it
-  // Investigator instead, picking Investigator out from under its own
-  // explicit click. A ref, not state: only ever read/written inside an
-  // effect or event handler below, never during render, which
-  // react-hooks/refs forbids.
+  // own explicit pick (RolePicker's onPick handlers). A claim writes seats,
+  // members and players in one update, but each reaches this component
+  // through its own listener - so there's a render where the clicked role
+  // already reads as taken while `me` (from `members`) isn't set yet. On that
+  // render "the other role" looks like the only open one - exactly the
+  // auto-assign trigger - and without this guard a device picking Defendant
+  // could auto-assign itself Investigator instead. A ref, not state: only
+  // ever read/written inside an effect or event handler below, never during
+  // render, which react-hooks/refs forbids.
   const pickingRef = useRef(false);
 
   // With exactly two roles, once one is taken the other is already decided -
@@ -219,11 +214,10 @@ export default function CoCounselPage() {
   return (
     <div className="min-h-screen w-full" data-theme={theme} style={{ backgroundColor: COLOR.paper }}>
       <InAppBrowserBanner />
-      {/* No fixed-position chrome anymore - the back link and theme toggle
-          are both inline within each screen's own header now (Wordmark, or
-          a colored band's own top row), so <main> needs no reserved top
-          clearance (a fixed ThemeToggle used to need pt-14 for this, which
-          showed as a visible white gap above full-bleed colored bands). */}
+      {/* No fixed-position chrome: the back link and theme toggle sit
+          inline in each screen's own header (Wordmark, or a colored band's
+          top row), so <main> reserves no top clearance and full-bleed bands
+          start flush with the viewport. */}
       <main className={`mx-auto font-[family-name:var(--font-archivo)] ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
         {session.connectionError || session.roomMissing ? (
           <p role="alert" className="px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>

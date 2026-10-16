@@ -4,22 +4,11 @@ const MAX_NAME_LENGTH = 24;
 const ALL_ROLES: readonly Role[] = ["p1", "p2"];
 
 /**
- * Sets a player's display name. Generic over any game's state (as long as it
- * has a `names` field) so every game can reuse this instead of reimplementing
- * it - always valid regardless of whatever in-game status/phase the game is in.
- *
- * Throws if `role` is already claimed AND the other seat is still open - two
- * devices racing to claim the same still-open seat (near-simultaneous picks,
- * e.g. both tapping "I'm the Investigator" within the same sync window)
- * would otherwise BOTH succeed: nothing previously stopped a second write
- * from silently overwriting the first, and - worse - `useGameSession`'s
- * `pickIdentity` used to set this device's own local seat optimistically
- * before knowing whether its write actually landed, so the loser of the
- * race would believe it held a seat someone else actually has, unable to
- * ever submit as the seat nobody now holds. Once BOTH seats are already
- * claimed, re-writing one (e.g. a "Welcome back, which one are you?"
- * re-confirmation, or a device simply re-picking its own already-held seat)
- * is allowed again - that's not a race, just restating a settled fact.
+ * Sets a seat's display name inside a game state's own `names` field. Not
+ * used by the session layer - seats and display names live at the room level
+ * (lib/session/shared/updates.ts) - and kept, with its tests, until the
+ * hook-merge follow-up in docs/follow-ups.md removes it. Throws if `role` is
+ * already claimed while the other seat is still open.
  */
 export function setIdentityName<T extends WithIdentity>(state: T, role: Role, name: string): T {
   const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
@@ -38,16 +27,8 @@ export function setIdentityName<T extends WithIdentity>(state: T, role: Role, na
 }
 
 /**
- * Clears every seat's claim at once - the shared-state half of "switch
- * roles," paired with clearing this device's own local seat pointer
- * (`useGameSession`'s `releaseAllIdentities`). Releasing only the
- * INITIATING device's own seat isn't enough to let it switch: with exactly
- * two seats, if the other one stays claimed, the only seat left open is the
- * very one just given up, so the device could only reclaim its own former
- * role, never actually switch. Clearing both seats turns it into a genuine
- * choice for whoever picks next on either device. Generic over any game's
- * state, same as `setIdentityName`. Never throws - there's nothing to
- * conflict with when clearing everything at once.
+ * Clears every seat's name in a game state's own `names` field. Unused, like
+ * `setIdentityName` above, and removed by the same follow-up.
  */
 export function releaseAllIdentityNames<T extends WithIdentity>(state: T): T {
   return { ...state, names: {} };

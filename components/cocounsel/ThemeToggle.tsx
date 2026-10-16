@@ -9,11 +9,9 @@ interface ThemeToggleProps {
 /**
  * Co-Counsel-only light/dark switch. Inline (not fixed) - paired opposite
  * BackLink in each of Co-Counsel's three header shapes (Wordmark,
- * HeaderBand, ResultsHeader), same as BackLink itself. A fixed-position
- * version used to reserve top clearance on every screen (`pt-14` on
- * `<main>`) just for this one small control, which showed as a visible
- * white gap above full-bleed colored bands (HeaderBand/ResultsHeader) once
- * the back link itself moved inline and no longer needed that clearance.
+ * HeaderBand, ResultsHeader), same as BackLink itself, so no screen has to
+ * reserve top clearance for it - full-bleed colored bands stay flush with
+ * the top of the viewport.
  */
 export default function ThemeToggle({ theme, onToggle, className = "" }: ThemeToggleProps) {
   return (

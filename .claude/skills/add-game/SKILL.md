@@ -114,7 +114,6 @@ workflow.
   gotchas.
 - Add the game to the list of games in the root `CLAUDE.md` and in `README.md`
   ("The games").
-- Keep build history in `docs/history/<slug>.md`, not in a skill.
 
 ## Removing a game
 
@@ -124,5 +123,5 @@ Reverse the steps:
 - Remove the rules node, the slug from `meta/gameSlug`, and its rules tests.
 - Remove its skill.
 
-To only *hide* a game from the hub, set `hidden: true` on its registry entry (as
-Co-Counsel currently is).
+To only *hide* a game from the hub, set `hidden: true` on its registry entry. It
+stays playable by link and keeps its name and tile in "Your rooms".

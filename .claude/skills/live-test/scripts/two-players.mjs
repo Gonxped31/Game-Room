@@ -53,7 +53,7 @@ const hashOf = (page) => new URL(page.url()).hash.slice(1);
  * Joins a room from the hub: opens the First to Worst card's Join panel
  * (popover on desktop, sheet on phones), picks Code or Name, types, submits.
  * Joining a room of another game through this card is fine - routing follows
- * the room's own game (and Co-Counsel has no card while it's hidden).
+ * the room's own game, so this also covers that spec rule.
  */
 async function joinFromHub(page, mode, value) {
   await page.getByRole("button", { name: "Join a First to Worst room" }).click();

@@ -5,7 +5,7 @@ export interface RoleStickerInfo {
   name: string;
   /** Highlights this sticker as the current viewer's own role. */
   isYou: boolean;
-  /** Whether this seat has a recent heartbeat - omit to skip the dot entirely (e.g. for a game that doesn't wire up presence). */
+  /** Whether this seat's player is connected - omit to skip the dot entirely (e.g. for a game that doesn't wire up presence). */
   online?: boolean;
 }
 

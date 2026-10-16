@@ -65,10 +65,3 @@ can judge whether it still applies) · **Where** (files involved).
   difference there. That points to how WebKit's Windows build draws 3D transforms
   and fonts, not to a real iPhone bug, but only a real device can confirm it.
 - **Where:** `components/ftw/CardFace.tsx`, `components/ftw/Hand.tsx`.
-
-## Anytime
-
-- **Do:** update the system design diagram linked from `README.md`.
-- **Why:** it shows the architecture from before the guest-ID rework (no auth, open
-  rules, seats in game state).
-- **Where:** the artifact linked at the top of `README.md`.

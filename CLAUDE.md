@@ -4,8 +4,7 @@ A small platform for private 2-player games played through a shared link.
 - `/` is the hub (game picker, join by code or name, "Your rooms").
 - Each game lives at `/<slug>#<roomCode>`.
 - No sign-in: every browser gets an invisible guest ID.
-- Games: **First to Worst** (`/ftw`) and **Co-Counsel** (`/cocounsel`, hidden from
-  the hub but playable by link).
+- Games: **First to Worst** (`/ftw`) and **Co-Counsel** (`/cocounsel`).
 
 This file holds what must stay true on **every** change. Everything else loads on
 demand:
@@ -18,8 +17,7 @@ demand:
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |
 | Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |
 | Testing a change with two players on phone + desktop (emulators + Playwright) | `live-test` skill |
-| Why something was built a certain way, and past bugs | `docs/history/` (`platform.md`, `first-to-worst.md`, `co-counsel.md`). History only, not current docs. |
-| Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `new-system-design.md`) |
+| Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`) |
 | Deferred work waiting on a trigger ("when X ships, do Y") | `docs/follow-ups.md` |
 
 **Before finishing any task, check `docs/follow-ups.md`** for entries this work
@@ -74,7 +72,6 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 - **Game state shapes are validated by the rules.** Changing a game's state type
   means changing the rules and `tests/rules/` in the same change (`database-rules`
   skill).
-- **Old rooms** (from before the guest-ID rework) aren't migrated.
 
 ### Code map
 
@@ -83,9 +80,9 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
   - `updates.ts` - the write builders, plus the `RoomMeta`/`PresenceEntry` types.
   - `roomActions.ts` - `createRoom` (retries code collisions up to 5 times),
     `readRoomMeta`, `findRoomByName`, `renameRoom`, and the user-facing messages.
-  - `presence.ts` - `.info/connected` + `onDisconnect`, keyed by uid, with no
-    heartbeat. Cleanup marks a guest offline but never deletes the entry, because
-    takeover is judged on `lastSeen`.
+  - `presence.ts` - `.info/connected` + `onDisconnect`, keyed by uid. Cleanup
+    marks a guest offline but never deletes the entry, because takeover is judged
+    on `lastSeen`.
   - `useRoom.ts` - the core hook:
     - It waits for auth and a real `#code` before touching the database.
     - A bare visit creates the room *then* sets the hash.
@@ -152,8 +149,9 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 - **Never read the clock, `window` or storage during render.** Use effects, timer
   callbacks, or `useSyncExternalStore` with a server snapshot. Next's Cache
   Components and this repo's `react-hooks/*` lint rules enforce this.
-- **Ship the client before the rules.** New rules under an old client break room
-  creation; this happened once in production.
+- **Ship the client before the rules.** When a rules change alters what clients
+  may write, deploy the app first: new rules under the previous client refuse its
+  writes (room creation included).
 - **`AGENTS.md`**: this Next.js version has breaking changes. Check
   `node_modules/next/dist/docs/` before using Next APIs.
 
@@ -181,8 +179,8 @@ Before calling a change done:
 
 - **Local mode is per browser profile.** It never syncs across browsers or
   devices, and it shows a "Local mode" banner. **Restart `npm run dev` after
-  changing `.env.local`**: a stale dev server without Firebase config once looked
-  exactly like a sync bug.
+  changing `.env.local`**: a dev server started without the Firebase config
+  silently runs in local mode, which looks exactly like a sync bug.
 - **A Vercel build fails** (`next.config.ts`) if any Firebase var is missing, so a
   local-only app can never ship. Preview and production share one database unless
   Preview gets its own project's vars.

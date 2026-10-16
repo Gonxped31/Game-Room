@@ -68,7 +68,7 @@ const ROLES: readonly Role[] = ["p1", "p2"];
  * Seats live at the room level (`games/{room}/seats`, keyed to guest IDs),
  * not in the game's own state, so a game resetting itself ("Reset game",
  * "Rematch") never unseats anyone. The `names` field every game state still
- * carries (WithIdentity) is no longer written by this layer.
+ * carries (WithIdentity) isn't used by this layer.
  */
 export function useGameSession<TState extends WithIdentity>(opts: {
   gameSlug: string;

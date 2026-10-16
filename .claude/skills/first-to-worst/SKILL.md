@@ -13,8 +13,6 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   (the original single-file prototype).
 - **Rules and scoring**: `references/ftw/first-to-worst-game-design.md` overrides the
   prototype wherever they differ.
-- **Build history and past decisions**: `docs/history/first-to-worst.md`. Read it
-  only when you need the why behind something; it's not current documentation.
 
 ## Files
 
@@ -42,7 +40,7 @@ match that ranking, and both are revealed and scored. Roles swap every round.
 - `GameState` contains `round`, `totals{p1,p2}`, `current{prompt, items[5],
   status, masterOrder?, guessOrder?, score?}`, `usedPrompts[]` and `history[]`.
   It also carries `names: {}`, which `WithIdentity` requires but the session layer
-  no longer uses.
+  doesn't use (names live in the room's `players` node).
 - **Its shape is validated by `database.rules.json`** (the `ftw` node).
   - If you add or rename a field, update the rules **and** the cases in
     `tests/rules/gameState.test.ts`, then run `npm run test:rules`. Otherwise the

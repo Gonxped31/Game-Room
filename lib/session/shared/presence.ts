@@ -2,8 +2,8 @@ import { createPathStore, serverTimestamp, setOnDisconnect, updateRoot, watchCon
 import { room, type PresenceEntry } from "./updates";
 
 /**
- * Presence via the Realtime Database's own disconnect detection - no polling
- * heartbeat. Keyed by uid (`games/{room}/presence/{uid}`), not by seat, so a
+ * Presence via the Realtime Database's own disconnect detection
+ * (`.info/connected` + `onDisconnect`). Keyed by uid (`games/{room}/presence/{uid}`), not by seat, so a
  * device that has since lost its seat can never mark the seat's NEW holder
  * offline when it disconnects.
  */
