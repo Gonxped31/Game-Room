@@ -50,7 +50,7 @@ function otherRoleOf(role: Role): Role {
 }
 
 // Realtime Database drops empty arrays AND empty objects entirely on write
-// (confirmed while building E-Card - see CLAUDE.md's Store design notes), so
+// (confirmed while building E-Card - see CLAUDE.md's Conventions, 'Realtime Database data shapes'), so
 // `locks`/`log` can round-trip as undefined once the room has gone through a
 // moment where they were empty. Every read goes through this so the rest of
 // this file never has to special-case "undefined vs empty".

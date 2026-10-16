@@ -27,7 +27,7 @@ export function setIdentityName<T extends WithIdentity>(state: T, role: Role, na
     throw new Error("Name cannot be empty.");
   }
   // `state.names` can be entirely absent, not just empty - Firebase drops an
-  // empty object on write (see "Store design notes" in CLAUDE.md), so a fresh
+  // empty object on write (see "Realtime Database data shapes" under Conventions in CLAUDE.md), so a fresh
   // room's state has no `names` key at all until the first seat is claimed.
   const names = state.names ?? {};
   const allSeatsClaimed = ALL_ROLES.every((r) => Boolean(names[r]));

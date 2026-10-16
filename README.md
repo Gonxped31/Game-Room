@@ -32,8 +32,9 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
     only shows up at the end of the case.
   - Currently hidden from the home page; it still works by direct link.
 
-See `CLAUDE.md` for the full architecture, each game's rules in detail, and how to
-add a new game. The [system design diagram](https://claude.ai/artifact/7irnsMVYWNt9G1Qm4FzUF1)
+See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
+game, the database-rules workflow and live two-player testing are Claude Code skills
+in `.claude/skills/`, and the build history is in `docs/history/`. The [system design diagram](https://claude.ai/artifact/7irnsMVYWNt9G1Qm4FzUF1)
 gives a visual, layer-by-layer walkthrough, but it predates the guest-ID rework
 described below.
 
@@ -260,5 +261,6 @@ Open the app in a normal window and a private window to play both sides. If
 `npm run test:rules` later reports "port taken", an emulator from this is still
 running.
 
-See `CLAUDE.md` for the project's architecture, conventions, and stage-by-stage build
-history.
+See `CLAUDE.md` for the project's architecture and conventions, `.claude/skills/` for
+task guides (each game, adding a game, database rules, live testing), and
+`docs/history/` for the stage-by-stage build history.

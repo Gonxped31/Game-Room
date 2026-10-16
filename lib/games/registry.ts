@@ -22,20 +22,20 @@ export interface GameEntry {
 }
 
 /**
- * Every game available from the picker. Adding a new 1v1 game later is just:
- * an entry here (plus a custom art panel - see GamePickerCard.tsx's
- * per-slug art map), its own lib/games/<slug>/ + components/<slug>/, and an
- * app/<slug>/page.tsx calling useGameSession - nothing else shared needs to
- * change. A 3+ player game instead calls useMultiplayerSession
- * (lib/session/multiplayer/) - see CLAUDE.md's "Multi-game architecture"
- * section for how that backend differs from the 1v1 one.
+ * Every game available from the picker. Adding a game means an entry here,
+ * an art panel (GamePickerCard.tsx's per-slug art map), its own
+ * lib/games/<slug>/ + components/<slug>/ + app/<slug>/page.tsx, AND its own
+ * node in database.rules.json (without that, every write is refused on
+ * Firebase). The full checklist is the `add-game` skill
+ * (.claude/skills/add-game/SKILL.md). A 3+ player game calls
+ * useMultiplayerSession (lib/session/multiplayer/) instead of useGameSession.
  */
 // Co-Counsel is temporarily hidden from the picker (not removed - its entry
 // is commented out just below, not deleted, so re-enabling it later is a
 // one-line uncomment). The game itself is untouched: lib/games/cocounsel/,
 // components/cocounsel/, and app/cocounsel/page.tsx all still work exactly
 // as before, reachable directly at /cocounsel - this only affects whether it
-// shows as a card here. Unlike E-Card's removal (see CLAUDE.md), nothing
+// shows as a card here. Unlike E-Card's removal (see docs/history/platform.md), nothing
 // about the implementation was pulled.
 export const GAMES: GameEntry[] = [
   {
