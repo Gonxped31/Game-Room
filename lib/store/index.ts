@@ -13,6 +13,16 @@ const firebaseConfig: FirebaseOptions = {
 
 const hasFirebaseConfig = Object.values(firebaseConfig).every((v) => typeof v === "string" && v.length > 0);
 
+// A silent localStorage fallback produces a very confusing live symptom -
+// "I picked a role and the other device never sees it, even after waiting
+// and reloading" - that's exactly what happens when two separate browser
+// profiles/devices (which can never share localStorage) both silently fall
+// back to it. This surfaces that mismatch immediately in the console instead
+// of leaving it to be mistaken for a sync bug.
+if (typeof window !== "undefined" && !hasFirebaseConfig) {
+  console.warn("[first-to-worst] No NEXT_PUBLIC_FIREBASE_* env vars detected - using the localStorage fallback, which only syncs across tabs in the SAME browser profile, never across separate browsers/profiles/devices.");
+}
+
 /**
  * Picks the backend for a room's shared game state: Firebase when all
  * NEXT_PUBLIC_FIREBASE_* env vars are set, otherwise the localStorage

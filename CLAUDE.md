@@ -278,6 +278,36 @@ npx tsc --noEmit # type-check only
   mode — and `crossTab: false` for the per-tab "which seat am I" value. Two tabs in
   the same browser share one `localStorage`, so without `crossTab: false` a seat
   pick in one tab would silently reassign the other tab's seat too.
+  **`localStorage` is scoped to one browser PROFILE, not "the browser" in
+  general** - two tabs in the *same* Chrome profile share it (that's what
+  `crossTab: true` relies on), but two different profiles (e.g. "two Chrome
+  accounts"), two different browsers, or two different physical devices each
+  have their own, completely isolated `localStorage` with no path between
+  them at all. `lib/store/index.ts`'s `createGameStore` picks this fallback
+  whenever any of the five `NEXT_PUBLIC_FIREBASE_*` env vars is missing
+  (`hasFirebaseConfig`, resolved once at module load from `process.env.*` -
+  inlined into the client bundle at build time, not re-read live) - a user
+  report that looked exactly like a sync bug ("the first person picks a
+  role, the other device still shows it as available no matter how long we
+  wait, even after a reload") turned out to be this: a **stale dev server**
+  (started before `.env.local` existed, or left running through a `rm -rf
+  .next && npm run build` done while it was still up - deleting the live dev
+  server's `.next` cache out from under it and replacing it with a
+  production build's layout) silently serving a build where Firebase was
+  never wired up, tested across two separate Chrome profiles that could
+  therefore never see each other's writes under any circumstances. Confirmed
+  by restarting a completely clean `npm run dev` and re-running the exact
+  scenario (three isolated Playwright browser contexts, standing in for
+  three separate profiles) against it - the second, idle context saw the
+  picked role become disabled within 500ms with no reload needed, and a
+  brand-new third context loading fresh afterward saw it correctly disabled
+  too. No code bug; the fix is a one-line defensive diagnostic instead:
+  `lib/store/index.ts` now `console.warn`s once, client-side only, whenever
+  `hasFirebaseConfig` is false, so this exact "is Firebase even on?"
+  confusion surfaces immediately instead of silently producing a
+  misleading-looking sync bug report. Verified the warning stays silent on a
+  correctly configured run and confirmed it doesn't fire against the clean
+  dev server used above.
 - `transaction()` (exposed to games as `useGameSession`'s `transact`) is how
   invalid/duplicate state transitions become safe no-ops (double clicks, double
   tabs): a game's transition function throws on an invalid move; the store layer
