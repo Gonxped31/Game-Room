@@ -16,7 +16,8 @@ demand:
 | Working on Co-Counsel | `co-counsel` skill |
 | Adding (or removing) a game | `add-game` skill |
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |
-| Testing a change with two real players (emulators + Playwright) | `live-test` skill |
+| Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |
+| Testing a change with two players on phone + desktop (emulators + Playwright) | `live-test` skill |
 | Why something was built a certain way, and past bugs | `docs/history/` (`platform.md`, `first-to-worst.md`, `co-counsel.md`). History only, not current docs. |
 | Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `new-system-design.md`) |
 | Deferred work waiting on a trigger ("when X ships, do Y") | `docs/follow-ups.md` |
@@ -168,7 +169,8 @@ CI (`.github/workflows/ci.yml`) runs lint, `tsc`, `npm test` and
 Before calling a change done:
 - **Every change**: lint, `tsc`, `npm test`.
 - **Rules or game-state changes**: also `npm run test:rules`.
-- **Anything multiplayer or visible**: also the `live-test` skill.
+- **Anything visible**: also the `ui-review` skill (phone and desktop screenshots).
+- **Anything multiplayer**: also the `live-test` skill.
 
 ## Environment notes
 

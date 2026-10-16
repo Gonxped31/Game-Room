@@ -57,6 +57,37 @@ can judge whether it still applies) · **Where** (files involved).
   in the production database.
 - **Where:** Vercel project settings and the Firebase console; no code changes.
 
+## Anytime: known bugs
+
+### Text typed before the page hydrates is lost
+
+- **Seen:** on a WebKit (iPhone) profile, typing a room code into the hub's join
+  form right after the page loads. The text shows in the field, but React's state
+  stays empty, so "Join" stays disabled. Retyping the *same* text doesn't help,
+  because React's value tracker sees no change; the user has to edit it. Fast
+  desktop Chromium doesn't hit it. A slow phone on a real network can.
+- **Do:** make the hub's controlled inputs survive pre-hydration typing. For
+  example, on mount, adopt the input element's current DOM value into state when
+  it differs (from a deferred callback, per this repo's set-state-in-effect lint
+  rule), or render the field disabled until hydrated. FTW's name field
+  (`components/RolePicker.tsx`) likely has the same issue, so check it too. Then
+  drop the retry in `fillJoinForm` (live-test skill).
+- **Why:** found by the `live-test` skill's phone profiles; reproduced with a
+  one-off script.
+- **Where:** `components/JoinRoomForm.tsx`, `components/RolePicker.tsx`,
+  `.claude/skills/live-test/scripts/two-players.mjs`.
+
+### FTW's name field has no visible box
+
+- **Seen:** on every device, "Your name" (`components/RolePicker.tsx`) renders as
+  bare placeholder text on the teal. The input has no background or border:
+  Tailwind's base styles make inputs transparent, and the field only sets
+  `border-0`.
+- **Do:** give it an explicit background (likely white, matching the panel above
+  it) and check against `references/ftw/first-to-worst.html`.
+- **Why:** found by the `ui-review` skill's screenshots.
+- **Where:** `components/RolePicker.tsx`.
+
 ## Anytime
 
 - **Do:** update the system design diagram linked from `README.md`.

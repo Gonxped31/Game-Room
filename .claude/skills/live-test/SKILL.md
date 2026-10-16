@@ -6,9 +6,16 @@ description: Run Game Room end-to-end with two (or more) separate players in Pla
 # Live two-player testing (emulators + Playwright)
 
 Unit and rules tests don't cover hooks, rendering or two-device flows; this does.
-It never touches the real Firebase project. Each Playwright **browser context** is
-a separate guest ID, the same as a normal window plus a private window. Two
-*tabs* in one context share a guest ID and can hold only one seat.
+It never touches the real Firebase project.
+- Each Playwright **browser context** is a separate guest ID, like two people's
+  devices. Two *tabs* in one context share a guest ID and can hold only one seat.
+- **Players are real device profiles**, shared with the `ui-review` skill
+  (`PROFILES` in `.claude/skills/ui-review/scripts/screenshots.mjs`): iPhones run
+  in WebKit (Safari's engine), and Android and desktop in Chromium. The standard
+  check has an iPhone play against a desktop browser, which is how the games are
+  actually played.
+- **Needs Playwright's WebKit and Chromium browsers** (`npx playwright install
+  webkit chromium`, one time per machine).
 
 ## 1. Start the emulators and a dev server pointed at them
 
@@ -44,7 +51,8 @@ node .claude/skills/live-test/scripts/two-players.mjs                  # or pass
 ```
 
 It covers:
-- FTW: create a room, name it, join by name from the hub, play a full round.
+- FTW: an iPhone creates a room and names it, and a desktop player joins by name
+  from the hub. They play a full round.
 - Presence: the other side shows as offline within a few seconds of closing.
 - A third guest is read-only.
 - "Your rooms" lists the room, also after a reload.
@@ -56,8 +64,13 @@ errors is part of passing.
 ## 3. Writing a check for your own change
 
 Copy the patterns from `scripts/two-players.mjs`:
-- `newPlayer(browser, label)` - a fresh context, i.e. a fresh guest ID, that
-  collects console errors.
+- `newPlayer(profile, label)` - a fresh context on a device profile (`"iphone"`,
+  `"iphone-se"`, `"android"`, `"desktop"`, ...), i.e. a fresh guest ID, that
+  collects console errors. Mix phones and desktops.
+- `fillJoinForm(page, label, value)` - types into the hub's join form and retries
+  until the app registers it. On slower (WebKit) profiles, text typed before the
+  page hydrates is lost, which is a known app bug. Use the same clear-then-type
+  retry for any controlled input you fill right after a page load.
 - `adminRead(path)` - reads emulator data while bypassing the rules (`Authorization:
   Bearer owner`). Use it to assert on the database itself (seats, names, game
   state) rather than only the UI.

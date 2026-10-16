@@ -131,5 +131,7 @@ The board is withheld until both players have joined.
 
 - `npm test` for logic and the prompt bank, and `npm run test:rules` if the state
   shape changed.
-- For anything visible or multi-device, use the `live-test` skill. It runs two
-  players in Playwright against the emulators.
+- For anything visible, use the `ui-review` skill (phone and desktop screenshots;
+  the `iphone-se` profile is the 375px width the 5-card hand must fit).
+- For multi-device flows, use the `live-test` skill: an iPhone against a desktop
+  player, in Playwright, against the emulators.

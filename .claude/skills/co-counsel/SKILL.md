@@ -161,4 +161,5 @@ The page renders the first state that applies:
   state shape changed.
 - For flows across two devices (role pick, auto-assign, swap, a full case), use
   the `live-test` skill.
-- Check both themes for any visual change.
+- For any visual change, use the `ui-review` skill with `--dark`, which captures
+  both themes on phone and desktop.

@@ -1,6 +1,9 @@
 // Two-player end-to-end check against a dev server running on the emulators
 // (see dev-against-emulators.mjs). Each Playwright browser context is a
-// separate guest ID, like a normal window + a private window.
+// separate guest ID, like two people's devices - and the players are real
+// device profiles (shared with the ui-review skill): an iPhone in WebKit
+// (Safari's engine) plays against a desktop browser, the way the games are
+// actually played.
 //
 //   node .claude/skills/live-test/scripts/two-players.mjs [baseUrl]
 //
@@ -12,7 +15,7 @@
 // - Co-Counsel: the creator picks Defendant, the joiner is auto-assigned,
 //   then "Switch role instead" swaps both seats.
 // Exits non-zero on the first failure; prints any browser console errors.
-import { chromium } from "playwright";
+import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
 
 const BASE = process.argv[2] ?? "http://localhost:3123";
 const DB = "http://127.0.0.1:9000";
@@ -34,14 +37,32 @@ async function until(fn, what, ms = 15000) {
     await new Promise((r) => setTimeout(r, 250));
   }
 }
-async function newPlayer(browser, label) {
-  const ctx = await browser.newContext();
+/** A player on a device profile (see ui-review's PROFILES): "iphone", "android", "desktop", ... */
+async function newPlayer(profile, label) {
+  const ctx = await newProfileContext(profile);
   const page = await ctx.newPage();
   page.on("console", (m) => m.type() === "error" && errors.push(`[${label}] ${m.text()}`));
   page.on("pageerror", (e) => errors.push(`[${label}] ${e.message}`));
   return { ctx, page };
 }
 const hashOf = (page) => new URL(page.url()).hash.slice(1);
+
+/**
+ * Types into the hub's join form and waits until the app has registered it.
+ * Text typed before the page finishes hydrating shows in the field but never
+ * reaches React state (seen on WebKit phone profiles), so it's retyped until
+ * "Join" enables. That's a known app bug - see docs/follow-ups.md.
+ */
+async function fillJoinForm(page, label, value) {
+  const join = page.getByRole("button", { name: "Join", exact: true });
+  await until(async () => {
+    // Clear first: re-setting the identical value isn't a change React notices.
+    await page.getByLabel(label).fill("");
+    await page.getByLabel(label).fill(value);
+    return join.isEnabled();
+  }, `the join form registering "${value}"`);
+  await join.click();
+}
 
 async function placeAllCards(page, submitLabel) {
   for (let i = 0; i < 5; i++) {
@@ -51,10 +72,9 @@ async function placeAllCards(page, submitLabel) {
   await page.getByRole("button", { name: submitLabel }).click();
 }
 
-const browser = await chromium.launch();
 try {
-  const A = await newPlayer(browser, "A");
-  const B = await newPlayer(browser, "B");
+  const A = await newPlayer("iphone", "A (iPhone)");
+  const B = await newPlayer("desktop", "B (desktop)");
 
   // --- First to Worst ---
   await A.page.goto(`${BASE}/ftw`);
@@ -73,8 +93,7 @@ try {
 
   await B.page.goto(BASE);
   await B.page.getByRole("radio", { name: "name" }).click();
-  await B.page.getByLabel("Room name").fill(roomName.toLowerCase());
-  await B.page.getByRole("button", { name: "Join", exact: true }).click();
+  await fillJoinForm(B.page, "Room name", roomName.toLowerCase());
   await B.page.waitForURL(`**/ftw#${code}`);
   await B.page.getByLabel("Your name").fill("Alex");
   await B.page.getByRole("button", { name: "Continue" }).click();
@@ -94,7 +113,7 @@ try {
   await until(async () => (await A.page.locator('[aria-label="offline"]').count()) === 1, "B shown offline on A");
   log(`B shown offline ${((Date.now() - closedAt) / 1000).toFixed(1)}s after closing`);
 
-  const C = await newPlayer(browser, "C");
+  const C = await newPlayer("android", "C (Android)");
   await C.page.goto(`${BASE}/ftw#${code}`);
   await C.page.getByText("Both seats are taken").waitFor();
   const disabled = await C.page.getByRole("button", { name: /is playing/ }).evaluateAll((els) => els.every((e) => e.disabled));
@@ -108,16 +127,15 @@ try {
   log('"Your rooms" lists the room, also after a reload');
 
   // --- Co-Counsel ---
-  const D = await newPlayer(browser, "D");
-  const E = await newPlayer(browser, "E");
+  const D = await newPlayer("desktop", "D (desktop)");
+  const E = await newPlayer("iphone-se", "E (iPhone SE)");
   await D.page.goto(`${BASE}/cocounsel`);
   await D.page.getByRole("button", { name: /Choose this case/ }).click();
   await D.page.getByRole("button", { name: "I'm the Defendant" }).click();
   await D.page.getByText("Copy invite link").waitFor();
   const cc = hashOf(D.page);
   await E.page.goto(BASE);
-  await E.page.getByLabel("Room code").fill(cc);
-  await E.page.getByRole("button", { name: "Join", exact: true }).click();
+  await fillJoinForm(E.page, "Room code", cc);
   await E.page.waitForURL(`**/cocounsel#${cc}`);
   const before = await until(async () => {
     const s = await adminRead(`games/${cc}/seats`);
@@ -139,5 +157,5 @@ try {
   if (errors.length) console.error(`console errors so far:\n  ${errors.join("\n  ")}`);
   process.exitCode = 1;
 } finally {
-  await browser.close();
+  await closeBrowsers();
 }
