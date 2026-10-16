@@ -5,7 +5,7 @@
  * checked against what the app actually writes, not a hand-built fixture.
  */
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { lockIn as ftwLockIn, newGame as newFtwGame, nextRound, setPrompt, submitGuess } from "@/lib/games/ftw/game";
 import { customRound, randomRound } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
@@ -24,8 +24,16 @@ beforeEach(async () => {
   await env.clearDatabase();
 });
 
-/** Round-trips through JSON first - the same thing Firebase does with `undefined` fields and empty arrays/objects. */
-const plain = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+/**
+ * Writes a state exactly as the app produced it, then reads it back - the
+ * real Firebase round trip (empty objects and arrays come back missing). The
+ * next transition gets that read-back state, as in the app. An explicit
+ * `undefined` in a state makes the SDK's write throw, failing the test.
+ */
+async function writeAndReadBack<T>(db: ReturnType<typeof dbAs>, path: string, state: T): Promise<T> {
+  await assertSucceeds(db.ref(path).set(state));
+  return (await db.ref(path).get()).val() as T;
+}
 
 describe("First to Worst", () => {
   const path = `games/${ROOM}/ftw`;
@@ -35,17 +43,14 @@ describe("First to Worst", () => {
 
   it("accepts every state of a real game, including a custom prompt", async () => {
     const db = dbAs(env, "alice");
-    let game = newFtwGame(randomRound());
-    await assertSucceeds(db.ref(path).set(plain(game)));
-    game = setPrompt(game, customRound("My very own prompt", ["One", "Two", "Three", "Four", "Five"]));
-    await assertSucceeds(db.ref(path).set(plain(game)));
+    const write = <T,>(state: T) => writeAndReadBack(db, path, state);
+    let game = await write(newFtwGame(randomRound()));
+    game = await write(setPrompt(game, customRound("My very own prompt", ["One", "Two", "Three", "Four", "Five"])));
     const ids = game.current.items.map((i) => i.id);
-    game = ftwLockIn(game, ids);
-    await assertSucceeds(db.ref(path).set(plain(game)));
-    game = submitGuess(game, [...ids].reverse());
-    await assertSucceeds(db.ref(path).set(plain(game)));
-    game = nextRound(game, randomRound(game.usedPrompts));
-    await assertSucceeds(db.ref(path).set(plain(game)));
+    game = await write(ftwLockIn(game, ids));
+    game = await write(submitGuess(game, [...ids].reverse()));
+    game = await write(nextRound(game, randomRound(game.usedPrompts)));
+    game = await write(ftwLockIn(game, game.current.items.map((i) => i.id)));
   });
 
   it.each([
@@ -74,28 +79,29 @@ describe("Co-Counsel", () => {
 
   it("accepts every state of a real case, including a miss", async () => {
     const db = dbAs(env, "alice");
-    let game = newCcGame(caseDef.id);
-    await assertSucceeds(db.ref(path).set(plain(game)));
-    caseDef.parts.forEach((part, i) => {
+    const write = <T,>(state: T) => writeAndReadBack(db, path, state);
+    let game = await write(newCcGame(caseDef.id));
+    for (const [i, part] of caseDef.parts.entries()) {
       if (i === 0) {
         const wrong = part.hands.defendant.find((c) => c.id !== part.correct[1])!.id;
-        game = ccLockIn(ccLockIn(game, caseDef, "p1", part.correct[0]), caseDef, "p2", wrong);
-        game = continueAfterReveal(game, caseDef);
+        game = await write(ccLockIn(game, caseDef, "p1", part.correct[0]));
+        game = await write(ccLockIn(game, caseDef, "p2", wrong));
+        game = await write(continueAfterReveal(game, caseDef));
       }
-      game = ccLockIn(game, caseDef, "p1", part.correct[0]);
-      game = ccLockIn(game, caseDef, "p2", part.correct[1]);
-      game = continueAfterReveal(game, caseDef);
-    });
-    await assertSucceeds(db.ref(path).set(plain(game)));
+      game = await write(ccLockIn(game, caseDef, "p1", part.correct[0]));
+      game = await write(ccLockIn(game, caseDef, "p2", part.correct[1]));
+      game = await write(continueAfterReveal(game, caseDef)); // includes "Continue to Part 2"
+    }
+    expect(game.phase).toBe("CASE_DONE");
   });
 
   it("accepts the in-between states (one lock, a pending reveal)", async () => {
     const db = dbAs(env, "alice");
+    const write = <T,>(state: T) => writeAndReadBack(db, path, state);
     const part = caseDef.parts[0];
-    let game = ccLockIn(newCcGame(caseDef.id), caseDef, "p1", part.correct[0]);
-    await assertSucceeds(db.ref(path).set(plain(game)));
-    game = ccLockIn(game, caseDef, "p2", part.correct[1]);
-    await assertSucceeds(db.ref(path).set(plain(game)));
+    let game = await write(ccLockIn(newCcGame(caseDef.id), caseDef, "p1", part.correct[0]));
+    game = await write(ccLockIn(game, caseDef, "p2", part.correct[1]));
+    expect(game.phase).toBe("REVEALED");
   });
 
   it.each([

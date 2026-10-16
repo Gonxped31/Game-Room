@@ -9,13 +9,14 @@
 //
 // Checks, in order:
 // - FTW: create, name the room, join it by name through the hub card's Join
-//   panel, play a full round.
+//   panel, play a full round and start round 2.
 // - Presence: closing one player shows them offline on the other.
 // - A third guest can read the room but not take a seat.
 // - "Your rooms" and the Continue chip list the room, also after a reload;
 //   the back gesture closes the sheet; Start opens a fresh room.
 // - Co-Counsel: the creator picks Defendant, the joiner is auto-assigned,
-//   then "Switch role instead" swaps both seats.
+//   then "Switch role instead" swaps both seats; Part 1 is solved and
+//   "Continue to Part 2" advances.
 // Exits non-zero on the first failure; prints any browser console errors.
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
 
@@ -105,6 +106,13 @@ try {
   await B.page.getByRole("button", { name: "Next round (roles swap)" }).waitFor();
   log("full round played and revealed on both sides");
 
+  // Click through, and check the database - a refused write leaves the
+  // button on screen with nothing happening.
+  await A.page.getByRole("button", { name: "Next round (roles swap)" }).click();
+  await until(async () => (await adminRead(`games/${code}/ftw/round`)) === 2, "round 2 written to the database");
+  await B.page.getByRole("button", { name: "Lock in my ranking" }).waitFor(); // roles swapped: B ranks now
+  log("Next round: round 2 started, roles swapped");
+
   await until(async () => (await A.page.locator('[aria-label="online"]').count()) === 2, "both shown online");
   const closedAt = Date.now();
   await B.ctx.close();
@@ -161,6 +169,16 @@ try {
     return s?.p1 === before.p2 && s?.p2 === before.p1;
   }, "seats swapped");
   log("Co-Counsel: Switch role instead swapped both seats");
+
+  // Solve Part 1 (its correct pair is card 1 in each hand), then continue.
+  for (const player of [D, E]) {
+    await player.page.getByRole("radiogroup", { name: "Your cards" }).getByRole("radio").first().click();
+    await player.page.getByRole("button", { name: "Lock in card 1" }).click();
+  }
+  await D.page.getByRole("button", { name: "Continue to Part 2" }).click();
+  await until(async () => (await adminRead(`games/${cc}/cocounsel/partIndex`)) === 1, "Part 2 written to the database");
+  await E.page.getByRole("radiogroup", { name: "Your cards" }).waitFor();
+  log("Co-Counsel: Part 1 solved, Continue to Part 2 works");
 
   console.log(errors.length ? `\nCONSOLE ERRORS:\n  ${errors.join("\n  ")}` : "\nPASS - no console errors");
   process.exitCode = errors.length ? 1 : 0;

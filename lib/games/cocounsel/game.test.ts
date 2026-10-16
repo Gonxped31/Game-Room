@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { pruneLikeFirebase, undefinedPaths } from "@/lib/store/firebaseShape";
 import { getCase } from "./cases";
 import { DEFENDANT, INVESTIGATOR } from "./constants";
 import {
@@ -276,5 +277,43 @@ describe("a full clean playthrough of the shipped case", () => {
     expect(focusPercent(game.log)).toBe(100);
     expect(totalAttempts(game.log)).toBe(3);
     expect(classifyDuo(trustPercent(game.log), focusPercent(game.log))).toBe("Mind-Reading Team");
+  });
+});
+
+describe("writes Firebase accepts", () => {
+  // Each transition gets the state as Firebase hands it back (empty objects
+  // and arrays dropped, so `names`, `locks` and `log` can read back missing).
+  // A result with an explicit `undefined` makes the real write throw, and the
+  // move silently does nothing - this is how "Continue to Part 2" once broke.
+  const asStored = (state: GameState): GameState => pruneLikeFirebase(state) as GameState;
+  const expectWritable = (step: string, state: GameState) =>
+    expect({ step, undefinedAt: undefinedPaths(state) }).toEqual({ step, undefinedAt: [] });
+
+  it("never produces an explicit undefined across a whole case, including a miss", () => {
+    let game = asStored(newGame(CASE.id));
+    CASE.parts.forEach((part, i) => {
+      if (i === 0) {
+        const wrong = part.hands.defendant.find((c) => c.id !== part.correct[1])!.id;
+        for (const [step, apply] of [
+          ["lock (miss) p1", (g: GameState) => lockIn(g, CASE, INVESTIGATOR, part.correct[0])],
+          ["lock (miss) p2", (g: GameState) => lockIn(g, CASE, DEFENDANT, wrong)],
+          ["continue after retry", (g: GameState) => continueAfterReveal(g, CASE)],
+        ] as const) {
+          const next = apply(game);
+          expectWritable(`Part ${i + 1}: ${step}`, next);
+          game = asStored(next);
+        }
+      }
+      for (const [step, apply] of [
+        ["lock p1", (g: GameState) => lockIn(g, CASE, INVESTIGATOR, part.correct[0])],
+        ["lock p2", (g: GameState) => lockIn(g, CASE, DEFENDANT, part.correct[1])],
+        ["continue", (g: GameState) => continueAfterReveal(g, CASE)],
+      ] as const) {
+        const next = apply(game);
+        expectWritable(`Part ${i + 1}: ${step}`, next);
+        game = asStored(next);
+      }
+    });
+    expect(game.phase).toBe("CASE_DONE");
   });
 });

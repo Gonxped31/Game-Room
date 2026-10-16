@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { setIdentityName as setName } from "@/lib/session/identity";
+import { pruneLikeFirebase, undefinedPaths } from "@/lib/store/firebaseShape";
 import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPrompt, submitGuess } from "./game";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
@@ -216,5 +217,29 @@ describe("nextRound", () => {
   it("rejects advancing before the round is REVEALED", () => {
     const game = freshGame();
     expect(() => nextRound(game, makeRound("X", ["A", "B", "C", "D", "E"]))).toThrow();
+  });
+});
+
+describe("writes Firebase accepts", () => {
+  // Each transition gets the state as Firebase hands it back (empty objects
+  // and arrays dropped, so `names` reads back missing). A result with an
+  // explicit `undefined` makes the real write throw, and the move silently
+  // does nothing - local mode and JSON round-trips hide this.
+  const asStored = <T,>(state: T): T => pruneLikeFirebase(state) as T;
+
+  it("never produces an explicit undefined across a full game", () => {
+    let game = asStored(freshGame());
+    const steps: [string, (g: typeof game) => typeof game][] = [
+      ["setPrompt", (g) => setPrompt(g, makeRound("Pizza crusts", LABELS))],
+      ["lockIn", (g) => lockIn(g, g.current.items.map((i) => i.id))],
+      ["submitGuess", (g) => submitGuess(g, [...g.current.items.map((i) => i.id)].reverse())],
+      ["nextRound", (g) => nextRound(g, makeRound("Breakfasts", LABELS))],
+      ["lockIn (round 2)", (g) => lockIn(g, g.current.items.map((i) => i.id))],
+    ];
+    for (const [name, step] of steps) {
+      const next = step(game);
+      expect({ step: name, undefinedAt: undefinedPaths(next) }).toEqual({ step: name, undefinedAt: [] });
+      game = asStored(next);
+    }
   });
 });

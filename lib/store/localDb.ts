@@ -1,3 +1,4 @@
+import { pruneLikeFirebase } from "./firebaseShape";
 import type { Store } from "./types";
 
 /**
@@ -58,23 +59,7 @@ function getAt(root: unknown, path: string): unknown {
   return node ?? null;
 }
 
-/** Drops null/undefined, empty objects and empty arrays, like the Realtime Database does on write. */
-function prune(value: unknown): unknown {
-  if (value == null) return null;
-  if (Array.isArray(value)) {
-    const items = value.map(prune);
-    return items.some((v) => v != null) ? items : null;
-  }
-  if (typeof value === "object") {
-    const out: Tree = {};
-    for (const [k, v] of Object.entries(value)) {
-      const p = prune(v);
-      if (p != null) out[k] = p;
-    }
-    return Object.keys(out).length ? out : null;
-  }
-  return value;
-}
+const prune = pruneLikeFirebase;
 
 function setAt(root: Tree, path: string, value: unknown): Tree {
   const parts = segments(path);

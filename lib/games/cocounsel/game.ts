@@ -55,7 +55,12 @@ function otherRoleOf(role: Role): Role {
 // moment where they were empty. Every read goes through this so the rest of
 // this file never has to special-case "undefined vs empty".
 function normalizeGame(game: GameState): GameState {
-  return { ...game, locks: game.locks ?? {}, log: game.log ?? [] };
+  // `names` is always empty now (seats and names live at the room level), so
+  // Firebase never stores it and it reads back missing. Normalizing it matters
+  // because continueAfterReveal names every field explicitly: a missing
+  // `names` would otherwise become an explicit `names: undefined`, which
+  // Firebase refuses to write.
+  return { ...game, locks: game.locks ?? {}, log: game.log ?? [], names: game.names ?? {} };
 }
 
 function currentPart(caseDef: CaseDefinition, game: GameState): CasePart {
