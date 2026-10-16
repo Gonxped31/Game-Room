@@ -8,10 +8,12 @@
 //   node .claude/skills/live-test/scripts/two-players.mjs [baseUrl]
 //
 // Checks, in order:
-// - FTW: create, name the room, join it by name from the hub, play a full round.
+// - FTW: create, name the room, join it by name through the hub card's Join
+//   panel, play a full round.
 // - Presence: closing one player shows them offline on the other.
 // - A third guest can read the room but not take a seat.
-// - "Your rooms" lists the room, also after a reload.
+// - "Your rooms" and the Continue chip list the room, also after a reload;
+//   the back gesture closes the sheet; Start opens a fresh room.
 // - Co-Counsel: the creator picks Defendant, the joiner is auto-assigned,
 //   then "Switch role instead" swaps both seats.
 // Exits non-zero on the first failure; prints any browser console errors.
@@ -48,14 +50,17 @@ async function newPlayer(profile, label) {
 const hashOf = (page) => new URL(page.url()).hash.slice(1);
 
 /**
- * Types into the hub's join form and submits. Typed immediately on purpose:
- * the form must pick up text entered before the page finishes hydrating (a
- * real bug on slow phones, fixed in JoinRoomForm - this guards against it
- * coming back).
+ * Joins a room from the hub: opens the First to Worst card's Join panel
+ * (popover on desktop, sheet on phones), picks Code or Name, types, submits.
+ * Joining a room of another game through this card is fine - routing follows
+ * the room's own game (and Co-Counsel has no card while it's hidden).
  */
-async function fillJoinForm(page, label, value) {
-  await page.getByLabel(label).fill(value);
-  await page.getByRole("button", { name: "Join", exact: true }).click({ timeout: 10000 });
+async function joinFromHub(page, mode, value) {
+  await page.getByRole("button", { name: "Join a First to Worst room" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("radio", { name: mode }).click();
+  await dialog.getByLabel(mode === "code" ? "Room code" : "Room name").fill(value);
+  await dialog.getByRole("button", { name: "Join", exact: true }).click({ timeout: 10000 });
 }
 
 async function placeAllCards(page, submitLabel) {
@@ -86,8 +91,7 @@ try {
   log(`A named the room "${roomName}"`);
 
   await B.page.goto(BASE);
-  await B.page.getByRole("radio", { name: "name" }).click();
-  await fillJoinForm(B.page, "Room name", roomName.toLowerCase());
+  await joinFromHub(B.page, "name", roomName.toLowerCase());
   await B.page.waitForURL(`**/ftw#${code}`);
   await B.page.getByLabel("Your name").fill("Alex");
   await B.page.getByRole("button", { name: "Continue" }).click();
@@ -114,11 +118,25 @@ try {
   if (!disabled) throw new Error("third guest could pick a held seat");
   log("third guest can read the room; both seats disabled");
 
-  await A.page.goto(BASE);
-  await A.page.getByRole("link", { name: new RegExp(roomName) }).waitFor();
-  await A.page.reload();
-  await A.page.getByRole("link", { name: new RegExp(roomName) }).waitFor();
-  log('"Your rooms" lists the room, also after a reload');
+  // "Your rooms" (a sheet behind the floating pill on A's phone) and the
+  // Continue chip both list the room - also after a reload.
+  for (const pass of ["first visit", "after a reload"]) {
+    if (pass === "first visit") await A.page.goto(BASE);
+    else await A.page.reload();
+    await A.page.getByRole("link", { name: new RegExp(`Continue.*${roomName}`) }).waitFor();
+    await A.page.getByRole("button", { name: /^Your rooms, \d+ saved$/ }).filter({ visible: true }).click();
+    await A.page.getByRole("dialog").getByRole("link", { name: new RegExp(roomName) }).waitFor();
+    // The back gesture closes the sheet without leaving the hub.
+    await A.page.goBack();
+    await A.page.getByRole("dialog").waitFor({ state: "detached" });
+    if (new URL(A.page.url()).pathname !== "/") throw new Error(`back left the hub (${pass})`);
+  }
+  log('"Your rooms" and Continue list the room, also after a reload; Back closes the sheet');
+
+  // Start: "Starting…", then the game's page creates a fresh room.
+  await A.page.getByRole("button", { name: "Start a First to Worst room" }).click();
+  await A.page.waitForURL(/\/ftw#[a-z0-9]{6}$/);
+  log("Start on the hub opens a fresh First to Worst room");
 
   // --- Co-Counsel ---
   const D = await newPlayer("desktop", "D (desktop)");
@@ -129,7 +147,7 @@ try {
   await D.page.getByText("Copy invite link").waitFor();
   const cc = hashOf(D.page);
   await E.page.goto(BASE);
-  await fillJoinForm(E.page, "Room code", cc);
+  await joinFromHub(E.page, "code", cc);
   await E.page.waitForURL(`**/cocounsel#${cc}`);
   const before = await until(async () => {
     const s = await adminRead(`games/${cc}/seats`);

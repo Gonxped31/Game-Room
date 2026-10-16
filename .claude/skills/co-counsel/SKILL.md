@@ -21,7 +21,7 @@ A 2-player cooperative, asymmetric deduction game.
 - Build history and past decisions: `docs/history/co-counsel.md` (history, not
   current docs).
 
-The game is currently **hidden from the hub picker**: its entry is commented out
+The game is currently **hidden from the hub picker**: its entry has `hidden: true`
 in `lib/games/registry.ts`. It still works by direct link.
 
 ## Roles and seats

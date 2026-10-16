@@ -9,35 +9,34 @@ export interface GameEntry {
   tags: string[];
   /** How many players this game needs. Defaults to 2 (1v1) when omitted. */
   maxPlayers?: number;
-  /** Title color, chip border color, and the "Start a room" button's border/shadow/text color - see references/game-room/game-room-ui-spec.md. */
+  /** Title color, chip border color, and the card buttons' border/shadow/text color - see references/game-room/game-room-ui-spec.md. */
   ink: string;
   /** Description text color. */
   textSecondary: string;
-  /** "Start a room" button's fill color. */
+  /** Start button fill - also the game's color square in the hub's Continue chip. */
   accentColor: string;
   /** Tailwind classes for the title's font family/weight/tracking - the button label reuses the same family. */
   titleClassName: string;
-  /** Tailwind classes for the button label specifically (size/weight differ from the title per spec). */
+  /** Tailwind classes for the button labels specifically (size/weight differ from the title per spec). */
   buttonTextClassName: string;
+  /**
+   * Leave the game off the hub's cards while keeping it fully playable by
+   * link. Hidden games still get their title, colors and tile in "Your rooms"
+   * and the Continue chip, since a guest may have rooms of them.
+   */
+  hidden?: boolean;
 }
 
 /**
- * Every game available from the picker. Adding a game means an entry here,
- * an art panel (GamePickerCard.tsx's per-slug art map), its own
- * lib/games/<slug>/ + components/<slug>/ + app/<slug>/page.tsx, AND its own
- * node in database.rules.json (without that, every write is refused on
- * Firebase). The full checklist is the `add-game` skill
- * (.claude/skills/add-game/SKILL.md). A 3+ player game calls
- * useMultiplayerSession (lib/session/multiplayer/) instead of useGameSession.
+ * Every game on the platform. Adding a game means an entry here, an art panel
+ * and list tile (components/hub/GameArt.tsx), its own lib/games/<slug>/ +
+ * components/<slug>/ + app/<slug>/page.tsx, AND its own node in
+ * database.rules.json (without that, every write is refused on Firebase). The
+ * full checklist is the `add-game` skill (.claude/skills/add-game/SKILL.md). A
+ * 3+ player game calls useMultiplayerSession (lib/session/multiplayer/)
+ * instead of useGameSession.
  */
-// Co-Counsel is temporarily hidden from the picker (not removed - its entry
-// is commented out just below, not deleted, so re-enabling it later is a
-// one-line uncomment). The game itself is untouched: lib/games/cocounsel/,
-// components/cocounsel/, and app/cocounsel/page.tsx all still work exactly
-// as before, reachable directly at /cocounsel - this only affects whether it
-// shows as a card here. Unlike E-Card's removal (see docs/history/platform.md), nothing
-// about the implementation was pulled.
-export const GAMES: GameEntry[] = [
+export const ALL_GAMES: GameEntry[] = [
   {
     slug: "ftw",
     title: "First to Worst",
@@ -50,16 +49,27 @@ export const GAMES: GameEntry[] = [
     titleClassName: "font-bold",
     buttonTextClassName: "text-[19px] font-bold",
   },
-  // {
-  //   slug: "cocounsel",
-  //   title: "Co-Counsel",
-  //   description: "A cooperative mystery. Each of you knows half the story. Talk it out to find the matching pair.",
-  //   tags: ["2 players", "Best on a call"],
-  //   maxPlayers: 2,
-  //   ink: "#1C1F3D",
-  //   textSecondary: "#4A4F73",
-  //   accentColor: "#FFD23A",
-  //   titleClassName: "font-[family-name:var(--font-archivo)] font-extrabold tracking-[-0.02em]",
-  //   buttonTextClassName: "font-[family-name:var(--font-archivo)] text-[18px] font-extrabold",
-  // },
+  {
+    // Hidden from the hub at the user's request; the game itself is
+    // untouched and still plays at /cocounsel. Unhide by deleting `hidden`.
+    slug: "cocounsel",
+    title: "Co-Counsel",
+    description: "A cooperative mystery. Each of you knows half the story. Talk it out to find the matching pair.",
+    tags: ["2 players", "Best on a call"],
+    maxPlayers: 2,
+    ink: "#1C1F3D",
+    textSecondary: "#4A4F73",
+    accentColor: "#FFD23A",
+    titleClassName: "font-[family-name:var(--font-archivo)] font-extrabold tracking-[-0.02em]",
+    buttonTextClassName: "font-[family-name:var(--font-archivo)] text-[18px] font-extrabold",
+    hidden: true,
+  },
 ];
+
+/** The games shown as cards on the hub. */
+export const GAMES: GameEntry[] = ALL_GAMES.filter((game) => !game.hidden);
+
+/** Any game by slug, hidden or not - e.g. for a saved room's title and colors. */
+export function gameBySlug(slug: string): GameEntry | undefined {
+  return ALL_GAMES.find((game) => game.slug === slug);
+}

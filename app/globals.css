@@ -114,6 +114,45 @@ textarea:focus-visible {
   --cc-disabled-text-warm: #a8949a;
 }
 
+/* Game Room hub (references/game-room/game-room-ui-spec.md, "Motion"):
+   the desktop popover fades in moving 4px down over 120ms; the mobile sheet
+   slides up over 200ms while its scrim fades in. */
+@keyframes hub-popover-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.hub-popover-in {
+  animation: hub-popover-in 120ms ease-out both;
+}
+@keyframes hub-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.hub-sheet-up {
+  animation: hub-sheet-up 200ms ease-out both;
+}
+@keyframes hub-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.hub-scrim-in {
+  animation: hub-scrim-in 200ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flip-inner {
     transition: none !important;
@@ -127,6 +166,11 @@ textarea:focus-visible {
   }
   .stamp-land,
   .card-lift {
+    animation: none !important;
+  }
+  .hub-popover-in,
+  .hub-sheet-up,
+  .hub-scrim-in {
     animation: none !important;
   }
 }

@@ -20,7 +20,10 @@ Add a `GameEntry` to `GAMES` in `lib/games/registry.ts`:
   `titleClassName`, `buttonTextClassName`.
 
 Then draw the game's art panel in code under `components/gameRoom/` (like
-`FtwArt.tsx`), and add it to `ART_BY_SLUG` in `components/GamePickerCard.tsx`.
+`FtwArt.tsx`) and add it to `ART_BY_SLUG` in `components/hub/GameCard.tsx`. Also
+add a 40px list tile for "Your rooms" and the Continue chip in
+`components/gameRoom/GameTile.tsx` (without one, a game gets a generic tile in
+its accent color).
 The hub layout follows
 `references/game-room/game-room-ui-spec.md`, and its flex-wrap row already handles
 a 3rd+ card.
@@ -121,5 +124,5 @@ Reverse the steps:
 - Remove the rules node, the slug from `meta/gameSlug`, and its rules tests.
 - Remove its skill.
 
-To only *hide* a game from the hub, comment out its registry entry instead (as
+To only *hide* a game from the hub, set `hidden: true` on its registry entry (as
 Co-Counsel currently is).

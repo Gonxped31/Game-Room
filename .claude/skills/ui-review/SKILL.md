@@ -13,7 +13,7 @@ it's been seen on both. Game-specific visual rules live in the `first-to-worst` 
 
 | Area | Source of truth |
 | :--- | :--- |
-| Hub (`/`): game cards, join form, "Your rooms" | `references/game-room/game-room-ui-spec.md` + both mockups (`Game Room, mobile@2x.png` **and** `desktop@2x.png`). Its breakpoint is **760px** (`min-[760px]:`), not Tailwind's `md:`. Background `#0F7983`. |
+| Hub (`/`): game cards, join form, "Your rooms" | `references/game-room/game-room-ui-spec.md` + every board in `references/game-room/visual-design/` (desktop **and** mobile, plus the open Join and Your rooms states). Its breakpoint is **760px** (`min-[760px]:`), not Tailwind's `md:`. Background `#0F7983`. |
 | First to Worst | `references/ftw/first-to-worst.html` (the original prototype) + `first-to-worst-game-design.md` |
 | Co-Counsel | `references/co-counsel/co-counsel-visual-spec.md` + `Visual Design-png/` |
 
@@ -41,8 +41,8 @@ desktop layout entirely.
   custom-prompt box were both invisible on the teal for a while.
 - **Server-rendered inputs can be typed into before hydration.** That text never
   reaches React state, so adopt the field's DOM value on mount (see
-  `components/JoinRoomForm.tsx`). Inputs that only render after client data loads
-  (most game screens) don't have this problem.
+  the hub's old join form). Inputs that only render after client data loads or
+  a click (game screens, the hub's Join popover) don't have this problem.
 - **Accessibility patterns already in use; stay consistent:**
   - segmented switches: `role="radiogroup"`/`role="radio"` with arrow keys;
   - errors: `role="alert"` linked via `aria-describedby`, plus `aria-invalid`;

@@ -42,13 +42,6 @@ can judge whether it still applies) · **Where** (files involved).
 - **Where:** `app/cocounsel/page.tsx`, `components/cocounsel/CasePicker.tsx`,
   `lib/games/cocounsel/game.ts`, `lib/games/cocounsel/cases.json`.
 
-## The designed "Your rooms" arrives
-
-- **Do:** replace the simple `YourRooms` panel with the design.
-- **Why:** the spec (`references/new-system-design.md`, section 4) shipped a
-  deliberately plain version, with a designed one promised later.
-- **Where:** `components/YourRooms.tsx`, `components/HomeScreenTip.tsx`.
-
 ## Preview deployments should stop sharing production's data
 
 - **Do:** create a second Firebase project, deploy `database.rules.json` to it, and

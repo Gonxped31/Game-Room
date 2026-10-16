@@ -125,11 +125,16 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
   - `Header`, `Footer`, `Button`, `RoleStickers`.
   - `RolePicker` - FTW's name entry, with takeover.
   - `InviteLinkBanner` - the name field shows only for the creator.
-  - Hub: `GamePickerCard`, `JoinRoomForm`, `YourRooms`, `HomeScreenTip`.
+  - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button
+    or floating pill), `GameCard` (Start + Join), `HubOverlay` (one shared
+    popover on desktop / bottom sheet on mobile), `JoinPanel`,
+    `YourRoomsList` (+ `HomeScreenTip`), `useSavedRooms`. Art and list tiles
+    live in `components/gameRoom/`.
   - Room pages: `InAppBrowserBanner`.
   - Every page: `LocalModeBanner`.
-- **`lib/games/registry.ts`** - the hub's game list. Comment an entry out to hide a
-  game without removing it.
+- **`lib/games/registry.ts`** - every game (`ALL_GAMES`); the hub shows `GAMES`.
+  Set `hidden: true` to take a game off the hub while keeping it playable and
+  still named correctly in "Your rooms".
 
 ## Conventions
 

@@ -40,15 +40,16 @@ described below.
 
 ## How rooms work
 
-- **Starting a room.** Open a game with no `#code` in the URL and a room is created
-  for you; its code then appears in the address bar (`/ftw#k3m9pq`). Share the link,
-  or the code.
-- **Joining.** Open the link, or type the room's code or name into "Already have a
-  room?" on the home page.
+- **Starting a room.** Tap **Start** on a game's card (or open a game with no
+  `#code` in the URL) and a room is created for you; its code then appears in the
+  address bar (`/ftw#k3m9pq`). Share the link, or the code.
+- **Joining.** Open the link, or tap **Join** on a game's card and type the room's
+  code or name. If it turns out to be a room of another game, it opens anyway.
 - **Naming a room.** Whoever created it can give it a name from the invite screen.
   Names are unique: if one is taken, you'll see "That name is taken. Try another."
-- **Your rooms.** The home page lists the rooms your browser created or joined in
-  the last 30 days, most recently active first.
+- **Your rooms.** The home page's **Your rooms** button (a floating pill on phones)
+  lists the rooms your browser created or joined in the last 30 days, most recently
+  active first, and **Continue** reopens the latest one.
 - **Seats.** Each guest ID holds at most one seat per room, and seats survive "Reset
   game"/"Rematch". Anyone else with the link can watch the room, but can't change
   it.

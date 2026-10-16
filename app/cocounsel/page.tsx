@@ -53,7 +53,7 @@ export default function CoCounselPage() {
   // load (or a plain `<a>`/raw-URL visit) guarantees - a client-side
   // `router.push()` navigation from a different route does NOT reliably
   // guarantee this (confirmed live: joining via the picker's "Join a room"
-  // form could show CasePicker to a joiner). `components/JoinRoomForm.tsx`
+  // form could show CasePicker to a joiner). The hub (`components/hub/`)
   // therefore does a hard navigation (`window.location.href`, not
   // `router.push`) specifically so this lazy initializer can stay simple and
   // correct here, rather than this component trying to work around an
