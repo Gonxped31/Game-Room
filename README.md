@@ -23,7 +23,9 @@ across any of the games below, each room fully independent.
   and remembered (Focus) only shows up at the end of the case.
 
 See `CLAUDE.md` for the full architecture, each game's rules in detail, and how to
-add a new one.
+add a new one, or the [system design diagram](https://claude.ai/artifact/7irnsMVYWNt9G1Qm4FzUF1)
+for a visual, layer-by-layer walkthrough (client → Vercel → routing → shared session/store →
+per-game modules → Firebase RTDB/localStorage).
 
 ## Quick start (local test mode)
 
