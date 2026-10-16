@@ -1,62 +1,93 @@
 # Game Room
 
 A small platform for private, link-based 2-player games. No login, no accounts, no
-lobby - open the app and pick a game from `/`, and you get a fresh private room with
-a "Copy invite link" button to send the other player. Opening someone else's link drops
-you straight into their room. The first time each of you opens a room you type your
-name; after that, the game remembers who's who and exactly where you left off, even
-after closing the browser or restarting your computer - because the whole session
-lives in the shared room, not on your device. Any number of pairs can play at once,
-across any of the games below, each room fully independent.
+lobby.
+- Pick a game from `/` and you get a fresh private room, with a "Copy invite link"
+  button to send the other player. Opening someone else's link drops you straight
+  into their room.
+- The first time each of you opens a room you pick your seat (and, in First to
+  Worst, type your name). After that, the game remembers who's who and exactly
+  where you left off, even after closing the browser.
+- Any number of pairs can play at once, across any of the games below, each room
+  fully independent.
+
+Behind the scenes, each browser gets an invisible **guest ID** (Firebase Anonymous
+Auth; there is no sign-in screen). It holds your seat in each room and backs the
+"Your rooms" list on the home page.
 
 ## The games
 
-- **First to Worst** (`/ftw`) - a ranking game. One round: a prompt and exactly 5
-  topic cards (e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies,
-  Jalapenos). The **master** privately ranks the topics 1 (best) to 5 (worst); the
-  **guesser** tries to guess that ranking; both are revealed and scored. Roles swap
-  every round.
-- **Co-Counsel** (`/cocounsel`) - a cooperative mystery. One player is the
-  Investigator (external evidence), the other the Defendant (internal facts); each
-  "Part" of a case, both secretly lock in one card, trying to find the matching
-  pair while talking it out loud. No live scores - how well you listened (Trust)
-  and remembered (Focus) only shows up at the end of the case.
+- **First to Worst** (`/ftw`) - a ranking game. Each round has a prompt and exactly
+  5 topic cards (e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies,
+  Jalapenos).
+  - The **master** privately ranks the topics 1 (best) to 5 (worst).
+  - The **guesser** tries to guess that ranking.
+  - Both rankings are revealed and scored, and roles swap every round.
+- **Co-Counsel** (`/cocounsel`) - a cooperative mystery.
+  - One player is the Investigator (external evidence), the other the Defendant
+    (internal facts).
+  - In each "Part" of a case, both secretly lock in one card, trying to find the
+    matching pair while talking it out loud.
+  - There are no live scores. How well you listened (Trust) and remembered (Focus)
+    only shows up at the end of the case.
+  - Currently hidden from the home page; it still works by direct link.
 
 See `CLAUDE.md` for the full architecture, each game's rules in detail, and how to
-add a new one, or the [system design diagram](https://claude.ai/artifact/7irnsMVYWNt9G1Qm4FzUF1)
-for a visual, layer-by-layer walkthrough (client → Vercel → routing → shared session/store →
-per-game modules → Firebase RTDB/localStorage).
+add a new game. The [system design diagram](https://claude.ai/artifact/7irnsMVYWNt9G1Qm4FzUF1)
+gives a visual, layer-by-layer walkthrough, but it predates the guest-ID rework
+described below.
+
+## How rooms work
+
+- **Starting a room.** Open a game with no `#code` in the URL and a room is created
+  for you; its code then appears in the address bar (`/ftw#k3m9pq`). Share the link,
+  or the code.
+- **Joining.** Open the link, or type the room's code or name into "Already have a
+  room?" on the home page.
+- **Naming a room.** Whoever created it can give it a name from the invite screen.
+  Names are unique: if one is taken, you'll see "That name is taken. Try another."
+- **Your rooms.** The home page lists the rooms your browser created or joined in
+  the last 30 days, most recently active first.
+- **Seats.** Each guest ID holds at most one seat per room, and seats survive "Reset
+  game"/"Rematch". Anyone else with the link can watch the room, but can't change
+  it.
+- **Getting a seat back.** If you lose your guest ID (cleared site data, a different
+  browser), the room shows your old seat as taken. You can take it back once it has
+  been offline for 2 minutes.
+- **Presence.** The green/gray dots show who's connected. A closed tab shows as
+  offline within a few seconds.
 
 ## Quick start (local test mode)
 
-No setup required. This runs entirely in `localStorage`, synced across tabs on one
-machine via the `storage` event - handy for development, not for playing with someone
-on a different device.
+No setup required. Without Firebase config, the app runs entirely in your browser's
+`localStorage`, synced across tabs via the `storage` event. That's handy for
+development, but not for playing with someone on another device. A small "Local
+mode: not synced between devices" banner shows while it's active.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), pick a game - it'll drop you into
-a random `#room` code on that game's route. Copy that URL into a second tab (or use
-"Copy invite link" in-app) and name yourselves differently in each tab to play both
-sides.
+Open [http://localhost:3000](http://localhost:3000) and pick a game; you'll land in a
+new room. Copy the URL into a second tab (or use "Copy invite link") to play both
+sides. In local mode each tab gets its own fake guest ID, so two tabs are two
+players.
 
 ## Playing across devices (Firebase)
 
-For two different people on two different devices, wire up a free Firebase Realtime
-Database. The app automatically switches to it once the env vars below are set - no
-code changes needed, and it's shared by every game on the platform.
+For two people on two devices, wire up a free Firebase project. The app switches to
+it automatically once the env vars below are set, with no code changes, and every
+game on the platform shares it.
 
 1. Create a project at [the Firebase console](https://console.firebase.google.com/).
 2. In the project, add a **Web app** (the `</>` icon on the project overview page) and
    copy the config it gives you.
-3. Still in the console, go to **Build > Realtime Database** and create a database
-   (any region is fine).
-4. Open the **Rules** tab for that database and paste in the rules from
-   [Database rules](#database-rules) below, then publish.
-5. Copy `.env.example` to `.env.local` and fill in the five values from step 2:
+3. Go to **Build > Realtime Database** and create a database (any region is fine).
+4. Go to **Build > Authentication > Sign-in method** and enable **Anonymous**.
+5. Deploy the database rules from `database.rules.json` (see
+   [Database rules](#database-rules)).
+6. Copy `.env.example` to `.env.local` and fill in the five values from step 2:
 
    ```bash
    cp .env.example .env.local
@@ -70,70 +101,84 @@ code changes needed, and it's shared by every game on the platform.
    | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Web app config: `projectId` |
    | `NEXT_PUBLIC_FIREBASE_APP_ID` | Web app config: `appId` |
 
-6. `npm run dev` and open the app - share the URL (with your `#room` hash) with the
-   other player.
+7. Restart `npm run dev` (env vars are read when the server starts) and open the app.
 
-All five are `NEXT_PUBLIC_*` because the Firebase web config isn't a secret - it's
-meant to ship in client bundles, same as every Firebase web app. `.env.local` is
-git-ignored; never commit it. Leave any of the five unset and the app falls back to
-local test mode automatically.
+All five are `NEXT_PUBLIC_*` because the Firebase web config isn't a secret: it's
+meant to ship in client bundles, like every Firebase web app. `.env.local` is
+git-ignored, so never commit it. Leave any of the five unset and the app falls back
+to local test mode, except on Vercel, where the build fails instead (see
+[Deploying to Vercel](#deploying-to-vercel)).
+
+To test two players on one machine with Firebase, use a **normal window plus a
+private window** (or two browsers). Every tab of one browser shares one guest ID,
+and one guest ID holds one seat per room.
 
 ### Database rules
 
-These games have no accounts, so there's no user identity to check - the only thing
-rules can reasonably scope access to is the room path itself:
+The rules live in `database.rules.json`. Deploy them with the Firebase CLI (it's a
+dev dependency):
 
-```json
-{
-  "rules": {
-    "games": {
-      "$roomId": {
-        ".read": true,
-        ".write": true
-      }
-    },
-    "roomsByName": {
-      "$normalizedName": {
-        ".read": true,
-        ".write": true
-      }
-    }
-  }
-}
+```bash
+npx firebase deploy --only database --project <your-project-id>
 ```
 
-The `games` block denies everything outside `/games/<roomId>` by default (Realtime
-Database rules don't cascade upward), and allows read/write to a specific room to
-anyone who has that room's URL. Every game on the platform nests its own state
-*under* its room's path (`games/<roomId>/<gameSlug>`), so this single rule already
-covers every game - adding a new one needs no console changes. See the limitation
-below for what that single rule means in practice.
+Or paste the file's contents into **Realtime Database > Rules** in the console.
 
-The `roomsByName` block is a separate top-level path (not nested under any room) that
-backs "join a room by name" - a small index from a room's normalized display name to
-its room code(s), written whenever a room is given a name via `InviteLinkBanner`. It
-needs this second rule block because it isn't reachable via the `games` cascade at
-all; local/no-Firebase dev mode needs no console change for this (or anything else).
+Everything is keyed on the guest ID (`auth.uid`):
+
+```
+games/{roomCode}/
+  meta:       { gameSlug, maxPlayers, createdAt, createdBy, name?, nameKey? }  // write-once, except name/nameKey (creator only)
+  seats:      { p1: uid, p2: uid, ... }      // who sits where
+  members:    { [uid]: "p1" }                // reverse index: "is this uid in the room?" in one lookup
+  players:    { p1: { name }, ... }          // display names
+  presence:   { [uid]: { online, lastSeen } }
+  lastActive: number
+  ftw | cocounsel: { ...game state... }      // one per room, validated field by field
+roomsByName/{nameKey}: roomCode              // unique, first come first served
+users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
+```
+
+What the rules enforce:
+- **Access**: any signed-in guest with a room's code can *read* it, but only the
+  room's seated members can change it.
+- **Seats**: a guest holds at most one seat per room, and `seats` and `members`
+  always change together. A seat can be taken over only after its holder has been
+  offline for 2 minutes. Seat numbers above `meta.maxPlayers` are refused.
+- **Names and state**: room names are unique, and game state must match each
+  game's shape.
+- **Listing**: nobody can list `/games`, `/roomsByName` or another guest's
+  `/users` entry.
+
+The rules are covered by emulator tests in `tests/rules/` (`npm run test:rules`).
+The header of `tests/rules/rooms.test.ts` has the checklist for adding a new game.
+
+**Deploy the app before the rules.** An older client can't create rooms under these
+rules. Rooms created before them aren't migrated and stop loading once the rules
+are live.
 
 ## Known limitations
 
 These apply to every game on the platform:
 
-- **No auth, no anti-cheat.** Anyone with your room's URL (`/<game>#roomname`) can
-  read or write that room's state - including seeing information that's only meant to
-  be revealed later, like First to Worst's master ranking before the reveal - or
-  overwriting the game. The room name is a shared secret, not a real access control.
-  These games are built on the assumption that you trust the person you're playing
-  with; none of them are designed to resist a motivated cheater.
-- **"Which one am I" is remembered per-tab, not per-room.** Two tabs in the same
-  browser share one `localStorage`, so that specific fact - not the player's name,
-  which lives in the shared room state - is deliberately *not* synced across tabs
-  (`lib/store/localStore.ts`'s `crossTab: false` option) - otherwise picking a name in
-  one tab would silently reassign the other tab's identity too. If a device loses that
-  memory (new device, cleared storage), it just asks "Welcome back! Which one are
-  you?" with the two names already on the room - no retyping, no lost progress. In
-  normal use (two different people, two different devices) this doesn't come up at
-  all.
+- **No anti-cheat between the two players.** A seated player can read the whole
+  room, including information that's only meant to be revealed later (like First to
+  Worst's master ranking before the reveal), and can write any valid game state.
+  These games assume you trust the person you're playing with. Outsiders with the
+  link can watch a room but can't change it.
+- **One seat per browser.** Every tab of one browser shares one guest ID. To play
+  both sides on one machine, use a normal window plus a private window (or two
+  browsers).
+- **Clearing site data loses your guest ID**, and with it your seats and "Your
+  rooms" list. You can take your old seat back once it has been offline for 2
+  minutes.
+  - Safari on iOS wipes a site's storage on its own after about 7 days without a
+    visit. Apps added to the Home Screen are exempt, so the home page suggests
+    adding Game Room there.
+  - In-app browsers (Messenger, Instagram, WhatsApp, ...) keep their own separate
+    storage, so room pages opened in one suggest switching to Safari or Chrome.
+- **Previews share production's database** unless you give Vercel's Preview
+  environment a different Firebase project.
 
 First to Worst has one additional quirk: a round's score is the count of topic cards
 where the master and guesser assigned the exact same number (1-5) - see
@@ -147,11 +192,19 @@ has nowhere else to go but its correct spot too. So you'll only ever see 0, 1, 2
 
 1. Push this repo to GitHub (or GitLab/Bitbucket).
 2. Import it at [vercel.com/new](https://vercel.com/new).
-3. Add the five `NEXT_PUBLIC_FIREBASE_*` environment variables from your `.env.local`
-   in the Vercel project's **Settings > Environment Variables** (skip this to ship in
-   local-only mode, which won't work for two separate players).
-4. Deploy. Share `https://<your-app>.vercel.app/<game>#your-room-name` with the other
-   player.
+3. In the Vercel project's **Settings > Environment Variables**, add the five
+   `NEXT_PUBLIC_FIREBASE_*` variables from your `.env.local`, for both
+   **Production** and **Preview**. A Vercel build with any of them missing or empty
+   fails with a message naming them, rather than shipping an app that can't sync.
+4. Deploy, then deploy the database rules (see [Database rules](#database-rules)),
+   in that order.
+5. Share `https://<your-app>.vercel.app/<game>#<room-code>` with the other player.
+
+**Preview URLs need no Firebase setup.** Firebase's *Authorized domains* list only
+applies to OAuth redirect/popup and email-link sign-ins, not anonymous sign-in, so
+each new preview URL works as-is. The one exception: if you restricted the Firebase
+API key to specific websites in Google Cloud Console (APIs & Services >
+Credentials), allow `https://*.vercel.app/*` there.
 
 ## Renaming
 
@@ -161,7 +214,7 @@ by. To rename the platform itself, or any individual game:
 
 ```ts
 // lib/games/registry.ts
-export const APP_TITLE = "Game Room"; // the picker's title
+export const APP_TITLE = "Game Room"; // the picker's title, the Home Screen app name
 
 // lib/games/ftw/constants.ts
 export const GAME_TITLE = "First to Worst"; // change this
@@ -173,11 +226,39 @@ turn" indicator - nothing else needs to change.
 ## Development
 
 ```bash
-npm run dev      # dev server at localhost:3000
-npm run build    # production build (also type-checks)
-npm run lint     # eslint
-npm run test     # vitest (lib/**/*.test.ts - scoring, state transitions, prompt bank)
+npm run dev        # dev server at localhost:3000
+npm run build      # production build (also type-checks)
+npm run lint       # eslint
+npm run test       # vitest: game logic, prompt bank, session update builders, presence
+npm run test:rules # database.rules.json against the Firebase Database emulator (needs Java)
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, a type-check, `npm test` and
+`npm run test:rules` on pushes to `main` and on pull requests.
+
+### Testing against the emulators
+
+To try the full guest-ID and rules flow without touching a real Firebase project,
+start the emulators, then point a dev server at them (shell env vars override
+`.env.local`; stop any other `npm run dev` first, since Next allows one dev server
+per project):
+
+```bash
+npx firebase emulators:start --only auth,database --project demo-game-room
+
+# in another terminal:
+NEXT_PUBLIC_FIREBASE_API_KEY=demo-key \
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-game-room.firebaseapp.com \
+NEXT_PUBLIC_FIREBASE_DATABASE_URL="http://127.0.0.1:9000/?ns=demo-game-room-default-rtdb" \
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-game-room \
+NEXT_PUBLIC_FIREBASE_APP_ID=demo-app \
+NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL=http://127.0.0.1:9099 \
+npm run dev
+```
+
+Open the app in a normal window and a private window to play both sides. If
+`npm run test:rules` later reports "port taken", an emulator from this is still
+running.
 
 See `CLAUDE.md` for the project's architecture, conventions, and stage-by-stage build
 history.

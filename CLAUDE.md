@@ -1,360 +1,449 @@
-# First to Worst (repo) — multi-game 1v1 platform
+# Game Room (repo) — a platform for private, link-shared 1v1 games
 
 This repo started as a single private 2-player ranking game, **First to Worst**
-("FTW" below). It's now a small **platform for 1v1 games that share a link** - `/`
-is a game picker, each game lives on its own route, and they all share one generic
-"2-player session" layer (room code, player identity, backend-agnostic store). First
-to Worst is the first game; see the Status section for others as they're added.
+("FTW" below). It's now a small **platform for games that share a link**:
+- `/` is a game picker (the "hub").
+- Each game lives on its own route (`/ftw`, `/cocounsel`) with a `#roomcode` hash.
+- Every game shares one session layer: invisible guest identity, rooms, seats,
+  presence and a backend-agnostic store.
 
-## Multi-game architecture
+The games are First to Worst and Co-Counsel (currently hidden from the picker; see
+Status). Their rules and history are in their own sections at the end of this file.
 
-- **Routing**: `/` is the game picker (`lib/games/registry.ts` + `app/page.tsx`, a
-  server component with no session logic of its own). Each game lives at `/<slug>`
-  (e.g. `/ftw`), with its own `#roomcode` hash exactly like the original
-  single-game app had at `/`.
-- **`lib/session/`** - game-agnostic, shared by every game, changes rarely:
-  - `types.ts` - `Role` (`"p1"|"p2"`, the two seats in any 1v1 game - never
-    renamed per-game; a game maps its own role names, e.g. "Master"/"Guesser" or
-    "Emperor"/"Slave", onto p1/p2) and `WithIdentity` (`{ names:
-    Partial<Record<Role,string>> }`, the shape every game's state must include).
-  - `identity.ts` - `setIdentityName<T extends WithIdentity>(state, role, name)`,
-    generic over any game's state. **Rejects claiming a seat someone else already
-    holds while the other seat is still open** - without this, two devices
-    tapping a role button at nearly the same moment (a real bug reported live:
-    "when someone picks a role, normally the other should not be able to pick
-    role - this doesn't work yet") could both succeed, since nothing previously
-    stopped a second write from silently overwriting the first. Worse for
-    Co-Counsel specifically: role → character name is a fixed 1:1 mapping (always
-    "Maya"/"Leo"), so both racing devices write the *identical* name value,
-    meaning neither the UI nor the shared state shows any conflict signal - both
-    devices believe they're the same seat, and the other seat never gets claimed.
-    Fixed with the same "throw to abort" pattern already used throughout this
-    codebase (FTW's `lockIn`, Co-Counsel's `game.ts` transitions), now applied to
-    identity claiming too: `setIdentityName` throws if `role` is already claimed
-    AND the other seat is still open (once *both* seats are claimed, re-writing
-    one is allowed again - that's the "Welcome back, which one are you?"
-    re-confirmation, not a race). `Store<T>.transaction()` (`lib/store/types.ts`)
-    was extended to resolve to the value actually written (or `undefined` if
-    aborted) instead of `void`, so `useGameSession`'s `pickIdentity` can await
-    that result and only claim this device's own local seat (`meStore`) *after*
-    the shared write actually lands - it used to set `meStore` optimistically
-    beforehand, which is what let the losing device believe it held a seat
-    someone else actually has. Every other `.transaction()` call site in the
-    codebase stays fire-and-forget (an async function is still assignable to a
-    `(role, name) => void`-shaped interface, so nothing else needed to change).
-    **Hit and fixed a real regression while live-testing this fix**: the new
-    guard code read `state.names[role]` directly, but a never-before-joined
-    room's state has no `names` key *at all* (Firebase drops an empty `{}` on
-    write - see "Store design notes" below), so the very first role pick on any
-    fresh room threw a `TypeError` that the caller's `catch` swallowed as a
-    rejection - silently breaking the ordinary, non-racing happy path for every
-    new room. A sequential-click test with generous delays didn't catch this
-    (it reused an already-claimed room); only a true concurrent-click Playwright
-    run against a *fresh* room surfaced it. Fixed by normalizing
-    `state.names ?? {}` before any read. Verified live against real Firebase
-    with three two-device Playwright runs: (1) two devices racing to claim the
-    same role - exactly one wins, the loser stays on `RolePicker` with both
-    buttons still enabled and successfully claims the other role, both end up
-    playing; (2) the normal sequential pick-one-then-the-other flow, unaffected;
-    (3) "Welcome back, which one are you?" after clearing one device's local
-    `me` - re-confirming an already-held role still works. Zero console errors
-    across all three.
-  - `room.ts` - `generateRoomCode()`, a 6-char room code (ambiguous characters like
-    `i`/`l`/`0`/`o` excluded).
-  - `useGameSession.ts` - the hook every game's page calls once:
-    `useGameSession({ gameSlug, createInitialState })` returns `{ room, game, me,
-    other, names, bothJoined, online, pickIdentity, transact, setGame, newRoom }`.
-    Handles room resolution (including auto-generating a fresh room for a bare
-    visit - see below), the store, "who am I / has my partner joined", and presence
-    (see `presence.ts` below). A game's page only has to deal with its own rules on
-    top of this.
-  - `presence.ts` - a seat is "online" if its heartbeat (written every
-    `HEARTBEAT_INTERVAL_MS` by whichever tab holds that seat) is newer than
-    `STALE_AFTER_MS` (3 missed beats). Lives at its own store path
-    (`games/{room}/presence`, a sibling of `games/{room}/{slug}`), not inside any
-    game's own state - it changes on a timer unrelated to gameplay, and nesting it
-    in the game object would mean every heartbeat write has to merge-and-preserve
-    whatever the game state happens to be instead of just "I'm here". One presence
-    store per *room*, not per game, so a seat reads the same online/offline
-    regardless of which game is currently open. `useGameSession` writes its own
-    heartbeat on an interval while `me` is set, best-effort deletes it on unmount
-    (covers a clean "back to games" navigation near-instantly), and otherwise relies
-    purely on staleness (covers a closed tab/dead connection, ~`STALE_AFTER_MS`
-    slower). A local tick drives re-evaluating staleness even when the partner's
-    heartbeat simply stops arriving - no write ever happens on a timeout, so nothing
-    would otherwise re-render. That tick starts at `null` and is only ever set from
-    inside a `setTimeout`/`setInterval` callback, never read directly during
-    render - reading the live clock during render is what Next's Cache Components
-    flags as an unstable value a prerender could capture, and setting React state
-    synchronously in an effect body (rather than from a callback reacting to an
-    external timer) is what this project's `react-hooks/set-state-in-effect` ESLint
-    rule flags. `RoleStickers` renders an optional small green/gray dot per seat
-    when a game passes `online` through (e.g. `app/ftw/page.tsx`); omitting the prop
-    skips the dot entirely, so this is opt-in per game, not required.
-    **Self-heals a device whose seat claim (`me`) outlives the shared `names`
-    it was built on** - a game resetting its own state in place (e.g. FTW's
-    "Reset game", Co-Counsel's "Rematch"/"Start a new case") calls
-    `setGame(createInitialState())`, which wipes the shared `names` back to
-    `{}`, but `me` is a separate, local-only store on EACH device that
-    doesn't get touched by that write on either side. Without self-healing,
-    whichever device(s) still had `me` set would never re-show `RolePicker`
-    (so `names` never gets repopulated) while `bothJoined` reads false -
-    stranding them on an `InviteLinkBanner` they can never get past. A
-    `hadNameRef` ref (not component state - this doesn't need a re-render of
-    its own) tracks whether `names[me]` has been truthy at any point; only a
-    true→false transition (an actual reset) clears the local `me`, not
-    `names[me]` simply not having landed yet (`pickIdentity` sets `me`
-    locally/synchronously but writes the shared name through a
-    `gameStore.transaction`, which can take a real round-trip on Firebase).
-    **Found and fixed this session** after Co-Counsel's own "Start a new
-    case" (built for the Adjourned ending below) got stuck exactly this way
-    in live two-device testing - traced to last session's restructuring of
-    Co-Counsel's branching from `!bothJoined → RolePicker` to the split
-    `!me → RolePicker` / `!bothJoined → InviteLinkBanner` shape (to match
-    FTW's), which silently broke the "re-prompt for a role on reset"
-    behavior Co-Counsel's original design had relied on. FTW turned out to
-    have the identical latent bug in "Reset game" the whole time (same root
-    cause, just never exercised); this fix covers both without either game's
-    page needing any changes.
-  - `roomMeta.ts` - `RoomMeta` (`{ gameSlug, name? }`), stored at `games/{room}/meta`
-    (another sibling store path, like `presence`). `useGameSession` bootstraps
-    `gameSlug` into it the first time a room's hash exists (backfilling an existing
-    pre-this-feature room too, not just a fresh one - a no-op transaction once meta
-    already has a value), and exposes `roomName`/`setRoomName` so any game can let
-    players give their room an optional display name. This is what makes "join a
-    room by code" possible from the picker without asking which game it's for -
-    `readRoomMeta(room)` (a one-off lookup via `Store.readOnce()`, not the live
-    `subscribe`/`getSnapshot` pair everything else uses, since there's no ongoing
-    subscription to an arbitrary typed-in code) is how `components/JoinRoomForm.tsx`
-    finds out where to route. `setRoomName` clears the name by building a fresh
-    `{ gameSlug }` object rather than spreading the old value and setting
-    `name: undefined` - the same Firebase-rejects-explicit-undefined lesson as
-    everywhere else that clears an optional field.
-    **Also backs joining by room name, not just code.** `normalizeRoomName`
-    (trim + lowercase) and `findRoomsByName(name)` read a name→room-codes
-    index at `roomsByName/{normalizedName}` (via the new
-    `createRoomNameIndexStore`, see Store design notes) - a genuinely
-    separate top-level path from `games/`, not nested under any room, so it
-    needs its own Firebase rule rather than riding the existing
-    `games/$roomId` cascade (see README's "Database rules"). `setRoomName`
-    (in `useGameSession.ts`) keeps this index roughly in sync - removing the
-    room's old name entry and adding the new one - best-effort and NOT
-    atomic with the meta write (a different store/path entirely).
-    `findRoomsByName` tolerates that: every candidate code the index returns
-    gets validated against its own live `readRoomMeta` before being trusted,
-    which is also what makes a renamed-away room's stale index entry harmless
-    without needing a separate cleanup pass to be perfectly reliable.
-    `components/JoinRoomForm.tsx` treats a typed room code as authoritative
-    when present (name field ignored); given a name alone, zero matches is
-    "not found", one match routes directly, and 2+ matches renders an inline
-    disambiguation list (room code + game title per row) instead of guessing.
-- **`lib/session/multiplayer/`** - a second, parallel session layer for games with
-  **3+ players**, since `lib/session/`'s `Role` is a closed `"p1"|"p2"` union by
-  design (its own doc comment says "never renamed per-game") and everything built on
-  it - `WithIdentity`, `useGameSession`'s `other`/`bothJoined`, `RolePicker`,
-  `Header`'s `myScore`/`theirScore` props - bakes in exactly 2 seats somewhere. Rather
-  than widen `Role` (which every existing 1v1 game, including FTW, depends on),
-  this is a **fully separate module that duplicates the small amount of
-  2-seat-shaped logic** instead of generalizing it - the same "parallel module over
-  shared abstraction" pattern as E-Card getting its own `lib/games/ecard/` instead of
-  reusing FTW's. Every file under the top-level `lib/session/` is untouched by this
-  (`git diff` on `types.ts`/`identity.ts`/`presence.ts`/`useGameSession.ts` is empty),
-  so FTW's behavior provably can't be affected.
-  - `types.ts` - `SeatId` (`string`, not a literal union - generated as `"p1".."pN"`
-    by `seatIds(maxPlayers)` since N varies per game) and `WithMultiplayerIdentity`
-    (`{ names: Partial<Record<SeatId,string>> }`, the N-player counterpart to
-    `WithIdentity`).
-  - `identity.ts` - `setMultiplayerIdentityName`, a direct counterpart to
-    `setIdentityName` generalized from `Role` to `SeatId`.
-  - `presence.ts` - re-exports `HEARTBEAT_INTERVAL_MS`/`STALE_AFTER_MS` from the 1v1
-    `presence.ts` (pure constants, no reason to duplicate those) and defines
-    `isSeatOnline`, the `SeatId`-generalized counterpart to `isOnline`.
-  - `useMultiplayerSession.ts` - the hook: `useMultiplayerSession({ gameSlug,
-    maxPlayers, createInitialState })` returns `{ room, game, seats, me, otherSeats,
-    names, joinedSeats, unclaimedSeats, allJoined, online, pickIdentity, transact,
-    setGame, newRoom }`. Mirrors `useGameSession` internally (same hash-based room
-    resolution duplicated rather than extracted into a shared hook, for the same
-    don't-touch-the-working-file reasoning; reuses `createGameStore` and
-    `generateRoomCode` **unchanged**, since neither has any player-count coupling to
-    begin with) - the only real differences are seat-count-driven: `online`/seat
-    lists are built by mapping over `seats` instead of two hardcoded `p1`/`p2`
-    object-literal entries, and `unclaimedSeats`/`allJoined` replace the 1v1 hook's
-    `!names.p1 ? "p1" : ...` chain and `bothJoined` boolean. Presence is written to
-    the same `games/{room}/presence` path the 1v1 layer uses (intentional - presence
-    is per-*room*, not per-game, and `SeatId` is a superset of `Role`'s two values,
-    so there's no shape conflict).
-  - **No game is built on this yet** - it's backend-only, added ahead of having a
-    specific 3+ player game in mind. `components/RoleStickers.tsx` would work for a
-    future N-player game's UI unchanged (already a generic `roles: {...}[]` array,
-    no count assumption); `RolePicker`/`Header` would not (hardcoded to exactly 2
-    seats/scores) and would need new N-player equivalents whenever a real game is
-    built on top of this. Verified end-to-end (room auto-creation, 3 distinct seats
-    claiming, the "room full" case, live presence, and store sync all working against
-    real Firebase) via a throwaway test page that was deleted before committing -
-    `lib/session/multiplayer/` ships with Vitest coverage for every pure function
-    (`seatIds`, `setMultiplayerIdentityName`, `isSeatOnline`) but, like
-    `useGameSession`, the hook itself has no unit test, consistent with this
-    project's pattern of verifying hooks live rather than in Vitest.
-- **`lib/store/`** stays fully generic and untouched by the multi-game split -
-  `createGameStore<T>(room, gameSlug)` is already backend-agnostic (Firebase when
-  all five `NEXT_PUBLIC_FIREBASE_*` env vars are set, else `localStorage`). The
-  slug is nested **under** the room code (`games/{room}/{slug}` in Firebase,
-  `game:{slug}:{room}` in localStorage) - not the other way around - so the
-  existing Firebase rule (`games/$roomId: {.read:true,.write:true}`) already
-  covers every game via RTDB's rule cascade, with zero console changes needed to
-  add a game. This also means two different games started under the same room
-  code (unlikely, but possible if someone edits the URL path while keeping the
-  hash) can't clobber each other's state. `createRoomNameIndexStore(name)` is the
-  one exception - a separate top-level `roomsByName/` path backing "join a room by
-  name" (`lib/session/roomMeta.ts`), deliberately NOT built on `createGameStore`
-  (different path shape, different localStorage key scheme) so that already-working
-  function stays untouched; see Store design notes and README's "Database rules".
-- **Shared, reusable as-is by any game**: `components/Button.tsx`, `Header.tsx`
-  (takes a `title` prop - no game-specific import; always renders a `←` link back to
-  `/`, so no game ever traps a player once they've started it), `Footer.tsx` (also
-  has an "All games" link, as a second way back; shows a user-set room name
-  alongside the raw code, via the `roomName` prop), `RolePicker.tsx`,
-  `InviteLinkBanner.tsx` (the `room`/`roomName`/`onRenameRoom` props back its
-  optional "name this room" field; `accentColor`/`accentShadowColor`/
-  `accentTextColor` theme its button - default to FTW's own pink so FTW's call site,
-  which passes none of them, stays pixel-identical), `RoleStickers.tsx` (takes a
-  generic `roles: {emoji,label,name,isYou}[]` array, so each game supplies its own
-  role names/emoji through the same pill-badge component), `JoinRoomForm.tsx` (the
-  picker page's "enter a room code or name to jump back in" box - a code routes
-  directly via `RoomMeta`; a name goes through `findRoomsByName`, routing directly
-  for exactly one match or rendering an inline disambiguation list for more than
-  one - with no game picked ahead of time either way), `GamePickerCard.tsx` (one
-  `GameEntry` → the picker's per-game card - image band, tagline, info-pill tags,
-  and a themed "Start a room" pill; the whole card is a single `<Link>`, with the
-  pill rendered as a styled `<span>` rather than a real `<button>`, since nesting
-  an interactive element inside the anchor would be invalid HTML).
-- **Per-game, not shared**: each game gets `lib/games/<slug>/` (its own pure state
-  machine + constants + tests, mirroring `lib/games/ftw/game.ts`'s pattern: throw on
-  an invalid transition, no mutation, `Vitest` coverage for every transition and
-  edge case) and `components/<slug>/` (its own visuals - card faces, board layout,
-  etc. - nothing about e.g. `CardFace.tsx`'s gradient-number design is reusable
-  across games with a different theme). `app/<slug>/page.tsx` wires `useGameSession`
-  to that game's own logic and components.
-- **Adding a new game later**: add a `GameEntry` to `lib/games/registry.ts` (now
-  including `image` - a header illustration under `public/games/` - `tags` - the
-  picker card's info pills, e.g. `["2 players", "Live or anytime"]` - and
-  `accentColor`/`accentShadowColor`/`accentTextColor` for its "Start a room" pill,
-  typically the same per-game palette already passed to `InviteLinkBanner`), then
-  its own `lib/games/<slug>/`, `components/<slug>/`, `app/<slug>/page.tsx` -
-  nothing else shared needs to change.
+The **architecture and data model below describe the system as it is now**. The
+per-game "Status" logs further down are a chronological history: older entries
+describe mechanisms that have since been replaced (seats stored in game state,
+per-tab `me` pointers, a polling heartbeat, the open `games/$roomId` rule). Where
+a history entry disagrees with the architecture sections, the architecture
+sections win.
+
+## Architecture
+
+### Routing
+
+- `/` is the hub: `app/page.tsx`, a server component with no session logic. It
+  contains the game cards (`lib/games/registry.ts` → `GamePickerCard`),
+  `JoinRoomForm`, and `YourRooms` (with `HomeScreenTip`).
+- Each game lives at `/<slug>`, with the room code in the URL hash (`/ftw#k3m9pq`).
+  A bare visit with no hash creates a fresh room first, then writes its code into
+  the hash.
+- Navigating *into* a room from the hub (`JoinRoomForm`, `YourRooms`) is always a
+  **hard navigation** (`window.location` / a plain `<a>`), never `router.push` or
+  `next/link`. Co-Counsel's "am I this room's creator" check reads
+  `window.location.hash` on its very first render, which only a real page load
+  guarantees (see Co-Counsel Status, Stage 8).
+
+### Guest identity (`lib/session/shared/auth.ts`)
+
+- **Firebase Anonymous Auth, invisible.** There is no sign-in screen and there
+  never will be (a product decision, not a missing feature).
+  - `signInAnonymously` runs once, only when there's no persisted user, with the
+    SDK's default local persistence.
+  - `useGuestAuth()` returns `{ status: "loading" | "ready" | "error", uid }`.
+  - `ensureGuestUid()` is the promise form, for one-off reads outside a hook (e.g.
+    `JoinRoomForm`).
+  - When sign-in fails, pages show `CONNECTION_ERROR_MESSAGE` ("Can't connect right
+    now. Check your connection and reload."). There is never a silent fallback to
+    local mode.
+- **Every tab of one browser shares one uid**, and **one uid holds at most one
+  seat per room**. To play both sides on one machine against Firebase, use a
+  normal window plus a private window (or two browsers), not two tabs.
+- **Local mode** (no Firebase config) uses a fake uid in **sessionStorage**, so
+  each tab has its own uid, kept across reloads of that tab. This is a deliberate
+  deviation from the spec's "localStorage": it keeps two-tab play working locally,
+  which is the whole point of local mode.
+- Dev only: `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL` points Auth at the emulator
+  (README, "Testing against the emulators").
+
+### Room data model (`database.rules.json` is the source of truth)
+
+```
+games/{roomCode}/
+  meta:       { gameSlug, maxPlayers, createdAt, createdBy: uid, name?, nameKey? }
+  seats:      { p1: uid, p2: uid, ...pN }       // who sits where
+  members:    { [uid]: "p1" }                   // reverse index: which seat this uid holds
+  players:    { p1: { name }, ... }             // display names, keyed by seat
+  presence:   { [uid]: { online, lastSeen } }
+  lastActive: number
+  ftw | cocounsel: { ...game state... }         // exactly one, matching meta.gameSlug
+roomsByName/{nameKey}: roomCode                 // unique, first come first served
+users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
+```
+
+- **`meta`** is write-once, except `name`/`nameKey`, which only `meta.createdBy`
+  may set, change or clear (from `InviteLinkBanner`; joiners don't see the field).
+  `meta.maxPlayers` is required: it must be 2 for `ftw`/`cocounsel`, and 2–8 for
+  anything else. The rules refuse seats above it, so a full room is enforced by
+  the database.
+- **Room codes** are 6 characters from `lib/session/room.ts`'s alphabet (no
+  `i`/`l`/`o`/`0`/`1`). The rules reject anything else.
+- **`seats` and `members` must always change together**, in ONE multi-path
+  `updateRoot()`. The rules check each side against the other, because rules
+  can't loop over N seats to ask "is this uid in the room?". `members/{uid}`
+  answers that in one lookup.
+- **The rules only allow writes at the child paths they name.** A `set`,
+  `update` or transaction on `games/{room}` itself is denied, and so is a
+  transaction on `seats`. Game state is transacted at `games/{room}/{slug}`.
+- **Every write the session layer sends is built by the pure functions in
+  `lib/session/shared/updates.ts`**, one per action:
+
+  | Action | Builder | Notes |
+  | :--- | :--- | :--- |
+  | Create room | `createRoomUpdate` | `meta` + initial game state + creator's `users/` entry. **Seats nobody**: the creator claims a seat through the picker like everyone else (a Co-Counsel creator may want p2). The rules allow the creating update to write the game state before anyone is a member. |
+  | Claim empty seat | `claimSeatUpdate` | seat + members + `players/{seat}` + `users/{uid}/rooms/{code}` |
+  | Switch to an empty seat | `switchSeatUpdate` | old seat null, new seat, members, name |
+  | Swap two seated members | `swapSeatsUpdate` | Co-Counsel's "Switch role instead". The rules allow only a permutation of existing members, never a kick. Names stay with the seat. |
+  | Leave | `leaveRoomUpdate` | seat + members + presence removed together |
+  | Take over an offline seat | `takeOverSeatUpdate` | holder `online: false` and `lastSeen` over 2 min old; old `members` entry removed in the same update; the taker's old seat (if any) vacated |
+  | Name / rename / clear | `roomNameUpdate` | `meta/name` + `meta/nameKey` + new `roomsByName` entry + old entry nulled, all in one update. A taken name fails the whole update ("That name is taken. Try another."). |
+
+- **Names**: `nameKey(name)` lowercases, trims, turns spaces into `-`, drops
+  anything not `a-z0-9-`, and requires 3–40 characters. `meta.nameKey` must match a
+  `roomsByName` entry that points back at the room. Room names are unique, so
+  joining by name finds at most one room.
+- **Reads**: any signed-in guest with a code can read that room, which is how a
+  third window can watch but not play. Nobody can read the parents `/games` or
+  `/roomsByName`, or another guest's `/users/{uid}`. Never query a parent node.
+- **Game-state validation**: `ftw`/`cocounsel` have full `.validate` rules derived
+  from their TypeScript state types:
+  - allowed keys only (`$other: false` at every level);
+  - field types and enums;
+  - length caps on free text;
+  - array key ranges (FTW: exactly 5 items).
+
+  FTW's custom-prompt caps (`MAX_PROMPT_LENGTH` = 120, `MAX_ITEM_LENGTH` = 60 in
+  `lib/games/ftw/constants.ts`) are enforced in the UI and in `customRound` to
+  match.
+- **Old rooms** (the pre-guest-ID shape) aren't migrated and stop loading under
+  these rules. Accepted.
+
+### `lib/session/shared/` - the room mechanics every game uses
+
+- `auth.ts` - guest identity, above.
+- `updates.ts` - the pure update builders above, plus the `RoomMeta`,
+  `UserRoomEntry` and `PresenceEntry` types.
+- `roomActions.ts` - async helpers:
+  - `createRoom` generates a code and retries up to 5 times on a collision, or
+    tries exactly one given code.
+  - `readRoomMeta`, `findRoomByName`, `renameRoom`.
+  - The user-facing messages (`ROOM_MISSING_MESSAGE`, `NAME_TAKEN_MESSAGE`,
+    `NAME_TOO_SHORT_MESSAGE`).
+- `presence.ts` - **no heartbeat**:
+  - `startPresence(room, uid)` listens to `.info/connected`. Each time it becomes
+    true, it arms `onDisconnect` → `{online: false, lastSeen: serverTimestamp()}`,
+    then writes `{online: true, ...}`.
+  - It also re-asserts `online: true` if its own entry flips to false while still
+    connected (another tab of the same uid closing triggers *its* onDisconnect for
+    the same uid).
+  - Cleanup marks the guest offline but never deletes the entry, because takeover
+    is judged on `lastSeen`.
+  - Presence is keyed by uid, so a device that lost its seat can never mark the new
+    holder offline. A seat is online when `presence[seats[seat]].online === true`
+    (`isSeatOnline`).
+  - `canTakeOver` (offline, and `lastSeen` over `TAKEOVER_AFTER_MS` = 2 min) drives
+    the "Take this seat" offers.
+- `useRoom.ts` - the core hook both session hooks wrap:
+  - **Gating**: nothing is read or written until the guest is signed in AND
+    there's a real `#code`. Firebase cancels a listener the rules deny for good,
+    so subscribing early would break it permanently.
+  - **Room resolution**: a bare visit runs `createRoom`, then sets the hash. A
+    `#code` whose `meta` is missing tries `createRoom` at that code. A `#code`
+    that can't be created there, or belongs to another game, sets `roomMissing`.
+    An offline read sets `connectionError`.
+  - **Subscriptions**: separate listeners on `meta`, `seats`, `members`, `players`,
+    `presence` and the game subtree. Never the whole room, which would resend
+    everything to every device on each presence change.
+  - **Seat actions**: `claimSeat` re-confirms an own seat, takes over a stale
+    one, switches, or claims fresh. Also `moveOrSwapTo`, `leave`, `newRoom`.
+  - **Presence and `lastActive`**: presence runs while seated. `lastActive` is
+    written with the server timestamp at most once a minute while every seat is
+    filled.
+  - **Clock**: a 15s local tick for takeover eligibility. The clock is only read
+    in timer callbacks, never during render.
+  - **Trimming**: display names are trimmed to 24 characters (the rules allow
+    1–24).
+- **Local mode has no rules**, so `useRoom`/`roomActions` re-read and pre-check
+  what the rules would deny: a taken seat, an existing room, a taken name.
+
+### `lib/session/` - the 1v1 layer (FTW, Co-Counsel)
+
+- `types.ts` - `Role` (`"p1" | "p2"`, never renamed per game; each game maps its
+  own role names onto p1/p2) and `WithIdentity`.
+- `useGameSession.ts` - the hook every 1v1 page calls once:
+  `useGameSession({ gameSlug, createInitialState })`.
+  - **Its public API is unchanged from before the guest-ID rework**: `room, game,
+    gameStore, me, other, names, bothJoined, roomName, setRoomName, online,
+    pickIdentity, releaseAllIdentities, transact, setGame, newRoom`.
+  - **Additive fields**: `uid`, `connectionError`, `roomMissing`, `canRenameRoom`,
+    `roomNameError`, `canTakeOver`.
+  - `me` is `members[uid]`, and `names` comes from `players`, filtered to seats
+    that are actually held.
+  - **Seats persist across game resets.** `setGame(createInitialState())` ("Reset
+    game", "Rematch", "Start a new case") never unseats anyone.
+  - `releaseAllIdentities()` keeps its old name but now means "switch role": an
+    atomic swap when both seats are held, or a move to the other seat when it's
+    empty.
+- **`WithIdentity` is still required on every game state**, but the session layer
+  no longer reads or writes the state's own `names` field. It stays as `names: {}`,
+  which Firebase drops on write. `identity.ts`'s
+  `setIdentityName`/`releaseAllIdentityNames` are unused now, kept along with their
+  tests.
+- `room.ts` - `generateRoomCode()`.
+
+### `lib/session/multiplayer/` - 3+ player rooms (no game uses it yet)
+
+- `useMultiplayerSession({ gameSlug, maxPlayers, createInitialState })` returns
+  `{ room, game, gameStore, uid, connectionError, seats, me, otherSeats, names,
+  joinedSeats, unclaimedSeats, allJoined, online, pickIdentity, transact, setGame,
+  newRoom }`.
+- It's the same `useRoom` core mapped onto open-ended `SeatId`s (`"p1".."pN"` from
+  `seatIds(maxPlayers)`). It's kept as a separate hook rather than merged with
+  `useGameSession`, so the 1v1 API stays stable. Merge them once a 3+ player game
+  ships.
+- `presence.ts` re-exports the shared presence helpers. `identity.ts`
+  (`setMultiplayerIdentityName`) is unused, like its 1v1 counterpart.
+- The deployed rules only allow `ftw`/`cocounsel`, so 3+ seat behaviour is tested
+  through a test-only slug (`mptest`, see Testing).
+- `RoleStickers` works for N players unchanged. `RolePicker`/`Header` are
+  hardcoded to 2 seats and would need N-player versions.
+
+### `lib/store/` - backend-agnostic data access
+
+- `config.ts` - `firebaseConfig`, `hasFirebaseConfig`, `isLocalMode`. It has no
+  `firebase` runtime import, so server components can use it.
+- `index.ts` - the API everything above uses:
+  - `createPathStore<T>(path)` returns a `Store<T>` for any path. Firebase when
+    all five `NEXT_PUBLIC_FIREBASE_*` vars are set, else `localDb.ts`.
+  - `createGameStore(room, slug)` (= `games/{room}/{slug}`).
+  - `updateRoot(values)` - a multi-path update from the root; rejects when the
+    rules deny it.
+  - `serverTimestamp()` - the server clock on Firebase (required by the rules'
+    `<= now` checks); `Date.now()` locally.
+  - `watchConnection`, `setOnDisconnect`, and `emptyStore` (for "not ready yet").
+- `firebaseApp.ts` - one shared app/database instance (auth uses the same app).
+- `firebaseStore.ts` - the Firebase `Store<T>` plus the root-level helpers.
+  `readOnce()` returns `null` **only for a rules denial** and rethrows anything
+  else (offline), so callers never act on a room's absence they didn't actually
+  observe. For example, "Your rooms" deletes an entry only when `meta` really is
+  gone. A denied write or transaction resolves to "not written" instead of
+  throwing.
+- `localDb.ts` - local mode:
+  - The whole "database" is one JSON tree under the localStorage key `localdb`,
+    addressed by the same paths as Firebase.
+  - It mirrors Firebase's write behaviour: `null`, empty objects and empty arrays
+    are dropped.
+  - It syncs across tabs of one browser *profile* via the `storage` event; it
+    can't sync across profiles, browsers or devices.
+  - `onDisconnect` is emulated with `pagehide`.
+- `types.ts` - `Store<T>`: `subscribe`, `getSnapshot`, `readOnce`, `set`,
+  `transaction`. Shaped for `useSyncExternalStore`.
+
+### Hub and room-page chrome
+
+- `components/JoinRoomForm.tsx` - one input with a Code/Name switch.
+  - The lookup always tries the typed value as a code first (`readRoomMeta`), then
+    as a name (`findRoomByName` → `roomsByName/{nameKey}` → that room's meta).
+  - Not found or denied → "We can't find that room". Offline or sign-in failure →
+    the connection message.
+  - A pasted invite link works: everything before the last `#` is dropped.
+- `components/YourRooms.tsx` - a client component on the hub, hidden while empty.
+  - It reads `users/{uid}/rooms`, then each room's `meta` and `lastActive`.
+  - It shows rooms active in the last 30 days, sorted by `lastActive` (falling back
+    to `meta.createdAt`), newest first.
+  - Each row shows the room name or code, the game title, and "Created by you".
+  - A room whose `meta` is gone is dropped and its entry removed, silently.
+- `components/HomeScreenTip.tsx` - under "Your rooms", on iOS Safari tabs only
+  (not standalone, not in-app browsers). Dismissal is remembered in localStorage.
+  Safari wipes a site's storage after ~7 days without a visit, and Home Screen
+  apps are exempt. `app/manifest.ts`, `public/icon-192.png`/`icon-512.png` and
+  `app/apple-icon.png` make installs look right, and `layout.tsx` sets
+  `appleWebApp` + `themeColor`. The icons were rasterized by a throwaway script;
+  regenerate or replace them freely.
+- `components/InAppBrowserBanner.tsx` - on both game pages. It's a slim,
+  dismissible hint with a "Copy link" button, shown inside Messenger, Instagram,
+  Facebook, WhatsApp, TikTok, Snapchat or LINE, whose browsers keep separate
+  storage. The UA list lives in `lib/inAppBrowsers.ts`. It never blocks play.
+- `components/LocalModeBanner.tsx` - a fixed "Local mode: not synced between
+  devices" pill on every page while `isLocalMode`.
+- **`next.config.ts`** throws when `process.env.VERCEL` is set and any of the five
+  Firebase vars is missing or empty, naming them. Vercel preview and production
+  builds then fail instead of shipping a local-only app.
+
+### Shared, reusable components
+
+- `Button.tsx`.
+- `Header.tsx` - takes a `title`, and always renders a `←` link back to `/`.
+- `Footer.tsx` - has an "All games" link, and shows `roomName || room`.
+- `RolePicker.tsx` - FTW's name entry.
+  - The first free seat gets the typed name.
+  - When both seats are held by other guests, it shows "Take this seat" on a seat
+    whose holder is offline and stale, and "X is playing" (disabled) otherwise.
+- `InviteLinkBanner.tsx` - copy invite link, plus the optional "Name this room"
+  field.
+  - The field shows only when `onRenameRoom` is passed (the creator), with
+    `nameError` underneath.
+  - `accentColor`/`accentShadowColor`/`accentTextColor` theme the button and
+    default to FTW's pink.
+- `RoleStickers.tsx` - a generic `roles: {emoji,label,name,isYou,online?}[]`.
+- `GamePickerCard.tsx`.
+- The hub/room chrome above.
+
+### Per-game, not shared
+
+- Each game gets:
+  - `lib/games/<slug>/` - a pure state machine that throws on invalid
+    transitions and never mutates, plus constants, content and Vitest coverage.
+  - `components/<slug>/` - its own visuals.
+  - `app/<slug>/page.tsx` - wires `useGameSession` to the game.
+- A game's page must handle three session states in its loading slot:
+  `connectionError`, `roomMissing`, and `!game` ("Connecting…").
+
+### Adding a new game
+
+1. Add a `GameEntry` to `lib/games/registry.ts`: slug, title, tags, and colors.
+2. Create `lib/games/<slug>/`, `components/<slug>/` and `app/<slug>/page.tsx`.
+3. **Rules** (the checklist is also at the top of `tests/rules/rooms.test.ts`):
+   - Add the slug to `meta/gameSlug`'s `.validate`, and to the `maxPlayers == 2`
+     check if it's 1v1.
+   - Add a `games/$room/<slug>` node with the same `.write` as `ftw` (members-only,
+     or the creating write).
+   - Write `.validate` rules from the game's state type.
+   - Add valid/invalid state tests in `tests/rules/gameState.test.ts`.
+4. Plan for RTDB's data-shape quirks from day one (Store design notes below).
 
 ## Commands
 
 ```bash
-npm run dev      # dev server at localhost:3000
-npm run build    # production build (also type-checks)
-npm run lint     # eslint
-npm run test     # vitest (lib/**/*.test.ts)
-npx tsc --noEmit # type-check only
+npm run dev        # dev server at localhost:3000
+npm run build      # production build (also type-checks)
+npm run lint       # eslint
+npm run test       # vitest (lib/**/*.test.ts) - excludes tests/rules
+npm run test:rules # database.rules.json vs the Database emulator (tests/rules/, needs Java)
+npx tsc --noEmit   # type-check only
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, `tsc`, `npm test` and
+`npm run test:rules` on pushes to `main` and on PRs.
 
 ## Conventions
 
-- Game/state-transition logic stays out of presentational components — it belongs in
-  each game's `lib/games/<slug>/` (state machine, scoring, content banks).
-- Every game's state type must satisfy `WithIdentity` (`lib/session/types.ts`) so the
-  shared session layer can show "who's in this room" without knowing anything else.
-- Local store (no Firebase env vars) and Firebase store share one `Store<T>`
-  interface (`lib/store/types.ts`) so the UI never knows which backend is active.
+- Game/state-transition logic stays out of presentational components. It belongs
+  in each game's `lib/games/<slug>/` (state machine, scoring, content banks).
+- Every game's state type satisfies `WithIdentity` (`lib/session/types.ts`).
+- Room/seat writes go through a builder in `lib/session/shared/updates.ts`, sent
+  with `updateRoot()`. Never hand-assemble seat paths in a component.
+- UI never knows which backend is active; everything goes through `lib/store`.
+- Never read the clock or `window` during render. Do it in effects or timer
+  callbacks, or via `useSyncExternalStore` with a server snapshot. Next's Cache
+  Components and this project's `react-hooks/*` lint rules flag the alternatives.
 
 ## Store design notes
 
-- `lib/store/types.ts` defines `Store<T>`: `subscribe(onChange)`, `getSnapshot()`,
-  `set(value)`, `transaction(updater)`. Shaped to drop straight into React's
-  `useSyncExternalStore` (not a plain `useEffect` + `setState`, which the project's
-  ESLint config flags as `react-hooks/set-state-in-effect`). Also `readOnce()`:
-  Promise<T|null>, a direct one-off backend read independent of `getSnapshot()`'s
-  cache (which only ever gets warm via an active `subscribe()`) - for looking up a
-  room this component isn't otherwise subscribed to, e.g. `lib/session/roomMeta.ts`'s
-  `readRoomMeta` backing the picker's "join a room by code" form.
-- `lib/store/localStore.ts` is generic (`createLocalStore<T>(key, { crossTab })`).
-  `useGameSession` uses `crossTab: true` (the default) for the shared game state —
-  syncs across tabs/devices via the `storage` event, the whole point of local test
-  mode — and `crossTab: false` for the per-tab "which seat am I" value. Two tabs in
-  the same browser share one `localStorage`, so without `crossTab: false` a seat
-  pick in one tab would silently reassign the other tab's seat too.
-  **`localStorage` is scoped to one browser PROFILE, not "the browser" in
-  general** - two tabs in the *same* Chrome profile share it (that's what
-  `crossTab: true` relies on), but two different profiles (e.g. "two Chrome
-  accounts"), two different browsers, or two different physical devices each
-  have their own, completely isolated `localStorage` with no path between
-  them at all. `lib/store/index.ts`'s `createGameStore` picks this fallback
-  whenever any of the five `NEXT_PUBLIC_FIREBASE_*` env vars is missing
-  (`hasFirebaseConfig`, resolved once at module load from `process.env.*` -
-  inlined into the client bundle at build time, not re-read live) - a user
-  report that looked exactly like a sync bug ("the first person picks a
-  role, the other device still shows it as available no matter how long we
-  wait, even after a reload") turned out to be this: a **stale dev server**
-  (started before `.env.local` existed, or left running through a `rm -rf
-  .next && npm run build` done while it was still up - deleting the live dev
-  server's `.next` cache out from under it and replacing it with a
-  production build's layout) silently serving a build where Firebase was
-  never wired up, tested across two separate Chrome profiles that could
-  therefore never see each other's writes under any circumstances. Confirmed
-  by restarting a completely clean `npm run dev` and re-running the exact
-  scenario (three isolated Playwright browser contexts, standing in for
-  three separate profiles) against it - the second, idle context saw the
-  picked role become disabled within 500ms with no reload needed, and a
-  brand-new third context loading fresh afterward saw it correctly disabled
-  too. No code bug; the fix is a one-line defensive diagnostic instead:
-  `lib/store/index.ts` now `console.warn`s once, client-side only, whenever
-  `hasFirebaseConfig` is false, so this exact "is Firebase even on?"
-  confusion surfaces immediately instead of silently producing a
-  misleading-looking sync bug report. Verified the warning stays silent on a
-  correctly configured run and confirmed it doesn't fire against the clean
-  dev server used above.
-- `transaction()` (exposed to games as `useGameSession`'s `transact`) is how
-  invalid/duplicate state transitions become safe no-ops (double clicks, double
-  tabs): a game's transition function throws on an invalid move; the store layer
-  catches that and returns `undefined` to abort without writing. Firebase's real
-  `transaction()` aborts the same way when the updater returns `undefined`.
-- **Two Realtime Database data-shape gotchas every game's `game.ts` should assume
-  from the start**, found while building (and since removed) a second game -
-  neither reproduces locally or in Vitest, only against the real Firebase project:
-  - **Dropped empty arrays.** RTDB omits a field entirely when writing an empty
-    array, so any `T[]` field that starts as `[]` round-trips as `undefined`, not
-    `[]`, the next time it's read - the symptom is a live `TypeError: ... is not
-    iterable`/`.filter is not a function` crash on the second real device. FTW
-    guards this for `usedPrompts` via `addUsedPrompt(usedPrompts: string[] |
-    undefined, ...)` - any new array field needs the same `value ?? []` treatment
-    on every read.
-  - **Explicit `undefined` is rejected, not dropped, on the way out.** Fixing
-    every *read* isn't enough - Firebase's `transaction()`/`set()` actively
-    throws (`"Data returned contains undefined in property ..."`) if the object
-    being *written* has an own property explicitly set to `undefined` (as
-    opposed to the property being absent, which is fine). A *spread* of an
-    object that's merely missing a key stays missing (safe), but an
-    object-literal key explicitly assigned a possibly-undefined expression
-    (`foo: maybeUndefined`) or a literal `undefined` (written to *clear* a
-    field) both create a real own-property-with-undefined-value that gets
-    rejected. The fix is to normalize every array field through a `value ?? []`
-    helper at the top of every exported state-transition function (so a
-    dropped-on-read array never gets re-spread into a write), and to clear an
-    optional field by building a fresh object without that key rather than
-    spreading the old one and setting it to `undefined`.
+- **`transaction()`** (exposed as the hooks' `transact`) is how invalid or duplicate
+  game transitions become safe no-ops (double clicks, two tabs). A game's
+  transition throws on an invalid move; the store catches that and aborts without
+  writing. Firebase aborts the same way when the updater returns `undefined`, and
+  a rules denial resolves to "not written".
+- **Two Realtime Database data-shape gotchas every game's `game.ts` must
+  assume.** Neither reproduces in Vitest, and local mode now mimics the first:
+  - **Dropped empty arrays/objects.** RTDB omits a field written as `[]` or `{}`,
+    so it reads back as `undefined`. Normalize every array/object field with
+    `value ?? []` / `?? {}` on read (FTW: `addUsedPrompt`; Co-Counsel:
+    `normalizeGame`).
+  - **Explicit `undefined` is rejected on write.** Firebase throws "Data returned
+    contains undefined in property ..." when a written object has an own property
+    set to `undefined`. Clear an optional field by building a fresh object without
+    the key, never with `{ ...old, field: undefined }`.
+- **Local mode is per browser profile.** Two tabs in one Chrome profile share it;
+  two profiles, browsers or devices never can. A past "sync bug" report turned out
+  to be a stale dev server running without Firebase config, tested across two
+  Chrome profiles. That's what `LocalModeBanner` (and the Vercel build guard) now
+  make impossible to miss. Restart `npm run dev` after changing `.env.local`.
+- **Deploy order matters.** Ship the client before the rules. When the new rules
+  were deployed while Vercel still served the old client (whose room creation ran
+  a transaction on `meta`), every room creation failed with `permission_denied`.
+
+## Testing
+
+- **Unit (`npm test`)** covers:
+  - the game state machines, scoring and the prompt bank;
+  - the update builders (`lib/session/shared/updates.test.ts`);
+  - presence (`lib/session/multiplayer/presence.test.ts`);
+  - in-app browser detection.
+
+  Hooks aren't unit-tested; they're verified live.
+- **Rules (`npm run test:rules`)**: `tests/rules/` under the Database emulator
+  (`firebase.json`; `vitest.config.mts` includes those files only when
+  `FIREBASE_DATABASE_EMULATOR_HOST` is set, and runs them serially).
+  - `rooms.test.ts` - the spec's 13 cases, plus swap, rename and
+    create-without-seat.
+  - `gameState.test.ts` - valid states produced by playing each game's real state
+    machine, plus invalid ones.
+  - `sessionUpdates.test.ts` - the app's own builders sent through the rules,
+    including the multiplayer `maxPlayers: 3` room (3 seated, a 4th refused).
+  - `helpers.ts` loads `database.rules.json` and can inject a test-only slug
+    (`mptest`) **in memory** for 3+ seat rooms. The file on disk never contains
+    it.
+- **Live**: run the app against the Auth + Database emulators (README, "Testing
+  against the emulators") and drive two isolated Playwright contexts. Each one
+  stands in for a separate browser or private window. The guest-ID rework was
+  verified this way:
+  - create, name, and join by name;
+  - a full FTW round;
+  - the other side shown offline ~1s after closing a tab;
+  - a third context read-only;
+  - "Your rooms" across a reload;
+  - Co-Counsel auto-assign and swap;
+  - a local-mode two-tab game.
+
+  Kill leftover emulator Java processes on ports 9000/9099 if `test:rules` reports
+  "port taken".
+
+## Deploying (Vercel + Firebase)
+
+- Enable **Anonymous** under Firebase Authentication → Sign-in method.
+- **Authorized domains aren't needed for anonymous sign-in.** That list governs
+  OAuth redirect/popup and email-link flows, and doesn't accept wildcards anyway.
+  New Vercel preview URLs work without being added. If the Firebase API key has an
+  HTTP-referrer restriction in Google Cloud Console, allow
+  `https://*.vercel.app/*` there (referrer restrictions do accept wildcards).
+- Set the five `NEXT_PUBLIC_FIREBASE_*` vars for both Production and Preview; the
+  build fails without them. **Previews and production share one database**
+  unless Preview gets a second project's values.
+- Order: deploy the app, then the rules (`npx firebase deploy --only database
+  --project <id>`, or paste `database.rules.json` into the console).
 
 ---
 
 ## First to Worst (`lib/games/ftw/`, `components/ftw/`, `app/ftw/page.tsx`)
 
 A private 2-player ranking game, no login/accounts/lobby. Ported from the single-file
-prototype at `references/first-to-worst.html` (source of truth for UI/flow/animations,
-except where `references/instructions.md` overrides it — scoring in particular).
+prototype at `references/ftw/first-to-worst.html` (source of truth for UI/flow/animations,
+except where `references/ftw/first-to-worst-game-design.md` overrides it — scoring in
+particular).
 
 - `ITEMS_PER_ROUND` (`lib/games/ftw/constants.ts`) is the only place the "5 cards per
   round" rule is encoded. Never hardcode 5 in components or logic.
 - `GAME_TITLE` (`lib/games/ftw/constants.ts`) is the working title shown in the UI. No
   logos or box art from the commercial game it's inspired by.
-- Scoring is per-card exact match (see `references/instructions.md`), not Jaccard/
-  similarity. A round score of 4 is mathematically impossible — this is expected.
+- Scoring is per-card exact match (see `references/ftw/first-to-worst-game-design.md`),
+  not Jaccard/similarity. A round score of 4 is mathematically impossible — this is
+  expected.
+- **Players and seats (current behavior).** The first player into a fresh room types
+  a name and takes the first free seat (p1 for the room's creator, unless someone
+  else got there first). The second player takes the other seat. Names are stored
+  per seat in the room's `players` node (not in FTW's game state, and not per
+  device), and master/guesser rotate per round via `masterOf(round)`. A device
+  that lost its guest ID sees both names. It can take one of those seats back once
+  that player has been offline for 2 minutes; until then the seat shows "X is
+  playing". "Reset game" restarts the game only; both players stay seated.
+- **Custom prompts** are capped at `MAX_PROMPT_LENGTH` (120) and `MAX_ITEM_LENGTH`
+  (60) characters, matching `database.rules.json`'s `ftw` validation. The built-in
+  bank's longest prompt is 74 characters and its longest item 41.
 
-**Everything below this point predates the Stage 1 multi-game refactor** and was
-written when FTW was the entire app living at `app/page.tsx` with `lib/game.ts`,
+**Everything below this point is history.** It predates the guest-ID rework (see
+"Architecture" above for how seats, names, rooms and presence work now), and much
+of it predates the Stage 1 multi-game refactor too, written when FTW was the entire app living at `app/page.tsx` with `lib/game.ts`,
 `lib/scoring.ts`, `lib/prompts.ts`, `lib/constants.ts`, `lib/room.ts`, and
 flat `components/*.tsx`. The content/decisions are all still accurate; only the
 **paths** have moved (`lib/game.ts` → `lib/games/ftw/game.ts`,
@@ -418,7 +507,10 @@ game-agnostic.
   still avoiding an immediate repeat of the very last prompt. Tested: a full-bank
   cycle has zero duplicates, and a 60-shuffle Playwright run against the real UI came back with
   60/60 unique prompts.
-- **Named players + master/guesser stickers.** Each player's display name, keyed by
+- **Named players + master/guesser stickers.** *(Names now live in the room's
+  `players` node and seats are guest-ID based. "Welcome back! Which one are you?"
+  is now the takeover path for a device that lost its guest ID; see "Players and
+  seats" above.)* Each player's display name, keyed by
   p1/p2 (not by role, since role rotates every round) is part of the shared room
   state, not local storage, and survives closing the browser or switching devices.
   `RolePicker` asks for a name instead of "I'm the master"/"I'm the guesser": the
@@ -433,7 +525,9 @@ game-agnostic.
   words for any name not yet set. Verified with a Playwright run across two tabs
   naming themselves live, a role swap flipping which sticker is highlighted, and
   the "new device" recovery flow.
-- **Invite links + multi-pair rooms.** A visitor with no `#room` in the URL at all
+- **Invite links + multi-pair rooms.** *(Now: a bare visit creates the room first,
+  then writes its code into the hash; "New room" leaves the current room first. See
+  `useRoom.ts`.)* A visitor with no `#room` in the URL at all
   used to silently land in a shared default room - fine for one pair, but two
   unrelated pairs would collide. `generateRoomCode()` now gets assigned to
   `window.location.hash` on first visit instead, via a `useEffect` that
@@ -509,6 +603,9 @@ game-agnostic.
   and tap-to-pick-up are completely unaffected.
 
 ### Status
+
+A chronological log. Entries describe what was true when they were written; the
+"Architecture" section at the top of this file is the current state.
 
 - **Stage 1 (done):** static card-table UI in local component state, including the
   3D flip animation and the full RANKING → GUESSING → REVEALED loop.
@@ -600,7 +697,7 @@ game-agnostic.
     since `COLOR.ink` is itself a `var(--cc-ink)` reference). The colors override
     `Button`'s own classes via an inline `style` prop (higher specificity than a
     Tailwind arbitrary-value class), so `Button.tsx` itself needed no changes.
-  - **Join a room by code, from the picker.** `lib/session/roomMeta.ts` is a new
+  - **Join a room by code, from the picker.** `lib/session/roomMeta.ts` (since replaced by `lib/session/shared/roomActions.ts` + `updates.ts`) is a new
     shared-session module (see "Multi-game architecture" above for the full
     design) recording which game a room belongs to, plus an optional display
     name; `useGameSession` now exposes `roomName`/`setRoomName`.
@@ -681,7 +778,7 @@ game-agnostic.
     beyond the spec (which assumes a single match): 2+ rooms sharing a name
     render an inline disambiguation list instead of guessing, carried over from
     the user's standing requirement that the spec itself doesn't mention.
-    `lib/session/roomMeta.ts`'s `roomsByName` index (and the Firebase rule it
+    `lib/session/roomMeta.ts`'s `roomsByName` index (now a unique `roomsByName/{nameKey}` entry - see Architecture) (and the Firebase rule it
     needs - see README's "Database rules") is unchanged from the first pass.
   - Verified live: desktop/mobile/exact-760px-edge screenshots against both
     mockup images: switch keyboard nav and ARIA state; join-by-code, by a
@@ -699,10 +796,52 @@ game-agnostic.
   `gameTitle()` helper falls back to the raw slug (`"cocounsel"`, not
   `"Co-Counsel"`) if someone joins such a room by code/name while it's
   hidden, a minor, accepted display-only side effect of hiding it this way
-  rather than a bug. Unlike E-Card's removal (above), no directories were
+  rather than a bug (the same fallback now applies to `YourRooms` rows). Unlike
+  E-Card's removal (above), no directories were
   deleted, no state machine or components were touched, and nothing about
   `lib/session/`'s shared layer changed - this is a pure picker-listing
   toggle.
+- **Multi-game platform Stage 9 (done): guest IDs, locked-down database rules,
+  onDisconnect presence, "Your rooms".** Implemented from
+  `references/new-system-design.md`. The current design is fully described in
+  "Architecture" at the top of this file. In summary:
+  - **Guest IDs**: Firebase Anonymous Auth; the local-mode fake uid lives in
+    sessionStorage (per tab).
+  - **Room data model**: `meta`/`seats`/`members`/`players`/`presence`/
+    `lastActive` at room level, and `users/{uid}/rooms`. Seat writes are
+    multi-path updates built by `lib/session/shared/updates.ts`.
+  - **Presence**: onDisconnect instead of the heartbeat.
+  - **Room names**: unique (`roomsByName/{nameKey}`), so the join form's
+    disambiguation list is gone.
+  - **Hub additions**: "Your rooms" with the iOS Home Screen tip, a manifest, and
+    icons.
+  - **Room-page additions**: the in-app browser banner and the local-mode banner.
+  - **Build guard**: a Vercel build without the Firebase vars fails.
+  - **Rules tests**: 86 emulator tests, wired into CI.
+
+  **Decisions made with the user before building** (where the spec conflicted with
+  the code):
+  - The user supplied `database.rules.json`, and it was then tested and fixed
+    against the emulator.
+  - Only the creator names or renames a room, later, from `InviteLinkBanner`.
+  - Seats persist across game resets, and Co-Counsel's "Switch role instead"
+    became an atomic swap.
+  - Creating a room seats nobody.
+  - 3+ seats are tested via an in-memory `mptest` slug.
+
+  **Rules changes made over the user's original file** (each proven by a test):
+  - The creator rename, with `meta/nameKey` required to match a `roomsByName`
+    entry that points at the room.
+  - The creating update may write the game state.
+  - The swap branch, in `seats` and `members`.
+  - A takeover hole: the taker's old seat must be vacated, or one uid could hold
+    two seats.
+  - `users/$uid/rooms` must be an object.
+  - Full `ftw`/`cocounsel` `.validate` rules.
+
+  **Verified** against the Auth + Database emulators (see Testing). The live
+  deploy hit one problem: the rules went out before the new client, so the old
+  client's room creation was refused (see "Deploy order matters").
 
 ---
 
@@ -716,6 +855,15 @@ anything not covered here. One player is the **Investigator** (external evidence
 the other the **Defendant** (internal facts); each "Part" of a case, both secretly
 lock in one card, trying to find the matching pair while talking out loud.
 
+- **Seats (current behavior).** Seats live at room level and persist through
+  "Rematch"/"Start a new case". The second player is auto-assigned the remaining role
+  (an effect in `app/cocounsel/page.tsx`, guarded by `pickingRef` against racing
+  this device's own click). "Switch role instead" on `ConfirmRoleScreen` (shown on
+  rejoining a still-fresh case) calls `handleSwitchRole`: an atomic seat swap when
+  both are seated, or a move to the empty role. Character names stay with the role,
+  because they're the case's fixed names. When both roles are held by other guests,
+  `RolePicker` enables a role only once its player has been offline for 2 minutes
+  (takeover).
 - **Reuses the 1v1 `useGameSession`/`Role`/`WithIdentity` session layer unchanged** -
   this is still fundamentally a 2-player game, just with a different
   identity-claiming UI than FTW's name-entry `RolePicker` (players pick "I'm the
@@ -769,10 +917,15 @@ lock in one card, trying to find the matching pair while talking out loud.
   rediscovered the hard way like E-Card): `locks: Partial<Record<Role,string>>` and
   `log: AttemptLogEntry[]` both start empty and both get normalized on every read
   (`normalizeGame`) before use, since RTDB drops empty arrays *and* empty objects on
-  write (confirmed by `useGameSession.ts`'s existing `names ?? {}` guard, which
-  exists for the identical reason).
+  write (see "Store design notes").
 
 ### Status
+
+A chronological log. Entries describe what was true when they were written; the
+"Seats (current behavior)" bullet above and "Architecture" at the top of this file
+describe the current state. In particular, the seat mechanics in Stages 2, 5, 9, 10
+and 11 (names in game state, the `hadNameRef` self-heal, `releaseAllIdentityNames`,
+re-picking roles after a rematch) were replaced by the guest-ID rework (Stage 12).
 
 - **Stage 1 (done):** case data (`cases.json`), types (`caseTypes.ts`), the
   validator (`caseValidator.ts`), and the game state machine (`game.ts`) - no UI yet.
@@ -1285,3 +1438,21 @@ lock in one card, trying to find the matching pair while talking out loud.
     cases (identity tests updated for `releaseAllIdentityNames`)/
     `next build` all clean. FTW re-confirmed unaffected (name entry, room
     creation) by the `lib/session/` changes, which it still doesn't call.
+- **Stage 12 (done): guest IDs and room-level seats** (the platform-wide rework;
+  see FTW Status, "Multi-game platform Stage 9", and "Architecture").
+  Co-Counsel-specific effects:
+  - **Seats survive "Rematch"/"Start a new case"**: both players keep their roles
+    and go straight into Part 1.
+  - **"Switch role instead" is an atomic swap** (`handleSwitchRole`), not a
+    release-both-and-re-pick. The other device simply finds itself in the other
+    role.
+  - **`RolePicker` gained takeover props** (`canTakeOverInvestigator`/
+    `canTakeOverDefendant`).
+  - **Only the creator gets the room-name field** on the invite screen.
+  - **`isCreator` (the case-picker gate) still uses the empty-hash lazy
+    initializer**. It still works because `useRoom` only writes the hash after
+    the room exists, so the first render always sees it empty.
+
+  Verified against the emulators: the creator picks Defendant, the joiner via the
+  hub form is auto-assigned Investigator, and a reload followed by "Switch role
+  instead" swaps both seats in one update.

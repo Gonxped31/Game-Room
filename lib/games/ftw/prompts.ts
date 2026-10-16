@@ -1,4 +1,4 @@
-import { ITEMS_PER_ROUND } from "./constants";
+import { ITEMS_PER_ROUND, MAX_ITEM_LENGTH, MAX_PROMPT_LENGTH } from "./constants";
 import { type CurrentRound, makeRound } from "./game";
 import promptsByGroup from "./prompts.json";
 
@@ -92,6 +92,12 @@ export function randomRound(usedPrompts: string[] = []): CurrentRound {
 export function customRound(prompt: string, items: string[]): CurrentRound {
   if (items.length !== ITEMS_PER_ROUND) {
     throw new Error(`A custom prompt needs exactly ${ITEMS_PER_ROUND} items, got ${items.length}.`);
+  }
+  if (prompt.length > MAX_PROMPT_LENGTH) {
+    throw new Error(`A prompt can be at most ${MAX_PROMPT_LENGTH} characters.`);
+  }
+  if (items.some((item) => item.length > MAX_ITEM_LENGTH)) {
+    throw new Error(`Each item can be at most ${MAX_ITEM_LENGTH} characters.`);
   }
   return makeRound(prompt, shuffle(items));
 }

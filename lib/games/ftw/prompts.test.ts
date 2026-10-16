@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ITEMS_PER_ROUND } from "./constants";
+import { ITEMS_PER_ROUND, MAX_ITEM_LENGTH, MAX_PROMPT_LENGTH } from "./constants";
 import { customRound, PROMPTS, randomRound } from "./prompts";
 
 describe("PROMPTS", () => {
@@ -78,5 +78,20 @@ describe("customRound", () => {
 
   it("rejects anything other than exactly ITEMS_PER_ROUND items", () => {
     expect(() => customRound("Too few", ["A", "B"])).toThrow();
+  });
+
+  it("rejects a prompt or item over the length caps the database enforces", () => {
+    expect(() => customRound("x".repeat(MAX_PROMPT_LENGTH + 1), ["1", "2", "3", "4", "5"])).toThrow();
+    expect(() => customRound("Fine", ["1", "2", "3", "4", "x".repeat(MAX_ITEM_LENGTH + 1)])).toThrow();
+    expect(() => customRound("x".repeat(MAX_PROMPT_LENGTH), ["1", "2", "3", "4", "x".repeat(MAX_ITEM_LENGTH)])).not.toThrow();
+  });
+});
+
+describe("built-in bank vs. the length caps", () => {
+  it("every built-in prompt and item fits", () => {
+    for (const entry of PROMPTS) {
+      expect(entry.prompt.length).toBeLessThanOrEqual(MAX_PROMPT_LENGTH);
+      for (const item of entry.items) expect(item.length).toBeLessThanOrEqual(MAX_ITEM_LENGTH);
+    }
   });
 });

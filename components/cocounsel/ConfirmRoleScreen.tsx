@@ -17,15 +17,11 @@ interface ConfirmRoleScreenProps {
 /**
  * Shown when rejoining a room where this device already has a remembered
  * seat - instead of always silently resuming it, this gives the deliberate
- * choice to continue as that role or switch. "Switch role instead" opens
- * BOTH seats back up (`onSwitchRole` is `useGameSession`'s
- * `releaseAllIdentities`, not a single-seat release) - with only two roles,
- * freeing just this device's own seat would leave nothing to actually
- * switch to, since the other one would still be held. The other player's
- * device picks up the resulting open RolePicker on its own (the same
- * self-heal mechanism "Rematch" already relies on), and whichever role is
- * still open once either side commits gets auto-assigned to the other -
- * see the effect in app/cocounsel/page.tsx. Only ever shown while the case
+ * choice to continue as that role or switch. "Switch role instead" trades
+ * seats with the other player in a single update (or simply moves to the
+ * other role if nobody holds it yet) - see handleSwitchRole in
+ * app/cocounsel/page.tsx - so neither player is ever left without a seat,
+ * and the other device just finds itself in the other role. Only ever shown while the case
  * is still fresh (`isFreshGame`), so switching can never pull a role out
  * from under an already-active match.
  */

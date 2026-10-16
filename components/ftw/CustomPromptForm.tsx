@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
+import { ITEMS_PER_ROUND, MAX_ITEM_LENGTH, MAX_PROMPT_LENGTH } from "@/lib/games/ftw/constants";
 import type { CurrentRound } from "@/lib/games/ftw/game";
 import { customRound } from "@/lib/games/ftw/prompts";
 import Button from "@/components/Button";
@@ -21,6 +21,10 @@ export default function CustomPromptForm({ onApply }: CustomPromptFormProps) {
       .filter(Boolean);
     if (lines.length !== ITEMS_PER_ROUND + 1) {
       setError(`Add a prompt on line 1, then exactly ${ITEMS_PER_ROUND} items, one per line.`);
+      return;
+    }
+    if (lines[0].length > MAX_PROMPT_LENGTH || lines.slice(1).some((item) => item.length > MAX_ITEM_LENGTH)) {
+      setError(`Keep the prompt to ${MAX_PROMPT_LENGTH} characters or fewer, and each item to ${MAX_ITEM_LENGTH}.`);
       return;
     }
     setError("");

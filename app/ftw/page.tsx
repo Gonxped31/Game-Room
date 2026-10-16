@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
+import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
+import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { CONTAINER_MAX_WIDTH_CLASS, GAME_TITLE } from "@/lib/games/ftw/constants";
 import {
   type CurrentRound,
@@ -25,7 +28,8 @@ import SessionRecap from "@/components/ftw/SessionRecap";
 export default function FirstToWorstPage() {
   const createInitialState = useCallback(() => newGame(randomRound()), []);
   const session = useGameSession({ gameSlug: "ftw", createInitialState });
-  const { room, game, me, other, names, bothJoined, roomName, setRoomName, online, pickIdentity, transact, setGame, newRoom } = session;
+  const { room, game, me, other, names, bothJoined, roomName, canRenameRoom, setRoomName, roomNameError, online, canTakeOver, pickIdentity, transact, setGame, newRoom } =
+    session;
 
   const status = game?.current.status;
   const isMaster = game != null && me === masterOf(game.round);
@@ -44,9 +48,8 @@ export default function FirstToWorstPage() {
   const handleSubmitGuess = (order: string[]) => transact((current) => submitGuess(current, order));
   const handleChangePrompt = (round: CurrentRound) => transact((current) => setPrompt(current, round));
   const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [])));
-  // Resetting the shared game state wipes `names` back to `{}`; both devices
-  // self-heal their own stale `me` claim automatically (useGameSession's
-  // hadNameRef effect), re-showing RolePicker to repopulate it.
+  // Seats live at the room level, so a reset keeps both players seated -
+  // only the game itself starts over.
   const handleResetGame = () => setGame(newGame(randomRound()));
 
   // RoundBoard's primary action renders in a bar fixed to the viewport
@@ -59,6 +62,7 @@ export default function FirstToWorstPage() {
 
   return (
     <main className={`mx-auto px-4 pt-3.5 ${CONTAINER_MAX_WIDTH_CLASS} ${hasFixedBar ? "pb-52" : "pb-7"}`}>
+      <InAppBrowserBanner />
       <Header
         title={GAME_TITLE}
         round={me && game ? game.round : undefined}
@@ -66,14 +70,14 @@ export default function FirstToWorstPage() {
         theirScore={me && game && other ? game.totals[other] : undefined}
       />
 
-      {!game ? (
-        <p className="rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
-          Connecting to the room…
+      {session.connectionError || session.roomMissing || !game ? (
+        <p role={session.connectionError || session.roomMissing ? "alert" : undefined} className="rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
+          {session.connectionError ? CONNECTION_ERROR_MESSAGE : session.roomMissing ? ROOM_MISSING_MESSAGE : "Connecting to the room…"}
         </p>
       ) : !me ? (
-        <RolePicker names={names} onPick={pickIdentity} />
+        <RolePicker names={names} canTakeOver={canTakeOver} onPick={pickIdentity} />
       ) : !bothJoined ? (
-        <InviteLinkBanner room={room} roomName={roomName} onRenameRoom={setRoomName} />
+        <InviteLinkBanner room={room} roomName={roomName} onRenameRoom={canRenameRoom ? setRoomName : undefined} nameError={roomNameError} />
       ) : (
         <>
           <RoleStickers

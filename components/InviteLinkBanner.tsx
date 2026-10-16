@@ -6,7 +6,10 @@ import Button from "./Button";
 interface InviteLinkBannerProps {
   room: string;
   roomName?: string;
-  onRenameRoom: (name: string) => void;
+  /** Only the room's creator may name it - leave undefined for everyone else to hide the field. */
+  onRenameRoom?: (name: string) => void;
+  /** Why the last rename didn't go through, e.g. "That name is taken. Try another." */
+  nameError?: string | null;
   /** Button background - defaults to First to Worst's own pink so FTW's
    * usage (which passes none of these) stays pixel-identical. */
   accentColor?: string;
@@ -19,6 +22,7 @@ export default function InviteLinkBanner({
   room,
   roomName,
   onRenameRoom,
+  nameError,
   accentColor = "#FF3D8F",
   accentShadowColor = "#a3125b",
   accentTextColor = "#FFFFFF",
@@ -52,7 +56,7 @@ export default function InviteLinkBanner({
   };
 
   const saveName = () => {
-    if (nameDraft.trim() !== (roomName ?? "")) onRenameRoom(nameDraft);
+    if (onRenameRoom && nameDraft.trim() !== (roomName ?? "")) onRenameRoom(nameDraft);
   };
 
   return (
@@ -61,22 +65,33 @@ export default function InviteLinkBanner({
       <Button onClick={copy} style={{ backgroundColor: accentColor, boxShadow: `0 4px 0 ${accentShadowColor}`, color: accentTextColor }}>
         {copied ? "Copied!" : "Copy invite link"}
       </Button>
-      <label className="mt-2.5 block text-left text-xs font-semibold opacity-70">
-        Name this room (optional)
-        <input
-          ref={inputRef}
-          type="text"
-          value={nameDraft}
-          onChange={(e) => setNameDraft(e.target.value)}
-          onBlur={saveName}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") e.currentTarget.blur();
-          }}
-          placeholder={room}
-          maxLength={40}
-          className="mt-1 w-full rounded-lg border border-black/15 px-2.5 py-1.5 text-sm font-normal text-black"
-        />
-      </label>
+      {onRenameRoom ? (
+        <>
+          <label className="mt-2.5 block text-left text-xs font-semibold opacity-70">
+            Name this room (optional)
+            <input
+              ref={inputRef}
+              type="text"
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              placeholder={room}
+              maxLength={40}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? "room-name-error" : undefined}
+              className={`mt-1 w-full rounded-lg border px-2.5 py-1.5 text-sm font-normal text-black ${nameError ? "border-[#D7263D]" : "border-black/15"}`}
+            />
+          </label>
+          {nameError ? (
+            <p id="room-name-error" role="alert" className="m-0 mt-1.5 text-left text-xs font-semibold text-[#B3132B]">
+              {nameError}
+            </p>
+          ) : null}
+        </>
+      ) : null}
       <p className="m-0 mt-1.5 text-left text-[11px] opacity-60">So you can find this room again later by its code: {room}</p>
     </div>
   );

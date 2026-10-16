@@ -1,64 +1,71 @@
-import type { FirebaseOptions } from "firebase/app";
-import { createFirebaseStore } from "./firebaseStore";
-import { createLocalStore } from "./localStore";
+import { hasFirebaseConfig } from "./config";
+import {
+  createFirebaseStore,
+  firebaseServerTimestamp,
+  firebaseSetOnDisconnect,
+  firebaseUpdateRoot,
+  firebaseWatchConnection,
+} from "./firebaseStore";
+import { localSetOnDisconnect, localStore, localUpdateRoot } from "./localDb";
 import type { Store } from "./types";
 
-const firebaseConfig: FirebaseOptions = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-const hasFirebaseConfig = Object.values(firebaseConfig).every((v) => typeof v === "string" && v.length > 0);
-
-// A silent localStorage fallback produces a very confusing live symptom -
-// "I picked a role and the other device never sees it, even after waiting
-// and reloading" - that's exactly what happens when two separate browser
-// profiles/devices (which can never share localStorage) both silently fall
-// back to it. This surfaces that mismatch immediately in the console instead
-// of leaving it to be mistaken for a sync bug.
-if (typeof window !== "undefined" && !hasFirebaseConfig) {
-  console.warn("[first-to-worst] No NEXT_PUBLIC_FIREBASE_* env vars detected - using the localStorage fallback, which only syncs across tabs in the SAME browser profile, never across separate browsers/profiles/devices.");
-}
-
 /**
- * Picks the backend for a room's shared game state: Firebase when all
+ * Backend-agnostic access to the shared database: Firebase when all
  * NEXT_PUBLIC_FIREBASE_* env vars are set, otherwise the localStorage
- * fallback (so two browser tabs on one machine still work for testing).
- * Generic over any game's state shape - every game on this platform shares
- * this store layer unchanged.
+ * fallback (lib/store/localDb.ts). Both are addressed by the same
+ * slash-separated paths, so nothing above this layer knows which is active.
  *
- * The game slug is nested UNDER the room code (`games/{room}/{slug}`, not
- * `games/{slug}/{room}`) so the existing Firebase rule
- * (`games/$roomId: { ".read": true, ".write": true }`) already covers it via
- * RTDB's rule cascade - no console changes needed to add a game. This also
- * keeps two different games started under the same room code (unlikely, but
- * possible if someone edits the URL path while keeping the hash) from
- * clobbering each other's state.
+ * Paths follow database.rules.json - e.g. `games/{room}/meta`,
+ * `games/{room}/{gameSlug}`, `roomsByName/{nameKey}`,
+ * `users/{uid}/rooms/{room}`. The rules only allow writes at the specific
+ * child paths they name, never a whole room, so a write spanning several of
+ * them goes through `updateRoot`.
  */
+export function createPathStore<T>(path: string): Store<T> {
+  return hasFirebaseConfig ? createFirebaseStore<T>(path) : localStore<T>(path);
+}
+
+/** A game's own state in a room: `games/{room}/{gameSlug}`. */
 export function createGameStore<T>(room: string, gameSlug: string): Store<T> {
-  if (hasFirebaseConfig) {
-    return createFirebaseStore<T>(`games/${room}/${gameSlug}`, firebaseConfig);
-  }
-  return createLocalStore<T>(`game:${gameSlug}:${room}`);
+  return createPathStore<T>(`games/${room}/${gameSlug}`);
 }
 
 /**
- * A room-name -> set-of-room-codes index, used by "join a room by name"
- * (lib/session/roomMeta.ts) - a separate top-level path from `games/`, not
- * nested under any room, so it needs its own Firebase rule (see README's
- * "Database rules" section) rather than riding on the existing
- * `games/$roomId` cascade. Deliberately NOT built on top of
- * `createGameStore` (different path shape, different localStorage key
- * scheme) to avoid touching that already-working function.
+ * One multi-path update from the database root (`{ "games/abc234/seats/p1":
+ * uid, ... }`): every path lands, or none do. Rejects when Firebase's rules
+ * deny it - e.g. a seat someone else claimed first.
  */
-export function createRoomNameIndexStore(normalizedName: string): Store<Record<string, true>> {
-  if (hasFirebaseConfig) {
-    return createFirebaseStore<Record<string, true>>(`roomsByName/${normalizedName}`, firebaseConfig);
-  }
-  return createLocalStore<Record<string, true>>(`roomsByName:${normalizedName}`);
+export function updateRoot(values: Record<string, unknown>): Promise<void> {
+  return hasFirebaseConfig ? firebaseUpdateRoot(values) : localUpdateRoot(values);
 }
 
+/** The server's clock on Firebase (required by the rules' `<= now` checks); the local clock in local mode. */
+export function serverTimestamp(): unknown {
+  return hasFirebaseConfig ? firebaseServerTimestamp() : Date.now();
+}
+
+/** Calls back each time the database connection comes up (true) or drops (false). Local mode is always connected. */
+export function watchConnection(onChange: (connected: boolean) => void): () => void {
+  if (hasFirebaseConfig) return firebaseWatchConnection(onChange);
+  const id = setTimeout(() => onChange(true), 0);
+  return () => clearTimeout(id);
+}
+
+/** Registers a write to happen when this client disconnects; resolves to a function that cancels it. */
+export function setOnDisconnect(path: string, value: unknown): Promise<() => Promise<void>> {
+  return hasFirebaseConfig ? firebaseSetOnDisconnect(path, value) : localSetOnDisconnect(path, value);
+}
+
+/** A store for "no room yet" (still signing in, or no #code) - always empty, never touches a backend. */
+export function emptyStore<T>(): Store<T> {
+  return {
+    subscribe: () => () => {},
+    getSnapshot: () => null,
+    readOnce: async () => null,
+    set: () => {},
+    transaction: async () => undefined,
+  };
+}
+
+export { isLocalMode, hasFirebaseConfig } from "./config";
 export type { Store } from "./types";

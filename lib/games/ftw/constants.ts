@@ -5,6 +5,14 @@ export const GAME_TITLE = "First to Worst";
 export const ITEMS_PER_ROUND = 5;
 
 /**
+ * Length caps on a round's free text - enforced by database.rules.json's
+ * `ftw` .validate as well, so a custom prompt over either limit would be
+ * rejected by the database anyway. The built-in bank sits well under both.
+ */
+export const MAX_PROMPT_LENGTH = 120;
+export const MAX_ITEM_LENGTH = 60;
+
+/**
  * The page's responsive max-width, shared by the main wrapper and
  * RoundBoard's fixed bottom bar (a separate `position:fixed` stacking
  * context that can't inherit the page's width, so it needs the same class

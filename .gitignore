@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# firebase emulators
+firebase-debug.log
+database-debug.log
+ui-debug.log

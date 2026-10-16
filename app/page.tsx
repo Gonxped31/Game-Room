@@ -1,6 +1,7 @@
 import { APP_TITLE, GAMES } from "@/lib/games/registry";
 import GamePickerCard from "@/components/GamePickerCard";
 import JoinRoomForm from "@/components/JoinRoomForm";
+import YourRooms from "@/components/YourRooms";
 
 // Slightly deeper than First to Worst's own table (#128A94, app/globals.css's
 // --table) so white text passes 4.5:1 - a deliberately distinct color per
@@ -30,6 +31,7 @@ export default function GamePicker() {
         </div>
 
         <JoinRoomForm />
+        <YourRooms />
 
         <p className="mt-6 text-center text-sm leading-[1.35] text-white min-[760px]:text-[15px]">
           No accounts. Send your partner the link and you&apos;re both in.

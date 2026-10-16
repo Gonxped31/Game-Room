@@ -1,15 +1,11 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { GAMES } from "@/lib/games/registry";
-import { findRoomsByName, readRoomMeta, type RoomMeta } from "@/lib/session/roomMeta";
+import { CONNECTION_ERROR_MESSAGE, ensureGuestUid } from "@/lib/session/shared/auth";
+import { findRoomByName, readRoomMeta } from "@/lib/session/shared/roomActions";
 
 type Mode = "code" | "name";
-type Status = "idle" | "checking" | "notFound";
-
-function gameTitle(slug: string): string {
-  return GAMES.find((g) => g.slug === slug)?.title ?? slug;
-}
+type Status = "idle" | "checking" | "notFound" | "offline";
 
 function JoinModeSwitch({ mode, onChange, disabled }: { mode: Mode; onChange: (mode: Mode) => void; disabled: boolean }) {
   const other: Mode = mode === "code" ? "name" : "code";
@@ -50,16 +46,14 @@ function JoinModeSwitch({ mode, onChange, disabled }: { mode: Mode; onChange: (m
  * The code/name switch only changes the placeholder/helper text/aria-label -
  * the lookup itself always tries the typed value as a room code first, then
  * as a room name (per the spec's "Behavior" section), so getting the switch
- * "wrong" still works. A room whose name matches more than one real room
- * (not covered by the spec, which assumes a single match) renders an inline
- * disambiguation list instead of guessing which one to open.
+ * "wrong" still works. Room names are unique (first come, first served), so
+ * a name leads to at most one room.
  */
 export default function JoinRoomForm() {
   const [mode, setMode] = useState<Mode>("code");
   const [codeValue, setCodeValue] = useState("");
   const [nameValue, setNameValue] = useState("");
   const [status, setStatus] = useState<Status>("idle");
-  const [candidates, setCandidates] = useState<{ room: string; meta: RoomMeta }[] | null>(null);
   const [destination, setDestination] = useState<string | null>(null);
   const errorId = useId();
 
@@ -92,36 +86,39 @@ export default function JoinRoomForm() {
   const changeMode = (next: Mode) => {
     setMode(next);
     setStatus("idle");
-    setCandidates(null);
   };
 
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCandidates(null);
     const typed = value.trim();
     if (!typed) return;
 
     setStatus("checking");
+    // Rooms are only readable by a signed-in guest.
+    try {
+      await ensureGuestUid();
+    } catch {
+      setStatus("offline");
+      return;
+    }
 
     // Accept a pasted invite link, not just a bare code.
     const asCode = (typed.includes("#") ? typed.slice(typed.lastIndexOf("#") + 1) : typed).toLowerCase();
-    const meta = await readRoomMeta(asCode);
-    if (meta) {
-      goTo(asCode, meta.gameSlug);
-      return;
+    try {
+      const meta = await readRoomMeta(asCode);
+      if (meta) {
+        goTo(asCode, meta.gameSlug);
+        return;
+      }
+      const match = await findRoomByName(typed);
+      if (match) {
+        goTo(match.room, match.meta.gameSlug);
+        return;
+      }
+      setStatus("notFound");
+    } catch {
+      setStatus("offline"); // couldn't reach the database - not the same as "no such room"
     }
-
-    const matches = await findRoomsByName(typed);
-    if (matches.length === 1) {
-      goTo(matches[0].room, matches[0].meta.gameSlug);
-      return;
-    }
-    if (matches.length > 1) {
-      setStatus("idle");
-      setCandidates(matches);
-      return;
-    }
-    setStatus("notFound");
   };
 
   return (
@@ -146,12 +143,11 @@ export default function JoinRoomForm() {
         onChange={(e) => {
           setValue(e.target.value);
           setStatus("idle");
-          setCandidates(null);
         }}
         placeholder={mode === "code" ? "Room code" : "Room name"}
         aria-label={mode === "code" ? "Room code" : "Room name"}
         aria-invalid={status === "notFound"}
-        aria-describedby={status === "notFound" ? errorId : undefined}
+        aria-describedby={status === "notFound" || status === "offline" ? errorId : undefined}
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
@@ -164,22 +160,11 @@ export default function JoinRoomForm() {
           <span aria-hidden="true">⚠</span>
           We can&apos;t find that room. Check the {mode} and try again.
         </p>
-      ) : null}
-
-      {candidates ? (
-        <div className="grid gap-1.5">
-          <p className="m-0 text-sm font-semibold">Multiple rooms named &quot;{nameValue.trim()}&quot; - which one?</p>
-          {candidates.map(({ room, meta }) => (
-            <button
-              key={room}
-              type="button"
-              onClick={() => goTo(room, meta.gameSlug)}
-              className="cursor-pointer rounded-lg border border-black/15 px-2.5 py-2 text-left text-sm"
-            >
-              <span className="font-bold">{gameTitle(meta.gameSlug)}</span> <span className="opacity-60">· {room}</span>
-            </button>
-          ))}
-        </div>
+      ) : status === "offline" ? (
+        <p id={errorId} role="alert" className="m-0 flex items-center gap-1.5 text-sm font-semibold" style={{ color: "#B3261E" }}>
+          <span aria-hidden="true">⚠</span>
+          {CONNECTION_ERROR_MESSAGE}
+        </p>
       ) : null}
 
       <button

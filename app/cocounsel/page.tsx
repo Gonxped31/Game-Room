@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGameSession } from "@/lib/session/useGameSession";
+import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
+import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { getCase } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
 import { classifyDuo, continueAfterReveal, focusPercent, type GameState, lockIn, newGame, screenOfRole, totalAttempts, trustPercent } from "@/lib/games/cocounsel/game";
@@ -26,7 +29,8 @@ export default function CoCounselPage() {
   const caseDef = getCase(CASE_ID);
   const createInitialState = useCallback((): GameState => newGame(CASE_ID), []);
   const session = useGameSession<GameState>({ gameSlug: "cocounsel", createInitialState });
-  const { room, game, me, names, bothJoined, roomName, setRoomName, pickIdentity, releaseAllIdentities, transact, setGame, newRoom } = session;
+  const { room, game, me, names, bothJoined, roomName, canRenameRoom, setRoomName, roomNameError, canTakeOver, pickIdentity, releaseAllIdentities, transact, setGame, newRoom } =
+    session;
   const { theme, toggleTheme } = useTheme();
 
   // Whoever visits with no #room in the URL at all is the one about to
@@ -35,8 +39,9 @@ export default function CoCounselPage() {
   // already has its case chosen and skips straight past it. Captured via a
   // useState lazy initializer, which (like useRef) runs synchronously during
   // this component's very first render - strictly before any effects fire,
-  // including useGameSession's own hash-generating effect - so this
-  // reliably observes the ORIGINAL hash before that effect can rewrite it.
+  // including useGameSession's own room-creating effect, which only writes
+  // the new room's code into the hash once the room exists - so this
+  // reliably observes the ORIGINAL hash before it's rewritten.
   // Safe from hydration mismatches despite reading `window` here: the JSX
   // branch that depends on it is already gated behind `!game`, which is
   // uniformly null on the very first paint for both server and client (see
@@ -134,13 +139,9 @@ export default function CoCounselPage() {
   // eligible to see RolePicker (game loaded, case confirmed, no seat of
   // mine to confirm, no pick of my own already in flight) and while exactly
   // one role is open: both open (nobody has picked yet) or both taken
-  // (nothing left to decide) leave this alone. That "exactly one open"
-  // condition is also what makes this safe after "switch role"
-  // (releaseAllIdentities, below) without any extra bookkeeping - releasing
-  // BOTH seats always leaves two open at first, so the device that asked to
-  // switch is never auto-assigned back into its own old role; only the
-  // OTHER device, still waiting once the switcher commits to a fresh pick,
-  // is.
+  // (nothing left to decide) leave this alone. "Switch role" never passes
+  // through here at all - it trades seats in one update (see
+  // handleSwitchRole), so neither device is ever left without a seat.
   //
   // setRoleConfirmedThisVisit is called from pickIdentity's OWN .then(), not
   // synchronously in the effect body - react-hooks/set-state-in-effect
@@ -178,12 +179,11 @@ export default function CoCounselPage() {
     transact((current) => lockIn(current, caseDef, me, cardId));
   };
   const handleContinue = () => transact((current) => continueAfterReveal(current, caseDef));
-  // Resetting the shared game state wipes `names` back to `{}`; both devices
-  // self-heal their own stale `me` claim automatically (useGameSession's
-  // hadNameRef effect), re-showing RolePicker to repopulate it - restarting a
-  // case goes to role selection, never case selection or the game picker.
+  // Restarting a case resets only the game: seats live at the room level,
+  // so both players keep their roles and go straight into Part 1 (they can
+  // still trade roles from ConfirmRoleScreen next time they open the room).
   // `caseConfirmed`/`isCreator` stay untouched - no case-reconfirmation
-  // screen, same room, straight back to RolePicker. `forceCasePicker` is
+  // screen, same room. `forceCasePicker` is
   // cleared defensively (nothing currently triggers a reset while it's
   // active, since CasePicker's own screen has no reset affordance).
   const handleResetCase = () => {
@@ -198,6 +198,17 @@ export default function CoCounselPage() {
   // Generating a brand new room via the footer's "New room" link makes this
   // device the creator of THAT room (even if it joined the current one via a
   // link) - reset the flag so the fresh room's case-picker shows correctly.
+  // "Switch role instead": with the other player seated, trade seats with
+  // them in one update; with their seat still empty, just move into it.
+  const handleSwitchRole = () => {
+    setRoleConfirmedThisVisit(true);
+    if (bothJoined) {
+      releaseAllIdentities();
+      return;
+    }
+    const otherSeat = me === INVESTIGATOR ? DEFENDANT : INVESTIGATOR;
+    void pickIdentity(otherSeat, caseDef.characters[screenOfRole(otherSeat)]);
+  };
   const handleNewRoom = () => {
     setIsCreator(true);
     setCaseConfirmed(false);
@@ -207,13 +218,18 @@ export default function CoCounselPage() {
 
   return (
     <div className="min-h-screen w-full" data-theme={theme} style={{ backgroundColor: COLOR.paper }}>
+      <InAppBrowserBanner />
       {/* No fixed-position chrome anymore - the back link and theme toggle
           are both inline within each screen's own header now (Wordmark, or
           a colored band's own top row), so <main> needs no reserved top
           clearance (a fixed ThemeToggle used to need pt-14 for this, which
           showed as a visible white gap above full-bleed colored bands). */}
       <main className={`mx-auto font-[family-name:var(--font-archivo)] ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
-        {!game ? (
+        {session.connectionError || session.roomMissing ? (
+          <p role="alert" className="px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>
+            {session.connectionError ? CONNECTION_ERROR_MESSAGE : ROOM_MISSING_MESSAGE}
+          </p>
+        ) : !game ? (
           // Checked FIRST, unconditionally, before showCasePicker - game is
           // uniformly null here for every environment (static prerender,
           // and every live client's very first render alike, per
@@ -239,7 +255,7 @@ export default function CoCounselPage() {
             caseDef={caseDef}
             myRole={myRole}
             onContinue={() => setRoleConfirmedThisVisit(true)}
-            onSwitchRole={releaseAllIdentities}
+            onSwitchRole={handleSwitchRole}
             onBack={handleBack}
             theme={theme}
             onToggleTheme={toggleTheme}
@@ -249,6 +265,8 @@ export default function CoCounselPage() {
             caseDef={caseDef}
             investigatorTaken={investigatorTaken}
             defendantTaken={defendantTaken}
+            canTakeOverInvestigator={Boolean(canTakeOver[INVESTIGATOR])}
+            canTakeOverDefendant={Boolean(canTakeOver[DEFENDANT])}
             onPickInvestigator={() => {
               pickingRef.current = true;
               pickIdentity(INVESTIGATOR, caseDef.characters.investigator).finally(() => {
@@ -274,7 +292,8 @@ export default function CoCounselPage() {
               <InviteLinkBanner
                 room={room}
                 roomName={roomName}
-                onRenameRoom={setRoomName}
+                onRenameRoom={canRenameRoom ? setRoomName : undefined}
+                nameError={roomNameError}
                 accentColor={COLOR.yellow}
                 accentShadowColor={COLOR.ink}
                 accentTextColor={COLOR.ink}
