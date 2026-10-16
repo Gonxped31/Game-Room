@@ -30,6 +30,13 @@ export interface GameEntry {
  * (lib/session/multiplayer/) - see CLAUDE.md's "Multi-game architecture"
  * section for how that backend differs from the 1v1 one.
  */
+// Co-Counsel is temporarily hidden from the picker (not removed - its entry
+// is commented out just below, not deleted, so re-enabling it later is a
+// one-line uncomment). The game itself is untouched: lib/games/cocounsel/,
+// components/cocounsel/, and app/cocounsel/page.tsx all still work exactly
+// as before, reachable directly at /cocounsel - this only affects whether it
+// shows as a card here. Unlike E-Card's removal (see CLAUDE.md), nothing
+// about the implementation was pulled.
 export const GAMES: GameEntry[] = [
   {
     slug: "ftw",
@@ -43,16 +50,16 @@ export const GAMES: GameEntry[] = [
     titleClassName: "font-bold",
     buttonTextClassName: "text-[19px] font-bold",
   },
-  {
-    slug: "cocounsel",
-    title: "Co-Counsel",
-    description: "A cooperative mystery. Each of you knows half the story. Talk it out to find the matching pair.",
-    tags: ["2 players", "Best on a call"],
-    maxPlayers: 2,
-    ink: "#1C1F3D",
-    textSecondary: "#4A4F73",
-    accentColor: "#FFD23A",
-    titleClassName: "font-[family-name:var(--font-archivo)] font-extrabold tracking-[-0.02em]",
-    buttonTextClassName: "font-[family-name:var(--font-archivo)] text-[18px] font-extrabold",
-  },
+  // {
+  //   slug: "cocounsel",
+  //   title: "Co-Counsel",
+  //   description: "A cooperative mystery. Each of you knows half the story. Talk it out to find the matching pair.",
+  //   tags: ["2 players", "Best on a call"],
+  //   maxPlayers: 2,
+  //   ink: "#1C1F3D",
+  //   textSecondary: "#4A4F73",
+  //   accentColor: "#FFD23A",
+  //   titleClassName: "font-[family-name:var(--font-archivo)] font-extrabold tracking-[-0.02em]",
+  //   buttonTextClassName: "font-[family-name:var(--font-archivo)] text-[18px] font-extrabold",
+  // },
 ];

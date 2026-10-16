@@ -690,6 +690,19 @@ game-agnostic.
     routing correctly; the not-found error state and its clear-on-edit
     behavior; card click-through with the per-game `aria-label`. Zero console
     errors throughout, `tsc`/`eslint`/`vitest`/`next build` all clean.
+- **Multi-game platform Stage 8 (done): Co-Counsel temporarily hidden from
+  the picker.** User-requested. `lib/games/registry.ts`'s `GAMES` array has
+  its `cocounsel` entry commented out, not deleted - a one-line uncomment
+  re-enables it. The game itself is completely untouched: `/cocounsel`
+  still loads and plays normally for anyone with a direct link (confirmed
+  live), including a room created before this change; `JoinRoomForm`'s
+  `gameTitle()` helper falls back to the raw slug (`"cocounsel"`, not
+  `"Co-Counsel"`) if someone joins such a room by code/name while it's
+  hidden, a minor, accepted display-only side effect of hiding it this way
+  rather than a bug. Unlike E-Card's removal (above), no directories were
+  deleted, no state machine or components were touched, and nothing about
+  `lib/session/`'s shared layer changed - this is a pure picker-listing
+  toggle.
 
 ---
 
