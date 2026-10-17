@@ -31,6 +31,13 @@ interface RoundBoardProps {
   masterOrder: string[] | null;
   guessOrder: string[] | null;
   score: number | null;
+  /**
+   * Which slots the player whose turn it is has filled so far (item IDs only,
+   * from the shared round). The other player sees face-down cards there.
+   */
+  placed: string[];
+  /** Reports this player's filled slots as they place, while it's their turn. */
+  onPlacedChange: (placed: string[]) => void;
   onLockIn: (order: string[]) => void;
   onSubmitGuess: (order: string[]) => void;
   onNextRound: () => void;
@@ -56,6 +63,8 @@ export default function RoundBoard({
   masterOrder,
   guessOrder,
   score,
+  placed,
+  onPlacedChange,
   onLockIn,
   onSubmitGuess,
   onNextRound,
@@ -78,6 +87,19 @@ export default function RoundBoard({
   const hand = Array.from({ length: ITEMS_PER_ROUND }, (_, i) => i + 1).filter((k) => !used.has(k));
   const ready = hand.length === 0;
   const order = () => [...itemIds].sort((a, b) => (assign[a] ?? 0) - (assign[b] ?? 0));
+
+  // While it's my turn, report which slots I've filled - IDs only, never the
+  // numbers, since the other player can read the shared round - so they can
+  // watch face-down cards appear. Sent only when the set actually changes;
+  // starting from what the shared round already shows, so a fresh mount
+  // doesn't send a redundant write.
+  const filledKey = itemIds.filter((id) => assign[id] != null).join("|");
+  const lastSentRef = useRef(placed.join("|"));
+  useEffect(() => {
+    if (!placing || filledKey === lastSentRef.current) return;
+    lastSentRef.current = filledKey;
+    onPlacedChange(filledKey ? filledKey.split("|") : []);
+  }, [placing, filledKey, onPlacedChange]);
 
   const tapSlot = (id: string) => {
     if (!placing) return;
@@ -198,6 +220,11 @@ export default function RoundBoard({
     if (who === "m" && status === "GUESSING") {
       return { kind: "card", n: isMaster ? mNum || undefined : undefined, up: false };
     }
+    // The other player's turn: their cards appear face down as they place them.
+    const othersColumn = (status === "RANKING" && who === "m" && !isMaster) || (status === "GUESSING" && who === "g" && isMaster);
+    if (othersColumn && placed.includes(id)) {
+      return { kind: "card", up: false, appear: true };
+    }
     return { kind: "empty" };
   };
 
@@ -214,13 +241,14 @@ export default function RoundBoard({
     guesser: side(item.id, "g", i),
   }));
 
+  const progress = `${placed.length} of ${ITEMS_PER_ROUND} placed`;
   let msg = "";
   if (status === "RANKING") {
     msg = isMaster
       ? `Tap a number, then tap a topic slot. Rank from 1 (first) to ${ITEMS_PER_ROUND} (worst).`
-      : `${masterName} is ranking the topics…`;
+      : `${masterName} is ranking the topics… ${progress}`;
   } else if (status === "GUESSING") {
-    msg = !isMaster ? "Master's cards are locked. Guess their ranking." : `Ranking locked. ${guesserName} is guessing…`;
+    msg = !isMaster ? "Master's cards are locked. Guess their ranking." : `Ranking locked. ${guesserName} is guessing… ${progress}`;
   } else {
     msg = shown ? "" : "Flipping cards…";
   }

@@ -119,6 +119,11 @@
             "score": {
               ".validate": "newData.isNumber()"
             },
+            "placed": {
+              "$i": {
+                ".validate": "$i.matches(/^[0-4]$/) && newData.isString() && newData.val().length >= 1 && newData.val().length <= 64"
+              }
+            },
             "$other": {
               ".validate": false
             }

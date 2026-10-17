@@ -9,7 +9,8 @@
 //
 // Checks, in order:
 // - FTW: create, name the room, join it by name through the hub card's Join
-//   panel, play a full round and start round 2.
+//   panel, play a full round (each player watching the other's cards appear
+//   face down, live) and start round 2.
 // - Presence: closing one player shows them offline on the other.
 // - A third guest can read the room but not take a seat.
 // - "Your rooms" and the Continue chip list the room, also after a reload;
@@ -64,12 +65,27 @@ async function joinFromHub(page, mode, value) {
   await dialog.getByRole("button", { name: "Join", exact: true }).click({ timeout: 10000 });
 }
 
-async function placeAllCards(page, submitLabel) {
-  for (let i = 0; i < 5; i++) {
+/** Places cards into this player's slots from `from` (0-based) up to (not including) `to`. */
+async function placeCards(page, from, to) {
+  for (let i = from; i < to; i++) {
     await page.locator('button[aria-label^="Number"]').first().click();
     await page.locator("[data-drop-id] button").nth(i).click();
   }
-  await page.getByRole("button", { name: submitLabel }).click();
+}
+
+/**
+ * Live placement progress: places 2 cards, checks the watcher sees exactly 2
+ * face-down cards appear in the placer's column and "2 of 5 placed" (before
+ * anything is locked in), then places the rest and submits.
+ */
+async function placeWhileWatched(placer, watcher, columnLabel, submitLabel) {
+  await placeCards(placer, 0, 2);
+  await watcher.getByText("2 of 5 placed").waitFor();
+  const faceDown = await watcher.getByRole("img", { name: new RegExp(`^${columnLabel}, .*: face down$`) }).count();
+  if (faceDown !== 2) throw new Error(`watcher saw ${faceDown} face-down cards in ${columnLabel}'s column, expected 2`);
+  await placeCards(placer, 2, 5);
+  await watcher.getByText("5 of 5 placed").waitFor();
+  await placer.getByRole("button", { name: submitLabel }).click();
 }
 
 try {
@@ -99,9 +115,11 @@ try {
   log("B joined by name");
 
   await A.page.getByRole("button", { name: "Lock in my ranking" }).waitFor();
-  await placeAllCards(A.page, "Lock in my ranking");
+  await placeWhileWatched(A.page, B.page, "Sam", "Lock in my ranking");
+  log("live progress: B watched A's ranking cards appear face down");
   await B.page.getByRole("button", { name: "Submit final guess" }).waitFor();
-  await placeAllCards(B.page, "Submit final guess");
+  await placeWhileWatched(B.page, A.page, "Alex", "Submit final guess");
+  log("live progress: A watched B's guess cards appear face down");
   await A.page.getByRole("button", { name: "Next round (roles swap)" }).waitFor();
   await B.page.getByRole("button", { name: "Next round (roles swap)" }).waitFor();
   log("full round played and revealed on both sides");

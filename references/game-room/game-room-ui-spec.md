@@ -2,17 +2,17 @@
 
 The Game Room is the app's home screen. Players pick a game, get a private room, and send the link to their partner. Players who already have a room can jump back in with its code or its name.
 
-It matches the boards "Game Room, desktop", "Game Room, mobile" and "Join a room, states" on the design canvas. It is shared by every game, so a new game only adds one card.
+It matches the boards "Game Room, desktop", "Desktop, Join open (First to Worst)", "Game Room, mobile", "Mobile, join sheet", "Mobile, your rooms sheet" and "Join a room, states" on the design canvas. It is shared by every game, so a new game only adds one card.
 
 ## Layout
 
 | Viewport | Layout |
 | :--- | :--- |
-| 760 px and wider | Header at the top left. Cards dealt side by side, centered, 340 px wide each, 56 px gap. Join panel (520 px) centered under the cards, then the footer line. Page padding 40 px top, 56 px sides, 32 px bottom. |
-| Under 760 px | Single column. Cards stack at full width (max 440 px, centered), 20 px gap. Page padding 24 px top and bottom, 16 px sides. No rotation. |
+| 760 px and wider | Header row: title, subtitle and Continue chip on the left, the Your rooms button on the right. Cards dealt side by side, centered, 340 px wide each, 56 px gap. Footer line under the cards. Nothing else on the page, so it fits without scrolling at 820 px tall. Page padding 40 px top, 56 px sides, 32 px bottom. |
+| Under 760 px | Single column. Cards stack at full width (max 440 px, centered), 20 px gap. Page padding 24 px top, 16 px sides, and 100 px bottom so the floating Your rooms button never covers the last card's buttons. No rotation. |
 | More than 2 games | On desktop wrap into a centered row of cards (flex-wrap, same gap). Keep each card at 340 px. |
 
-The page background is flat teal `#0F7983`. It is slightly deeper than the First to Worst table (`#128A94`) so white text passes 4.5:1. The page scrolls vertically if the content is taller than the viewport. Never clip the join panel or the footer line.
+The page background is flat teal `#0F7983`. It is slightly deeper than the First to Worst table (`#128A94`) so white text passes 4.5:1. The page scrolls vertically if the content is taller than the viewport. Never clip the footer line.
 
 ## Tokens
 
@@ -57,7 +57,7 @@ A white card, 20 px radius (mobile 18), `padding: 12px 12px 22px` (mobile 10px 1
   1. **Title:** the game's typeface, 700 to 800 weight, 32 px (mobile 26), line height 1.1.
   2. **Description:** 16 px (mobile 15), weight 500, line height 1.4.
   3. **Chips:** outlined pills, 2 px border in the card's ink color, 99 px radius, `padding: 3px 12px`, 13 px, weight 600, 8 px gap, wrap allowed.
-  4. **Button:** "Start a room", 56 px tall (mobile 52), full width, 2 px border in the card's ink color, 14 px radius, hard shadow `0 4px 0` in the same ink color, 6 px extra top margin.
+  4. **Buttons:** Start and Join side by side (see "Card buttons" below), 56 px tall (mobile 52), 2 px border in the card's ink color, 14 px radius, hard shadow `0 4px 0` in the same ink color, 6 px extra top margin.
 
 | | First to Worst | Co-Counsel |
 | :--- | :--- | :--- |
@@ -79,14 +79,55 @@ Left half `#2447D8`, right half `#C8372D`. Two matching mini claim cards, 80x112
 ### Footer lines
 One centered line under the join panel, white, Fredoka 500, 15 px (mobile 14): "No accounts. Send your partner the link and you're both in."
 
+## Hub actions: Start, Join and Your rooms
+
+There is no general "Join a room" button any more. Each game card has its own **Start** and **Join** buttons, and "Your rooms" is the only extra control on the page.
+
+### Card buttons
+The card's single "Start a room" button becomes a row of two equal buttons, 10 px gap, same height as before (56 px desktop, 52 px mobile):
+- **Start:** the game's accent fill (pink `#FF3D8F` or yellow `#FFD23A`), ink text, 2 px ink border, 14 px radius, hard shadow `0 4px 0` ink. `aria-label="Start a First to Worst room"` (or Co-Counsel). Creates a room, as before.
+- **Join:** same shape, white fill, ink text and border. `aria-label="Join a First to Worst room"` (or Co-Counsel), `aria-haspopup="dialog"`. Opens the join panel for that game.
+
+### Your rooms
+| Viewport | Where | Look |
+| :--- | :--- | :--- |
+| 760 px and wider | One button at the top right of the header. | 44 px tall, white, 2 px black border, 12 px radius, hard shadow `0 3px 0 #000`, Fredoka 700 16 px, list icon, count badge. |
+| Under 760 px | A floating pill, fixed 16 px from the right and 28 px from the bottom (plus the safe-area inset). | 52 px tall, white, 2 px black border, 99 px radius, shadow `0 4px 0 #000, 0 10px 24px rgba(0,0,0,.3)`, list icon, "Your rooms", count badge. Cards scroll under it; the page has 100 px bottom padding so the last card's buttons can scroll clear of it. |
+
+Hidden when the guest has no saved rooms. The count badge is a 22 px teal circle with a white number. Accessible name includes the count ("Your rooms, 3 saved").
+
+### Continue chip
+Under the subtitle, when the guest has at least one saved room: a pill that opens the most recently active room.
+- 44 px tall, `rgba(0,0,0,.2)` fill, white text, 99 px radius, `padding: 0 12px 0 14px`.
+- Content: "Continue" (700), a 10 px game-color square (pink for First to Worst, yellow for Co-Counsel) with a white outline, the room name or code, and an arrow. Desktop adds " · First to Worst" after the name. Long names end with an ellipsis.
+- Hidden when there are no saved rooms.
+
+### Desktop popover
+Clicking a card's Join button or the Your rooms button opens a popover anchored to it: 420 px wide, white, 2 px black border, 18 px radius, 18 px padding, shadow `0 4px 0 #000, 0 18px 40px rgba(0,0,0,.35)`, with a 16 px caret pointing at the button. Join opens above its button (centered on it, caret pointing down) because the button is at the bottom of the card. Your rooms opens below its button, right edges aligned. No dimmed background. It closes on Escape, a click outside, or clicking the button again, and focus returns to the button. Only one popover is open at a time.
+
+### Mobile sheet
+Tapping a card's Join button or the Your rooms pill opens a bottom sheet: white, `24px 24px 0 0` radius, `padding: 8px 16px 34px`, over a `rgba(0,0,0,.45)` scrim. A 40×5 px grab handle centered at the top, then a row with the sheet title (`<h2>`, Fredoka 700 19 px, "Join a First to Worst room" or "Your rooms") and a 44 px round close button (`#E9EEEF`, X icon) on the right. On mobile the Code/Name switch sits on its own row under the title. Close with the X, a tap on the scrim, a swipe down, or the back gesture. Sheets are `role="dialog"` with `aria-modal="true"`, trap focus, and return focus to the button that opened them.
+
+### Join content
+The join panel below, inside the popover or sheet, titled for the card's game: "Join a First to Worst room" or "Join a Co-Counsel room". If the code or name belongs to a room of the other game, open that room anyway (routing follows `meta.gameSlug`); don't show an error. The input gets focus when it opens, so the keyboard comes up on mobile and the sheet rides above it.
+
+### Your rooms content
+- A list (`<ul>`, 8 px gap) of rows, newest activity first, rooms active in the last 30 days. Each row is one link to `/{gameSlug}#{code}`, at least 64 px tall, `padding: 10px 12px`, 2 px `#E1E6E7` border, 14 px radius:
+  - a 40 px game tile (First to Worst: teal square with a mini "1" number card; Co-Counsel: blue/red split with the yellow lens),
+  - line 1: room name, or the code if it has no name (Fredoka 700 16 px, ellipsis), plus a "Yours" pill (1.5 px teal border, teal 12 px text) if this guest created it,
+  - line 2: game name · last activity ("12 min ago", "Yesterday", "3 days ago"), 13 px `#4F5B5D`,
+  - a teal arrow on the right.
+- Footer note: "Rooms active in the last 30 days, saved on this device." 13 px `#5B6668`.
+- If the list scrolls, the sheet grows to at most 75% of the screen height and the list scrolls inside it.
+
 ## Join a room form
 
-**Goal:** keep the familiar white panel, but with a single input. A small switch chooses whether the player types the room code or the room name. The panel is always visible between the cards and the footer line.
+**Goal:** keep the familiar white panel, with a single input. A small switch chooses whether the player types the room code or the room name. It lives inside the popover (desktop) or sheet (mobile) opened by a card's Join button.
 
-**Panel:** white, 18 px radius, `padding: 18px` (mobile 16px), shadow `0 4px 0 rgba(0,0,0,.22)`, 10 px gap between rows. Desktop width 520 px, centered, 24 px above and 20 px below; mobile full width.
+**Panel:** the popover or sheet is the panel; its content uses a 10 px gap between rows.
 
 **Rows, top to bottom:**
-1. **Heading row:** `<h2>` "Already have a room?" (Fredoka 700, 17 px) on the left, the switch on the right.
+1. **Heading row:** `<h2>` "Join a First to Worst room" (or Co-Counsel), Fredoka 700 17 px, on the left, the switch on the right. In the mobile sheet the title moves into the sheet header and the switch gets its own row.
 2. **Helper text:** 14 px, weight 500, `#444`. "Enter its code to jump back in." or "Enter its name to jump back in." depending on the switch.
 3. **Input:** one field, 48 px tall, 12 px radius, 2 px `#7C8A8C` border, 16 px Fredoka 600 (prevents iOS zoom), black text. Placeholder and `aria-label` follow the switch: "Room code" or "Room name". `autocapitalize="off"`, `autocorrect="off"`, `spellcheck="false"`.
 4. **Join button:** full width, 48 px tall, 12 px radius, fill `#0F7983`, white Fredoka 700 17 px, hard shadow `0 4px 0 #0A565D`.
@@ -103,18 +144,18 @@ One centered line under the join panel, white, Fredoka 500, 15 px (mobile 14): "
 
 ## Behavior
 
-- **Start a room:** creates a new room for that game and goes to its room screen, where the player can copy the link to send to their partner. That "room created" screen is not designed yet. While the room is being created, the card's button reads "Starting…", is disabled, and the other card's button is disabled too, to prevent double rooms.
+- **Start:** creates a new room for that game and goes to its room screen, where the player can copy the link to send to their partner. That "room created" screen is not designed yet. While the room is being created, the card's Start button reads "Starting…", is disabled, and the other card's Start button is disabled too, to prevent double rooms.
 - **Join:** look the value up first as a room code, then as a room name. Trim whitespace and ignore case. If the lookup fails, show the not-found error. The code or name is the only credential, so don't reveal anything about a room that isn't found.
-- **Returning players:** recently used rooms could be remembered on the device and shown as a small "Your rooms" strip (later feature).
+- **Returning players:** rooms are saved under the guest's ID (`users/{uid}/rooms`) and appear in Your rooms and the Continue chip.
 
 ## Motion
 - Cards: on hover or keyboard focus within the card, straighten to 0 degrees and lift 6 px over 150 ms ease-out. On press, the button moves down 4 px and loses its shadow (60 ms).
-- Join panel: no animation. The switch changes instantly.
+- Popover: fades in and moves 4 px down over 120 ms. Sheet: slides up over 200 ms ease-out, scrim fades in. The switch changes instantly.
 - `prefers-reduced-motion`: no tilt change, no lift, no fade.
 
 ## Accessibility
 - Page has one `<h1>` ("Game Room"). Each card title is an `<h2>`.
-- Each "Start a room" button needs a distinct accessible name: `aria-label="Start a First to Worst room"` and `aria-label="Start a Co-Counsel room"`.
+- Each Start and Join button needs a distinct accessible name: `aria-label="Start a First to Worst room"`, `"Join a First to Worst room"`, and the same for Co-Counsel.
 - The art panels are decorative: `aria-hidden="true"` on the art and on all SVGs.
 - The join input's accessible name follows the switch (`aria-label="Room code"` or `"Room name"`); the switch is a radiogroup. The error is announced through `role="alert"` and linked with `aria-describedby`.
 - Visible focus: a 3 px white outline with a 2 px offset on the teal background, and a 3 px `#0F7983` outline on the white join panel.
@@ -127,10 +168,14 @@ One centered line under the join panel, white, Fredoka 500, 15 px (mobile 14): "
 | :--- | :--- |
 | Title | Game Room |
 | Subtitle | Pick a game. You'll get a private room to share with your partner. |
-| Card button | Start a room |
 | Card button, busy | Starting… |
 | Footer | No accounts. Send your partner the link and you're both in. |
-| Join heading | Already have a room? |
+| Card buttons | Start · Join |
+| Your rooms button | Your rooms |
+| Join title | Join a First to Worst room / Join a Co-Counsel room |
+| Continue chip | Continue · {room name or code} |
+| Rooms list note | Rooms active in the last 30 days, saved on this device. |
+| Rooms list tag | Yours |
 | Switch | Code / Name |
 | Join helper | Enter its code to jump back in. / Enter its name to jump back in. |
 | Input placeholder | Room code / Room name |
@@ -139,7 +184,7 @@ One centered line under the join panel, white, Fredoka 500, 15 px (mobile 14): "
 | Error | We can't find that room. Check the code and try again. ("name" in Name mode) |
 
 ## Adding a game
-1. Add a card with the game's title in its own typeface, a one-sentence description, two chips, and a "Start a room" button in the game's accent color (ink text, 2 px ink border, hard shadow).
+1. Add a card with the game's title in its own typeface, a one-sentence description, two chips, a Start button in the game's accent color and a white Join button (ink text, 2 px ink border, hard shadow on both).
 2. Draw a 200 px art panel from that game's own visuals (its cards, table or mark).
-3. Give the button its own `aria-label`.
+3. Give both buttons their own `aria-label`.
 4. Check that the accent color keeps 4.5:1 contrast with the button's text.

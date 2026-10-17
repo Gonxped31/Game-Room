@@ -11,6 +11,8 @@ export type CellState =
       delay?: number;
       badge?: "ok" | "no";
       badgeDelay?: number;
+      /** Pop the card in as it appears (the other player placing live). */
+      appear?: boolean;
     };
 
 export interface TableRow {
@@ -61,7 +63,7 @@ function cellProps(
 ) {
   const common = { back, ariaLabel, onClick, dropId };
   if (cell.kind === "empty") return { empty: true as const, ...common };
-  return { empty: false as const, n: cell.n, up: cell.up, delay: cell.delay, badge: cell.badge, badgeDelay: cell.badgeDelay, onDragStart, ...common };
+  return { empty: false as const, n: cell.n, up: cell.up, delay: cell.delay, badge: cell.badge, badgeDelay: cell.badgeDelay, appear: cell.appear, onDragStart, ...common };
 }
 
 export default function CardTable({ prompt, headLeft, headRight, rows, onTapMaster, onTapGuesser, onDragMaster, onDragGuesser }: CardTableProps) {

@@ -6,7 +6,7 @@
  */
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { lockIn as ftwLockIn, newGame as newFtwGame, nextRound, setPrompt, submitGuess } from "@/lib/games/ftw/game";
+import { lockIn as ftwLockIn, newGame as newFtwGame, nextRound, setPlaced, setPrompt, submitGuess } from "@/lib/games/ftw/game";
 import { customRound, randomRound } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
 import { getCase } from "@/lib/games/cocounsel/cases";
@@ -41,13 +41,16 @@ describe("First to Worst", () => {
     await seedRoom(env, { creator: "alice", seated: ["alice", "bob"] });
   });
 
-  it("accepts every state of a real game, including a custom prompt", async () => {
+  it("accepts every state of a real game, including a custom prompt and live placement progress", async () => {
     const db = dbAs(env, "alice");
     const write = <T,>(state: T) => writeAndReadBack(db, path, state);
     let game = await write(newFtwGame(randomRound()));
     game = await write(setPrompt(game, customRound("My very own prompt", ["One", "Two", "Three", "Four", "Five"])));
     const ids = game.current.items.map((i) => i.id);
+    for (let n = 1; n <= ids.length; n++) game = await write(setPlaced(game, "RANKING", ids.slice(0, n)));
+    game = await write(setPlaced(game, "RANKING", ids.slice(1))); // a card picked back up
     game = await write(ftwLockIn(game, ids));
+    game = await write(setPlaced(game, "GUESSING", ids.slice(0, 2)));
     game = await write(submitGuess(game, [...ids].reverse()));
     game = await write(nextRound(game, randomRound(game.usedPrompts)));
     game = await write(ftwLockIn(game, game.current.items.map((i) => i.id)));
@@ -65,6 +68,8 @@ describe("First to Worst", () => {
     ["a history row for p3", ftwState({ history: [{ round: 1, prompt: "x", score: 1, master: "p3" }] })],
     ["a 4-card master order", ftwState({ current: { ...ftwState().current, masterOrder: ["a", "b", "c", "d"] } })],
     ["a missing round", (() => { const s: Record<string, unknown> = ftwState(); delete s.round; return s; })()],
+    ["placement progress with a 6th slot", ftwState({ current: { ...ftwState().current, placed: ["a", "b", "c", "d", "e", "f"] } })],
+    ["placement progress carrying numbers", ftwState({ current: { ...ftwState().current, placed: [3, 1] } })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
   });

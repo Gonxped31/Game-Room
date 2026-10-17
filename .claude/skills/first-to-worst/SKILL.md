@@ -38,7 +38,14 @@ match that ranking, and both are revealed and scored. Roles swap every round.
 ## State and Firebase
 
 - `GameState` contains `round`, `totals{p1,p2}`, `current{prompt, items[5],
-  status, masterOrder?, guessOrder?, score?}`, `usedPrompts[]` and `history[]`.
+  status, masterOrder?, guessOrder?, score?, placed?}`, `usedPrompts[]` and
+  `history[]`.
+- **Live placement progress** (`current.placed`, written by `setPlaced`): the IDs
+  of the slots the player whose turn it is has filled so far - **never the
+  numbers**, because the other player can read the room. The other player sees
+  face-down cards pop in on those slots and "N of 5 placed". `RoundBoard` reports
+  changes; `setPlaced(game, phase, ids)` refuses a placement from a phase that
+  already ended, and `lockIn`/`submitGuess` drop the field.
   It also carries `names: {}`, which `WithIdentity` requires but the session layer
   doesn't use (names live in the room's `players` node).
 - **Its shape is validated by `database.rules.json`** (the `ftw` node).

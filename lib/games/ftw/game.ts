@@ -16,6 +16,14 @@ export interface CurrentRound {
   masterOrder?: string[];
   guessOrder?: string[];
   score?: number;
+  /**
+   * Which topic slots the player whose turn it is has filled so far (the
+   * master while RANKING, the guesser while GUESSING), so the other player
+   * can watch face-down cards appear live. Item IDs only, never numbers: the
+   * other player can read this, so it must not reveal the ranking. Absent
+   * when nothing is placed, and dropped whenever the phase changes.
+   */
+  placed?: string[];
 }
 
 export interface GameState extends WithIdentity {
@@ -75,6 +83,32 @@ export function newGame(firstRound: CurrentRound): GameState {
   return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], names: {}, history: [] };
 }
 
+/** The round without its live `placed` progress - built fresh (not set to undefined), since Firebase refuses an explicit undefined. */
+function withoutPlaced(current: CurrentRound): CurrentRound {
+  const rest = { ...current };
+  delete rest.placed;
+  return rest;
+}
+
+/**
+ * Records which slots the placing player has filled so far (see
+ * CurrentRound.placed). `phase` is the phase the placement was made in: a
+ * placement that arrives after the phase has moved on (e.g. the master's last
+ * one landing after they locked in) is refused rather than overwriting the
+ * next player's progress.
+ */
+export function setPlaced(game: GameState, phase: "RANKING" | "GUESSING", placed: string[]): GameState {
+  if (game.current.status !== phase) {
+    throw new Error(`Cannot record ${phase} progress while status is ${game.current.status}.`);
+  }
+  const ids = new Set(game.current.items.map((i) => i.id));
+  if (new Set(placed).size !== placed.length || placed.length > ITEMS_PER_ROUND || !placed.every((id) => ids.has(id))) {
+    throw new Error("Placed slots must be distinct IDs of this round's items.");
+  }
+  const current = withoutPlaced(game.current);
+  return { ...game, current: placed.length ? { ...current, placed } : current };
+}
+
 /** RANKING -> GUESSING: the master locks in their ranking. */
 export function lockIn(game: GameState, order: string[]): GameState {
   if (game.current.status !== "RANKING") {
@@ -83,7 +117,7 @@ export function lockIn(game: GameState, order: string[]): GameState {
   if (!isValidOrder(order, game.current.items)) {
     throw new Error("Order must contain each round item's ID exactly once.");
   }
-  return { ...game, current: { ...game.current, status: "GUESSING", masterOrder: order } };
+  return { ...game, current: { ...withoutPlaced(game.current), status: "GUESSING", masterOrder: order } };
 }
 
 /** GUESSING -> REVEALED: the guesser submits their guess and the round is scored. */
@@ -104,7 +138,7 @@ export function submitGuess(game: GameState, order: string[]): GameState {
   return {
     ...game,
     totals: { ...game.totals, [guesser]: game.totals[guesser] + score },
-    current: { ...current, status: "REVEALED", guessOrder: order, score },
+    current: { ...withoutPlaced(current), status: "REVEALED", guessOrder: order, score },
     history: [...(game.history ?? []), record],
   };
 }

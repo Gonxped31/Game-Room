@@ -13,6 +13,7 @@ import {
   masterOf,
   newGame,
   nextRound as advanceRound,
+  setPlaced,
   setPrompt,
   submitGuess,
 } from "@/lib/games/ftw/game";
@@ -47,6 +48,11 @@ export default function FirstToWorstPage() {
   const handleLockIn = (order: string[]) => transact((current) => lockIn(current, order));
   const handleSubmitGuess = (order: string[]) => transact((current) => submitGuess(current, order));
   const handleChangePrompt = (round: CurrentRound) => transact((current) => setPrompt(current, round));
+  // Live placement progress for the other player. Tied to the phase it was
+  // made in, so a late write can't land on the next player's turn.
+  const handlePlacedChange = (placedIds: string[]) => {
+    if (status === "RANKING" || status === "GUESSING") transact((current) => setPlaced(current, status, placedIds));
+  };
   const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [])));
   // Seats live at the room level, so a reset keeps both players seated -
   // only the game itself starts over.
@@ -99,6 +105,8 @@ export default function FirstToWorstPage() {
             masterOrder={game.current.masterOrder ?? null}
             guessOrder={game.current.guessOrder ?? null}
             score={game.current.score ?? null}
+            placed={game.current.placed ?? []}
+            onPlacedChange={handlePlacedChange}
             onLockIn={handleLockIn}
             onSubmitGuess={handleSubmitGuess}
             onNextRound={handleNextRound}

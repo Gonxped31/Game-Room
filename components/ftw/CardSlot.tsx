@@ -11,6 +11,8 @@ interface CardSlotProps {
   /** "ok" shows a green check, "no" shows an orange cross; omit to show no badge. */
   badge?: "ok" | "no";
   badgeDelay?: number;
+  /** Pops the card in when it appears - the other player's live placements. */
+  appear?: boolean;
   /** Omit to render a non-interactive slot (nothing happens here for this viewer right now). */
   onClick?: () => void;
   /** Starts a drag-to-move/-swap gesture for an already-placed card; tap-to-pick-up (onClick) still works independently. Only wired when the slot actually has a card (empty is false). */
@@ -30,6 +32,7 @@ export default function CardSlot({
   delay = 0,
   badge,
   badgeDelay = 0,
+  appear = false,
   onClick,
   onDragStart,
   ariaLabel,
@@ -39,7 +42,7 @@ export default function CardSlot({
   const emptyStyle = empty ? "border-2 border-dashed border-white/60 bg-black/10 cursor-pointer" : "bg-transparent";
 
   return (
-    <div className="relative aspect-[2/3] w-full" data-drop-id={onClick ? dropId : undefined}>
+    <div className={`relative aspect-[2/3] w-full${appear && !empty ? " pop-in" : ""}`} data-drop-id={onClick ? dropId : undefined}>
       {onClick ? (
         <button
           type="button"

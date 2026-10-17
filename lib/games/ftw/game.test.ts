@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { setIdentityName as setName } from "@/lib/session/identity";
 import { pruneLikeFirebase, undefinedPaths } from "@/lib/store/firebaseShape";
-import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPrompt, submitGuess } from "./game";
+import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPlaced, setPrompt, submitGuess } from "./game";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 
@@ -231,7 +231,10 @@ describe("writes Firebase accepts", () => {
     let game = asStored(freshGame());
     const steps: [string, (g: typeof game) => typeof game][] = [
       ["setPrompt", (g) => setPrompt(g, makeRound("Pizza crusts", LABELS))],
+      ["setPlaced (ranking)", (g) => setPlaced(g, "RANKING", g.current.items.slice(0, 2).map((i) => i.id))],
+      ["setPlaced (cleared)", (g) => setPlaced(g, "RANKING", [])],
       ["lockIn", (g) => lockIn(g, g.current.items.map((i) => i.id))],
+      ["setPlaced (guessing)", (g) => setPlaced(g, "GUESSING", g.current.items.slice(0, 3).map((i) => i.id))],
       ["submitGuess", (g) => submitGuess(g, [...g.current.items.map((i) => i.id)].reverse())],
       ["nextRound", (g) => nextRound(g, makeRound("Breakfasts", LABELS))],
       ["lockIn (round 2)", (g) => lockIn(g, g.current.items.map((i) => i.id))],
@@ -241,5 +244,47 @@ describe("writes Firebase accepts", () => {
       expect({ step: name, undefinedAt: undefinedPaths(next) }).toEqual({ step: name, undefinedAt: [] });
       game = asStored(next);
     }
+  });
+});
+
+describe("setPlaced (live placement progress)", () => {
+  it("records which slots are filled, as item IDs only", () => {
+    const game = freshGame();
+    const [a, b] = game.current.items.map((i) => i.id);
+    const next = setPlaced(game, "RANKING", [a, b]);
+    expect(next.current.placed).toEqual([a, b]);
+    expect(next.current.status).toBe("RANKING");
+  });
+
+  it("drops the field entirely (no empty array, no undefined) when nothing is placed", () => {
+    const game = freshGame();
+    const [a] = game.current.items.map((i) => i.id);
+    const cleared = setPlaced(setPlaced(game, "RANKING", [a]), "RANKING", []);
+    expect("placed" in cleared.current).toBe(false);
+  });
+
+  it("refuses a placement from a phase that has already ended", () => {
+    const game = freshGame();
+    const ids = game.current.items.map((i) => i.id);
+    const guessing = lockIn(game, ids);
+    expect(() => setPlaced(guessing, "RANKING", [ids[0]])).toThrow();
+    expect(setPlaced(guessing, "GUESSING", [ids[0]]).current.placed).toEqual([ids[0]]);
+  });
+
+  it("refuses unknown, duplicate or too many IDs", () => {
+    const game = freshGame();
+    const ids = game.current.items.map((i) => i.id);
+    expect(() => setPlaced(game, "RANKING", ["nope"])).toThrow();
+    expect(() => setPlaced(game, "RANKING", [ids[0], ids[0]])).toThrow();
+    expect(() => setPlaced(game, "RANKING", [...ids, "extra"])).toThrow();
+  });
+
+  it("is cleared when the master locks in and when the guess is submitted", () => {
+    const game = freshGame();
+    const ids = game.current.items.map((i) => i.id);
+    const guessing = lockIn(setPlaced(game, "RANKING", ids), ids);
+    expect("placed" in guessing.current).toBe(false);
+    const revealed = submitGuess(setPlaced(guessing, "GUESSING", ids), ids);
+    expect("placed" in revealed.current).toBe(false);
   });
 });
