@@ -22,6 +22,9 @@ Run from the repo root (`T` below stands for `node .claude/skills/todo/scripts/t
 | `T edit T-XXX "new text"` | Replaces the item's one-line description |
 | `T tag T-XXX a,b` | Replaces an item's tags (`-` clears) |
 | `T detail T-XXX "text"` or `--file path` [`--append`] | Writes `todos/T-XXX.md` (replaces it unless `--append`) |
+| `T stats` | Counts by priority and size, with bars, and done this week |
+| `T graph` | Dependency tree: each ready item with what waits on it; cycles last |
+| `T html [--out file]` | Self-contained HTML board with light and dark colors |
 | `T done T-XXX` | Removes and archives the line; prints `unblocked: ...` for items it fully freed |
 | `T rm T-XXX` | Removes it without archiving (obsolete) |
 
@@ -38,6 +41,9 @@ Line format: `ID | P | dep | size | tags | description`.
   `nighthighway`, `iai`) are valid tags too.
 - **Detail files:** `done` and `rm` both delete `todos/T-XXX.md`. The archive keeps
   only the one-line entry, so put anything worth keeping in the code or commit.
+- **Color** is for humans only: it turns on in a terminal (`--pretty`, `--color=always`,
+  or `FORCE_COLOR`), and `--pretty` overrides `NO_COLOR`. Piped output, which is what
+  Claude gets, is always plain, so don't pass color flags.
 - `next` picks the lowest P, then the lowest ID, among eligible items.
 
 ## 2. Working a todo
