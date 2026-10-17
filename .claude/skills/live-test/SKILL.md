@@ -71,6 +71,8 @@ node .claude/skills/live-test/scripts/night-highway-race.mjs [baseUrl] [screensh
 It starts a solo run, then races a desktop player against an iPhone:
 - Ready on both sides starts the race in the database.
 - Chromium and WebKit compute identical traffic for the race's seed.
+- Each switches an option on (Rain, Desert) and the other sees it; they race in
+  the desert, in the rain.
 - Each HUD names the other driver, and both live cars reach the database.
 - Both results land when the clock runs out, and both see the results screen.
 

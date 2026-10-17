@@ -102,3 +102,42 @@ export function bendAt(table: Float32Array | number[], ahead: number): number {
   const i = Math.floor(f);
   return table[i] + (table[i + 1] - table[i]) * (f - i);
 }
+
+// ---------- hills (the desert circuit) ----------
+// Drawn like the curves: the world is lifted in the vertex shaders by how
+// much higher the road is at each distance ahead than under the car. Only the
+// picture changes; the game still happens on a flat road.
+
+/** Road per hill segment (m). Each is flat, or one smooth crest or dip. */
+export const HILL_SEGMENT = 260;
+/** Share of segments with a crest or a dip. */
+export const HILL_SHARE = 0.7;
+/** Height range (m) of a crest (or depth of a dip) at its middle. */
+export const HILL_HEIGHT_MIN = 6;
+export const HILL_HEIGHT_MAX = 18;
+
+/** A segment's height at its middle: 0 when flat, + a crest, - a dip. The first segment (the start) is always flat. */
+export function segmentHill(seed: number, segment: number): number {
+  if (segment <= 0) return 0;
+  // Mixed, so the hills don't line up with the curves (which use the same seed).
+  const rng = createRng(segmentSeed((seed ^ 0x9e3779b9) >>> 0, segment));
+  if (rng() >= HILL_SHARE) return 0;
+  const sign = rng() < 0.6 ? 1 : -1;
+  return sign * (HILL_HEIGHT_MIN + rng() * (HILL_HEIGHT_MAX - HILL_HEIGHT_MIN));
+}
+
+/** The road's height (m) at distance `s`: each segment rises and falls as 1 - cos, so it starts and ends level. */
+export function heightAt(seed: number, s: number): number {
+  if (s <= 0) return 0;
+  const segment = Math.floor(s / HILL_SEGMENT);
+  const peak = segmentHill(seed, segment);
+  if (peak === 0) return 0;
+  const t = (s - segment * HILL_SEGMENT) / HILL_SEGMENT;
+  return (peak * (1 - Math.cos(2 * Math.PI * t))) / 2;
+}
+
+/** Fills `out` (BEND_SAMPLES long, on the bend table's grid) with the road's height at each distance ahead, relative to the car's. */
+export function fillHillTable(seed: number, dist: number, out: Float32Array | number[]) {
+  const here = heightAt(seed, dist);
+  for (let i = 0; i < BEND_SAMPLES; i++) out[i] = heightAt(seed, dist + BEND_START + i * BEND_STEP) - here;
+}

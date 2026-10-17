@@ -147,6 +147,7 @@ describe("Night Highway", () => {
     let game = await write(newNhGame());
     game = await write(setOptions(game, { rain: true }));
     game = await write(setOptions(game, { pickups: false }));
+    game = await write(setOptions(game, { desert: true }));
     game = await write(setReady(game, "p1", true, now, 11));
     game = await write(setReady(game, "p1", false, now, 11));
     game = await write(setReady(game, "p2", true, now, 11));
@@ -173,6 +174,7 @@ describe("Night Highway", () => {
     ["an unknown key", nighthighwayState({ cheats: true })],
     ["a string option", nighthighwayState({ options: { rain: "yes", pickups: true } })],
     ["an unknown option", nighthighwayState({ options: { rain: false, pickups: true, turbo: true } })],
+    ["a string circuit", nighthighwayState({ options: { rain: false, pickups: true, desert: "yes" } })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
   });

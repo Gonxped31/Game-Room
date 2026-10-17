@@ -37,33 +37,35 @@ can judge whether it still applies) · **Where** (files involved).
   in the production database.
 - **Where:** Vercel project settings and the Firebase console; no code changes.
 
-## Night Highway gets a desert circuit (next time work on Night Highway resumes)
+## Night Highway desert, stages 2 and 3 (next time work on Night Highway resumes)
 
-- **Do:** add a second circuit, as discussed with the user (2026-10-17):
-  - **A race switch**, Circuit: City / Desert, in `GameState.options` like the
-    others (rules + rules tests, solo title card); one more rules publish.
-  - **Sunset**, not night: a low sun and a warm orange-to-pink sky over the
-    desert (a real change from the city's night palette; the sky, fog, lighting
-    and grading all need a sunset set of values).
-  - **Scenery** in place of the city: dunes and mesas, cacti and rocks, a desert
-    road surface. Modelled in code, like the city.
-  - **Bumps:** hills, by bending the world vertically in the vertex shaders the way
-    curves bend it sideways (`lib/games/nighthighway/road.ts`); traffic and the race
-    sync stay untouched.
-  - **Sand:** patches drifting across lanes that slow the car and cut grip, with
-    dust plumes; laid out from the race seed like the pickups.
-  - **Jumps:** a fast crest launches the car: no steering in the air, flying over
-    traffic below (an air-time / jumped-a-car bonus), and landing matters (a lane,
-    maybe onto a car, a hard landing costs speed). Same jumps for both racers, from
-    the seed.
-  - Build in stages, committing after each: (1) the switch, sunset, scenery and
-    hills; (2) sand; (3) jumps.
-- **Why:** planned with the user (2026-10-17); bikes were tried first and dropped
-  (the user didn't like them), so this is next.
-- **Where:** `components/nighthighway/engine/engine.js` (scenery, sky, physics),
-  `lib/games/nighthighway/road.ts` (hills, jumps), a new sand layout next to
-  `pickups.ts`, `game.ts` (options), `Screens.tsx`/`Stage.tsx`,
-  `database.rules.json`, `tests/rules/gameState.test.ts`, the `night-highway` skill.
+- **Do:** stage 1 shipped on 2026-10-17 (the Desert switch, the sunset, the
+  scenery and the hills). Still to do, as discussed with the user:
+  - **(2) Sand:** patches drifting across lanes that slow the car and cut grip,
+    with dust plumes; laid out from the race seed like the pickups (a new layout
+    next to `pickups.ts`, integer-op randomness only).
+  - **(3) Jumps:** a fast crest launches the car: no steering in the air, flying
+    over traffic below (an air-time / jumped-a-car bonus), and landing matters (a
+    lane, maybe onto a car; a hard landing costs speed). Same jumps for both
+    racers, from the seed. The hills (`heightAt` in `road.ts`) are only a
+    picture today and use `Math.cos`, so jumps must take their crests from the
+    integer-seeded segment layout (`segmentHill`), not from float heights.
+  - Commit after each stage.
+- **Why:** the desert was split into three stages; the user wanted to see stage 1
+  first.
+- **Where:** `components/nighthighway/engine/engine.js`,
+  `lib/games/nighthighway/road.ts`, a new sand layout next to `pickups.ts`, the
+  `night-highway` skill.
+
+## Night Highway desert ships (pushed and deployed)
+
+- **Do:** publish `database.rules.json` **before** deploying the app this time:
+  the new client writes `options.desert` in every game-state write, which the old
+  rules refuse (`$other: false`); the new rules accept the old client (the field
+  is optional). Then race in the desert on a real phone.
+- **Why:** this change adds a field, which reverses the usual "client first"
+  order.
+- **Where:** `database.rules.json` (`nighthighway/options/desert`).
 
 ## Monetization work starts
 

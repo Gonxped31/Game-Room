@@ -7,7 +7,8 @@
 // Checks, in order:
 // - Solo: the title screen's Drive button starts a run.
 // - A creates a room and waits with the invite link; B joins by the link.
-// - A switches Rain on in the lobby: B sees it, and both race in the rain.
+// - A switches Rain on in the lobby and B switches Desert on: each sees the
+//   other's switch, and both race in the rain, in the desert.
 // - Both press Ready; the race starts in the database with a seed.
 // - Both browsers simulate the race's traffic identically (V8 vs JavaScriptCore).
 // - Each player's HUD names the other, and both live cars reach the database.
@@ -75,6 +76,10 @@ try {
   await until(async () => (await B.getByRole("switch", { name: "Rain" }).getAttribute("aria-checked")) === "true", "B to see rain switched on");
   if ((await B.getByRole("switch", { name: "Pickups" }).getAttribute("aria-checked")) !== "true") throw new Error("pickups should default to on");
   log("A switched rain on; B sees it");
+  await B.getByRole("switch", { name: "Desert" }).click();
+  await until(async () => (await A.getByRole("switch", { name: "Desert" }).getAttribute("aria-checked")) === "true", "A to see the desert switched on");
+  await until(() => A.evaluate(() => window.NightHighway.circuit() === "desert"), "A's lobby road to show the desert");
+  log("B switched the desert on; A sees it, and the lobby road is the desert");
 
   await A.getByRole("button", { name: "Ready" }).click();
   await B.getByText("Sam is ready.").waitFor();
@@ -96,8 +101,10 @@ try {
   await until(() => A.evaluate(() => window.NightHighway.G.state === "drive"), "Go", 15000);
   log("countdown done, driving");
   const opts = await Promise.all([A, B].map((p) => p.evaluate(() => window.NightHighway.G.race?.options)));
-  if (!opts.every((o) => o && o.rain === true && o.pickups === true)) throw new Error(`race options differ or are wrong: ${JSON.stringify(opts)}`);
-  log("both race with rain and pickups on");
+  if (!opts.every((o) => o && o.rain === true && o.pickups === true && o.desert === true)) throw new Error(`race options differ or are wrong: ${JSON.stringify(opts)}`);
+  const circuits = await Promise.all([A, B].map((p) => p.evaluate(() => window.NightHighway.circuit())));
+  if (!circuits.every((c) => c === "desert")) throw new Error(`both should race in the desert: ${circuits}`);
+  log("both race in the desert, with rain and pickups on");
   await A.waitForTimeout(4000);
   await A.keyboard.down("ArrowLeft");
   await A.waitForTimeout(400);

@@ -38,9 +38,12 @@ export interface RaceOptions {
   rain: boolean;
   /** Nitro, phase and shield pickups on the road (see ./pickups.ts). */
   pickups: boolean;
+  /** The desert circuit at sunset, with hills (see ./road.ts), instead of the city at night. */
+  desert: boolean;
 }
 
-export const DEFAULT_OPTIONS: RaceOptions = { rain: false, pickups: true };
+export const DEFAULT_OPTIONS: RaceOptions = { rain: false, pickups: true, desert: false };
+const OPTION_KEYS = ["rain", "pickups", "desert"] as const;
 
 export interface RaceRecord {
   race: number;
@@ -87,7 +90,7 @@ export function normalizeGame(game: GameState): GameState {
     wins: { p1: game.wins?.p1 ?? 0, p2: game.wins?.p2 ?? 0 },
     history: game.history ?? [],
     // A room made before the options existed has none.
-    options: { rain: game.options?.rain ?? DEFAULT_OPTIONS.rain, pickups: game.options?.pickups ?? DEFAULT_OPTIONS.pickups },
+    options: { rain: game.options?.rain ?? DEFAULT_OPTIONS.rain, pickups: game.options?.pickups ?? DEFAULT_OPTIONS.pickups, desert: game.options?.desert ?? DEFAULT_OPTIONS.desert },
   };
 }
 
@@ -98,8 +101,8 @@ export function normalizeGame(game: GameState): GameState {
 export function setOptions(rawGame: GameState, change: Partial<RaceOptions>): GameState {
   const game = normalizeGame(rawGame);
   if (game.phase === "RACING") throw new Error("The options can't change mid-race.");
-  const options: RaceOptions = { rain: change.rain ?? game.options.rain, pickups: change.pickups ?? game.options.pickups };
-  if (options.rain === game.options.rain && options.pickups === game.options.pickups) throw new Error("Nothing changed.");
+  const options: RaceOptions = { rain: change.rain ?? game.options.rain, pickups: change.pickups ?? game.options.pickups, desert: change.desert ?? game.options.desert };
+  if (OPTION_KEYS.every((key) => options[key] === game.options[key])) throw new Error("Nothing changed.");
   return { ...game, options, ready: {} };
 }
 

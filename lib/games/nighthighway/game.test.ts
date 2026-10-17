@@ -57,14 +57,21 @@ describe("setReady", () => {
 });
 
 describe("setOptions", () => {
-  it("starts with pickups on and rain off", () => {
-    expect(newGame().options).toEqual({ rain: false, pickups: true });
+  it("starts with pickups on, rain off, in the city", () => {
+    expect(newGame().options).toEqual({ rain: false, pickups: true, desert: false });
   });
 
   it("changes a switch and takes back both players' Ready", () => {
     const g = setOptions(setReady(newGame(), "p1", true, NOW, 1), { rain: true });
-    expect(g.options).toEqual({ rain: true, pickups: true });
+    expect(g.options).toEqual({ rain: true, pickups: true, desert: false });
     expect(g.ready).toEqual({});
+  });
+
+  it("moves the race to the desert, and back", () => {
+    const desert = setOptions(newGame(), { desert: true });
+    expect(desert.options).toEqual({ rain: false, pickups: true, desert: true });
+    expect(setOptions(desert, { desert: false }).options.desert).toBe(false);
+    expect(() => setOptions(desert, { desert: true })).toThrow();
   });
 
   it("is refused mid-race, or when nothing changes", () => {
@@ -75,7 +82,12 @@ describe("setOptions", () => {
   it("gives a room from before the options the defaults", () => {
     const old = { ...newGame() } as Partial<GameState>;
     delete old.options;
-    expect(setOptions(old as GameState, { rain: true }).options).toEqual({ rain: true, pickups: true });
+    expect(setOptions(old as GameState, { rain: true }).options).toEqual({ rain: true, pickups: true, desert: false });
+  });
+
+  it("keeps a room from before the desert in the city", () => {
+    const old = { ...newGame(), options: { rain: true, pickups: false } } as unknown as GameState;
+    expect(setOptions(old, { pickups: true }).options).toEqual({ rain: true, pickups: true, desert: false });
   });
 });
 
