@@ -146,3 +146,21 @@ with their triggers:
 - **Why:** CI checks lint, types, unit and rules tests, but nothing renders a page
   with two players. Skipped for now because it's slow to set up.
 - **Where:** `.github/workflows/ci.yml`, `.claude/skills/live-test/scripts/`.
+
+## Iaï: the user sends the art specs (mask, wolf, body)
+
+- **Do:** redesign the samurai's mask (after the blue wolf/kitsune mask reference
+  the user shared: tall ears, sculpted fur, black nose, white ruff, bronze fangs),
+  the wolf spirit (white, black ink, red markings and swirl, Okami-like), and a
+  more realistic samurai body, following the specs. The jump motion is already
+  done (`AIR`, `Samurai.updateAir`).
+- **Why:** the user asked to hold the art until they write the specs.
+- **Where:** `components/iai/engine/engine.js` (`drawHeroHead`, `paintWolf`,
+  `drawTorso`/`drawLeg`/`drawArm`), the `iai` skill.
+
+## Iaï ships (pushed and deployed)
+
+- **Do:** deploy the app, then publish `database.rules.json` (the `iai` and
+  `iaiLive` nodes); then check touch controls (◀ ▶ JUMP, 斬, wolf) on a real phone.
+- **Why:** Iaï is local-only on purpose until the user says to push it.
+- **Where:** `app/iai/`, `database.rules.json`.
