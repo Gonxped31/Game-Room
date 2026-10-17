@@ -132,7 +132,10 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
     `YourRoomsList` (+ `HomeScreenTip`), `useSavedRooms`. Art and list tiles
     live in `components/gameRoom/`.
   - Room pages: `InAppBrowserBanner`.
-  - Every page: `LocalModeBanner`.
+  - Every page: `LocalModeBanner`, and `ConnectionBanner` ("Reconnecting…" after
+    2 s without the database; skipped on `/solo` pages).
+  - Crashes: `app/error.tsx` and `app/global-error.tsx` show `RecoveryScreen`
+    (Try again, Reload, Back to all games) instead of a blank page.
 - **`lib/games/registry.ts`** - every game (`ALL_GAMES`); the hub shows `GAMES`.
   Set `hidden: true` to take a game off the hub while keeping it playable and
   still named correctly in "Your rooms".

@@ -109,3 +109,28 @@ can judge whether it still applies) · **Where** (files involved).
   3D road slowly and renders variable-font weights hairline-thin.
 - **Where:** `components/ftw/CardFace.tsx`, `components/ftw/Hand.tsx`,
   `components/nighthighway/`.
+
+## Robustness backlog (planned 2026-10-17)
+
+Done: real-time traffic measured (Night Highway ~100 bytes, 10×/s, already
+rounded), page weight checked (heavy engines already load only where used), and
+crash/connection handling (`app/error.tsx`, `app/global-error.tsx`,
+`ConnectionBanner`, tested by dropping a player offline mid-round). Deferred,
+with their triggers:
+
+### When the Firebase project moves to the Blaze plan (or storage nears the free tier)
+
+- **Do:** a scheduled Cloud Function that deletes rooms idle for 30+ days
+  (`lastActive`, falling back to `meta.createdAt`), with their `roomsByName`
+  entry.
+- **Why:** rooms are never deleted today; "Your rooms" only hides them. Cloud
+  Functions need the paid plan.
+- **Where:** a new `functions/` package, `firebase.json`.
+
+### When a multiplayer regression slips past CI
+
+- **Do:** run `two-players.mjs` in CI against the emulators (install Java and
+  Playwright's browsers, start `dev-against-emulators.mjs`, then the script).
+- **Why:** CI checks lint, types, unit and rules tests, but nothing renders a page
+  with two players. Skipped for now because it's slow to set up.
+- **Where:** `.github/workflows/ci.yml`, `.claude/skills/live-test/scripts/`.
