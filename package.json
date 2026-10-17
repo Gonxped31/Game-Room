@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:rules": "firebase emulators:exec --only database --project demo-game-room \"vitest run tests/rules\""
+    "test:rules": "firebase emulators:exec --only database --project demo-game-room \"vitest run tests/rules\"",
+    "todo": "node .claude/skills/todo/scripts/todo.mjs"
   },
   "dependencies": {
     "firebase": "^13.0.0",

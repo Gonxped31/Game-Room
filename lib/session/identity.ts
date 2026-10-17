@@ -7,7 +7,7 @@ const ALL_ROLES: readonly Role[] = ["p1", "p2"];
  * Sets a seat's display name inside a game state's own `names` field. Not
  * used by the session layer - seats and display names live at the room level
  * (lib/session/shared/updates.ts) - and kept, with its tests, until the
- * hook-merge follow-up in docs/follow-ups.md removes it. Throws if `role` is
+ * hook merge (todo T-014) removes it. Throws if `role` is
  * already claimed while the other seat is still open.
  */
 export function setIdentityName<T extends WithIdentity>(state: T, role: Role, name: string): T {

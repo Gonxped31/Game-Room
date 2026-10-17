@@ -20,11 +20,13 @@ demand:
 | Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |
 | Testing a change with two players on phone + desktop (emulators + Playwright) | `live-test` skill |
 | Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `night-highway/`) |
-| Deferred work waiting on a trigger ("when X ships, do Y") | `docs/follow-ups.md` |
+| The work queue, including deferred work waiting on a trigger ("when X ships, do Y") | `todo` skill |
 
-**Before finishing any task, check `docs/follow-ups.md`** for entries this work
-triggers. Do them, or tell the user they're now due. When deferring work that
-depends on a future event, add an entry there instead of leaving it in chat.
+**Before finishing any task, check the todos** (`node .claude/skills/todo/scripts/todo.mjs list --all`)
+for items this work triggers. Do them, or tell the user they're now due. When
+deferring work that depends on a future event, add a todo (`add`, tagged with the
+game's slug, plus a `detail` with the trigger, what to do and why) instead of
+leaving it in chat. Only ever touch todos through that script.
 
 ## Architecture
 
@@ -196,3 +198,5 @@ Before calling a change done:
   need `https://*.vercel.app/*`.
 - **A dev server returning 500 with a Turbopack panic** means the dev cache is
   corrupted: stop dev servers and delete `.next/dev`.
+
+Todos: use `node .claude/skills/todo/scripts/todo.mjs` only (see the todo skill); never read or edit todo.md directly.

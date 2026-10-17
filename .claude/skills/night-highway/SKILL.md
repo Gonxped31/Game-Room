@@ -201,4 +201,5 @@ single-file game (visuals, controls, physics, scoring).
   of the time** (a black road, with frames running and no errors). The original
   reference HTML does the same there, so judge the road in Chromium. Playwright's WebKit on Windows renders variable-font
   weights hairline-thin; judge weight on Chromium or a real phone.
-- A real iPhone is still owed a look (see `docs/follow-ups.md`).
+- A real iPhone is still owed a look (todo T-017; Night Highway todos are tagged
+  `nighthighway` in the `todo` skill).

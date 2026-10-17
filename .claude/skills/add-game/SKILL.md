@@ -60,7 +60,7 @@ a 3rd+ card.
   only.
   **The first 3+ player game triggers a planned refactor**: merging the two
   session hooks into one engine, building N-player picker/header components, and
-  removing dead identity code. See `docs/follow-ups.md`, and raise it with the user
+  removing dead identity code. See todo T-014 (`todo` skill), and raise it with the user
   before building on `useMultiplayerSession` as it stands.
 - **Handle the session states in this order** before any game screen:
   `session.connectionError` (show `CONNECTION_ERROR_MESSAGE`),
@@ -111,8 +111,9 @@ workflow.
 
 ## 6. Document it
 
-- Check `docs/follow-ups.md` for entries this new game triggers. Do them, or tell
-  the user they're now due.
+- Check the todos (`todo` skill, `list --all`) for items this new game triggers
+  (T-014 if it has 3+ players). Do them, or tell the user they're now due.
+- Tag new todos for the game with its slug (e.g. `--tag frontend,<slug>`).
 - Create a `.claude/skills/<slug>/SKILL.md` reference for the game. Follow the
   `first-to-worst` or `co-counsel` skill: rules, files, state, page flow and
   gotchas.
