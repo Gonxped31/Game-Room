@@ -40,9 +40,8 @@ export interface GameState extends WithIdentity {
   /** One entry per completed (REVEALED) round this session, oldest first - the session recap. */
   history: RoundRecord[];
   /**
-   * The prompt-bank groups the players want prompts from (shared by both,
-   * either can change it). Absent means every topic - Firebase drops the
-   * empty array anyway.
+   * The prompt-bank groups prompts are drawn from - the master's choice, seen
+   * by both. Absent means every topic - Firebase drops the empty array anyway.
    */
   topics?: string[];
 }
@@ -91,12 +90,16 @@ export function newGame(firstRound: CurrentRound, topics: string[] = []): GameSt
 }
 
 /**
- * Chooses which topics prompts are drawn from, at any point in the game (it
- * applies from the next prompt). `known` is the bank's groups, in bank order;
- * the choice is kept in that order, and choosing none (or every one) means
- * every topic, stored as no field at all.
+ * The master (`by` must be this round's master) chooses which topics prompts
+ * are drawn from, at any point in the round; it applies from the next prompt.
+ * `known` is the bank's groups, in bank order; the choice is kept in that
+ * order, and choosing none (or every one) means every topic, stored as no
+ * field at all.
  */
-export function setTopics(game: GameState, topics: string[], known: readonly string[]): GameState {
+export function setTopics(game: GameState, by: Role, topics: string[], known: readonly string[]): GameState {
+  if (by !== masterOf(game.round)) {
+    throw new Error("Only the master chooses the topics.");
+  }
   if (!topics.every((t) => known.includes(t))) {
     throw new Error("Unknown topic.");
   }

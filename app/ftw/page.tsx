@@ -56,7 +56,9 @@ export default function FirstToWorstPage() {
     if (status === "RANKING" || status === "GUESSING") transact((current) => setPlaced(current, status, placedIds));
   };
   const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [], current.topics ?? [])));
-  const handleTopicsChange = (topics: string[]) => transact((current) => setTopics(current, topics, TOPICS));
+  const handleTopicsChange = (topics: string[]) => {
+    if (me) transact((current) => setTopics(current, me, topics, TOPICS));
+  };
   // Seats live at the room level, so a reset keeps both players seated -
   // only the game itself starts over (with the same topics).
   // Only topics the bank still has (a renamed category drops out rather than blocking changes).
@@ -118,7 +120,7 @@ export default function FirstToWorstPage() {
             onNextRound={handleNextRound}
             onChangePrompt={handleChangePrompt}
           />
-          <TopicPicker topics={topics} onChange={handleTopicsChange} />
+          <TopicPicker topics={topics} onChange={isMaster ? handleTopicsChange : undefined} masterName={masterName} />
           <SessionRecap history={game.history ?? []} names={names} />
         </>
       )}

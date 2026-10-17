@@ -41,8 +41,10 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   status, masterOrder?, guessOrder?, score?, placed?}`, `usedPrompts[]`,
   `history[]` and `topics?[]`.
 - **Topics** (`topics`, written by `setTopics`): the prompt-bank categories the
-  players want prompts from. Shared - either player can change it at any time in
-  `TopicPicker` (under the board) - and it applies from the next prompt (Shuffle,
+  players want prompts from. **Only the round's master changes it** (`setTopics`
+  throws for anyone else, so the role swap hands it over each round), in
+  `TopicPicker` under the board; the guesser sees the choice read-only. It applies
+  from the next prompt (Shuffle,
   Next round, Reset game). Absent means every topic: `setTopics` stores no field
   for none or all, and `nextRound`/`newGame` carry it over. Validated by the rules
   (strings ≤ 60, at most 99 entries).

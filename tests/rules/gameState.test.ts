@@ -6,7 +6,7 @@
  */
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { lockIn as ftwLockIn, newGame as newFtwGame, nextRound, setPlaced, setPrompt, setTopics, submitGuess } from "@/lib/games/ftw/game";
+import { lockIn as ftwLockIn, masterOf, newGame as newFtwGame, nextRound, setPlaced, setPrompt, setTopics, submitGuess } from "@/lib/games/ftw/game";
 import { customRound, randomRound, TOPICS } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
 import { CASES, getCase } from "@/lib/games/cocounsel/cases";
@@ -56,12 +56,12 @@ describe("First to Worst", () => {
     game = await write(nextRound(game, randomRound(game.usedPrompts)));
     game = await write(ftwLockIn(game, game.current.items.map((i) => i.id)));
     // Topics: a few, the longest names, all but one (the most there can be), then back to every topic.
-    game = await write(setTopics(game, [TOPICS[0], TOPICS[5]], TOPICS));
-    game = await write(setTopics(game, [...TOPICS].sort((a, b) => b.length - a.length).slice(0, 3), TOPICS));
-    game = await write(setTopics(game, TOPICS.slice(1), TOPICS));
+    game = await write(setTopics(game, masterOf(game.round), [TOPICS[0], TOPICS[5]], TOPICS));
+    game = await write(setTopics(game, masterOf(game.round), [...TOPICS].sort((a, b) => b.length - a.length).slice(0, 3), TOPICS));
+    game = await write(setTopics(game, masterOf(game.round), TOPICS.slice(1), TOPICS));
     game = await write(submitGuess(game, game.current.items.map((i) => i.id)));
     game = await write(nextRound(game, randomRound(game.usedPrompts, game.topics)));
-    await write(setTopics(game, [], TOPICS));
+    await write(setTopics(game, masterOf(game.round), [], TOPICS));
   });
 
   it.each([
