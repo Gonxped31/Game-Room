@@ -1507,6 +1507,12 @@ function setCircuit(name) {
   for (const o of cityObjs) o.visible = !desert;
   root.classList.toggle('nh-desert', desert); // the screens and HUD need more contrast over a bright sky
   for (const o of desertObjs) o.visible = desert;
+  // The desert's off-road truck in place of the car, for the player and the ghost.
+  showVehicle(chassis, desert);
+  showVehicle(ghostChassis, desert);
+  const lamps = LAMPS[desert ? 'offroad' : 'car'];
+  headSpot.position.set(...lamps.head);
+  tailGlow.position.set(...lamps.tail);
   const su = skyMat.uniforms;
   su.uZenith.value.copy(c.sky.zenith); su.uMid.value.copy(c.sky.mid); su.uHorizon.value.copy(c.sky.horizon); su.uGlow.value.copy(c.sky.glow);
   su.uSun.value = c.sun;
@@ -1707,6 +1713,7 @@ chassis.add(new THREE.Mesh(flatPlane(2.7, 5.4, 0, 0.02, 0.05), new THREE.MeshBas
 })));
 const UNDERGLOW = hdr(0.1, 0.08, 0.4);
 const underglowMat = makeGlowMaterial(texSoftRect, UNDERGLOW.clone());
+const UNDERGLOW_DESERT = hdr(0.05, 0.03, 0.015);
 chassis.add(new THREE.Mesh(flatPlane(2.6, 5.2, 0, 0.03, 0), underglowMat));
 
 const headSpot = new THREE.SpotLight(lin('#dfe8ff'), 2.4, 120, 0.42, 0.55, 1.2);
@@ -1721,6 +1728,100 @@ scene.add(lampLight);
 for (const l of [hemi, moon, headSpot, tailGlow, lampLight]) l.layers.enable(1);
 body.traverse((o) => o.layers.enable(1));
 for (const w of wheels) w.traverse((o) => o.layers.enable(1));
+
+// ---------- Game Room: the off-road truck (the desert's car) ----------
+// A Baja-style trophy truck: high ride, big knobbly tyres on long-travel
+// arms, an open bed with a spare wheel and a roll cage, a roof light bar.
+// It sits in the same chassis as the car (sharing its paint, lamps and nitro
+// flame) and setCircuit() swaps the two, for the player and the ghost. Same
+// hitbox as the car, so racing doesn't change.
+for (const o of [body, ...wheels]) o.userData.vehicle = 'car';
+const OR_L = 4.3;
+const OR_WHEEL_R = 0.5;
+const orBody = new THREE.Group();
+orBody.userData.vehicle = 'offroad';
+chassis.add(orBody);
+// A tube from a to b (each [x, y, z]): the cage, the suspension arms.
+function tube(a, b, r) {
+  const d = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+  const g = new THREE.CylinderGeometry(r, r, d.length(), 8);
+  g.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(_yAxis, d.clone().normalize())));
+  return g.translate((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+}
+// The body, tail to nose: the bed, the cab's base, a tall flat hood and a square nose.
+addTo(orBody, profileGeometry((s) => {
+  s.moveTo(0.06, 0.82);
+  s.lineTo(0.0, 1.26); s.lineTo(1.45, 1.28); s.lineTo(1.6, 1.46); s.lineTo(2.75, 1.46);
+  s.lineTo(3.95, 1.4); s.quadraticCurveTo(4.24, 1.38, 4.28, 1.24);
+  s.lineTo(4.3, 0.98); s.lineTo(4.18, 0.8);
+  s.lineTo(0.06, 0.82);
+}, 1.62, 0.05, OR_L), paintMat);
+// The bed is open: a dark floor sunk into the body's top.
+addTo(orBody, boxAt(1.4, 0.04, 1.38, 0, 1.29, 1.42), trimMat);
+// The cab: glass all round, a painted roof.
+addTo(orBody, profileGeometry((s) => {
+  s.moveTo(1.62, 1.46); s.lineTo(2.72, 1.46);
+  s.lineTo(2.42, 1.94); s.lineTo(1.74, 1.96);
+  s.lineTo(1.62, 1.42);
+}, 1.44, 0.03, OR_L), glassMat);
+addTo(orBody, boxAt(1.4, 0.07, 0.74, 0, 1.99, 0.05), paintMat);
+// Fender flares over the wheels, a skid plate and bumpers.
+addTo(orBody, mergeGeometries([
+  ...[-1.45, 1.45].flatMap((z) => [-1, 1].map((sx) => boxAt(0.22, 0.12, 1.25, sx * 0.86, 1.06, z))),
+  boxAt(1.5, 0.12, 0.55, 0, 0.72, -1.95), boxAt(1.8, 0.16, 0.14, 0, 0.92, -2.2), boxAt(1.8, 0.14, 0.14, 0, 0.92, 2.17),
+]), trimMat);
+// The roll cage over the bed and the cab, and long-travel suspension arms.
+addTo(orBody, mergeGeometries([
+  tube([-0.66, 1.95, 0.4], [-0.66, 1.3, 2.05], 0.045), tube([0.66, 1.95, 0.4], [0.66, 1.3, 2.05], 0.045),
+  tube([-0.66, 1.3, 2.05], [0.66, 1.3, 2.05], 0.045), tube([-0.66, 1.7, 1.2], [0.66, 1.7, 1.2], 0.04),
+  tube([-0.66, 1.95, 0.4], [0.66, 1.95, 0.4], 0.045),
+  ...[-1.45, 1.45].flatMap((z) => [-1, 1].flatMap((sx) => [
+    tube([sx * 0.45, 0.95, z - 0.2], [sx * 0.86, OR_WHEEL_R, z], 0.04),
+    tube([sx * 0.45, 1.15, z + 0.15], [sx * 0.86, OR_WHEEL_R + 0.12, z], 0.05),
+  ])),
+]), chromeMat);
+// A spare wheel lying in the bed.
+addTo(orBody, new THREE.CylinderGeometry(0.42, 0.42, 0.26, 18).translate(0, 1.44, 1.45), tireMat);
+// The light bar on the roof, the headlights in the nose, the tail lights.
+addTo(orBody, boxAt(1.2, 0.1, 0.1, 0, 2.08, -0.28), trimMat);
+addTo(orBody, mergeGeometries([
+  ...[-0.45, -0.15, 0.15, 0.45].map((x) => boxAt(0.2, 0.06, 0.04, x, 2.08, -0.34)),
+  boxAt(0.3, 0.1, 0.05, -0.55, 1.02, -2.17), boxAt(0.3, 0.1, 0.05, 0.55, 1.02, -2.17),
+]), headMat);
+addTo(orBody, mergeGeometries([boxAt(0.14, 0.28, 0.04, -0.72, 1.1, 2.16), boxAt(0.14, 0.28, 0.04, 0.72, 1.1, 2.16)]), tailMat);
+const orPlate = addTo(orBody, new THREE.PlaneGeometry(0.42, 0.11), plateMat);
+orPlate.position.set(0, 0.9, 2.25);
+// Twin exhausts out the back, with the nitro flame.
+const OR_EXHAUST_X = [-0.42, 0.42];
+addTo(orBody, mergeGeometries(OR_EXHAUST_X.map((x) => new THREE.CylinderGeometry(0.06, 0.06, 0.3, 12).rotateX(Math.PI / 2).translate(x, 0.82, 2.2))), chromeMat);
+addTo(orBody, mergeGeometries(OR_EXHAUST_X.map((x) => new THREE.ConeGeometry(0.07, 0.9, 12, 1, true).rotateX(Math.PI / 2).translate(x, 0.82, 2.35 + 0.45))), flameMat);
+// Big knobbly tyres: a 12-sided tread over a round tyre, and a rim.
+const orTireGeo = mergeGeometries([
+  new THREE.CylinderGeometry(OR_WHEEL_R - 0.03, OR_WHEEL_R - 0.03, 0.4, 24).rotateZ(Math.PI / 2),
+  new THREE.CylinderGeometry(OR_WHEEL_R, OR_WHEEL_R, 0.34, 12).rotateZ(Math.PI / 2),
+]);
+const orRimParts = [new THREE.CylinderGeometry(0.28, 0.28, 0.41, 16).rotateZ(Math.PI / 2)];
+for (let k = 0; k < 6; k++) orRimParts.push(new THREE.BoxGeometry(0.42, 0.5, 0.05).rotateX((k * Math.PI * 2) / 6));
+const orRimGeo = mergeGeometries(orRimParts);
+const orWheels = [];
+for (const [x, z] of [[-0.86, 1.45], [0.86, 1.45], [-0.86, -1.45], [0.86, -1.45]]) {
+  const w = new THREE.Group();
+  w.userData.vehicle = 'offroad';
+  w.position.set(x, OR_WHEEL_R, z);
+  w.rotation.order = 'YXZ';
+  w.add(new THREE.Mesh(orTireGeo, tireMat), new THREE.Mesh(orRimGeo, rimMat));
+  chassis.add(w);
+  orWheels.push(w);
+}
+orBody.traverse((o) => o.layers.enable(1));
+for (const w of orWheels) w.traverse((o) => o.layers.enable(1));
+// Where the lamps sit on each.
+const LAMPS = { car: { head: [0, 0.7, -2.0], tail: [0, 0.55, 2.7] }, offroad: { head: [0, 1.05, -2.2], tail: [0, 1.0, 2.5] } };
+// Shows the car or the truck in a chassis (the player's, or the ghost's).
+function showVehicle(ch, offroad) {
+  for (const c of ch.children) if (c.userData.vehicle) c.visible = (c.userData.vehicle === 'offroad') === offroad;
+}
+showVehicle(chassis, false);
 
 // ---------- Game Room: pickups ----------
 // Floating over the road: a blue nitro canister, a violet phase ring and a
@@ -2217,7 +2318,8 @@ function updatePickups(dt) {
   }
   for (const kind of Object.keys(pickupMeshes)) for (let i = used[kind]; i < PICKUP_POOL; i++) pickupMeshes[kind][i].visible = false;
   setCarFaded(player.phaseT > 0);
-  underglowMat.uniforms.uColor.value.copy(player.shield ? PICKUP_LOOK.shield.color : UNDERGLOW).multiplyScalar(player.shield ? 0.35 : 1);
+  // Game Room: no neon under the desert's truck - just a faint warm glow, unless a shield is up.
+  underglowMat.uniforms.uColor.value.copy(player.shield ? PICKUP_LOOK.shield.color : circuit === 'desert' ? UNDERGLOW_DESERT : UNDERGLOW).multiplyScalar(player.shield ? 0.35 : 1);
 }
 const keys = { up: false, down: false, left: false, right: false, boost: false };
 const CAMS = [
@@ -2531,7 +2633,12 @@ function updateCarVisual(dt, steerIn) {
   for (let i = 0; i < 4; i++) {
     wheels[i].rotation.x = player.wheelRot;
     wheels[i].rotation.y = i >= 2 ? damp(wheels[i].rotation.y, steerIn * 0.32 - player.vx * 0.02, 10, dt) : 0;
+    // Game Room: the off-road truck's bigger wheels turn slower, and its body rolls and pitches like the car's.
+    orWheels[i].rotation.x = (player.wheelRot * 0.35) / OR_WHEEL_R;
+    orWheels[i].rotation.y = wheels[i].rotation.y;
   }
+  orBody.rotation.copy(body.rotation);
+  orBody.position.copy(body.position);
   const brakeK = player.braking ? 2.3 : 1;
   tailMat.color.copy(TAIL_ON).multiplyScalar(brakeK);
   tailGlow.intensity = 1.6 * brakeK;

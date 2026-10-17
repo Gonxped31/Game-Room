@@ -183,6 +183,11 @@ single-file game (visuals, controls, physics, scoring).
   - Boulders, scrub and a few saguaros on the canyon floor (`scatter`); `offRoad`
     mirrors about the track and keeps a piece's whole radius off it.
   - The title kicker swaps per circuit (`.nh-city-only` / `.nh-desert-only`).
+  - The player drives an off-road trophy truck (`orBody` + `orWheels`, built
+    beside the car in the same chassis and swapped by `showVehicle`, for the
+    ghost too). It shares the car's paint, lamps and nitro flame, and its hitbox,
+    so racing doesn't change. Lamps move with it (`LAMPS`); no neon underglow
+    there (`UNDERGLOW_DESERT`).
 - **Built beside the city, swapped by `setCircuit()`** (called every frame from
   the shown switch; it only does work when the circuit changes). `CIRCUITS` holds
   each one's look; `cityObjs`/`desertObjs` are hidden and shown. Any new
