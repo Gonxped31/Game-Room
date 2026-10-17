@@ -3570,6 +3570,8 @@ if (options.exposeForTests) {
     rain() { return { k: rainK, visible: rainMesh.visible }; },
     // ...the circuit shown, and the road's height (m) `ahead` of the car relative to it.
     circuit() { return circuit; },
+    // ...whether the other racer's ghost is in sight, and whether it's the desert's truck.
+    ghost() { return { visible: ghostRoot.visible, truck: ghostChassis.children.some((c) => c.userData.vehicle === 'offroad' && c.visible) }; },
     // ...and the same-direction traffic in sight (a jeep has an even id, a pickup an odd one, in the desert).
     traffic() { return vehicles.filter((v) => v.dir > 0 && v.z !== HIDDEN_Z).map((v) => ({ kind: v.kind, id: v.id, x: v.x, z: v.z, v: v.v })); },
     hill(ahead) { return bendAt(BEND.nhHill.value, ahead); },

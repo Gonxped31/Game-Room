@@ -8,7 +8,8 @@
 // - Solo: the title screen's Drive button starts a run.
 // - A creates a room and waits with the invite link; B joins by the link.
 // - A switches Rain on in the lobby and B switches Desert on: each sees the
-//   other's switch, and both race in the rain, in the desert.
+//   other's switch, and both race in the rain, in the desert, where the
+//   other's ghost is the off-road truck.
 // - Both press Ready; the race starts in the database with a seed.
 // - Both browsers simulate the race's traffic identically (V8 vs JavaScriptCore).
 // - Each player's HUD names the other, and both live cars reach the database.
@@ -105,6 +106,12 @@ try {
   const circuits = await Promise.all([A, B].map((p) => p.evaluate(() => window.NightHighway.circuit())));
   if (!circuits.every((c) => c === "desert")) throw new Error(`both should race in the desert: ${circuits}`);
   log("both race in the desert, with rain and pickups on");
+  // Each other's ghost drives the desert's off-road truck (whoever is behind sees the other's ghost ahead).
+  const ghostTruck = await until(async () => {
+    const [a, b] = await Promise.all([A, B].map((p) => p.evaluate(() => window.NightHighway.ghost())));
+    return (a.visible && a.truck) || (b.visible && b.truck) ? { a, b } : null;
+  }, "a ghost in sight, as the off-road truck", 30000);
+  log("ghost seen as the off-road truck:", JSON.stringify(ghostTruck));
   await A.waitForTimeout(4000);
   await A.keyboard.down("ArrowLeft");
   await A.waitForTimeout(400);
