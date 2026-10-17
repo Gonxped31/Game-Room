@@ -2026,6 +2026,89 @@ const truckLights = withColors(instanced(truck.lights, trafficLight, N_TRUCKS), 
 
 const CAR_COLORS = ['#e9ebef', '#c9ccd3', '#8d929c', '#2a2d33', '#101114', '#1f3f7a', '#7d1620', '#3c4b3a', '#b9a888', '#4b5a6e', '#e9ebef', '#c9ccd3'].map(lin);
 const TRUCK_COLORS = ['#f2f2f2', '#d9dde3', '#9fb3c8', '#c94b3b'].map(lin);
+
+// ---------- Game Room: the desert's traffic ----------
+// Jeeps and pickups in place of the sedans, dusty tipper haulers in place of
+// the trucks. Same lengths, widths and light positions as the city's, so the
+// traffic plays exactly the same; writeTraffic draws whichever set the
+// circuit shows (each car is a jeep or a pickup by its id).
+const DARK = [0.05, 0.05, 0.06], TYRE = [0.03, 0.03, 0.035], TRIM = [0.2, 0.2, 0.22];
+const D_TAIL = [2.8, 0.07, 0.11], D_HEAD = [2.3, 2.4, 2.7];
+function trafficParts() {
+  const parts = [], cols = [];
+  return { parts, cols, add(g, c) { parts.push(g); cols.push(c); }, body() { return mergeGeometries(parts, cols); } };
+}
+function carLightsAt(z0, z1, yt, yh) {
+  return mergeGeometries([
+    boxAt(0.32, 0.16, 0.06, -0.62, yt, z0), boxAt(0.32, 0.16, 0.06, 0.62, yt, z0),
+    boxAt(0.32, 0.12, 0.06, -0.62, yh, z1), boxAt(0.32, 0.12, 0.06, 0.62, yh, z1),
+  ], [D_TAIL, D_TAIL, D_HEAD, D_HEAD]);
+}
+function jeepGeometry() {
+  const L = 4.4, b = trafficParts();
+  b.add(profileGeometry((s) => {
+    s.moveTo(0.05, 0.52); s.lineTo(0.0, 1.2); s.lineTo(3.0, 1.22); s.lineTo(4.3, 1.12);
+    s.lineTo(4.4, 0.86); s.lineTo(4.32, 0.52); s.lineTo(0.05, 0.52);
+  }, 1.78, 0.04, L), [1, 1, 1]);
+  b.add(profileGeometry((s) => {
+    s.moveTo(0.3, 1.2); s.lineTo(2.9, 1.22); s.lineTo(2.6, 1.84); s.lineTo(0.36, 1.86); s.lineTo(0.3, 1.2);
+  }, 1.66, 0.03, L), DARK);
+  b.add(boxAt(1.72, 0.07, 2.26, 0, 1.89, 0.72), [1, 1, 1]); // roof
+  b.add(boxAt(1.5, 0.08, 1.6, 0, 1.97, 0.75), TRIM); // roof rack
+  for (const z of [-1.4, 1.4]) for (const x of [-0.82, 0.82]) {
+    b.add(new THREE.CylinderGeometry(0.42, 0.42, 0.32, 14).rotateZ(Math.PI / 2).translate(x, 0.42, z), TYRE);
+    b.add(boxAt(0.24, 0.1, 1.0, x * 1.06, 0.88, z), DARK); // fender flare
+  }
+  b.add(new THREE.CylinderGeometry(0.36, 0.36, 0.24, 14).rotateX(Math.PI / 2).translate(0, 1.0, 2.3), TYRE); // spare wheel
+  b.add(boxAt(1.84, 0.18, 0.16, 0, 0.6, 2.24), TRIM);
+  b.add(boxAt(1.84, 0.2, 0.18, 0, 0.62, -2.24), TRIM);
+  return { body: b.body(), lights: carLightsAt(2.24, -2.24, 0.86, 0.96) };
+}
+function pickupGeometry() {
+  const L = 4.8, b = trafficParts();
+  b.add(profileGeometry((s) => {
+    s.moveTo(0.05, 0.5); s.lineTo(0.0, 1.15); s.lineTo(3.6, 1.15); s.lineTo(4.6, 1.08);
+    s.lineTo(4.8, 0.86); s.lineTo(4.72, 0.5); s.lineTo(0.05, 0.5);
+  }, 1.8, 0.04, L), [1, 1, 1]);
+  b.add(boxAt(1.6, 0.05, 1.55, 0, 1.13, 1.5), DARK); // the open bed
+  b.add(profileGeometry((s) => {
+    s.moveTo(1.85, 1.15); s.lineTo(3.5, 1.15); s.lineTo(3.15, 1.74); s.lineTo(1.92, 1.77); s.lineTo(1.85, 1.15);
+  }, 1.66, 0.03, L), DARK);
+  b.add(boxAt(1.7, 0.07, 1.25, 0, 1.79, -0.13), [1, 1, 1]); // cab roof
+  for (const z of [-1.55, 1.55]) for (const x of [-0.82, 0.82]) b.add(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 14).rotateZ(Math.PI / 2).translate(x, 0.4, z), TYRE);
+  b.add(boxAt(1.84, 0.16, 0.16, 0, 0.58, 2.44), TRIM);
+  b.add(boxAt(1.84, 0.2, 0.16, 0, 0.6, -2.44), TRIM);
+  return { body: b.body(), lights: carLightsAt(2.44, -2.44, 0.86, 0.96) };
+}
+// The city truck's cab and lights, with an open tipper body heaped with sand instead of the box trailer.
+function haulerGeometry() {
+  const b = trafficParts();
+  const SAND = [0.82, 0.62, 0.42];
+  b.add(boxAt(2.5, 0.3, 11.4, 0, 1.35, 1.5), DARK);
+  for (const x of [-1.2, 1.2]) b.add(boxAt(0.1, 1.5, 11.4, x, 2.2, 1.5), [1, 1, 1]);
+  b.add(boxAt(2.5, 1.5, 0.12, 0, 2.2, 7.16), [1, 1, 1]);
+  b.add(boxAt(2.5, 1.9, 0.14, 0, 2.4, -4.2), [1, 1, 1]);
+  b.add(new THREE.CylinderGeometry(1.15, 1.15, 10.8, 16, 1, false, -Math.PI / 2, Math.PI).rotateX(Math.PI / 2).scale(1, 0.55, 1).translate(0, 2.55, 1.5), SAND);
+  b.add(boxAt(2.2, 0.35, 11.0, 0, 1.0, 1.5), DARK);
+  b.add(boxAt(2.4, 0.16, 0.12, 0, 0.75, 7.15), [0.1, 0.1, 0.1]);
+  b.add(boxAt(2.45, 2.3, 2.3, 0, 2.05, -5.95), [1, 1, 1]);
+  b.add(boxAt(2.4, 0.95, 1.7, 0, 3.6, -5.65), [1, 1, 1]);
+  b.add(boxAt(2.2, 0.85, 0.05, 0, 2.55, -7.11), [0.05, 0.06, 0.08]);
+  b.add(boxAt(2.5, 0.35, 0.2, 0, 0.75, -7.1), [0.2, 0.2, 0.22]);
+  for (const z of [6.2, 5.0, -3.4, -6.2]) for (const x of [-1.0, 1.0]) b.add(new THREE.CylinderGeometry(0.55, 0.55, 0.5, 14).rotateZ(Math.PI / 2).translate(x, 0.55, z), TYRE);
+  return { body: b.body(), lights: truck.lights };
+}
+const jeep = jeepGeometry(), pickup = pickupGeometry(), hauler = haulerGeometry();
+const jeepBodies = withColors(instanced(jeep.body, trafficPaint, N_CARS), N_CARS);
+const jeepLights = withColors(instanced(jeep.lights, trafficLight, N_CARS), N_CARS);
+const pickupBodies = withColors(instanced(pickup.body, trafficPaint, N_CARS), N_CARS);
+const pickupLights = withColors(instanced(pickup.lights, trafficLight, N_CARS), N_CARS);
+const haulerBodies = withColors(instanced(hauler.body, trafficPaint, N_TRUCKS), N_TRUCKS);
+const haulerLights = withColors(instanced(hauler.lights, trafficLight, N_TRUCKS), N_TRUCKS);
+cityObjs.push(carBodies, carLights, truckBodies, truckLights);
+desertObjs.push(jeepBodies, jeepLights, pickupBodies, pickupLights, haulerBodies, haulerLights);
+const DESERT_CAR_COLORS = ['#c8b08a', '#a8865c', '#7a6a52', '#5b4a3a', '#d8cfc0', '#8a3a2a', '#3f4a3a', '#b0703c', '#6a7a7a', '#e0d6c4', '#9a8a6a', '#4a3a30'].map(lin);
+const DESERT_TRUCK_COLORS = ['#d9c8a8', '#c2a070', '#a85a3a', '#8a8a80'].map(lin);
 const vehicles = [];
 for (let i = 0; i < N_CARS; i++) vehicles.push({ kind: 'car', idx: i, dir: i < N_SAME_CARS ? 1 : -1, len: 4.85, halfW: 0.94, x: 0, z: i < N_SAME_CARS ? HIDDEN_Z : null, v: 30, cruise: 30, lane: 0, sy: 1, brake: 0, lc: null, prevZ: HIDDEN_Z, color: CAR_COLORS[0], id: -1 });
 for (let i = 0; i < N_TRUCKS; i++) vehicles.push({ kind: 'truck', idx: i, dir: 1, len: 14.5, halfW: 1.28, x: 0, z: HIDDEN_Z, v: 23, cruise: 23, lane: 2, sy: 1, brake: 0, lc: null, prevZ: HIDDEN_Z, color: TRUCK_COLORS[0], id: -1 });
@@ -2107,16 +2190,26 @@ function syncTraffic() {
       seen.set(e.c.id, e.z);
     }
   };
-  fill(cars, carSlots, CAR_COLORS);
-  fill(trucks, truckSlots, TRUCK_COLORS);
+  const desert = circuit === 'desert';
+  fill(cars, carSlots, desert ? DESERT_CAR_COLORS : CAR_COLORS);
+  fill(trucks, truckSlots, desert ? DESERT_TRUCK_COLORS : TRUCK_COLORS);
   lastRel = seen;
 }
+// Game Room: which instanced meshes draw a traffic slot - the city's, or in the
+// desert a hauler, or a jeep or pickup (by the car's id); the rest get nothing.
+const TRAFFIC_SETS = [carBodies, carLights, truckBodies, truckLights, jeepBodies, jeepLights, pickupBodies, pickupLights, haulerBodies, haulerLights];
+function trafficMeshes(v) {
+  if (circuit !== 'desert') return v.kind === 'truck' ? [truckBodies, truckLights] : [carBodies, carLights];
+  if (v.kind === 'truck') return [haulerBodies, haulerLights];
+  return v.id % 2 ? [pickupBodies, pickupLights] : [jeepBodies, jeepLights];
+}
+const _zero = new THREE.Matrix4().makeScale(0, 0, 0);
 function writeTraffic() {
   for (const v of vehicles) {
+    for (const m of TRAFFIC_SETS) if (v.idx < m.count && (m === truckBodies || m === truckLights || m === haulerBodies || m === haulerLights) === (v.kind === 'truck')) m.setMatrixAt(v.idx, _zero);
     // Game Room: no oncoming lane in the desert.
-    if (v.z === HIDDEN_Z || (v.dir < 0 && circuit === 'desert')) { _m4.makeScale(0, 0, 0); (v.kind === 'truck' ? truckBodies : carBodies).setMatrixAt(v.idx, _m4); (v.kind === 'truck' ? truckLights : carLights).setMatrixAt(v.idx, _m4); continue; }
-    const bodyM = v.kind === 'truck' ? truckBodies : carBodies;
-    const lightM = v.kind === 'truck' ? truckLights : carLights;
+    if (v.z === HIDDEN_Z || (v.dir < 0 && circuit === 'desert')) continue;
+    const [bodyM, lightM] = trafficMeshes(v);
     let yaw = v.dir > 0 ? 0 : Math.PI;
     if (v.lc) yaw += -Math.sign(v.lc.to - v.lc.from) * 0.05 * Math.sin(Math.PI * clamp(v.lc.t, 0, 1));
     _q.setFromAxisAngle(_yAxis, yaw);
@@ -2131,7 +2224,7 @@ function writeTraffic() {
     const lc = lightM.instanceColor.array;
     lc[v.idx * 3] = k; lc[v.idx * 3 + 1] = k; lc[v.idx * 3 + 2] = k;
   }
-  for (const m of [carBodies, carLights, truckBodies, truckLights]) { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
+  for (const m of TRAFFIC_SETS) { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
 }
 
 // ---------- effects: wet-road reflections, sparks, wind streaks ----------
@@ -3349,7 +3442,12 @@ function boot(data) {
   listen(window, 'resize', resize);
   try {
     update(1 / 60);
+    // Game Room: compile the other circuit's shaders now too (and the desert's
+    // truck), so the first switch doesn't stall a frame compiling them.
+    const hidden = [...cityObjs, ...desertObjs, ...chassis.children, ...ghostChassis.children].filter((o) => !o.visible);
+    for (const o of hidden) o.visible = true;
     renderer.compile(scene, camera);
+    for (const o of hidden) o.visible = false;
     renderFrame();
   } catch {
     fatal('The graphics engine hit an error while starting. Reloading the page usually fixes it.');
@@ -3408,6 +3506,8 @@ if (options.exposeForTests) {
     rain() { return { k: rainK, visible: rainMesh.visible }; },
     // ...the circuit shown, and the road's height (m) `ahead` of the car relative to it.
     circuit() { return circuit; },
+    // ...and the same-direction traffic in sight (a jeep has an even id, a pickup an odd one, in the desert).
+    traffic() { return vehicles.filter((v) => v.dir > 0 && v.z !== HIDDEN_Z).map((v) => ({ kind: v.kind, id: v.id, x: v.x, z: v.z, v: v.v })); },
     hill(ahead) { return bendAt(BEND.nhHill.value, ahead); },
   });
 }

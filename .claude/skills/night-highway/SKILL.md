@@ -190,6 +190,13 @@ single-file game (visuals, controls, physics, scoring).
     ghost too). It shares the car's paint, lamps and nitro flame, and its hitbox,
     so racing doesn't change. Lamps move with it (`LAMPS`); no neon underglow
     there (`UNDERGLOW_DESERT`).
+- **Desert traffic**: jeeps and pickups (by the car's id: even a jeep, odd a
+  pickup) and dusty tipper haulers, in dusty colours, from their own instanced
+  meshes (`TRAFFIC_SETS`, picked in `trafficMeshes`). Same lengths, widths and
+  light positions as the city's, so the traffic plays the same. Test hook:
+  `traffic()` lists the same-direction traffic in sight.
+- **Boot compiles both circuits' shaders** (everything hidden is shown for one
+  `renderer.compile`), so the first switch doesn't stall a frame.
 - **Driving on dirt** (desert only, same for both racers):
   - Loose grip: sideways speed settles slowly after steering (`drive()`: settle
     rate 3.2 vs the car's 7, 1.6 when wet too) and bends push 1.2x harder. Measured:
