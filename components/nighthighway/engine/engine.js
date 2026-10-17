@@ -3145,7 +3145,11 @@ function startRun() {
 // after a reload): fresh stats, the race's traffic, and the car on the grid
 // in its lane - or where the countdown would have taken it by now.
 function beginRaceCountdown(R, rt) {
-  audio.init();
+  // Game Room: not audio.init() - creating the AudioContext blocks for ~200 ms,
+  // which froze the frame the countdown starts in. It's made at the player's
+  // first click or key press instead (see below); a reloaded page has had none,
+  // and the browser keeps its sound off until one anyway.
+  audio.resume();
   resetRunStats();
   togglePause(false);
   dist = COUNTDOWN_SPEED * Math.max(0, rt);
@@ -3421,6 +3425,10 @@ listen(window, 'keydown', (e) => {
   }
 });
 listen(window, 'keyup', (e) => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
+// Game Room: the sound is set up at the first click or key press (e.g. Ready in
+// the lobby), so a race's countdown never has to (see beginRaceCountdown).
+listen(window, 'pointerdown', () => audio.init(), { capture: true });
+listen(window, 'keydown', () => audio.init(), { capture: true });
 listen(window, 'blur', () => {
   for (const k in keys) keys[k] = false;
   if (G.state === 'drive' && !G.race) togglePause(true);

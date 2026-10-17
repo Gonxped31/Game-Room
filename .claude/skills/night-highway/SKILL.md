@@ -112,6 +112,10 @@ single-file game (visuals, controls, physics, scoring).
 - A device that reloads mid-race rejoins where the countdown would have put it,
   with a fresh score. The engine never restarts a race number it finished.
 - No pause/restart in a race (the clock is shared).
+- **The sound is set up at the first click or key press**, never in the frame a
+  countdown starts: creating the `AudioContext` blocks for ~200 ms, which froze
+  every race's start (and a rejoin). Under software WebGL (headless Playwright,
+  ~2 fps) that freeze was even captured as a black frame.
 
 ## Options (`GameState.options`)
 
