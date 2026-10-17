@@ -3,6 +3,7 @@ import { Archivo, Archivo_Narrow, Big_Shoulders, Cormorant_Garamond, Courier_Pri
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
 import LocalModeBanner from "@/components/LocalModeBanner";
+import ConnectionBanner from "@/components/ConnectionBanner";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />
+        <ConnectionBanner />
       </body>
     </html>
   );
