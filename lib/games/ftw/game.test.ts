@@ -293,27 +293,36 @@ describe("setTopics", () => {
   const KNOWN = ["Food", "Music", "Space"];
 
   it("keeps the chosen topics in bank order, at any point in the round", () => {
-    const game = setTopics(freshGame(), ["Space", "Food"], KNOWN);
+    const game = setTopics(freshGame(), "p1", ["Space", "Food"], KNOWN);
     expect(game.topics).toEqual(["Food", "Space"]);
     const guessing = lockIn(game, game.current.items.map((i) => i.id));
-    expect(setTopics(guessing, ["Music"], KNOWN).topics).toEqual(["Music"]);
+    expect(setTopics(guessing, "p1", ["Music"], KNOWN).topics).toEqual(["Music"]);
   });
 
   it("stores no field for none or every topic (both mean every topic), never an explicit undefined", () => {
-    const some = setTopics(freshGame(), ["Food"], KNOWN);
-    for (const game of [setTopics(some, [], KNOWN), setTopics(some, KNOWN.slice(), KNOWN)]) {
+    const some = setTopics(freshGame(), "p1", ["Food"], KNOWN);
+    for (const game of [setTopics(some, "p1", [], KNOWN), setTopics(some, "p1", KNOWN.slice(), KNOWN)]) {
       expect("topics" in game).toBe(false);
       expect(undefinedPaths(game)).toEqual([]);
     }
   });
 
+  it("is the master's choice only - the guesser can't change it", () => {
+    expect(() => setTopics(freshGame(), "p2", ["Food"], KNOWN)).toThrow();
+    let game = freshGame();
+    const ids = game.current.items.map((i) => i.id);
+    game = nextRound(submitGuess(lockIn(game, ids), ids), makeRound("Next", LABELS));
+    expect(setTopics(game, "p2", ["Food"], KNOWN).topics).toEqual(["Food"]);
+    expect(() => setTopics(game, "p1", ["Food"], KNOWN)).toThrow();
+  });
+
   it("drops duplicates and refuses a topic the bank doesn't have", () => {
-    expect(setTopics(freshGame(), ["Food", "Food"], KNOWN).topics).toEqual(["Food"]);
-    expect(() => setTopics(freshGame(), ["Cars"], KNOWN)).toThrow();
+    expect(setTopics(freshGame(), "p1", ["Food", "Food"], KNOWN).topics).toEqual(["Food"]);
+    expect(() => setTopics(freshGame(), "p1", ["Cars"], KNOWN)).toThrow();
   });
 
   it("survives the next round and a new game started with them", () => {
-    let game = setTopics(freshGame(), ["Music"], KNOWN);
+    let game = setTopics(freshGame(), "p1", ["Music"], KNOWN);
     const ids = game.current.items.map((i) => i.id);
     game = submitGuess(lockIn(game, ids), ids);
     expect(nextRound(game, makeRound("Next", LABELS)).topics).toEqual(["Music"]);
