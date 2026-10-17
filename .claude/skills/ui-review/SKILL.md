@@ -116,7 +116,7 @@ patterns.
     (3D card flips aren't drawn the way a real iPhone draws them).
   - Fredoka's `ffl` ligature renders with a gap ("Shuff le").
 
-  Don't "fix" these from emulation alone; `docs/follow-ups.md` has the
+  Don't "fix" these from emulation alone; todo T-017 (`todo` skill) is the
   real-iPhone check.
 
 ## 5. Done when
