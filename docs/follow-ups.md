@@ -37,6 +37,56 @@ can judge whether it still applies) · **Where** (files involved).
   in the production database.
 - **Where:** Vercel project settings and the Firebase console; no code changes.
 
+## Night Highway gets bikes (next time work on Night Highway resumes)
+
+- **Do:** add bikes, as decided with the user (2026-10-17):
+  - **A race switch**, Vehicle: Cars / Bikes, so both riders always ride the same
+    thing. It goes in `GameState.options` like Rain/Pickups (rules + rules tests,
+    solo title card switch); it needs one more rules publish when it ships.
+  - **A sport bike** (superbike style, matching the car), modelled in code like the
+    car, with a rider who leans into turns and bends. The ghost rides one too.
+  - **Physics:** about half a car's width (it can split lanes), quicker
+    acceleration and sharper steering, a lower top speed than the car with nitro,
+    even less grip in rain. Tighten the near-miss distance so combos still take
+    skill.
+  - **Crashes knock the rider down:** a short tumble and about a second to get back
+    up (not the car's bump).
+  - Build in two stages, committing after each: (1) the switch, physics, the
+    fall, a clean simple bike and the bike ghost, checked with unit/rules tests
+    and one live race; (2) polish: a more detailed model, the camera tilting into
+    leans, near-miss tuning, docs.
+- **Why:** paused only for lack of usage at the time; the design is settled.
+- **Where:** `components/nighthighway/engine/engine.js`, `lib/games/nighthighway/game.ts`
+  (options), `components/nighthighway/Screens.tsx` and `Stage.tsx` (switches),
+  `database.rules.json`, `tests/rules/gameState.test.ts`, the `night-highway` skill.
+
+## Night Highway gets a desert circuit (after bikes ship)
+
+- **Do:** add a second circuit, as discussed with the user (2026-10-17):
+  - **A race switch**, Circuit: City / Desert, in `GameState.options` like the
+    others (rules + rules tests, solo title card); one more rules publish.
+  - **Sunset**, not night: a low sun and a warm orange-to-pink sky over the
+    desert (a real change from the city's night palette; the sky, fog, lighting
+    and grading all need a sunset set of values).
+  - **Scenery** in place of the city: dunes and mesas, cacti and rocks, a desert
+    road surface. Modelled in code, like the city.
+  - **Bumps:** hills, by bending the world vertically in the vertex shaders the way
+    curves bend it sideways (`lib/games/nighthighway/road.ts`); traffic and the race
+    sync stay untouched.
+  - **Sand:** patches drifting across lanes that slow the car and cut grip, with
+    dust plumes; laid out from the race seed like the pickups.
+  - **Jumps:** a fast crest launches the car: no steering in the air, flying over
+    traffic below (an air-time / jumped-a-car bonus), and landing matters (a lane,
+    maybe onto a car, a hard landing costs speed). Same jumps for both racers, from
+    the seed.
+  - Build in stages, committing after each: (1) the switch, sunset, scenery and
+    hills; (2) sand; (3) jumps.
+- **Why:** bigger than bikes; agreed to do bikes first.
+- **Where:** `components/nighthighway/engine/engine.js` (scenery, sky, physics),
+  `lib/games/nighthighway/road.ts` (hills, jumps), a new sand layout next to
+  `pickups.ts`, `game.ts` (options), `Screens.tsx`/`Stage.tsx`,
+  `database.rules.json`, `tests/rules/gameState.test.ts`, the `night-highway` skill.
+
 ## Next time someone has a real iPhone handy
 
 - **Do:** on a real iPhone (Safari), check:
