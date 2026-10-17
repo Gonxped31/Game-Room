@@ -120,13 +120,15 @@ const StageMarkup = memo(function StageMarkup() {
           <div className="lab">得点 · SCORE</div>
           <div id="score">0</div>
           <div id="mult">×1</div>
-        </div>
-        <div id="health" role="meter" aria-label="Health" aria-valuemin={0} aria-valuemax={100} aria-valuenow={100}>
-          <div className="hp-lab">体 · HEALTH</div>
-          <div className="hp-bar">
-            <i id="hpFill" />
+          {/* Under the score, clear of the oni, which fills the top centre. */}
+          <div id="health" role="meter" aria-label="Health" aria-valuemin={0} aria-valuemax={100} aria-valuenow={100}>
+            <div className="hp-lab">
+              体 · HEALTH <span id="survived">0:00</span>
+            </div>
+            <div className="hp-bar">
+              <i id="hpFill" />
+            </div>
           </div>
-          <div id="survived">0:00</div>
         </div>
         <button id="wolfBtn" type="button" aria-label="Unleash the wolf spirit">
           <span className="ico">

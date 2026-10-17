@@ -377,27 +377,30 @@ function paintFlameDabs(q) {
 /* -------------------------------------------------------------------------
    The blue wolf spirit — head in profile, flame mane, painted fur
    ------------------------------------------------------------------------- */
+// Game Room: the spirit is a wolf, not a dog - a long narrow muzzle, a flat
+// brow line, tall pointed ears (the far one behind), almond eyes with round
+// pupils, and a full ruff. Painted with the original's brush technique.
 function paintWolf(q) {
-  const W = 800, H = 480, OX = 170;
+  const W = 880, H = 480, OX = 170;
   const c = mkCanvas(W * q, H * q), g = c.getContext('2d');
   g.scale(q, q); g.lineCap = 'round'; g.lineJoin = 'round';
-  const r = new Rand(4242), nz = new Noise(4243), nz2 = new Noise(4244);
+  const r = new Rand(4242), nz2 = new Noise(4244);
   const X = x => x + OX;
   const head = new Path2D();
-  head.moveTo(X(602), 203);
-  head.quadraticCurveTo(X(578), 176, X(540), 168);
-  head.quadraticCurveTo(X(505), 160, X(474), 146);
-  head.quadraticCurveTo(X(452), 132, X(432), 112);
-  head.quadraticCurveTo(X(420), 70, X(398), 20);
-  head.quadraticCurveTo(X(372), 62, X(352), 104);
-  head.quadraticCurveTo(X(326), 112, X(300), 138);
-  head.bezierCurveTo(X(270), 175, X(262), 300, X(322), 352);
+  head.moveTo(X(688), 208);
+  head.quadraticCurveTo(X(640), 180, X(570), 168);   // bridge of the long muzzle
+  head.quadraticCurveTo(X(514), 160, X(478), 147);   // a barely-there stop
+  head.quadraticCurveTo(X(452), 134, X(437), 114);   // flat brow to the ear
+  head.quadraticCurveTo(X(426), 62, X(406), 0);      // tall pointed ear, front edge
+  head.quadraticCurveTo(X(380), 54, X(357), 104);    // ear, back edge
+  head.quadraticCurveTo(X(327), 112, X(300), 138);
+  head.bezierCurveTo(X(268), 176, X(258), 300, X(322), 352);
   head.quadraticCurveTo(X(342), 362, X(362), 352);
-  head.quadraticCurveTo(X(440), 374, X(520), 338);
-  head.quadraticCurveTo(X(548), 326, X(552), 304);
-  head.quadraticCurveTo(X(505), 292, X(430), 266);
-  head.quadraticCurveTo(X(512), 252, X(594), 232);
-  head.quadraticCurveTo(X(610), 220, X(602), 203);
+  head.quadraticCurveTo(X(452), 372, X(562), 334);   // underside of the jaw
+  head.quadraticCurveTo(X(612), 318, X(626), 298);   // chin
+  head.quadraticCurveTo(X(560), 290, X(452), 266);   // lower lip, back to the corner
+  head.quadraticCurveTo(X(562), 252, X(676), 236);   // upper lip, out to the nose
+  head.quadraticCurveTo(X(694), 224, X(688), 208);
   head.closePath();
 
   const blues = ['#1b3aa8', '#2448c2', '#2f58d4', '#1a2f8f', '#3a63dc', '#2550c9'].map(hex);
@@ -407,30 +410,38 @@ function paintWolf(q) {
     swirls: [{ x: 300, y: 180, r: 120, s: -1 }, { x: 170, y: 280, r: 95, s: 1 }, { x: 420, y: 330, r: 80, s: -1 }] }, q);
   g.drawImage(mane, 0, 0, mane.width, mane.height, 10, 0, 560, 480);
 
+  // --- the far ear, behind the head
+  const farEar = new Path2D();
+  farEar.moveTo(X(388), 112); farEar.quadraticCurveTo(X(378), 50, X(366), 16); farEar.quadraticCurveTo(X(344), 70, X(330), 126); farEar.closePath();
+  let gr = g.createLinearGradient(X(366), 16, X(350), 126);
+  gr.addColorStop(0, '#2347c0'); gr.addColorStop(1, '#0d1a5c');
+  g.fillStyle = gr; g.fill(farEar);
+  g.strokeStyle = 'rgba(6,12,46,.6)'; g.lineWidth = 2; g.stroke(farEar);
+
   // --- mouth interior (behind lips)
-  const C0 = [X(430), 266], UC = [X(512), 252], UF = [X(594), 232], LF = [X(552), 304], LC = [X(505), 292];
+  const C0 = [X(452), 266], UC = [X(562), 252], UF = [X(676), 236], LF = [X(626), 298], LC = [X(560), 290];
   const mouth = new Path2D();
   mouth.moveTo(C0[0], C0[1]); mouth.quadraticCurveTo(UC[0], UC[1], UF[0], UF[1]);
   mouth.lineTo(LF[0], LF[1]); mouth.quadraticCurveTo(LC[0], LC[1], C0[0], C0[1]); mouth.closePath();
-  let gr = g.createLinearGradient(X(430), 240, X(590), 300);
+  gr = g.createLinearGradient(X(452), 240, X(670), 300);
   gr.addColorStop(0, '#05081f'); gr.addColorStop(.6, '#0d0b2c'); gr.addColorStop(1, '#2a0c2a');
   g.fillStyle = gr; g.fill(mouth);
   g.fillStyle = 'rgba(110,20,45,.85)';
-  g.beginPath(); g.ellipse(X(505), 286, 46, 9, -.18, 0, TAU); g.fill();
+  g.beginPath(); g.ellipse(X(562), 284, 62, 9, -.14, 0, TAU); g.fill();
 
   // --- head base
-  gr = g.createLinearGradient(X(560), 120, X(320), 360);
+  gr = g.createLinearGradient(X(640), 120, X(320), 360);
   gr.addColorStop(0, '#3561da'); gr.addColorStop(.5, '#2347c0'); gr.addColorStop(1, '#13287e');
   g.fillStyle = gr; g.fill(head);
 
   // --- painted fur, clipped to the head
   g.save(); g.clip(head);
-  const furA = (x, y) => Math.atan2(y - 222, x - X(670)) + nz2.fbm(x * .01, y * .01, 2) * .5;
-  for (let i = 0; i < 6200; i++) {
-    const x = X(r.range(255, 612)), y = r.range(15, 378);
+  const furA = (x, y) => Math.atan2(y - 222, x - X(760)) + nz2.fbm(x * .01, y * .01, 2) * .5;
+  for (let i = 0; i < 7000; i++) {
+    const x = X(r.range(255, 694)), y = r.range(0, 378);
     if (!g.isPointInPath(head, x * q, y * q)) continue;
-    const lt = 1 - clamp(Math.hypot(x - X(470), y - 150) / 250, 0, 1);
-    const sh = smoothstep(285, 365, y) * .8 + (x < X(330) ? .35 : 0) + smoothstep(170, 200, y) * smoothstep(X(500), X(440), x) * .15;
+    const lt = 1 - clamp(Math.hypot(x - X(500), y - 150) / 260, 0, 1);
+    const sh = smoothstep(285, 365, y) * .8 + (x < X(330) ? .35 : 0) + smoothstep(170, 200, y) * smoothstep(X(540), X(460), x) * .15;
     let col = r.pick(blues);
     col = mixc(col, hex('#7fa0f2'), lt * .45);
     col = mixc(col, hex('#0b1755'), clamp(sh, 0, .85));
@@ -446,38 +457,38 @@ function paintWolf(q) {
       ribbon(g, flowPts(x, y, r.int(2, 5), 4.5, furA), r.range(wmin, wmax), PROF.taper, .8, r);
     }
   };
-  hl([X(600), 200], [X(560), 168], [X(474), 150], 110, 3, 16, 1.6, 4.2);
-  hl([X(474), 150], [X(452), 130], [X(432), 114], 40, 3, 12, 1.4, 3.4);
-  hl([X(590), 232], [X(510), 250], [X(440), 262], 90, -18, -4, 1.4, 3.8);
-  hl([X(500), 150], [X(475), 145], [X(445), 155], 40, 2, 9, 1.4, 3);
-  hl([X(395), 30], [X(410), 70], [X(425), 108], 30, 0, 8, 1.2, 3);
+  hl([X(686), 205], [X(630), 172], [X(478), 151], 140, 3, 16, 1.6, 4.2);
+  hl([X(478), 151], [X(452), 132], [X(437), 116], 40, 3, 12, 1.4, 3.4);
+  hl([X(672), 236], [X(562), 252], [X(462), 262], 110, -18, -4, 1.4, 3.8);
+  hl([X(522), 152], [X(492), 146], [X(458), 156], 40, 2, 9, 1.4, 3);
+  hl([X(404), 10], [X(418), 62], [X(431), 110], 34, 0, 8, 1.2, 3);
   // dark accents
-  for (let i = 0; i < 260; i++) {
-    const x = X(r.range(270, 560)), y = r.range(200, 375);
+  for (let i = 0; i < 300; i++) {
+    const x = X(r.range(270, 610)), y = r.range(200, 375);
     if (!g.isPointInPath(head, x * q, y * q) || r.f() > smoothstep(240, 360, y) + .1) continue;
     g.fillStyle = rgba(hex('#0a1346'), r.range(.4, .75));
     ribbon(g, flowPts(x, y, r.int(3, 7), 5, furA), r.range(1.5, 4), PROF.taper, .8, r);
   }
-  // snarl wrinkles on the bridge
+  // snarl wrinkles along the muzzle
   g.fillStyle = 'rgba(8,16,60,.85)';
-  for (let k = 0; k < 4; k++) {
-    const x0 = X(512 + k * 14), y0 = 186 + k * 2;
-    ribbon(g, [[x0, y0], [x0 + 8, y0 - 9], [x0 + 18, y0 - 13]], 3.4 - k * .4, PROF.taper, .4, r);
+  for (let k = 0; k < 5; k++) {
+    const x0 = X(560 + k * 16), y0 = 178 + k * 3;
+    ribbon(g, [[x0, y0], [x0 + 8, y0 - 9], [x0 + 18, y0 - 12]], 3.2 - k * .35, PROF.taper, .4, r);
   }
   // under-brow shadow
   g.fillStyle = 'rgba(8,16,70,.6)';
-  g.beginPath(); g.ellipse(X(482), 168, 34, 12, -.12, 0, TAU); g.fill();
+  g.beginPath(); g.ellipse(X(500), 168, 36, 11, -.14, 0, TAU); g.fill();
   // inner ear
   g.fillStyle = 'rgba(6,12,52,.9)';
-  g.beginPath(); g.moveTo(X(400), 44); g.quadraticCurveTo(X(408), 80, X(420), 108); g.quadraticCurveTo(X(392), 100, X(372), 104); g.quadraticCurveTo(X(384), 72, X(400), 44); g.fill();
-  for (let i = 0; i < 26; i++) {
-    const p = quadPt([X(398), 34], [X(410), 72], [X(424), 106], r.f());
+  g.beginPath(); g.moveTo(X(405), 24); g.quadraticCurveTo(X(415), 74, X(427), 110); g.quadraticCurveTo(X(396), 102, X(374), 106); g.quadraticCurveTo(X(388), 64, X(405), 24); g.fill();
+  for (let i = 0; i < 30; i++) {
+    const p = quadPt([X(404), 16], [X(416), 68], [X(428), 108], r.f());
     g.fillStyle = rgba(r.pick([C.white, hex('#c9d6f7')]), .85);
     ribbon(g, [[p[0], p[1]], [p[0] - 7, p[1] + 5], [p[0] - 12, p[1] + 11]], r.range(1.5, 3), PROF.taper, .4, r);
   }
   g.restore();
 
-  // --- teeth
+  // --- teeth: a long row with fangs
   const tooth = (b, tan, dir, len, w) => {
     g.beginPath();
     g.moveTo(b[0] - tan[0] * w / 2, b[1] - tan[1] * w / 2);
@@ -489,39 +500,39 @@ function paintWolf(q) {
     g.fillStyle = tg; g.fill();
     g.strokeStyle = 'rgba(10,14,40,.55)'; g.lineWidth = 1; g.stroke();
   };
-  for (let t = .2; t < .97; t += .07) {
+  for (let t = .18; t < .97; t += .06) {
     const b = quadPt(C0, UC, UF, t), tan = quadTan(C0, UC, UF, t);
-    const can = Math.abs(t - .81) < .035;
+    const can = Math.abs(t - .84) < .03;
     const d = [-.18, 1], l = Math.hypot(d[0], d[1]);
-    tooth(b, tan, [d[0] / l, d[1] / l], can ? 36 : r.range(7, 11), can ? 12 : r.range(5, 7));
+    tooth(b, tan, [d[0] / l, d[1] / l], can ? 38 : r.range(6, 10), can ? 12 : r.range(5, 7));
   }
-  for (let t = .04; t < .82; t += .075) {
+  for (let t = .04; t < .84; t += .065) {
     const b = quadPt(LF, LC, C0, t), tan = quadTan(LF, LC, C0, t);
-    const can = Math.abs(t - .12) < .04;
+    const can = Math.abs(t - .1) < .035;
     const d = [.12, -1], l = Math.hypot(d[0], d[1]);
-    tooth(b, tan, [d[0] / l, d[1] / l], can ? 30 : r.range(6, 10), can ? 11 : r.range(5, 7));
+    tooth(b, tan, [d[0] / l, d[1] / l], can ? 32 : r.range(6, 9), can ? 11 : r.range(5, 7));
   }
 
-  // --- eye (amber, angry)
+  // --- eye: almond, slanted, amber, a round pupil
   const eye = new Path2D();
-  eye.moveTo(X(456), 186); eye.quadraticCurveTo(X(474), 166, X(502), 168); eye.quadraticCurveTo(X(488), 190, X(456), 186); eye.closePath();
-  gr = g.createRadialGradient(X(480), 177, 1, X(480), 177, 24);
+  eye.moveTo(X(470), 182); eye.quadraticCurveTo(X(494), 162, X(528), 164); eye.quadraticCurveTo(X(508), 186, X(470), 182); eye.closePath();
+  gr = g.createRadialGradient(X(498), 175, 1, X(498), 175, 24);
   gr.addColorStop(0, '#fff2a8'); gr.addColorStop(.35, '#ffc23d'); gr.addColorStop(.8, '#e06a12'); gr.addColorStop(1, '#8a2a06');
   g.fillStyle = gr; g.fill(eye);
-  g.fillStyle = '#05050c'; g.beginPath(); g.ellipse(X(482), 177, 2.6, 8.5, .25, 0, TAU); g.fill();
-  g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.arc(X(477), 173, 1.8, 0, TAU); g.fill();
+  g.fillStyle = '#05050c'; g.beginPath(); g.arc(X(500), 174, 3.6, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.arc(X(496), 171, 1.6, 0, TAU); g.fill();
   g.strokeStyle = 'rgba(6,10,40,.95)'; g.lineWidth = 2.4; g.stroke(eye);
-  // heavy brow
+  // heavy, angled brow
   g.fillStyle = 'rgba(6,12,50,.92)';
-  ribbon(g, [[X(444), 166], [X(468), 157], [X(494), 158], [X(520), 170]], 7, PROF.taper, 1, r);
+  ribbon(g, [[X(460), 168], [X(486), 156], [X(514), 155], [X(542), 164]], 7, PROF.taper, 1, r);
   g.fillStyle = 'rgba(230,236,252,.75)';
-  ribbon(g, [[X(450), 156], [X(474), 149], [X(500), 151]], 2.6, PROF.taper, .5, r);
+  ribbon(g, [[X(466), 155], [X(492), 147], [X(520), 148]], 2.6, PROF.taper, .5, r);
 
   // --- nose
-  g.fillStyle = '#070b26'; g.beginPath(); g.ellipse(X(588), 199, 17, 12, -.3, 0, TAU); g.fill();
-  g.fillStyle = 'rgba(200,215,255,.55)'; g.beginPath(); g.ellipse(X(583), 193, 6, 3, -.4, 0, TAU); g.fill();
+  g.fillStyle = '#070b26'; g.beginPath(); g.ellipse(X(683), 212, 16, 11, -.25, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(200,215,255,.55)'; g.beginPath(); g.ellipse(X(678), 206, 6, 3, -.4, 0, TAU); g.fill();
 
-  // --- fur breaking the silhouette along the brow, ear and skull
+  // --- fur breaking the silhouette along the brow, ears and skull
   const edge = (p0, c0, p1, n, a0, len) => {
     for (let i = 0; i < n; i++) {
       const p = quadPt(p0, c0, p1, r.f()), a = a0 + r.range(-.35, .35);
@@ -530,15 +541,15 @@ function paintWolf(q) {
       ribbon(g, pts, r.range(3, 7), PROF.flame, .8, r);
     }
   };
-  edge([X(474), 146], [X(452), 130], [X(432), 112], 30, -PI * .8, 5);
-  edge([X(352), 104], [X(326), 112], [X(300), 138], 40, -PI * .82, 7);
-  edge([X(300), 138], [X(262), 240], [X(322), 352], 70, PI * .95, 8);
-  edge([X(398), 22], [X(372), 62], [X(352), 104], 30, -PI * .9, 5);
-  // --- ink contour only where the form needs it: snout, lips, jaw
+  edge([X(478), 147], [X(452), 134], [X(437), 114], 30, -PI * .8, 5);
+  edge([X(357), 104], [X(327), 112], [X(300), 138], 40, -PI * .82, 7);
+  edge([X(300), 138], [X(258), 240], [X(322), 352], 80, PI * .95, 8);
+  edge([X(406), 2], [X(380), 54], [X(357), 104], 30, -PI * .9, 5);
+  // --- ink contour only where the form needs it: muzzle, lips, jaw
   const front = new Path2D();
-  front.moveTo(X(474), 146); front.quadraticCurveTo(X(505), 160, X(540), 168); front.quadraticCurveTo(X(578), 176, X(602), 203);
-  front.quadraticCurveTo(X(610), 220, X(594), 232);
-  front.moveTo(X(552), 304); front.quadraticCurveTo(X(548), 326, X(520), 338); front.quadraticCurveTo(X(440), 374, X(362), 352);
+  front.moveTo(X(478), 147); front.quadraticCurveTo(X(514), 160, X(570), 168); front.quadraticCurveTo(X(640), 180, X(688), 208);
+  front.quadraticCurveTo(X(694), 224, X(676), 236);
+  front.moveTo(X(626), 298); front.quadraticCurveTo(X(612), 318, X(562), 334); front.quadraticCurveTo(X(452), 372, X(362), 352);
   g.strokeStyle = 'rgba(6,12,46,.82)'; g.lineWidth = 3; g.stroke(front);
   g.strokeStyle = 'rgba(6,12,46,.7)'; g.lineWidth = 2.2; g.stroke(mouth);
 
@@ -546,17 +557,17 @@ function paintWolf(q) {
   const ov = mkCanvas(W * q, H * q), og = ov.getContext('2d');
   og.drawImage(mane, 0, 0, mane.width, mane.height, 10 * q, 0, 560 * q, 480 * q);
   og.globalCompositeOperation = 'destination-in';
-  let mg = og.createLinearGradient(X(282) * q, 0, X(336) * q, 0);
+  const mg = og.createLinearGradient(X(282) * q, 0, X(336) * q, 0);
   mg.addColorStop(0, 'rgba(0,0,0,1)'); mg.addColorStop(1, 'rgba(0,0,0,0)');
   og.fillStyle = mg; og.fillRect(0, 0, W * q, H * q);
   g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(ov, 0, 0); g.restore();
-  // ruff tufts spilling from cheek and jaw
-  for (let k = 0; k < 80; k++) {
-    const p = quadPt([X(292), 300], [X(360), 392], [X(480), 352], r.f());
+  // a full ruff spilling from cheek and jaw
+  for (let k = 0; k < 130; k++) {
+    const p = quadPt([X(292), 300], [X(366), 404], [X(510), 356], r.f());
     const a0 = PI * .78 + r.range(-.35, .3);
-    const pts = flowPts(p[0] + r.range(-6, 6), p[1] + r.range(-10, 4), r.int(4, 9), 5, (x, y, i) => a0 + i * .05);
+    const pts = flowPts(p[0] + r.range(-6, 6), p[1] + r.range(-10, 4), r.int(4, 10), 5, (x, y, i) => a0 + i * .05);
     g.fillStyle = rgba(jit(r.pick(blues), 14, r), .92);
-    ribbon(g, pts, r.range(6, 12), PROF.flame, 1.2, r);
+    ribbon(g, pts, r.range(6, 14), PROF.flame, 1.2, r);
     if (r.f() < .35) { g.fillStyle = rgba(C.white, .85); ribbon(g, pts.slice(Math.floor(pts.length / 2)), r.range(2, 5), PROF.lift, .6, r); }
   }
 
@@ -566,12 +577,17 @@ function paintWolf(q) {
   gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
   g.globalCompositeOperation = 'source-over';
-  return { canvas: c, w: W, h: H, eye: [X(480), 177], mouth: [X(540), 275], nose: [X(600), 205] };
+  return { canvas: c, w: W, h: H, eye: [X(498), 175], mouth: [X(580), 276], nose: [X(684), 212] };
 }
 
 /* -------------------------------------------------------------------------
    The Oni — giant crimson demon face, kintsugi-ready
    ------------------------------------------------------------------------- */
+// Game Room: a menacing oni, after the hannya mask - an angular face with
+// wide cheekbones, hollow cheeks and a pointed chin; tall horns curving in;
+// heavy brows in a V over narrow slanted eyes; a flared, wrinkled nose; a
+// wide snarl with fangs and tusks. The original's crimson brushwork, wild
+// hair and gold lacquer stay.
 function paintOni(q) {
   const W = 960, H = 820, cx = 360, OXo = 120, OYo = 60;
   const c = mkCanvas(W * q, H * q), g = c.getContext('2d');
@@ -593,97 +609,101 @@ function paintOni(q) {
     g.fillStyle = rgba(hex('#08080d'), r.range(.7, .95));
     ribbon(g, pts, r.range(5, 12), PROF.flame, 1.2, r);
   }
-  // horns
+  // horns: tall, sharp, curving inward at the tips
   for (const s of [-1, 1]) {
     const pts = [];
-    for (let i = 0; i <= 24; i++) { const t = i / 24; pts.push([cx + s * (78 + t * 150 + Math.sin(t * PI) * 20), 150 - t * 140 + Math.pow(t, 2.2) * 30]); }
-    const hg = g.createLinearGradient(cx, 150, cx + s * 230, 10);
-    hg.addColorStop(0, '#8c6624'); hg.addColorStop(.4, '#e6c675'); hg.addColorStop(.75, '#c49a45'); hg.addColorStop(1, '#fff1c2');
-    g.fillStyle = hg; ribbon(g, pts, 44, t => 1 - t * .92, 0, r);
+    for (let i = 0; i <= 26; i++) { const t = i / 26; pts.push([cx + s * (62 + t * 128 - Math.pow(t, 3) * 78), 168 - t * 190 + Math.pow(t, 2) * 14]); }
+    const hg = g.createLinearGradient(cx, 168, cx + s * 120, -20);
+    hg.addColorStop(0, '#6e4c18'); hg.addColorStop(.35, '#d9b864'); hg.addColorStop(.7, '#b88a38'); hg.addColorStop(1, '#fff1c2');
+    g.fillStyle = hg; ribbon(g, pts, 40, t => 1 - t * .95, 0, r);
     g.strokeStyle = 'rgba(60,35,8,.6)'; g.lineWidth = 2;
-    for (let i = 2; i < 18; i += 3) { const p = pts[i], w = 20 * (1 - i / 24 * .92); g.beginPath(); g.moveTo(p[0] - 4 * s, p[1] - w); g.quadraticCurveTo(p[0] + 6 * s, p[1], p[0] - 4 * s, p[1] + w); g.stroke(); }
+    for (let i = 2; i < 20; i += 3) { const p = pts[i], w = 18 * (1 - i / 26 * .95); g.beginPath(); g.moveTo(p[0] - 4 * s, p[1] - w); g.quadraticCurveTo(p[0] + 6 * s, p[1], p[0] - 4 * s, p[1] + w); g.stroke(); }
   }
-  // face shape
+  // face: angular - wide cheekbones, hollow cheeks, a pointed chin
   const face = new Path2D();
-  face.moveTo(cx, 108);
-  face.bezierCurveTo(cx + 82, 106, cx + 132, 140, cx + 142, 200);
-  face.bezierCurveTo(cx + 154, 252, cx + 172, 300, cx + 156, 352);
-  face.bezierCurveTo(cx + 146, 412, cx + 120, 470, cx + 70, 516);
-  face.bezierCurveTo(cx + 44, 540, cx + 24, 552, cx, 552);
-  face.bezierCurveTo(cx - 24, 552, cx - 44, 540, cx - 70, 516);
-  face.bezierCurveTo(cx - 120, 470, cx - 146, 412, cx - 156, 352);
-  face.bezierCurveTo(cx - 172, 300, cx - 154, 252, cx - 142, 200);
-  face.bezierCurveTo(cx - 132, 140, cx - 82, 106, cx, 108);
+  face.moveTo(cx, 112);
+  face.bezierCurveTo(cx + 70, 108, cx + 128, 128, cx + 150, 186);
+  face.bezierCurveTo(cx + 170, 236, cx + 186, 290, cx + 170, 338);
+  face.bezierCurveTo(cx + 152, 384, cx + 124, 416, cx + 110, 452);
+  face.bezierCurveTo(cx + 94, 500, cx + 48, 550, cx, 568);
+  face.bezierCurveTo(cx - 48, 550, cx - 94, 500, cx - 110, 452);
+  face.bezierCurveTo(cx - 124, 416, cx - 152, 384, cx - 170, 338);
+  face.bezierCurveTo(cx - 186, 290, cx - 170, 236, cx - 150, 186);
+  face.bezierCurveTo(cx - 128, 128, cx - 70, 108, cx, 112);
   face.closePath();
-  let gr = g.createRadialGradient(cx, 260, 40, cx, 340, 260);
-  gr.addColorStop(0, '#d03a3a'); gr.addColorStop(.6, '#a51f2a'); gr.addColorStop(1, '#5c0c14');
+  let gr = g.createRadialGradient(cx, 250, 40, cx, 340, 270);
+  gr.addColorStop(0, '#c9333a'); gr.addColorStop(.6, '#9a1b26'); gr.addColorStop(1, '#4e0a12');
   g.fillStyle = gr; g.fill(face);
   g.save(); g.clip(face);
   const fa = (x, y) => Math.atan2(y - 330, x - cx) + PI / 2 + nz.fbm(x * .008, y * .008, 2) * .7;
-  for (let i = 0; i < 5200; i++) {
-    const x = r.range(cx - 175, cx + 175), y = r.range(100, 560);
+  for (let i = 0; i < 5600; i++) {
+    const x = r.range(cx - 190, cx + 190), y = r.range(100, 575);
     if (!g.isPointInPath(face, x * q, y * q)) continue;
-    const lt = 1 - clamp(Math.hypot(x - cx, y - 200) / 220, 0, 1) + (Math.abs(Math.abs(x - cx) - 100) < 40 && y > 290 && y < 360 ? .35 : 0);
-    const dk = smoothstep(150, 175, Math.hypot((x - cx) * .9, (y - 330) * .7)) + smoothstep(430, 550, y) * .5;
+    // light on the cheekbones and brow ridge, shadow in the hollow cheeks and under the jaw
+    const lt = 1 - clamp(Math.hypot(x - cx, y - 200) / 220, 0, 1) + (Math.abs(Math.abs(x - cx) - 120) < 40 && y > 280 && y < 340 ? .4 : 0);
+    const dk = smoothstep(150, 180, Math.hypot((x - cx) * .9, (y - 330) * .7)) + smoothstep(440, 565, y) * .5 + (Math.abs(Math.abs(x - cx) - 112) < 34 && y > 370 && y < 450 ? .35 : 0);
     let col = r.pick(['#b3242c', '#9a1b26', '#c4333a', '#a3202b'].map(hex));
     col = mixc(col, hex('#f07a5a'), clamp(lt, 0, 1) * .45);
     col = mixc(col, hex('#3d070e'), clamp(dk, 0, .85));
     g.fillStyle = rgba(jit(col, 14, r), r.range(.7, .95));
     ribbon(g, flowPts(x, y, r.int(2, 6), 5, fa), r.range(3, 8), PROF.taper, 1, r);
   }
-  // creases (furrowed forehead, cheeks)
-  g.fillStyle = 'rgba(50,5,12,.8)';
-  for (let k = 0; k < 4; k++) ribbon(g, [[cx - 60 + k * 6, 150 + k * 12], [cx, 168 + k * 14], [cx + 60 - k * 6, 150 + k * 12]], 4 - k * .5, PROF.taper, 1, r);
+  // deep creases: furrowed brow, under the eyes, nose to mouth, the hollow cheeks
+  g.fillStyle = 'rgba(46,4,10,.85)';
+  for (let k = 0; k < 5; k++) ribbon(g, [[cx - 70 + k * 8, 148 + k * 11], [cx, 178 + k * 9], [cx + 70 - k * 8, 148 + k * 11]], 4.4 - k * .5, PROF.taper, 1, r);
   for (const s of [-1, 1]) {
-    ribbon(g, [[cx + s * 40, 330], [cx + s * 70, 380], [cx + s * 110, 400]], 6, PROF.taper, 1, r);
-    ribbon(g, [[cx + s * 120, 300], [cx + s * 130, 360], [cx + s * 118, 430]], 5, PROF.taper, 1, r);
+    ribbon(g, [[cx + s * 30, 318], [cx + s * 74, 372], [cx + s * 128, 392]], 7, PROF.taper, 1, r);
+    ribbon(g, [[cx + s * 132, 300], [cx + s * 128, 372], [cx + s * 104, 448]], 6, PROF.taper, 1, r);
+    ribbon(g, [[cx + s * 42, 296], [cx + s * 84, 300], [cx + s * 124, 290]], 4, PROF.taper, 1, r);
   }
   // gold lacquer ornament on the brow
   g.fillStyle = 'rgba(220,182,96,.9)';
   for (const s of [-1, 1]) {
-    const pts = []; for (let i = 0; i < 26; i++) { const t = i / 25, a = t * 4.5; pts.push([cx + s * (18 + t * 40 + Math.cos(a) * 10), 132 + t * 16 + Math.sin(a) * 10]); }
+    const pts = []; for (let i = 0; i < 26; i++) { const t = i / 25, a = t * 4.5; pts.push([cx + s * (18 + t * 40 + Math.cos(a) * 10), 128 + t * 14 + Math.sin(a) * 10]); }
     ribbon(g, pts, 3.4, PROF.lift, .4, r);
   }
   g.restore();
-  // brows
+  // brows: heavy, swept down into a V
   for (const s of [-1, 1]) {
-    const pts = [[cx + s * 14, 236], [cx + s * 50, 214], [cx + s * 96, 196], [cx + s * 132, 204]];
-    g.fillStyle = 'rgba(16,4,8,.95)'; ribbon(g, pts, 30, t => .5 + .5 * Math.sin(PI * t) + (1 - t) * .3, 2, r);
-    g.fillStyle = 'rgba(255,214,150,.4)'; ribbon(g, pts.map(p => [p[0], p[1] - 12]), 4, PROF.taper, .6, r);
+    const pts = [[cx + s * 8, 254], [cx + s * 44, 228], [cx + s * 92, 200], [cx + s * 140, 186]];
+    g.fillStyle = 'rgba(14,3,7,.96)'; ribbon(g, pts, 34, t => 1.05 - t * .55, 2, r);
+    g.fillStyle = 'rgba(255,214,150,.35)'; ribbon(g, pts.map(p => [p[0], p[1] - 14]), 4, PROF.taper, .6, r);
   }
-  // eyes
+  // eyes: narrow and slanted, deep in their sockets
   for (const s of [-1, 1]) {
-    const ex = cx + s * 72, ey = 262;
-    g.fillStyle = 'rgba(30,2,6,.9)'; g.beginPath(); g.ellipse(ex, ey + 4, 54, 30, s * .18, 0, TAU); g.fill();
+    const ex = cx + s * 72, ey = 266;
+    g.fillStyle = 'rgba(26,2,6,.94)'; g.beginPath(); g.ellipse(ex, ey + 2, 52, 24, s * .34, 0, TAU); g.fill();
     const eye = new Path2D();
-    eye.moveTo(ex - s * 44, ey + 6); eye.quadraticCurveTo(ex, ey - 26, ex + s * 44, ey - 10); eye.quadraticCurveTo(ex + s * 6, ey + 24, ex - s * 44, ey + 6); eye.closePath();
-    const eg = g.createRadialGradient(ex, ey, 2, ex, ey, 40);
-    eg.addColorStop(0, '#fff6c8'); eg.addColorStop(.4, '#ffd257'); eg.addColorStop(.85, '#d27a1a'); eg.addColorStop(1, '#6e2a05');
+    eye.moveTo(ex - s * 40, ey + 12); eye.quadraticCurveTo(ex - s * 4, ey - 12, ex + s * 44, ey - 18); eye.quadraticCurveTo(ex + s * 12, ey + 14, ex - s * 40, ey + 12); eye.closePath();
+    const eg = g.createRadialGradient(ex, ey, 2, ex, ey, 38);
+    eg.addColorStop(0, '#fff6c8'); eg.addColorStop(.35, '#ffd257'); eg.addColorStop(.8, '#d27a1a'); eg.addColorStop(1, '#6e2a05');
     g.fillStyle = eg; g.fill(eye);
-    g.fillStyle = '#080306'; g.beginPath(); g.arc(ex + s * 4, ey - 2, 7, 0, TAU); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(ex + s * 1, ey - 6, 2.4, 0, TAU); g.fill();
-    g.strokeStyle = 'rgba(20,2,4,.95)'; g.lineWidth = 3.5; g.stroke(eye);
+    g.fillStyle = '#080306'; g.beginPath(); g.ellipse(ex + s * 6, ey - 2, 4, 7, 0, 0, TAU); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(ex + s * 3, ey - 5, 1.8, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(20,2,4,.95)'; g.lineWidth = 4; g.stroke(eye);
   }
-  // nose
-  g.fillStyle = 'rgba(70,8,14,.9)';
-  ribbon(g, [[cx - 6, 250], [cx - 10, 300], [cx - 30, 352]], 5, PROF.taper, 1, r);
-  for (const s of [-1, 1]) { g.fillStyle = 'rgba(20,2,5,.95)'; g.beginPath(); g.ellipse(cx + s * 24, 356, 14, 9, s * .4, 0, TAU); g.fill(); }
-  g.fillStyle = 'rgba(240,120,90,.6)'; g.beginPath(); g.ellipse(cx, 330, 18, 10, 0, 0, TAU); g.fill();
-  // mouth
+  // nose: broad, flared, wrinkled at the bridge
+  g.fillStyle = 'rgba(60,6,12,.9)';
+  for (let k = 0; k < 3; k++) ribbon(g, [[cx - 22, 286 + k * 13], [cx, 280 + k * 13], [cx + 22, 286 + k * 13]], 3 - k * .5, PROF.taper, 1, r);
+  ribbon(g, [[cx - 4, 300], [cx - 8, 330], [cx - 26, 352]], 5, PROF.taper, 1, r);
+  for (const s of [-1, 1]) { g.fillStyle = 'rgba(18,2,5,.96)'; g.beginPath(); g.ellipse(cx + s * 28, 352, 17, 10, s * .45, 0, TAU); g.fill(); }
+  g.fillStyle = 'rgba(240,120,90,.5)'; g.beginPath(); g.ellipse(cx, 330, 20, 10, 0, 0, TAU); g.fill();
+  // mouth: a wide snarl, pulled back toward the jaw
   const m = new Path2D();
-  m.moveTo(cx - 118, 404); m.quadraticCurveTo(cx - 50, 380, cx, 392); m.quadraticCurveTo(cx + 50, 380, cx + 118, 404);
-  m.quadraticCurveTo(cx + 90, 470, cx + 50, 492); m.quadraticCurveTo(cx, 512, cx - 50, 492); m.quadraticCurveTo(cx - 90, 470, cx - 118, 404); m.closePath();
-  gr = g.createLinearGradient(cx, 390, cx, 510); gr.addColorStop(0, '#1a0306'); gr.addColorStop(1, '#3e0610');
+  m.moveTo(cx - 134, 396); m.quadraticCurveTo(cx - 64, 368, cx, 384); m.quadraticCurveTo(cx + 64, 368, cx + 134, 396);
+  m.quadraticCurveTo(cx + 106, 470, cx + 56, 500); m.quadraticCurveTo(cx, 522, cx - 56, 500); m.quadraticCurveTo(cx - 106, 470, cx - 134, 396); m.closePath();
+  gr = g.createLinearGradient(cx, 384, cx, 520); gr.addColorStop(0, '#160205'); gr.addColorStop(1, '#3a050e');
   g.fillStyle = gr; g.fill(m);
-  g.fillStyle = 'rgba(150,30,50,.8)'; g.beginPath(); g.ellipse(cx, 478, 52, 16, 0, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(140,26,46,.8)'; g.beginPath(); g.ellipse(cx, 482, 58, 15, 0, 0, TAU); g.fill();
   const fang = (bx, by, tx, ty, w) => {
     g.beginPath(); g.moveTo(bx - w / 2, by); g.quadraticCurveTo((bx + tx) / 2 - w * .2, (by + ty) / 2, tx, ty); g.quadraticCurveTo((bx + tx) / 2 + w * .3, (by + ty) / 2, bx + w / 2, by); g.closePath();
     const tg = g.createLinearGradient(bx, by, tx, ty); tg.addColorStop(0, '#cfc6b2'); tg.addColorStop(.4, '#f7f1e3'); tg.addColorStop(1, '#fff');
     g.fillStyle = tg; g.fill(); g.strokeStyle = 'rgba(30,4,8,.7)'; g.lineWidth = 1.6; g.stroke();
   };
-  for (let i = -4; i <= 4; i++) fang(cx + i * 22, 392 + Math.abs(i) * 2, cx + i * 22 + i * .6, 410 + Math.abs(i) * 2, 18);
-  fang(cx - 74, 404, cx - 70, 448, 16); fang(cx + 74, 404, cx + 70, 448, 16);
-  fang(cx - 64, 494, cx - 72, 392, 26); fang(cx + 64, 494, cx + 72, 392, 26);
+  // a row of sharp teeth, two long upper fangs, two tusks rising past the lip
+  for (let i = -4; i <= 4; i++) fang(cx + i * 24, 386 + Math.abs(i) * 2.4, cx + i * 24 + i * .5, 404 + Math.abs(i) * 2.4, 13);
+  fang(cx - 66, 392, cx - 60, 458, 20); fang(cx + 66, 392, cx + 60, 458, 20);
+  fang(cx - 94, 486, cx - 118, 360, 30); fang(cx + 94, 486, cx + 118, 360, 30);
   g.strokeStyle = 'rgba(25,2,6,.9)'; g.lineWidth = 4; g.stroke(m);
   g.strokeStyle = 'rgba(25,2,6,.85)'; g.lineWidth = 4; g.stroke(face);
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -692,7 +712,7 @@ function paintOni(q) {
   fg.addColorStop(0, 'rgba(0,0,0,1)'); fg.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = fg; g.fillRect(0, 0, W * q, H * q);
   g.globalCompositeOperation = 'source-over';
-  return { canvas: c, w: W, h: H, eyes: [[cx - 72 + OXo, 262 + OYo], [cx + 72 + OXo, 262 + OYo]], cx: cx + OXo, cy: 330 + OYo };
+  return { canvas: c, w: W, h: H, eyes: [[cx - 72 + OXo, 266 + OYo], [cx + 72 + OXo, 266 + OYo]], cx: cx + OXo, cy: 330 + OYo };
 }
 
 /* -------------------------------------------------------------------------
@@ -1900,7 +1920,8 @@ function shadeFill(g, fill, from, to, a0, a1, col) {
 
 /* ---------------- costumes ---------------- */
 const COSTUME = {
-  samurai: { robe: 'robe', hak: 'hakama', legs: 'hakama', hipW: 17, kneeW: 22, hemW: 33, hang: 58, trim: true, belt: 'obi', head: 'mask', skin: '#d4aa82', sleeveTrim: true },
+  // Game Room: the hero in lacquered cobalt armour, kabuto and iron face guard (was a robe and a grinning mask).
+  samurai: { robe: 'robe', hak: 'hakama', legs: 'hakama', hipW: 17, kneeW: 22, hemW: 33, hang: 58, trim: true, belt: 'obi', head: 'hero', skin: '#d4aa82', sleeveTrim: true, armor: true, armorPat: 'robe', kusazuri: true, lames: [-78, -64, -50, -36, -22] },
   ronin: { robe: 'ronin', hak: 'ronin', legs: 'hakama', hipW: 14, kneeW: 17, hemW: 24, hang: 38, ragged: true, belt: 'sash', sash: '#8f1d25', head: 'kasa', skin: '#b98c66' },
   armored: { robe: 'armor', hak: 'hakama', legs: 'hakama', hipW: 15, kneeW: 18, hemW: 24, hang: 16, belt: 'none', head: 'kabuto', skin: '#b98c66', armor: true, darkHak: true },
   shinobi: { robe: 'shinobi', hak: 'shinobi', legs: 'pants', hipW: 10, kneeW: 9, hemW: 8, hang: 10, belt: 'sash', sash: '#3a0a10', head: 'hood', skin: '#c9a07a' },
@@ -1967,12 +1988,12 @@ function drawArm(g, arm, cos, flap, back) {
   for (let k = 1; k < 4; k++) { const q = lerp2(C, W, .2 + k * .2); g.beginPath(); g.moveTo(q[0] + fn[0] * 5, q[1] + fn[1] * 5); g.lineTo(q[0] - fn[0] * 5 + fa[0] * 3, q[1] - fn[1] * 5 + fa[1] * 3); g.stroke(); }
   if (cos.armor) {
     // armoured sleeve (kote) + hanging sode plate
-    g.fillStyle = PAT.armor; ribbon(g, [S, E, C], 17, t => 1 - t * .2, 0);
+    g.fillStyle = PAT[cos.armorPat || 'armor']; ribbon(g, [S, E, C], 17, t => 1 - t * .2, 0);
     g.strokeStyle = 'rgba(200,160,80,.8)'; g.lineWidth = 1.2; smoothPath(g, [S, E, C], false); g.stroke();
     const sd = add2(S, [0, 2]);
     g.save(); g.translate(sd[0], sd[1]); g.rotate(clamp((Math.atan2(E[1] - S[1], E[0] - S[0]) - PI / 2) * .35, -.6, .6));
     g.beginPath(); g.moveTo(-17, -4); g.lineTo(17, -6); g.lineTo(19, 40); g.lineTo(-15, 42); g.closePath();
-    shadeFill(g, PAT.armor, [0, -4], [0, 42], back ? .25 : 0, .35);
+    shadeFill(g, PAT[cos.armorPat || 'armor'], [0, -4], [0, 42], back ? .25 : 0, .35);
     g.strokeStyle = 'rgba(214,170,86,.95)'; g.lineWidth = 1.8; g.stroke();
     g.fillStyle = '#9c1f27'; for (let k = 0; k < 3; k++) g.fillRect(-15 + k * 13, -2, 4, 4);
     g.restore();
@@ -2025,7 +2046,7 @@ function drawTorso(g, K, cos, ext) {
   }
   if (cos.armor) {
     g.strokeStyle = 'rgba(214,170,86,.95)'; g.lineWidth = 2.2;
-    for (const y of [-74, -40, -12]) { g.beginPath(); const a = T(-21, y), b = T(20, y); g.moveTo(a[0], a[1]); g.quadraticCurveTo(T(0, y + 4)[0], T(0, y + 4)[1], b[0], b[1]); g.stroke(); }
+    for (const y of cos.lames || [-74, -40, -12]) { g.beginPath(); const a = T(-21, y), b = T(20, y); g.moveTo(a[0], a[1]); g.quadraticCurveTo(T(0, y + 4)[0], T(0, y + 4)[1], b[0], b[1]); g.stroke(); }
     g.fillStyle = '#8e1820'; const kn = T(-18, -34); g.beginPath(); g.ellipse(kn[0], kn[1], 5, 7, 0, 0, TAU); g.fill();
     return;
   }
@@ -2041,6 +2062,16 @@ function drawTorso(g, K, cos, ext) {
 function drawBelt(g, K, cos, ext) {
   const T = (x, y) => add2(K.H, rot2(x, y, K.lean));
   if (cos.belt === 'none') return;
+  // Game Room: kusazuri - three lacquered plates hanging from the waist over the hakama.
+  if (cos.kusazuri) {
+    for (const [x0, x1, sw] of [[-25, -7, -.14], [-8, 9, 0], [8, 24, .14]]) {
+      const a = T(x0, -4), b2 = T(x1, -4), c2 = T(x1 + sw * 40 + 3, 36), d = T(x0 + sw * 40 - 3, 36);
+      g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b2[0], b2[1]); g.lineTo(c2[0], c2[1]); g.lineTo(d[0], d[1]); g.closePath();
+      shadeFill(g, PAT[cos.armorPat || 'armor'], a, c2, .05, .42); g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke();
+      g.strokeStyle = 'rgba(214,170,86,.9)'; g.lineWidth = 1.2;
+      for (const yy of [8, 21]) { const p = T(x0 + sw * yy, yy), q = T(x1 + sw * yy, yy); g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke(); }
+    }
+  }
   const b = [T(-22, -14), T(20, -15), T(21, -3), T(-22, -2)];
   g.beginPath(); g.moveTo(b[0][0], b[0][1]); b.forEach(p => g.lineTo(p[0], p[1])); g.closePath();
   if (cos.belt === 'obi') { shadeFill(g, PAT.lining, b[0], b[2], .02, .3); g.strokeStyle = 'rgba(214,176,92,.95)'; g.lineWidth = 1.6; const a = T(-22, -9), c = T(20, -9); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(c[0], c[1]); g.stroke(); }
@@ -2083,8 +2114,53 @@ function drawMask(g, gg, c, a) {
   for (const e of [[4, -5], [13.5, -5]]) gg.drawImage(AS.gGold, e[0] - 9, e[1] - 9, 18, 18);
   gg.restore();
 }
+// Game Room: the hero's head - a dark iron kabuto with gold kuwagata horns, a
+// plain iron face guard, and only a cold glint for eyes under the brim.
+function drawHeroHead(g, gg, c, a) {
+  g.save(); g.translate(c[0], c[1]); g.rotate(a); g.scale(1.3, 1.3);
+  // shikoro: the lacquered neck guard, flaring back over the nape
+  g.beginPath(); g.moveTo(-12, -9); g.lineTo(12, -9); g.lineTo(10, 10); g.lineTo(-27, 16); g.closePath();
+  shadeFill(g, PAT.robe, [0, -9], [0, 16], 0, .45); g.strokeStyle = INK; g.lineWidth = 1.4; g.stroke();
+  g.strokeStyle = 'rgba(214,170,86,.9)'; g.lineWidth = 1.1;
+  for (const y of [-2, 4, 10]) { g.beginPath(); g.moveTo(-13 - (y + 9) * .62, y); g.lineTo(11 - (y + 9) * .05, y); g.stroke(); }
+  // fukigaeshi: the turned-back flap at the temple
+  g.beginPath(); g.moveTo(-2, -10); g.quadraticCurveTo(-13, -4, -11, 5); g.lineTo(-3, 0); g.closePath();
+  g.fillStyle = '#16245f'; g.fill(); g.strokeStyle = 'rgba(214,170,86,.9)'; g.lineWidth = 1; g.stroke();
+  // menpo: plain dark iron, a nose ridge, a closed mouth
+  g.beginPath(); g.moveTo(-1, -5); g.lineTo(14, -6); g.quadraticCurveTo(17.5, 2, 15, 9); g.lineTo(7, 15); g.lineTo(-2, 11); g.closePath();
+  const mg = g.createLinearGradient(0, -6, 10, 15); mg.addColorStop(0, '#3b3c48'); mg.addColorStop(1, '#121219');
+  g.fillStyle = mg; g.fill(); g.strokeStyle = INK; g.lineWidth = 1.3; g.stroke();
+  g.strokeStyle = 'rgba(200,205,220,.35)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(11, -5); g.quadraticCurveTo(16.5, 0, 14.5, 5); g.stroke();
+  g.strokeStyle = 'rgba(0,0,0,.85)'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(6, 9.5); g.lineTo(13.5, 8.5); g.stroke();
+  // yodare-kake: the throat guard
+  g.beginPath(); g.moveTo(-1, 11); g.lineTo(8, 15); g.lineTo(6, 23); g.lineTo(-4, 21); g.closePath();
+  g.fillStyle = '#16245f'; g.fill(); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+  // the eyes: deep shadow under the brim, a cold glint
+  g.fillStyle = 'rgba(4,6,14,.95)'; g.beginPath(); g.moveTo(-1, -9.5); g.lineTo(15, -10.5); g.lineTo(14, -5.5); g.lineTo(0, -5); g.closePath(); g.fill();
+  g.fillStyle = '#dfe8ff'; g.beginPath(); g.ellipse(10.5, -7.6, 2.5, .9, -.08, 0, TAU); g.fill();
+  // hachi: the iron bowl, ridged, with a gold brim
+  g.beginPath(); g.ellipse(0, -10, 17, 15, 0, PI, TAU); g.closePath();
+  const bg = g.createLinearGradient(0, -25, 0, -10); bg.addColorStop(0, '#2c2a36'); bg.addColorStop(1, '#0e0d13');
+  g.fillStyle = bg; g.fill(); g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke();
+  g.strokeStyle = 'rgba(160,165,190,.35)'; g.lineWidth = 1;
+  for (const k of [-8, 0, 8]) { g.beginPath(); g.moveTo(k * .9, -24.5 + Math.abs(k) * .3); g.lineTo(k * 1.6, -10); g.stroke(); }
+  g.strokeStyle = 'rgba(214,170,86,.95)'; g.lineWidth = 2; g.beginPath(); g.moveTo(-18, -10); g.lineTo(19, -10); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 2; g.beginPath(); g.ellipse(0, -10, 12, 10, 0, PI * 1.2, PI * 1.65); g.stroke();
+  // kuwagata: twin gold horns rising from a red crest mount
+  const kg = g.createLinearGradient(0, -14, 0, -54); kg.addColorStop(0, '#8d6a2a'); kg.addColorStop(.5, '#f5dc93'); kg.addColorStop(1, '#b8903c');
+  g.fillStyle = kg;
+  ribbon(g, [[3, -16], [-3, -33], [-13, -53]], 4.4, t => 1 - t * .75, 0);
+  ribbon(g, [[7, -16], [14, -34], [16, -55]], 4.4, t => 1 - t * .75, 0);
+  g.fillStyle = '#b21e26'; g.beginPath(); g.arc(5, -15, 3.2, 0, TAU); g.fill(); g.strokeStyle = 'rgba(214,170,86,.95)'; g.lineWidth = 1; g.stroke();
+  g.restore();
+  gg.save(); gg.translate(c[0], c[1]); gg.rotate(a); gg.scale(1.3, 1.3);
+  gg.globalAlpha = .55; gg.drawImage(AS.gWhite, 2.5, -13.6, 16, 12);
+  gg.globalAlpha = .28; gg.drawImage(AS.gGold, -18, -62, 40, 48);
+  gg.restore();
+}
 function drawHead(g, gg, K, cos, e) {
   const c = K.Hd, a = K.headA, kind = cos.head;
+  if (kind === 'hero') return drawHeroHead(g, gg, c, a);
   if (kind === 'mask') return drawMask(g, gg, c, a);
   g.save(); g.translate(c[0], c[1]); g.rotate(a);
   const angry = e && e.state === 'windup';

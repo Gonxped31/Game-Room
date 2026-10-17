@@ -122,14 +122,14 @@
 @media (prefers-reduced-motion: reduce){ .iai .screen{transition:none} .iai #wolfBtn.full .ico{animation:none} }
 
 /* ---------- Game Room: health, time survived ---------- */
-.iai #health{position:absolute;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px}
+.iai #health{margin-top:10px;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 .iai .hp-lab{font-weight:700;font-size:12px;letter-spacing:.3em;color:var(--seal)}
-.iai .hp-bar{width:min(46vw,280px);height:12px;background:rgba(235,227,207,.75);border:1.5px solid var(--ink);border-radius:2px;overflow:hidden;filter:url(#rough)}
+.iai .hp-bar{width:min(40vw,230px);height:12px;background:rgba(235,227,207,.75);border:1.5px solid var(--ink);border-radius:2px;overflow:hidden;filter:url(#rough)}
 .iai #hpFill{display:block;height:100%;width:100%;background:linear-gradient(90deg,#1c2a6e,#2246c0);transform-origin:0 50%;transition:transform .25s ease}
 .iai #health.low #hpFill{background:linear-gradient(90deg,#7a1018,#c42a33)}
 .iai #health.low .hp-bar{animation:iai-beat 1s steps(1) infinite}
-.iai #survived{font-family:var(--brush);font-size:20px;line-height:1;color:var(--ink);text-shadow:0 0 8px rgba(235,227,207,.9)}
-@media (max-width:560px){ .iai .hp-lab{font-size:10px;letter-spacing:.22em} .iai .hp-bar{width:min(38vw,200px)} .iai #survived{font-size:16px} }
+.iai #survived{margin-left:8px;font-family:var(--brush);font-size:16px;letter-spacing:.06em;color:var(--ink);text-shadow:0 0 8px rgba(235,227,207,.9)}
+@media (max-width:560px){ .iai .hp-lab{font-size:10px;letter-spacing:.22em} .iai .hp-bar{width:min(42vw,170px)} .iai #survived{font-size:13px} }
 
 /* ---------- Game Room: on-screen controls (phones) ---------- */
 .iai #touch{pointer-events:none;align-items:flex-end;gap:12px;animation:none}
