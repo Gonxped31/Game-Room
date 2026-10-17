@@ -11,7 +11,8 @@ import { customRound, randomRound } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
 import { CASES, getCase } from "@/lib/games/cocounsel/cases";
 import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
-import { cocounselState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
+import { abandonRun, type CoopResult, finishRun, newGame as newIaiGame, setReady as iaiReady } from "@/lib/games/iai/coop";
+import { cocounselState, dbAs, ftwState, iaiState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -193,5 +194,47 @@ describe("Night Highway live cars", () => {
   it("is refused in a room of another game", async () => {
     await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], room: "zzz234" });
     await assertFails(dbAs(env, "alice").ref("games/zzz234/nighthighwayCars/p1").set(car()));
+  });
+});
+
+describe("Iaï co-op", () => {
+  const path = `games/${ROOM}/iai`;
+  const result = (score: number): CoopResult => ({ score, survived: 120, kills: 51, oni: 2, combo: 31, perfect: 44 });
+  beforeEach(async () => {
+    await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], gameSlug: "iai" });
+  });
+
+  it("accepts every state of a real series", async () => {
+    const db = dbAs(env, "alice");
+    const write = <T,>(state: T) => writeAndReadBack(db, path, state);
+    const now = Date.now();
+    let game = await write(newIaiGame());
+    game = await write(iaiReady(game, "p2", true, now));
+    game = await write(iaiReady(game, "p1", true, now));
+    expect(game.phase).toBe("RUNNING");
+    game = await write(finishRun(game, 1, result(12500)));
+    expect(game.best).toBe(12500);
+    game = await write(iaiReady(iaiReady(game, "p1", true, now), "p2", true, now));
+    game = await write(abandonRun(game));
+    expect(game.phase).toBe("LOBBY");
+  });
+
+  it.each([
+    ["a bad phase", iaiState({ phase: "PAUSED" })],
+    ["a result missing a field", iaiState({ result: { score: 1 } })],
+    ["a string best", iaiState({ best: "9" })],
+    ["an unknown key", iaiState({ lives: 3 })],
+  ])("rejects %s", async (_, state) => {
+    await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+
+  it("lets each player write only their own live messages", async () => {
+    const msg = { run: 1, d: '{"r":1}' };
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p1`).set(msg));
+    await assertSucceeds(dbAs(env, "bob").ref(`games/${ROOM}/iaiLive/p2`).set(msg));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p2`).set(msg));
+    await assertFails(dbAs(env, "carol").ref(`games/${ROOM}/iaiLive/p1`).set(msg));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p1`).set({ run: 1, d: "x".repeat(30001) }));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p1`).set({ run: 1 }));
   });
 });

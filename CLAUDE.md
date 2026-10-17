@@ -4,8 +4,9 @@ A small platform for private 2-player games played through a shared link.
 - `/` is the hub (game picker, join by code or name, "Your rooms").
 - Each game lives at `/<slug>#<roomCode>`.
 - No sign-in: every browser gets an invisible guest ID.
-- Games: **First to Worst** (`/ftw`), **Co-Counsel** (`/cocounsel`) and **Night
-  Highway** (`/nighthighway`, plus `/nighthighway/solo`).
+- Games: **First to Worst** (`/ftw`), **Co-Counsel** (`/cocounsel`), **Night
+  Highway** (`/nighthighway`, plus `/nighthighway/solo`) and **Iaï** (`/iai/solo`,
+  plus co-op at `/iai`).
 
 This file holds what must stay true on **every** change. Everything else loads on
 demand:
@@ -15,11 +16,12 @@ demand:
 | Working on First to Worst | `first-to-worst` skill (`.claude/skills/first-to-worst/`) |
 | Working on Co-Counsel | `co-counsel` skill |
 | Working on Night Highway (3D race, deterministic traffic, live ghost car) | `night-highway` skill |
+| Working on Iaï (ink samurai game, solo + co-op on one field) | `iai` skill |
 | Adding (or removing) a game | `add-game` skill |
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |
 | Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |
 | Testing a change with two players on phone + desktop (emulators + Playwright) | `live-test` skill |
-| Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `night-highway/`) |
+| Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `night-highway/`, `iai/`) |
 | Deferred work waiting on a trigger ("when X ships, do Y") | `docs/follow-ups.md` |
 
 **Before finishing any task, check `docs/follow-ups.md`** for entries this work
@@ -50,6 +52,7 @@ games/{roomCode}/
   players:    { p1: { name }, ... }   presence: { [uid]: { online, lastSeen } }
   lastActive: number                  ftw | cocounsel | nighthighway: { ...game state... }  // validated per game
   nighthighwayCars: { p1: {...}, p2: {...} }                                 // live cars, each seat writes its own
+  iai: { ...co-op room state... }     iaiLive: { p1: {run, d}, p2: {run, d} }  // Iaï co-op: the host's snapshots, the partner's moves
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 ```

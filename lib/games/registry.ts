@@ -82,9 +82,9 @@ export const ALL_GAMES: GameEntry[] = [
     slug: "iai",
     title: "Iaï",
     description: "One blade against endless foes. Cut at the perfect moment, alone or side by side with a friend.",
-    tags: ["Solo", "Co-op soon"],
+    tags: ["Solo", "2-player co-op"],
     maxPlayers: 2,
-    // Solo is the default; co-op will live at the room page.
+    // Solo is the default; co-op lives at the room page (/iai), opened from the solo screen or joined by code.
     startPath: "iai/solo",
     ink: "#0C0D1C",
     textSecondary: "#4A4536",

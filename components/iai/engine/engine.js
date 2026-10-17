@@ -10,6 +10,10 @@
 // - The samurai walk (A/D, which turns them), jump (W), slash the way they
 //   face (Space) and unleash the wolf (Shift). Enemies chase a samurai rather
 //   than a fixed spot, and the field can hold more than one samurai.
+// - Co-op (startCoop): the room's first seat hosts - it runs the fight and
+//   sends a snapshot ten times a second; the partner mirrors the snapshots,
+//   moves its own samurai locally and sends its position and actions (its
+//   cuts are judged on its own screen). The host decides all damage.
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions -- a few leftovers kept as in the original */
 import { AIRBORNE_Y, bossHp, damage, enemyTopSpeed, FIRST_BOSS_AT, formatSurvived, GRAVITY, HEAL_EVERY_COMBO, healOnCombo, JUMP_SPEED, MAX_HP, MOVE_SPEED, nextBossAt, postBossGap, rankFor } from '@/lib/games/iai/rules';
 
@@ -2248,6 +2252,7 @@ class Samurai {
   play(segs) { this.anim = { segs, i: 0, t: 0, from: Object.assign({}, this.pose) }; }
   slash(dir, whiff) {
     this.face = dir;
+    this.slashN = (this.slashN || 0) + 1; this.lastDir = dir; this.lastWhiff = !!whiff;
     if (whiff) this.play([[POSE.wind, .03, Ease.outQuad], [POSE.strike, .045, Ease.inQuad], [POSE.whiff, .12, Ease.outCubic], [POSE.whiff, .1, null], [POSE.ready, .2, Ease.inOutCubic]]);
     else this.play([[POSE.wind, .03, Ease.outQuad], [POSE.strike, .04, Ease.inQuad], [POSE.follow, .09, Ease.outCubic], [POSE.ready, .17, Ease.inOutCubic]]);
   }
@@ -2494,8 +2499,12 @@ const KNUM = ['', '十', '二十', '三十', '四十', '五十', '六十', '七�
 // Game Room: the samurai walk (A/D, which also turns them), jump (W) and have
 // health; the run lasts until every samurai has fallen. P is this device's
 // samurai; PLAYERS holds every samurai on the field.
-const PLAYERS = [P];
+let PLAYERS = [P];
 const living = () => PLAYERS.filter((p) => !p.dead);
+// Game Room: co-op. R is the other samurai; on the partner's screen the host's.
+const R = new Samurai();
+const COOP = { on: false, host: false, run: 0, startAt: 0, serverNow: null, send: null, onFinish: null, started: false, sendT: 0, outbox: [], evId: 0, lastGuestEv: 0, killedLocally: new Map() };
+const MIRROR = () => COOP.on && !COOP.host;
 function nearestLiving(x) {
   let best = null, bd = 1e9;
   for (const p of PLAYERS) { if (p.dead) continue; const d = Math.abs(p.x - x); if (d < bd) { bd = d; best = p; } }
@@ -2535,7 +2544,7 @@ function pickSide() {
 // Each enemy picks the samurai nearest the edge it comes from, and chases them.
 function newEnemy(kind, side) {
   const target = nearestLiving(side * SPAWN_D) || P;
-  const e = { kind, side, face: -side, target, x: target.x + side * SPAWN_D, d: SPAWN_D, hp: ENEMY_KIND[kind].hp, state: 'approach', t: 0, phase: rr(0, TAU), pose: Object.assign({}, EPOSE.run), glint: 0, speed: 300 };
+  const e = { id: ++GAME.uid, kind, side, face: -side, target, x: target.x + side * SPAWN_D, d: SPAWN_D, hp: ENEMY_KIND[kind].hp, state: 'approach', t: 0, phase: rr(0, TAU), pose: Object.assign({}, EPOSE.run), glint: 0, speed: 300 };
   GAME.enemies.push(e); return e;
 }
 function spawnTick(dt) {
@@ -2571,7 +2580,7 @@ function spawnArcher() {
   e.pose = Object.assign({}, EPOSE.run);
 }
 function fireArrow(e) {
-  GAME.arrows.push({ x: e.side * (e.ax - 20), y: -158, side: e.side, rot: e.side > 0 ? PI : 0, dead: false, vx: -e.side * ARROW_V, vy: 0, t: 0 });
+  GAME.arrows.push({ id: ++GAME.uid, x: e.side * (e.ax - 20), y: -158, side: e.side, rot: e.side > 0 ? PI : 0, dead: false, vx: -e.side * ARROW_V, vy: 0, t: 0 });
   SND.whoosh(SND.t, .2, e.side * .7, 1.4, .15);
 }
 
@@ -2694,7 +2703,7 @@ function updateBoss(dt) {
       const side = pickSide();
       // The fist lands where a samurai stands when it starts its swing.
       const tp = nearestLiving(side * 400) || P;
-      B.arms.push({ side, tx: tp.x, state: 'wind', t: 0, windDur: arr - GAME.t - .18, arrival: arr, hand: [tp.x + side * 700, -520], from: null });
+      B.arms.push({ id: ++GAME.uid, side, tx: tp.x, state: 'wind', t: 0, windDur: arr - GAME.t - .18, arrival: arr, hand: [tp.x + side * 700, -520], from: null });
       SND.whoosh(SND.t, .2, side * .6, .5, .5);
     }
   }
@@ -2783,11 +2792,14 @@ function slash(p) {
     if (Math.sign(rel) !== dir) continue;
     if (d >= 30 && d <= R_MAX + 120 && d < bd) { bd = d; best = a; type = 'arm'; }
   }
-  if (!best) { whiff(p, dir); return; }
+  if (!best) { whiff(p, dir); if (MIRROR()) queueEvent('whiff', dir); return; }
   p.slash(dir, false); p.lock = .1;
-  if (type === 'enemy') hitEnemy(best, dir, p, bd);
-  else if (type === 'arrow') hitArrow(best, dir, p, bd);
-  else hitArm(best, dir, p);
+  let perfect;
+  if (type === 'enemy') { const armored = best.kind === 'armored' && best.hp > 1; perfect = hitEnemy(best, dir, p, bd); if (MIRROR() && !armored) COOP.killedLocally.set('e' + best.id, performance.now()); }
+  else if (type === 'arrow') { perfect = hitArrow(best, dir, p, bd); if (MIRROR()) COOP.killedLocally.set('a' + best.id, performance.now()); }
+  else { perfect = hitArm(best, dir, p); if (MIRROR()) COOP.killedLocally.set('b' + best.id, performance.now()); }
+  // Game Room: the partner's cut, judged here, goes to the host to apply.
+  if (MIRROR()) queueEvent('hit', type[0], best.id, perfect ? 1 : 0, dir);
 }
 function judge(d, speed, arrival) {
   if (arrival != null && Math.abs(GAME.t - arrival) <= PERFECT_T) return true;
@@ -2809,10 +2821,10 @@ function impact(x, y, dir, perfect, p) {
   }
   SND.slash(dir, perfect); SND.cut(dir, perfect);
 }
-function hitEnemy(e, dir, p, d) {
+function hitEnemy(e, dir, p, d, forced) {
   // Its scheduled arrival times a perfect cut on the samurai it was chasing; anyone else is judged by distance.
   const speed = e.state === 'windup' || e.state === 'feint' || e.state === 'aim' ? 0 : e.state === 'dash' ? 1050 : e.speed;
-  const perfect = judge(d, speed, e.state === 'approach' && e.target === p ? e.arrival : null);
+  const perfect = forced != null ? forced : judge(d, speed, e.state === 'approach' && e.target === p ? e.arrival : null);
   const x = e.x, y = -150 * ENEMY_KIND[e.kind].scale;
   if (e.kind === 'armored' && e.hp > 1) {
     e.hp--; e.state = 'stagger'; e.t = 0;
@@ -2820,7 +2832,7 @@ function hitEnemy(e, dir, p, d) {
     SND.slash(dir, perfect); SND.clang(dir, false); shake(.3); GAME.hitstop = .06; FXU.ca = .006;
     comboUp(); GAME.gauge = Math.min(1, GAME.gauge + .05); addScore(60 * mult(), x, y);
     stampAt(x, y - 120, '鋼', perfect ? 'PERFECT' : 'ARMOR', false);
-    return;
+    return perfect;
   }
   const i = GAME.enemies.indexOf(e); if (i >= 0) GAME.enemies.splice(i, 1);
   impact(x, y, dir, perfect, p);
@@ -2836,10 +2848,11 @@ function hitEnemy(e, dir, p, d) {
   GAME.gauge = Math.min(1, GAME.gauge + (perfect ? .1 : .06));
   addScore(ENEMY_KIND[e.kind].score * (perfect ? 1.5 : 1) * mult(), x, y - 60);
   if (perfect) stampAt(x, y - 130, '一閃', 'PERFECT', true); else stampAt(x, y - 125, '斬', null, false);
+  return perfect;
 }
 function hatDraw() { return g => { g.scale(.85, .85); g.beginPath(); g.moveTo(-50, 1); g.quadraticCurveTo(-20, -6, -2, -31); g.quadraticCurveTo(22, -6, 52, 3); g.quadraticCurveTo(0, 9, -50, 1); g.closePath(); g.fillStyle = PAT.straw; g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke(); }; }
-function hitArrow(a, dir, p, d) {
-  const perfect = judge(d, ARROW_V, null);
+function hitArrow(a, dir, p, d, forced) {
+  const perfect = forced != null ? forced : judge(d, ARROW_V, null);
   a.dead = true; a.t = 0; a.vx = dir * rr(300, 500); a.vy = -rr(700, 900); a.vr = dir * rr(12, 20);
   fxSlash(p.x, p.y - 192, dir, perfect, 1.05); fxBurst(a.x, a.y, perfect);
   sparks(a.x, a.y, dir, 16); SND.slash(dir, perfect); SND.ping(dir);
@@ -2847,10 +2860,11 @@ function hitArrow(a, dir, p, d) {
   comboUp(); GAME.gauge = Math.min(1, GAME.gauge + .05);
   addScore(60 * (perfect ? 1.5 : 1) * mult(), a.x, a.y);
   stampAt(a.x, a.y - 80, '矢', perfect ? 'PERFECT' : 'DEFLECTED', perfect);
+  return perfect;
 }
-function hitArm(a, dir, p) {
+function hitArm(a, dir, p, forced) {
   const B = GAME.boss;
-  const perfect = Math.abs(GAME.t - a.arrival) <= PERFECT_T * 1.3;
+  const perfect = forced != null ? forced : Math.abs(GAME.t - a.arrival) <= PERFECT_T * 1.3;
   a.state = 'recoil'; a.t = 0;
   B.hurt(); updateBossBar();
   sparks(a.hand[0], a.hand[1], dir, 36); sparks(a.hand[0], a.hand[1], dir, 14, 1);
@@ -2861,7 +2875,8 @@ function hitArm(a, dir, p) {
   comboUp(); GAME.gauge = Math.min(1, GAME.gauge + .08);
   addScore(300 * (perfect ? 1.5 : 1) * mult(), a.hand[0], a.hand[1]);
   stampAt(a.hand[0], a.hand[1] - 110, '受', perfect ? 'PERFECT PARRY' : 'PARRY', true);
-  if (B.hp <= 0 && B.state === 'fight') { B.state = 'dying'; B.deathT = 0; B.arms.forEach(x => { x.state = 'recoil'; x.t = 0; }); SND.roar(); slowmo(.25, 1); }
+  if (B.hp <= 0 && B.state === 'fight' && !MIRROR()) { B.state = 'dying'; B.deathT = 0; B.arms.forEach(x => { x.state = 'recoil'; x.t = 0; }); SND.roar(); slowmo(.25, 1); }
+  return perfect;
 }
 function whiff(p, dir) {
   p.slash(dir, true); p.lock = .3; GAME.whiffs++;
@@ -2886,6 +2901,7 @@ function fall(p) {
 }
 function howl(p) {
   if (GAME.mode !== 'play' || GAME.ending || !p || p.dead || GAME.gauge < 1 || WOLF.special >= 0) return;
+  if (MIRROR()) { queueEvent('howl'); GAME.gauge = 0; return; } // the host unleashes it
   GAME.gauge = 0; WOLF.special = 0; p.howl(); p.lock = 1.1; p.inv = 1.8;
   SND.howl(); slowmo(.35, 1.1); shake(.5); flash(.75, .85, 1, .35); FXU.ca = .012;
   shock(p.x, p.y - 160, 1.6); radial(p.x, p.y - 200, .1);
@@ -2919,9 +2935,172 @@ function updateWave(dt) {
   if (w.t > 1.7) GAME.wave = null;
 }
 
+/* ---------------- Game Room: co-op ---------------- */
+const KINDS = ['ronin', 'armored', 'shinobi', 'archer'];
+const STATES = ['approach', 'feint', 'dash', 'windup', 'strike', 'recoil', 'stagger', 'walkin', 'aim', 'leave'];
+const ARM_STATES = ['wind', 'strike', 'recoil'];
+const BOSS_STATES = ['intro', 'fight', 'dying', 'gone', 'leave'];
+const r1 = (n) => Math.round(n * 10) / 10;
+function queueEvent(...ev) { COOP.outbox.push([++COOP.evId, performance.now(), ...ev]); }
+// Host -> partner: the whole fight, compactly.
+function snapshot() {
+  const B = GAME.boss;
+  return JSON.stringify({
+    r: COOP.run, t: r1(GAME.t), sc: GAME.score, cb: GAME.combo, mc: GAME.maxCombo, g: Math.round(GAME.gauge * 100), k: GAME.kills, n: GAME.bossesBeaten, pf: GAME.perfects, gd: GAME.goods, end: GAME.ending ? 1 : 0,
+    p: PLAYERS.map((p) => [r1(p.x), r1(p.y), p.face, p.moving || 0, p.hp, p.dead ? 1 : 0, p.slashN || 0, p.lastDir || 1, p.lastWhiff ? 1 : 0]),
+    e: GAME.enemies.map((e) => [e.id, KINDS.indexOf(e.kind), r1(e.x), STATES.indexOf(e.state), e.side, e.face, e.hp, r1(e.glint || 0), r1(e.draw || 0), e.kneel ? 1 : 0, r1(e.ax || 0)]),
+    a: GAME.arrows.filter((a) => !a.dead).map((a) => [a.id, r1(a.x), r1(a.y), a.side, a.vx]),
+    b: B ? [B.hp, B.max, BOSS_STATES.indexOf(B.state), r1(B.t), B.arms.map((a) => [a.id, a.side, r1(a.tx), ARM_STATES.indexOf(a.state), r1(a.hand[0]), r1(a.hand[1])])] : 0,
+    w: GAME.wave ? [r1(GAME.wave.x)] : 0,
+  });
+}
+// Partner -> host: where its samurai is, and what it did.
+function guestMessage() {
+  const now = performance.now();
+  COOP.outbox = COOP.outbox.filter((ev) => now - ev[1] < 3000);
+  return JSON.stringify({ r: COOP.run, x: r1(P.x), y: r1(P.y), f: P.face, m: P.moving || 0, ev: COOP.outbox.map(([id, , ...rest]) => [id, ...rest]) });
+}
+function hostReceive(m) {
+  if (m.r !== COOP.run) return;
+  R.tx = m.x; R.ty = m.y; R.moving = m.m; if (R.lock <= 0) R.face = m.f;
+  for (const ev of m.ev || []) {
+    if (ev[0] <= COOP.lastGuestEv) continue;
+    COOP.lastGuestEv = ev[0];
+    if (R.dead || GAME.mode !== 'play' || GAME.ending) continue;
+    const type = ev[1];
+    if (type === 'hit') {
+      const [, , k, id, perfect, dir] = ev;
+      R.slash(dir, false);
+      if (k === 'e') { const e = GAME.enemies.find((x) => x.id === id); if (e) hitEnemy(e, dir, R, 0, !!perfect); }
+      else if (k === 'a') { const a = GAME.arrows.find((x) => x.id === id && !x.dead); if (a) hitArrow(a, dir, R, 0, !!perfect); }
+      else if (GAME.boss) { const a = GAME.boss.arms.find((x) => x.id === id && x.state === 'strike'); if (a) hitArm(a, dir, R, !!perfect); }
+    } else if (type === 'whiff') R.slash(ev[2], true);
+    else if (type === 'howl') howl(R);
+  }
+}
+// The partner's screen: effects for what happened on the host's.
+function remoteKillVisual(e) {
+  inkBurst(e.x, -150, e.side, 22, 650, true); smoke(e.x, -150, 3, 40);
+  const c = makeCorpse(e, -e.side, false); c.wx = e.x; c.f = e.face; GAME.corpses.push(c);
+  SND.cut(-e.side, false);
+}
+function hurtVisual(p) {
+  p.hit(); SND.hurt(); shake(.6);
+  inkBurst(p.x, p.y - 160, rsign(), 14, 520, true);
+  if (p === P) { FXU.hurt = 1; FXU.ca = .014; }
+  fxStamp(p.x, p.y - 340, '傷', 'HIT', true);
+}
+function guestReceive(m) {
+  if (m.r !== COOP.run || !COOP.started) return;
+  const now = performance.now();
+  for (const [k, at] of COOP.killedLocally) if (now - at > 1500) COOP.killedLocally.delete(k);
+  if (GAME.score !== m.sc) { GAME.score = m.sc; hud.score = true; }
+  if (m.cb !== GAME.combo) { if (m.cb > GAME.combo) GAME.comboPulse = 1; GAME.combo = m.cb; hud.score = true; }
+  Object.assign(GAME, { maxCombo: m.mc, gauge: m.g / 100, kills: m.k, bossesBeaten: m.n, perfects: m.pf, goods: m.gd });
+  if (Math.abs(GAME.t - m.t) > .5) GAME.t = m.t;
+  m.p.forEach((st, i) => {
+    const p = PLAYERS[i]; if (!p) return;
+    if (p !== P) {
+      p.tx = st[0]; p.ty = st[1]; p.moving = st[3];
+      if (p.seenSlash != null && st[6] > p.seenSlash) p.slash(st[7], !!st[8]); else if (p.lock <= 0) p.face = st[2];
+      p.seenSlash = st[6];
+    }
+    if (st[4] < p.hp && !p.dead) hurtVisual(p);
+    p.hp = st[4];
+    if (st[5] && !p.dead) { p.dead = true; p.die(); fxStamp(p.x, -340, '死', 'FALLEN', true); slowmo(.3, .7); }
+  });
+  const seen = new Set();
+  for (const [id, ki, x, si, side, face, hp, glint, draw, kneel, ax] of m.e) {
+    seen.add(id);
+    if (COOP.killedLocally.has('e' + id)) continue;
+    let e = GAME.enemies.find((q) => q.id === id);
+    if (!e) { e = { id, kind: KINDS[ki], side, face, x, d: 0, hp, state: STATES[si], t: 0, phase: rr(0, TAU), pose: Object.assign({}, EPOSE.run), glint: 0 }; GAME.enemies.push(e); }
+    e.tx = x; if (e.state !== STATES[si]) { e.state = STATES[si]; e.t = 0; }
+    Object.assign(e, { side, face, hp, glint, draw, kneel: !!kneel, ax, armed: draw > 0 });
+  }
+  for (let i = GAME.enemies.length - 1; i >= 0; i--) {
+    const e = GAME.enemies[i];
+    if (!seen.has(e.id)) { GAME.enemies.splice(i, 1); if (e.state !== 'leave' && Math.abs(e.x) < V.halfW + 100) remoteKillVisual(e); }
+  }
+  const seenA = new Set();
+  for (const [id, x, y, side, vx] of m.a) {
+    seenA.add(id);
+    if (COOP.killedLocally.has('a' + id)) continue;
+    let a = GAME.arrows.find((q) => q.id === id);
+    if (!a) { a = { id, x, y, side, rot: side > 0 ? PI : 0, dead: false, vx, vy: 0, t: 0 }; GAME.arrows.push(a); }
+    a.tx = x; a.vx = vx;
+  }
+  for (let i = GAME.arrows.length - 1; i >= 0; i--) { const a = GAME.arrows[i]; if (!a.dead && !seenA.has(a.id)) GAME.arrows.splice(i, 1); }
+  if (m.b) {
+    if (!GAME.boss) {
+      GAME.boss = new Oni();
+      SND.roar(); shake(.9); banner('鬼', GAME.bossesBeaten ? 'The oni returns' : 'The oni wakes'); flash(.55, .05, .08, .35);
+      SND.musicLevel(4); $('bossbar').classList.add('on');
+    }
+    const B = GAME.boss, [hp, max, bsi, bt, arms] = m.b, st = BOSS_STATES[bsi];
+    B.hp = hp; B.max = max; updateBossBar();
+    if (st !== B.state) { if (st === 'dying') { B.deathT = 0; SND.roar(); slowmo(.25, 1); } B.state = st; }
+    if (Math.abs(B.t - bt) > .5) B.t = bt;
+    B.arms = arms.filter(([id]) => !COOP.killedLocally.has('b' + id)).map(([id, side, tx, asi, hx, hy]) => {
+      const a = B.arms.find((q) => q.id === id) || { id, side, tx, hand: [hx, hy], t: 0 };
+      a.state = ARM_STATES[asi]; a.th = [hx, hy]; a.tx = tx; return a;
+    });
+  } else if (GAME.boss) {
+    const B = GAME.boss, [x, y] = B.pos;
+    $('bossbar').classList.remove('on'); SND.shatter(); flash(1, .92, .7, .8); shake(1.2); shock(x, y, 2);
+    for (let k = 0; k < 40; k++) addP({ k: 'chunk', x: x + rr(-200, 200), y: y + rr(-200, 200), vx: rr(-700, 700), vy: rr(-600, 100), life: rr(1.5, 2.6), t: 0, rot: rr(0, TAU), vr: rr(-8, 8), gy: rr(0, 30), draw: shardDraw(rr(10, 34)) });
+    stampAt(0, -330, '退治', 'ONI SLAIN', true);
+    GAME.boss = null;
+  }
+  if (m.w && !GAME.wave) {
+    GAME.wave = { t: 0, front: 0, x: m.w[0], visual: true };
+    SND.howl(); slowmo(.35, 1.1); shake(.5); flash(.75, .85, 1, .35); banner('狼魂', 'The wolf spirit'); WOLF.special = 0;
+  }
+  if (m.end && !GAME.ending) endRun();
+}
+// The partner's screen, every frame: smooth the mirrored fight toward the snapshots and animate it.
+function animateMirror(dt) {
+  const k = 1 - Math.exp(-dt * 14), blend = 1 - Math.exp(-dt * 14);
+  const POSES = { approach: EPOSE.run, dash: EPOSE.dash, feint: EPOSE.crouch, windup: EPOSE.windup, strike: EPOSE.strike, recoil: EPOSE.recoil, stagger: EPOSE.recoil, walkin: EPOSE.run, aim: EPOSE.kneel, leave: EPOSE.run };
+  for (const e of GAME.enemies) {
+    e.t += dt;
+    if (e.tx != null) e.x += (e.tx - e.x) * k;
+    const pose = POSES[e.state]; if (pose) setPose(e, pose, e.state === 'strike' ? 1 - Math.exp(-dt * 40) : blend);
+    if (e.state === 'approach' || e.state === 'dash' || e.state === 'walkin' || e.state === 'leave') e.phase += dt * (e.state === 'dash' ? 30 : 12);
+    e.d = Math.abs(e.x - P.x);
+  }
+  for (let i = GAME.arrows.length - 1; i >= 0; i--) {
+    const a = GAME.arrows[i]; a.t += dt;
+    if (a.dead) { a.vy += 1400 * dt; a.x += a.vx * dt; a.y += a.vy * dt; a.rot += a.vr * dt; if (a.t > 1.5) GAME.arrows.splice(i, 1); continue; }
+    a.x += a.vx * dt; if (a.tx != null) { a.x += (a.tx - a.x) * .2; a.tx += a.vx * dt; }
+  }
+  for (let i = GAME.corpses.length - 1; i >= 0; i--) {
+    const c = GAME.corpses[i];
+    if (c.burn) { c.t += dt; if (c.t > c.life) GAME.corpses.splice(i, 1); continue; }
+    updateCorpse(c, dt); if (c.t > c.life) GAME.corpses.splice(i, 1);
+  }
+  const B = GAME.boss;
+  if (B) { B.update(dt); for (const a of B.arms) if (a.th) { a.hand[0] += (a.th[0] - a.hand[0]) * k; a.hand[1] += (a.th[1] - a.hand[1]) * k; } }
+  const w = GAME.wave;
+  if (w) {
+    w.t += dt;
+    if (w.t > .35) {
+      const prev = w.front; w.front = (w.t - .35) * 1700;
+      for (let j = 0; j < 6; j++) { const sd = j % 2 ? 1 : -1; embers(w.x + sd * w.front + rr(-30, 30), rr(-60, 0), 1, 30, -120, 1.6); }
+      if (prev === 0) { fxRing(w.x, 0, 1400, 1, 'rgba(60,100,230,', 16); addRipple(w.x, 1.4, 1700, 1.2); }
+    }
+    if (w.t > 1.7) GAME.wave = null;
+  }
+}
+// The other samurai, between messages.
+function smoothRemote(dt) {
+  const k = 1 - Math.exp(-dt * 16);
+  for (const p of PLAYERS) if (p !== P && p.tx != null) { p.x += (p.tx - p.x) * k; p.y += (p.ty - p.y) * k; }
+}
+
 /* ---------------- run lifecycle ---------------- */
 function resetRun() {
-  Object.assign(GAME, { t: 0, score: 0, combo: 0, maxCombo: 0, gauge: 0, kills: 0, perfects: 0, goods: 0, hits: 0, whiffs: 0, enemies: [], arrows: [], corpses: [], boss: null, bossesBeaten: 0, nextBoss: FIRST_BOSS_AT, ts: 1, tsTarget: 1, tsT: 0, hitstop: 0, ending: false, endT: 0, wave: null, banner: null, newBest: false });
+  Object.assign(GAME, { t: 0, score: 0, combo: 0, maxCombo: 0, gauge: 0, kills: 0, perfects: 0, goods: 0, hits: 0, whiffs: 0, enemies: [], arrows: [], corpses: [], boss: null, bossesBeaten: 0, nextBoss: FIRST_BOSS_AT, ts: 1, tsTarget: 1, tsT: 0, hitstop: 0, ending: false, endT: 0, wave: null, banner: null, newBest: false, uid: 0 });
   PARTS.length = 0; DECALS.length = 0; FX.length = 0; RIPPLES.length = 0;
   DIR.next = 1.6; DIR.archerCD = 0; DIR.streak = 0;
   PLAYERS.forEach((p, i) => {
@@ -2952,7 +3131,21 @@ function endRun() {
   if (GAME.newBest) { GAME.best = GAME.score; store.set('iai.best', GAME.score); }
   if (GAME.maxCombo > GAME.bestCombo) { GAME.bestCombo = GAME.maxCombo; store.set('iai.bestCombo', GAME.maxCombo); }
 }
+function coopResult() {
+  const att = GAME.perfects + GAME.goods;
+  return { score: GAME.score, survived: Math.floor(GAME.t), kills: GAME.kills, oni: GAME.bossesBeaten, combo: GAME.maxCombo, perfect: att ? Math.round(GAME.perfects / att * 100) : 0 };
+}
 function showResults() {
+  if (COOP.on) {
+    // Game Room: co-op results live in the room's state; the host reports them.
+    const result = coopResult();
+    if (COOP.host && COOP.onFinish) COOP.onFinish(result);
+    COOP.on = false; COOP.started = false; PLAYERS = [P];
+    GAME.mode = 'title'; resetRun();
+    $('hud').classList.remove('on'); $('touch').classList.remove('on');
+    SND.musicStart(0);
+    return;
+  }
   GAME.mode = 'end';
   const rank = rankFor(GAME.score);
   $('rankK').textContent = rank[1]; $('rankK').classList.toggle('two', rank[1].length > 1); $('rankFr').textContent = rank[2];
@@ -3003,8 +3196,9 @@ function updateHUD() {
     hud.wasFull = GAME.gauge >= 1;
   }
 }
-function show(id, on) { $(id).classList.toggle('show', on); }
+function show(id, on) { const el = $(id); if (el) el.classList.toggle('show', on); }
 function refreshTitle() {
+  if (!$('tBest')) return;
   $('tBest').textContent = GAME.best ? GAME.best.toLocaleString('en-US') : '—';
   $('tCombo').textContent = GAME.bestCombo || '—';
 }
@@ -3018,7 +3212,7 @@ listen(window, 'keydown', e => {
   const c = e.code;
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(c)) e.preventDefault();
   if (c === 'KeyM') { SND.setMuted(!SND.muted); refreshMute(); return; }
-  if (GAME.mode === 'title') { if (c === 'Enter' || c === 'Space') { e.preventDefault(); startRun(); } return; }
+  if (GAME.mode === 'title') { if ((c === 'Enter' || c === 'Space') && options.mode !== 'coop') { e.preventDefault(); startRun(); } return; }
   if (GAME.mode === 'end') { if ((c === 'Enter' || c === 'Space' || c === 'KeyR') && !e.repeat) { e.preventDefault(); if (document.activeElement === $('btnMenu') && c === 'Enter') toMenu(); else startRun(); } if (c === 'Escape') toMenu(); return; }
   if (GAME.mode !== 'play') return;
   if (KEY_MOVE[c]) { INPUT[KEY_MOVE[c]] = true; return; }
@@ -3093,6 +3287,14 @@ function render(dt, rdt) {
   for (const a of GAME.arrows) drawArrow(g, gg, a);
   if (!SKIP.has('parts')) drawParts(g, gg, false);
   if (!SKIP.has('sam')) for (const p of PLAYERS) p.draw(g, gg);
+  // Game Room: in co-op, the other samurai's name floats over them (yours is the one without).
+  for (const p of PLAYERS) {
+    if (p === P || !p.label) continue;
+    g.save(); g.font = '700 22px "Cormorant Garamond", serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.lineWidth = 6; g.strokeStyle = 'rgba(235,227,207,.9)'; g.strokeText(p.label, p.x, p.y - 312);
+    g.fillStyle = p.dead ? 'rgba(12,13,28,.45)' : '#0c0d1c'; g.fillText(p.label, p.x, p.y - 312);
+    g.restore();
+  }
   drawFX(g, gg, 1, dt);
   if (!SKIP.has('grass')) drawGrassLayer(g, GRASS.layers[2], t, P.x, .4);
   if (!SKIP.has('parts')) drawParts(g, gg, true);
@@ -3169,12 +3371,16 @@ function frame(now) {
   WIND.t += dt;
   WIND.gustT -= dt; if (WIND.gustT <= 0) { WIND.gustT = rr(3, 7); WIND.gustTarget = rr(0, .25); }
   WIND.gust += ((WIND.gustTarget || 0) - WIND.gust) * dt * .8;
+  // Game Room: a co-op run starts on the shared clock.
+  if (COOP.on && !COOP.started && COOP.serverNow() >= COOP.startAt) { COOP.started = true; startRun(); }
   if (GAME.mode === 'play' && !GAME.ending) {
     GAME.t += dt;
     if (GAME.t >= 15 && SND.mus.level < 2) SND.musicLevel(2);
     if (GAME.t >= 30 && SND.mus.level < 3) SND.musicLevel(3);
-    if (GAME.t >= GAME.nextBoss && !GAME.boss && (GAME.enemies.filter(e => e.kind !== 'archer').length === 0 || GAME.t > GAME.nextBoss + 2)) startBoss();
-    spawnTick(dt);
+    if (!MIRROR()) {
+      if (GAME.t >= GAME.nextBoss && !GAME.boss && (GAME.enemies.filter(e => e.kind !== 'archer').length === 0 || GAME.t > GAME.nextBoss + 2)) startBoss();
+      spawnTick(dt);
+    }
   }
   if (GAME.mode === 'play') {
     for (const p of PLAYERS) {
@@ -3182,12 +3388,18 @@ function frame(now) {
       if (p.buffer > 0) { p.buffer -= rdt; if (p.lock <= 0 && p.hurtT <= 0) { p.buffer = 0; slash(p); } }
     }
     movePlayer(P, dt, INPUT);
-    if (!GAME.ending) { updateEnemies(dt); updateBoss(dt); updateWave(dt); }
+    smoothRemote(dt);
+    if (!GAME.ending) { if (MIRROR()) animateMirror(dt); else { updateEnemies(dt); updateBoss(dt); updateWave(dt); } }
     else {
       GAME.endT += rdt;
       for (const c of GAME.corpses) if (!c.burn) updateCorpse(c, dt);
       if (GAME.boss) GAME.boss.update(dt);
       if (GAME.endT > 2.1 && GAME.mode === 'play') showResults();
+    }
+    // Game Room: co-op messages - the host's snapshots, the partner's moves.
+    if (COOP.on && COOP.started && COOP.send) {
+      COOP.sendT -= rdt;
+      if (COOP.sendT <= 0) { COOP.sendT = COOP.host ? .1 : .066; COOP.send(COOP.host ? snapshot() : guestMessage()); }
     }
   }
   P.aura += ((GAME.mode === 'play' ? GAME.gauge : .15) - P.aura) * rdt * 3;
@@ -3304,6 +3516,28 @@ async function boot() {
 const api = {
   /** Starts a run from the title or results screen. */
   startSolo() { if (GAME.mode === 'title' || GAME.mode === 'end') startRun(); },
+  /** Co-op: joins run `run`, which starts at `startAt` on the server's clock. */
+  startCoop(c) {
+    if (COOP.on && COOP.run === c.run) return;
+    Object.assign(COOP, { on: true, host: c.role === 'host', run: c.run, startAt: c.startAt, serverNow: c.serverNow, send: c.send, onFinish: c.onFinish, started: false, sendT: 0, outbox: [], evId: 0, lastGuestEv: 0 });
+    COOP.killedLocally.clear();
+    R.tx = null; R.seenSlash = null;
+    PLAYERS = COOP.host ? [P, R] : [R, P];
+  },
+  /** Co-op: the other samurai's name, shown over them. */
+  setPartnerName(name) { R.label = String(name || '').slice(0, 24); },
+  /** Co-op: a message from the other screen (snapshots for the partner, moves for the host). */
+  receive(text) {
+    if (!COOP.on) return;
+    let m; try { m = JSON.parse(text); } catch { return; }
+    if (COOP.host) hostReceive(m); else guestReceive(m);
+  },
+  /** Co-op: leave the run (the room went back to its lobby). */
+  stopCoop() {
+    if (!COOP.on) return;
+    COOP.on = false; COOP.started = false; PLAYERS = [P];
+    if (GAME.mode === 'play') { GAME.mode = 'title'; resetRun(); $('hud').classList.remove('on'); $('touch').classList.remove('on'); }
+  },
   destroy() {
     destroyed = true;
     cancelAnimationFrame(rafId);
@@ -3313,7 +3547,11 @@ const api = {
     if (window.Iai === api) delete window.Iai;
   },
 };
-if (options.exposeForTests) window.Iai = Object.assign(api, { GAME, P, PLAYERS, V, WOLF, INPUT, slash, howl, startRun });
+if (options.exposeForTests) {
+  window.Iai = Object.assign(api, { GAME, P, R, COOP, V, WOLF, INPUT, slash, howl, startRun });
+  // A live getter: PLAYERS is replaced when a co-op run starts or ends.
+  Object.defineProperty(api, 'PLAYERS', { get: () => PLAYERS, configurable: true });
+}
 rafId = requestAnimationFrame(frame);
 boot();
 return api;

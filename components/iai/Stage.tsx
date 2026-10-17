@@ -6,6 +6,8 @@ import "./fonts.css";
 import "./iai.css";
 
 interface StageProps {
+  /** "solo": the engine's own title and results screens. "coop": the page shows its own (lobby, results). */
+  mode?: "solo" | "coop";
   /** Called with the engine once it's running, and with null when it's torn down. */
   onEngine?: (engine: Engine | null) => void;
   /** The page's own overlays (e.g. the way back to the hub). */
@@ -17,7 +19,7 @@ interface StageProps {
  * HUD, which the engine (./engine/engine.js) drives directly - so the markup
  * renders once, memoized, and React never fights it.
  */
-export default function Stage({ onEngine, children }: StageProps) {
+export default function Stage({ mode = "solo", onEngine, children }: StageProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const onEngineRef = useRef(onEngine);
   useEffect(() => {
@@ -31,7 +33,7 @@ export default function Stage({ onEngine, children }: StageProps) {
       const root = rootRef.current;
       if (cancelled || !root) return;
       // window.Iai, for the live checks (as the original exposed window.__iai).
-      engine = createEngine(root, { exposeForTests: true });
+      engine = createEngine(root, { mode, exposeForTests: true });
       onEngineRef.current?.(engine);
     });
     return () => {
@@ -39,18 +41,18 @@ export default function Stage({ onEngine, children }: StageProps) {
       engine?.destroy();
       onEngineRef.current?.(null);
     };
-  }, []);
+  }, [mode]);
 
   return (
     <div ref={rootRef} className="iai">
-      <StageMarkup />
+      <StageMarkup mode={mode} />
       {children}
     </div>
   );
 }
 
 /** references/iai/iai.html's markup, in English, with health in place of the countdown and Game Room's controls. */
-const StageMarkup = memo(function StageMarkup() {
+const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "coop" }) {
   return (
     <>
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
@@ -73,6 +75,7 @@ const StageMarkup = memo(function StageMarkup() {
         </div>
       </div>
 
+      {mode === "solo" ? (
       <div id="title" className="screen">
         <div className="title-wrap">
           <div className="vert-wrap" aria-hidden="true">
@@ -114,6 +117,7 @@ const StageMarkup = memo(function StageMarkup() {
           </div>
         </div>
       </div>
+      ) : null}
 
       <div id="hud">
         <div className="hud-score">
@@ -180,6 +184,7 @@ const StageMarkup = memo(function StageMarkup() {
         </div>
       </div>
 
+      {mode === "solo" ? (
       <div id="end" className="screen">
         <div className="end-card">
           <div className="eyebrow">風止む · The wind falls still</div>
@@ -230,6 +235,7 @@ const StageMarkup = memo(function StageMarkup() {
           <button className="mute" type="button" />
         </div>
       </div>
+      ) : null}
     </>
   );
 });

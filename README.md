@@ -39,6 +39,10 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
     **pickups** (nitro, a few seconds of driving through traffic, a one-crash
     shield) and **rain** (the car slides).
   - `/nighthighway/solo` is the original single-player game, no room needed.
+- **Iaï** (`/iai/solo`) - an ink-painting samurai game. Enemies run in from both
+  sides; walk, jump and cut at the perfect moment, until you fall.
+  - The oni wakes, and returns stronger each time you slay it.
+  - `/iai` is co-op: two samurai back to back on one field, until both fall.
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
 game, the database-rules workflow and live two-player testing are Claude Code skills

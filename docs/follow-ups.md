@@ -87,12 +87,24 @@ can judge whether it still applies) · **Where** (files involved).
   `pickups.ts`, `game.ts` (options), `Screens.tsx`/`Stage.tsx`,
   `database.rules.json`, `tests/rules/gameState.test.ts`, the `night-highway` skill.
 
+## Monetization work starts
+
+- **Do:** start from `docs/monetization.md` (the plan drafted with the owner on
+  2026-10-17: host-pays "Game Room Plus", premium content inside the games, light
+  or no ads, Paddle/Lemon Squeezy, analytics first). Settle its two open
+  questions with the owner first; the sign-in one changes a CLAUDE.md product
+  decision.
+- **Why:** the owner parked it to build another game first.
+- **Where:** `docs/monetization.md`.
+
 ## Next time someone has a real iPhone handy
 
 - **Do:** on a real iPhone (Safari), check:
   - FTW: are the five hand cards in the bottom bar showing their numbered faces
     (1-5), not a mirrored "RANK CARD" back?
   - FTW: does "Shuffle prompt" read as one word (not "Shuff le")?
+  - Iaï: do the touch buttons (move, jump, slash, wolf) feel right, and does the
+    HUD clear the notch and home bar?
   - Night Highway: does the road render smoothly (the engine lowers its own
     resolution when frames run slow), do the touch buttons steer, brake and boost,
     and does the HUD clear the notch and home bar? Is the "Night Highway" wordmark

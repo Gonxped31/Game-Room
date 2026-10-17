@@ -38,12 +38,13 @@ function createUpdate(uid: string, opts: { room?: string; gameSlug?: string; max
     [g("meta", room)]: metaFor(uid, gameSlug, maxPlayers, name && nameKey ? { name, nameKey } : {}),
     [`users/${uid}/rooms/${room}`]: { gameSlug, addedAt: TS, createdByMe: true },
   };
-  if (gameSlug === "ftw" || gameSlug === "cocounsel" || gameSlug === "nighthighway") update[g(gameSlug, room)] = ftwOrCc(gameSlug);
+  if (gameSlug === "ftw" || gameSlug === "cocounsel" || gameSlug === "nighthighway" || gameSlug === "iai") update[g(gameSlug, room)] = ftwOrCc(gameSlug);
   if (nameKey) update[`roomsByName/${nameKey}`] = room;
   return update;
 }
 function ftwOrCc(slug: string) {
   if (slug === "nighthighway") return { phase: "LOBBY", race: 0, wins: { p1: 0, p2: 0 } };
+  if (slug === "iai") return { phase: "LOBBY", run: 0, best: 0 };
   return slug === "ftw" ? ftwState() : { caseId: "ruined-birthday", partIndex: 0, attempts: 0, phase: "SELECTING" };
 }
 
@@ -129,6 +130,8 @@ describe("5. maxPlayers", () => {
     await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "nighthighway", maxPlayers: 3 })));
     await assertSucceeds(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "cocounsel" })));
     await assertSucceeds(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "nighthighway", room: "bcd345" })));
+    await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "iai", maxPlayers: 3, room: "cde456" })));
+    await assertSucceeds(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "iai", room: "def567" })));
   });
 
   it("is required and must be 2 to 8 for other games", async () => {

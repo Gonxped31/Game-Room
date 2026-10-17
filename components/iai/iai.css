@@ -143,3 +143,32 @@
 .iai .iai-back{position:fixed;z-index:3;right:max(16px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1.5px solid var(--ink);background:rgba(235,227,207,.8);color:var(--ink);font:700 18px/1 var(--serif);text-decoration:none}
 .iai .iai-back:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
 .iai:has(#hud.on) .iai-back{display:none}
+
+/* ---------- Game Room: co-op screens (components/iai/Screens.tsx) ---------- */
+.iai .iai-screen{position:fixed;inset:0;z-index:2;display:flex;align-items:center;background:linear-gradient(90deg,rgba(235,227,207,.95) 0%,rgba(235,227,207,.86) 38%,rgba(235,227,207,0) 68%)}
+.iai .iai-card{padding:0 clamp(20px,6vw,90px);max-width:560px;display:flex;flex-direction:column;gap:14px}
+.iai .iai-card .logo{margin:0}
+.iai .iai-card .tag{margin:0}
+.iai .iai-field{height:48px;min-width:0;flex:1 1 12rem;max-width:20rem;padding:0 14px;border:1.5px solid var(--ink);border-radius:4px;background:rgba(255,255,255,.6);color:var(--ink);font:500 18px var(--serif)}
+.iai .iai-field[aria-invalid="true"]{border-color:var(--seal)}
+.iai .iai-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.iai .iai-note{margin:0;font-size:16px;color:var(--ink-2)}
+.iai .iai-note a,.iai .iai-link{padding:0;border:0;background:none;color:var(--ink);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.iai .iai-error{color:var(--seal);font-weight:700}
+.iai .ghost:disabled{opacity:.55;cursor:not-allowed}
+.iai .iai-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1.5px solid rgba(12,13,28,.8);border-bottom:1.5px solid rgba(12,13,28,.8);text-align:center}
+.iai .iai-results div{padding:10px 4px}
+.iai .iai-results div+div{border-left:1px solid rgba(12,13,28,.2)}
+.iai .iai-results b{display:block;font-family:var(--brush);font-weight:400;font-size:26px;line-height:1.2}
+.iai .iai-results span{font-size:14px;color:var(--ink-2)}
+.iai .iai-invite{max-width:26rem}
+.iai .iai-getready{position:fixed;inset:0;z-index:2;display:grid;place-items:center;pointer-events:none;font-family:var(--brush);font-size:clamp(44px,9vw,104px);color:var(--ink);text-shadow:0 0 18px rgba(235,227,207,.95)}
+@media (max-width:700px), (max-aspect-ratio: 1/1){
+  .iai .iai-screen{align-items:flex-start;padding-top:max(64px,env(safe-area-inset-top));background:linear-gradient(180deg,rgba(235,227,207,.96) 0%,rgba(235,227,207,.9) 62%,rgba(235,227,207,0) 88%)}
+}
+
+/* ---------- Game Room: solo -> co-op ---------- */
+.iai .iai-together{position:fixed;z-index:3;right:max(68px,calc(env(safe-area-inset-right) + 68px));top:max(14px,env(safe-area-inset-top));display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1.5px solid var(--ink);border-radius:20px;background:rgba(235,227,207,.8);color:var(--ink);font:700 14px/1 var(--serif);letter-spacing:.14em;text-transform:uppercase;text-decoration:none}
+.iai .iai-together span{font-size:12px}
+.iai .iai-together:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
+.iai:has(#hud.on) .iai-together{display:none}

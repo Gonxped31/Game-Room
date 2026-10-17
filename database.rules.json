@@ -10,8 +10,8 @@
         "meta": {
           ".write": "auth != null && !data.exists() && $room.matches(/^[a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9]$/)",
           ".validate": "newData.hasChildren(['gameSlug', 'maxPlayers', 'createdAt', 'createdBy'])",
-          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel' || newData.val() == 'nighthighway'" },
-          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel' && newData.parent().child('gameSlug').val() != 'nighthighway') || newData.val() == 2)" },
+          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel' || newData.val() == 'nighthighway' || newData.val() == 'iai'" },
+          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel' && newData.parent().child('gameSlug').val() != 'nighthighway' && newData.parent().child('gameSlug').val() != 'iai') || newData.val() == 2)" },
           "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
           "createdBy": { ".validate": "newData.val() == auth.uid" },
           "name": {
@@ -308,6 +308,41 @@
             "v": { ".validate": "newData.isNumber()" },
             "score": { ".validate": "newData.isNumber()" },
             "paint": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "iai": {
+          ".write": "auth != null && newData.parent().child('meta/gameSlug').val() == 'iai' && (newData.parent().child('members/' + auth.uid).exists() || (!data.parent().child('meta').exists() && newData.parent().child('meta/createdBy').val() == auth.uid))",
+          ".validate": "newData.hasChildren(['phase', 'run', 'best'])",
+          "phase": { ".validate": "newData.val() == 'LOBBY' || newData.val() == 'RUNNING' || newData.val() == 'DONE'" },
+          "run": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "ready": {
+            "p1": { ".validate": "newData.val() == true" },
+            "p2": { ".validate": "newData.val() == true" },
+            "$other": { ".validate": false }
+          },
+          "startAt": { ".validate": "newData.isNumber()" },
+          "result": {
+            ".validate": "newData.hasChildren(['score', 'survived', 'kills', 'oni', 'combo', 'perfect'])",
+            "score": { ".validate": "newData.isNumber()" },
+            "survived": { ".validate": "newData.isNumber()" },
+            "kills": { ".validate": "newData.isNumber()" },
+            "oni": { ".validate": "newData.isNumber()" },
+            "combo": { ".validate": "newData.isNumber()" },
+            "perfect": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          },
+          "best": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        },
+
+        "iaiLive": {
+          "$seat": {
+            ".write": "auth != null && root.child('games/' + $room + '/meta/gameSlug').val() == 'iai' && root.child('games/' + $room + '/members/' + auth.uid).val() == $seat",
+            ".validate": "newData.hasChildren(['run', 'd'])",
+            "run": { ".validate": "newData.isNumber()" },
+            "d": { ".validate": "newData.isString() && newData.val().length <= 30000" },
             "$other": { ".validate": false }
           }
         },

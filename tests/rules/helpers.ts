@@ -58,6 +58,10 @@ export function nighthighwayState(overrides: Record<string, unknown> = {}) {
   return { phase: "LOBBY", race: 0, wins: { p1: 0, p2: 0 }, ...overrides };
 }
 
+export function iaiState(overrides: Record<string, unknown> = {}) {
+  return { phase: "LOBBY", run: 0, best: 0, ...overrides };
+}
+
 export function cocounselState(overrides: Record<string, unknown> = {}) {
   return { caseId: "ruined-birthday", partIndex: 0, attempts: 0, phase: "SELECTING", ...overrides };
 }
@@ -74,7 +78,7 @@ export async function seedRoom(
   const { creator, seated = [], gameSlug = "ftw", maxPlayers = 2, room = ROOM, presence = {} } = opts;
   const data: Record<string, unknown> = {
     [`games/${room}/meta`]: { ...metaFor(creator, gameSlug, maxPlayers), createdAt: Date.now() - 1000 },
-    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : gameSlug === "nighthighway" ? nighthighwayState() : ftwState(),
+    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : gameSlug === "nighthighway" ? nighthighwayState() : gameSlug === "iai" ? iaiState() : ftwState(),
   };
   seated.forEach((uid, i) => {
     data[`games/${room}/seats/p${i + 1}`] = uid;
