@@ -27,6 +27,7 @@ import { TrafficSim } from '@/lib/games/nighthighway/traffic';
 import { COUNTDOWN_SECONDS, COUNTDOWN_SPEED, LIVE_INTERVAL_MS, RUN_SECONDS } from '@/lib/games/nighthighway/constants';
 import { COMBO_SECONDS, DEFAULT_OPTIONS, MAX_COMBO, NEAR_MISS_GAP, NEAR_MISS_MIN_SPEED, nearMissPoints } from '@/lib/games/nighthighway/game';
 import { NITRO_REFILL, PHASE_SECONDS, pickupsBetween, reaches } from '@/lib/games/nighthighway/pickups';
+import { inSand, SAND_DRAG, sandBetween, sandSpan } from '@/lib/games/nighthighway/sand';
 import { BEND_EXAGGERATION, BEND_SAMPLES, BEND_START, BEND_STEP, bendAt, CENTRIFUGAL, curvatureAt, fillBendTable, fillHillTable } from '@/lib/games/nighthighway/road';
 
 const DEAD_ENGINE = { startSolo() {}, startRace() {}, stopRace() {}, setOpponent() {}, setOptions() {}, trafficChecksum() { return ''; }, raceTrafficChecksum() { return ''; }, destroy() {} };
@@ -2358,7 +2359,7 @@ function updateDust(dt, pv) {
   if (G.state === 'drive' || G.state === 'countdown' || G.state === 'title' || G.state === 'end') {
     // The player's rear wheels: more dust the faster, the more sideways, and on nitro.
     const speedK = clamp(player.v / 60, 0, 1.4);
-    dustAcc += dt * speedK * (40 + 90 * clamp(Math.abs(player.vx) / 8, 0, 1) + 40 * player.flame);
+    dustAcc += dt * speedK * (40 + 90 * clamp(Math.abs(player.vx) / 8, 0, 1) + 40 * player.flame + (player.inSand ? 200 : 0));
     while (dustAcc >= 1) {
       dustAcc -= 1;
       kickDust(player.x + (Math.random() < 0.5 ? -0.86 : 0.86), 1.6, 1.8, 0.75, pv);
@@ -2528,6 +2529,7 @@ const raining = () => shownOptions().rain;
 let previewOptions = { ...DEFAULT_OPTIONS };
 function resetPickups(seed) {
   pickupSeed = seed >>> 0;
+  sandSeed = (seed ^ 0x27d4eb2f) >>> 0; // Game Room: the desert's deep sand comes from the same seed (mixed)
   collected = new Set();
   player.phaseT = 0;
   player.shield = false;
@@ -2570,6 +2572,66 @@ function updatePickups(dt) {
   setCarFaded(player.phaseT > 0);
   // Game Room: no neon under the desert's truck - just a faint warm glow, unless a shield is up.
   underglowMat.uniforms.uColor.value.copy(player.shield ? PICKUP_LOOK.shield.color : circuit === 'desert' ? UNDERGLOW_DESERT : UNDERGLOW).multiplyScalar(player.shield ? 0.35 : 1);
+}
+// ---------- Game Room: deep sand (the desert) ----------
+// Soft, rippled patches across one or two lanes, laid out from the run's seed
+// (lib/games/nighthighway/sand.ts) so both racers meet the same ones. They
+// drag the car back and make it slide (drive()), and kick up a plume.
+function deepSandTexture() {
+  const W = 128, H = 256, c = makeCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#e2b47a'; g.fillRect(0, 0, W, H);
+  // Wind ripples running across the road: a lit crest and a shadowed trough each.
+  for (let y = 0; y < H; y += 7) {
+    g.strokeStyle = `rgba(${y % 14 ? '150,96,56' : '255,226,180'},${rand(0.45, 0.75).toFixed(2)})`;
+    g.lineWidth = rand(2, 3.5);
+    g.beginPath();
+    for (let x = 0; x <= W; x += 8) g.lineTo(x, y + Math.sin(x * 0.09 + y * 0.3) * 2.5);
+    g.stroke();
+  }
+  return toTex(c, { repeat: true, aniso: true });
+}
+const SAND_POOL = 8;
+const sandPatchMat = new THREE.MeshStandardMaterial({
+  // Opaque: faded in at soft edges, it vanished against the dirt. The drift's mound shape softens its edges instead.
+  color: hdr(1.3, 1.12, 0.92), map: deepSandTexture(), roughness: 1, metalness: 0,
+  polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+});
+sandPatchMat.map.repeat.set(2, 6);
+const sandGroup = new THREE.Group();
+const sandMeshes = [];
+for (let i = 0; i < SAND_POOL; i++) {
+  // A low drift, highest in the middle (so the light shows its shape), with rows close enough to follow the hills.
+  const g = new THREE.PlaneGeometry(1, 1, 6, 8).rotateX(-Math.PI / 2);
+  const pos = g.attributes.position;
+  for (let k = 0; k < pos.count; k++) pos.setY(k, 0.04 + 0.16 * Math.cos(pos.getX(k) * Math.PI) * Math.cos(pos.getZ(k) * Math.PI));
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, sandPatchMat);
+  m.visible = false;
+  sandGroup.add(m);
+  sandMeshes.push(m);
+}
+scene.add(sandGroup);
+desertObjs.push(sandGroup);
+let sandSeed = 0;
+function updateSand(dt) {
+  let used = 0;
+  player.inSand = false;
+  if (circuit === 'desert' && (G.state === 'countdown' || G.state === 'drive')) {
+    const d = dist - pickupBase;
+    for (const p of sandBetween(sandSeed, d - 60, d + 800)) {
+      const m = sandMeshes[used++];
+      if (!m) break;
+      const { left, right } = sandSpan(p);
+      m.visible = true;
+      // Wider and longer than the patch itself: the soft edges fade out over the extra.
+      m.scale.set(right - left + 1.6, 1, p.length + 6);
+      m.position.set((left + right) / 2, 0, d - (p.s + p.length / 2));
+    }
+    player.inSand = G.state === 'drive' && inSand(sandSeed, d, player.x);
+  }
+  for (let i = used; i < SAND_POOL; i++) sandMeshes[i].visible = false;
+  // The sand drifts slowly across the road.
+  sandPatchMat.map.offset.x = (sandPatchMat.map.offset.x + dt * 0.04) % 1;
 }
 const keys = { up: false, down: false, left: false, right: false, boost: false };
 const CAMS = [
@@ -2767,6 +2829,7 @@ function drive(dt) {
   if (down) a -= wet ? 21 : 32;
   a -= 0.6 + 0.00042 * player.v * player.v;
   if (player.crashT > 0) a -= 6;
+  if (player.inSand) a -= SAND_DRAG * player.v * player.v; // Game Room: deep sand drags the car back
   player.v = clamp(player.v + a * dt, 0, 110);
   player.throttle = damp(player.throttle, up || player.boosting ? 1 : 0, 10, dt);
   player.braking = down ? 1 : 0;
@@ -2775,7 +2838,7 @@ function drive(dt) {
   // Game Room: on a wet road, sideways speed settles slowly - the car slides.
   // The desert's loose dirt does the same, more mildly (and more so when wet).
   const dirt = circuit === 'desert';
-  player.vx = damp(player.vx, steerIn * latMax * (wet ? 0.85 : 1), wet ? (dirt ? 1.6 : 2.0) : dirt ? 3.2 : 7, dt);
+  player.vx = damp(player.vx, steerIn * latMax * (wet ? 0.85 : 1), wet ? (dirt ? 1.6 : 2.0) : player.inSand ? 2.0 : dirt ? 3.2 : 7, dt);
   player.x += player.vx * dt;
   // Game Room: a bend pushes the car toward its outside, harder the faster you go (and on dirt).
   player.x -= curvatureAt(roadSeed, dist) * player.v * player.v * CENTRIFUGAL * (wet ? 1.5 : 1) * (dirt ? 1.2 : 1) * dt;
@@ -3270,6 +3333,7 @@ function update(dt) {
   if (circuit === 'desert') fillHillTable(roadSeed, dist, BEND.nhHill.value);
   updateGhost(dt, rt);
   updatePickups(dt);
+  updateSand(dt);
   updateWorld(dt);
   writeTraffic();
   updateCarVisual(dt, steerIn);
@@ -3509,6 +3573,8 @@ if (options.exposeForTests) {
     // ...and the same-direction traffic in sight (a jeep has an even id, a pickup an odd one, in the desert).
     traffic() { return vehicles.filter((v) => v.dir > 0 && v.z !== HIDDEN_Z).map((v) => ({ kind: v.kind, id: v.id, x: v.x, z: v.z, v: v.v })); },
     hill(ahead) { return bendAt(BEND.nhHill.value, ahead); },
+    // ...whether the car is in deep sand, and the patches ahead (s and x relative to the run).
+    sand() { const d = dist - pickupBase; return { inSand: !!player.inSand, at: d, shown: sandMeshes.filter((m) => m.visible).map((m) => [+m.position.x.toFixed(1), +m.position.z.toFixed(1), +m.scale.x.toFixed(1), +m.scale.z.toFixed(1)]), group: sandGroup.visible, patches: sandBetween(sandSeed, d, d + 1500).map((p) => ({ ...p, ...sandSpan(p) })) }; },
   });
 }
 // Game Room: curves - bend every built-in material (and the motion-blur mask's),

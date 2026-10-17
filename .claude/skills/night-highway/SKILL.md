@@ -49,6 +49,7 @@ single-file game (visuals, controls, physics, scoring).
   `app/nighthighway/layout.tsx` (title, dark theme colour).
 - `lib/games/nighthighway/`:
   - `traffic.ts` - `TrafficSim`, the same-direction traffic (see below).
+  - `sand.ts` - the desert's deep sand layout (see the desert circuit).
   - `game.ts` - the race state machine, plus the scoring rules the engine uses
     (`nearMissPoints`, `MAX_COMBO`, `COMBO_SECONDS`, `NEAR_MISS_*`).
   - `live.ts` - `LiveCar` and `GhostTrack` (interpolating the other car).
@@ -204,6 +205,13 @@ single-file game (visuals, controls, physics, scoring).
   - Bumpy ride: `dirtBump(s)` (washboard, rolling, the odd stone; a picture only)
     moves the truck's wheels exactly and its body softly, and jolts the camera,
     which also rumbles with speed.
+  - Deep sand (`sand.ts`): drifts of soft sand across one or two lanes, 18-40 m
+    long, never on the start and always leaving a lane free; laid out from the
+    run's seed (mixed from the pickups', integer-op randomness only), so both
+    racers meet the same ones. In one, the car slows by `SAND_DRAG * v²` - a
+    quarter of its speed across an average drift, at any speed - slides like in
+    rain, and throws a plume. Drawn opaque (`sandPatchMat`): faded in at soft
+    edges, they vanished against the dirt. Test hook: `sand()`.
   - Dust (`updateDust`): puffs from the player's wheels (more when sliding or on
     nitro), the traffic and the ghost. Each starts with its vehicle's speed
     (`carry`) and slows, or it would vanish behind the camera at once.
