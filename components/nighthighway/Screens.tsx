@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import type { Role } from "@/lib/session/types";
-import type { GameState, RunResult } from "@/lib/games/nighthighway/game";
+import type { GameState, RaceOptions, RunResult } from "@/lib/games/nighthighway/game";
 
 /**
  * The race page's own screens, drawn over the road in the original title
@@ -169,6 +169,7 @@ export function Lobby({
   names,
   otherOnline,
   onReady,
+  onOptions,
   footer,
 }: {
   game: GameState;
@@ -177,6 +178,8 @@ export function Lobby({
   names: Partial<Record<Role, string>>;
   otherOnline: boolean;
   onReady: (ready: boolean) => void;
+  /** Flips a switch for the next race (either player can; it takes back both Readys). */
+  onOptions: (change: Partial<RaceOptions>) => void;
   footer: ReactNode;
 }) {
   const myName = names[me] ?? "You";
@@ -222,6 +225,18 @@ export function Lobby({
       ) : (
         <p className="lede">Same road, same traffic, same 60 seconds. Weave through it, chain near misses, and outscore {otherName}.</p>
       )}
+      <div className="row nh-options" role="group" aria-label="Next race">
+        {(
+          [
+            ["pickups", "Pickups"],
+            ["rain", "Rain"],
+          ] as const
+        ).map(([key, label]) => (
+          <button key={key} type="button" role="switch" aria-checked={game.options[key]} className="nh-switch" onClick={() => onOptions({ [key]: !game.options[key] })}>
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="row">
         <button className="cta" type="button" onClick={() => onReady(!iAmReady)} aria-pressed={iAmReady}>
           {iAmReady ? "Not ready" : last ? "Race again" : "Ready"}

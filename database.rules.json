@@ -245,6 +245,11 @@
           },
           "seed": { ".validate": "newData.isNumber()" },
           "startAt": { ".validate": "newData.isNumber()" },
+          "options": {
+            "rain": { ".validate": "newData.isBoolean()" },
+            "pickups": { ".validate": "newData.isBoolean()" },
+            "$other": { ".validate": false }
+          },
           "results": {
             "p1": {
               ".validate": "newData.hasChildren(['score', 'distance', 'top', 'avg', 'nearMiss', 'overtakes', 'crashes'])",

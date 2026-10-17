@@ -1,6 +1,6 @@
 ---
 name: night-highway
-description: Reference for working on Night Highway, the 3D night-freeway racing game - its engine port (three.js r128), the deterministic shared traffic, the race state machine and server-clock timing, the live ghost car channel, solo mode, and gotchas. Use whenever changing or debugging anything under lib/games/nighthighway/, components/nighthighway/ or app/nighthighway/, or answering questions about how Night Highway plays.
+description: Reference for working on Night Highway, the 3D night-freeway racing game - its engine port (three.js r128), the deterministic shared traffic, the race state machine and server-clock timing, the live ghost car channel, curves, pickups, rain and the race options, solo mode, and gotchas. Use whenever changing or debugging anything under lib/games/nighthighway/, components/nighthighway/ or app/nighthighway/, or answering questions about how Night Highway plays.
 ---
 
 # Night Highway
@@ -12,6 +12,8 @@ near misses for points (combo up to ×9), and see how far one minute takes you.
   score wins; the room keeps a series tally.
 - **Solo** (`/nighthighway/solo`): the original single-player game, no room. Best
   score per device (localStorage `night-highway:best`).
+- **Always on**: curves. **Options** (switches before a race; in solo, on the title
+  card, remembered per device): **Pickups** (on by default) and **Rain** (off).
 
 **Source of truth**: `references/night-highway/Night Highway.html`, the original
 single-file game (visuals, controls, physics, scoring).
@@ -49,6 +51,8 @@ single-file game (visuals, controls, physics, scoring).
   - `game.ts` - the race state machine, plus the scoring rules the engine uses
     (`nearMissPoints`, `MAX_COMBO`, `COMBO_SECONDS`, `NEAR_MISS_*`).
   - `live.ts` - `LiveCar` and `GhostTrack` (interpolating the other car).
+  - `pickups.ts` - the pickup layout and constants (see below).
+  - `road.ts` - the curves (see below).
   - `useRace.ts` - `useServerClock`, `useLiveCars`, `useTicker`.
   - `constants.ts` - `RUN_SECONDS` (60), `COUNTDOWN_SECONDS` (3),
     `COUNTDOWN_SPEED`, `RACE_START_DELAY_MS`, `RESULT_GRACE_MS`,
@@ -107,6 +111,64 @@ single-file game (visuals, controls, physics, scoring).
   with a fresh score. The engine never restarts a race number it finished.
 - No pause/restart in a race (the clock is shared).
 
+## Options (`GameState.options`)
+
+- `{ rain, pickups }`, defaults `DEFAULT_OPTIONS` (pickups on, rain off).
+  `normalizeGame` fills them in for a room made before they existed.
+- `setOptions(game, change)` - either player, in the lobby only (refused mid-race),
+  and it **clears both Readys** so nobody races with switches they didn't see.
+- A race passes them to the engine in `startRace` (`race.options`); between races
+  the page previews them with `engine.setOptions` (rain falls in the lobby). Solo
+  keeps its own, in localStorage `night-highway:options`, flipped by the title
+  card's switches (`#optPickups`/`#optRain`, wired by the engine).
+
+## Pickups (`pickups.ts`)
+
+- Three kinds: **nitro** (+50% nitro), **phase** (5 s see-through: drive through
+  traffic, the combo can't break or time out), **shield** (absorbs the next crash:
+  it breaks into 0.8 s of phasing, so no speed or combo is lost).
+- Laid out from the run's seed in 220 m segments (1-2 per segment, never two in
+  one lane, none before 160 m), so both racers meet the same ones. Each collects
+  in their own world. Integer-op randomness only, like the traffic.
+- Driving *through* a car while phasing is not a near miss (overlap gap < 0).
+- Solo runs lay pickups out from where the run starts (`pickupBase`), since the
+  car's road position doesn't reset in solo.
+- The engine fades the player's car while phasing, so **the ghost car has its own
+  copies of every material** (it used to share them, so it would fade too).
+
+## Curves (`road.ts`) - always on
+
+- **The game stays a straight road**: traffic, pickups, collisions and the race
+  sync all live in road coordinates. The curves are drawn by **bending the world
+  sideways in the vertex shaders** by distance ahead (like OutRun), from a table
+  (`nhBend`, 34 samples from -96 m to 1488 m) refilled every frame by
+  `fillBendTable`.
+  - Built-in materials get the bend in `onBeforeCompile` (`bendMaterial`, applied
+    to everything in the scene just before boot, plus the motion-blur mask). The
+    custom shaders (glow, buildings) include `BEND_GLSL` themselves. Sprites
+    don't go through it (the ghost's name label is offset by hand).
+  - Long road pieces (road, walkways, barriers, ground) are subdivided along their
+    length so they can bend. Culling is off, since objects draw away from where
+    three thinks they are.
+  - The drawn bend is exaggerated (`BEND_EXAGGERATION`, ×3): at true scale it
+    flattens into the horizon.
+- **Bends push the car outward**: lateral speed = curvature × speed² ×
+  `CENTRIFUGAL`, so you steer into them. Uses the real curvature, not the
+  exaggerated picture.
+- A race's curves come from its seed; solo and the title screen roll their own.
+- New materials added later must go through `bendMaterial` (or include
+  `BEND_GLSL`), or they won't follow the road.
+
+## Rain (an option)
+
+- **Driving**: sideways speed settles slowly (the car slides after you let go of
+  the steering), steering builds up more slowly, braking is weaker (21 vs 32
+  m/s²), and bends push 1.5× harder.
+- **Look and sound**: falling rain as instanced thin quads (WebGL lines are always
+  1 px and vanish at low resolution and under the motion blur), denser fog, a
+  shinier road and longer reflections, and a hiss. It eases in and out
+  (`rainK`).
+
 ## The live ghost car (`live.ts`)
 
 - Each racer `set()`s its car to `games/{room}/nighthighwayCars/{seat}` every
@@ -127,11 +189,16 @@ single-file game (visuals, controls, physics, scoring).
 
 ## Verifying a change
 
-- `npm test` (traffic, state machine, ghost interpolation), and `npm run
-  test:rules` for shape changes.
+- `npm test` (traffic, state machine, ghost interpolation, pickups, curves), and
+  `npm run test:rules` for shape changes.
+- **Test hooks** on `window.NightHighway` (the stage sets `exposeForTests`):
+  `jump(m)` skips down the road, `curvature()` / `bend(ahead)` read the curve,
+  `rain()` the rain state, plus `G`, `player`, `keys` and `raceTrafficChecksum`.
 - **The live race check**: `node .claude/skills/live-test/scripts/night-highway-race.mjs`
   (`live-test` skill) - a full race, desktop vs iPhone, about 1.5 minutes.
 - Screens: `ui-review` skill. Give the road time to draw (`--wait=9000`):
-  headless WebGL is slow. Playwright's WebKit on Windows renders variable-font
+  headless WebGL is slow. **Playwright's WebKit on Windows draws WebGL only some
+  of the time** (a black road, with frames running and no errors). The original
+  reference HTML does the same there, so judge the road in Chromium. Playwright's WebKit on Windows renders variable-font
   weights hairline-thin; judge weight on Chromium or a real phone.
 - A real iPhone is still owed a look (see `docs/follow-ups.md`).

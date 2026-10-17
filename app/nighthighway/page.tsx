@@ -10,7 +10,7 @@ import Stage from "@/components/nighthighway/Stage";
 import type { Engine } from "@/components/nighthighway/engine/engine";
 import { GetReady, Lobby, Message, NameEntry, RoomLinks, WaitingForDriver, WaitingForResult } from "@/components/nighthighway/Screens";
 import { GAME_TITLE, START_LANE } from "@/lib/games/nighthighway/constants";
-import { type GameState, giveUpOnMissingResults, newGame, normalizeGame, resultsOverdue, setReady, submitResult } from "@/lib/games/nighthighway/game";
+import { type GameState, giveUpOnMissingResults, newGame, normalizeGame, type RaceOptions, resultsOverdue, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
 import { useLiveCars, useServerClock, useTicker } from "@/lib/games/nighthighway/useRace";
 
 export default function NightHighwayPage() {
@@ -29,6 +29,9 @@ export default function NightHighwayPage() {
   const seed = game?.seed;
   const startAt = game?.startAt;
   const myResult = me && game ? game.results[me] : undefined;
+  // The race's switches, as plain values so the effect below re-runs only when they change.
+  const rain = game?.options.rain ?? false;
+  const pickups = game?.options.pickups ?? true;
   // Ticks through a race (for "Get ready" before the countdown, and the overdue check after it).
   const now = useTicker(racing, serverNow);
   const beforeStart = racing && startAt !== undefined && now !== null && now < startAt;
@@ -45,11 +48,17 @@ export default function NightHighwayPage() {
       seed,
       startAt,
       lane: START_LANE[me],
+      options: { rain, pickups },
       serverNow,
       onLive: send,
       onFinish: (result) => transact((current) => submitResult(current, me, result)),
     });
-  }, [engine, me, racing, race, seed, startAt, myResult, serverNow, send, transact]);
+  }, [engine, me, racing, race, seed, startAt, myResult, rain, pickups, serverNow, send, transact]);
+
+  // Between races the road previews the next race's switches (rain falls in the lobby).
+  useEffect(() => {
+    engine?.setOptions({ rain, pickups });
+  }, [engine, rain, pickups]);
 
   // The room left the race (e.g. "New room"): stop driving it.
   useEffect(() => {
@@ -112,6 +121,7 @@ export default function NightHighwayPage() {
         names={names}
         otherOnline={Boolean(online[other])}
         onReady={handleReady}
+        onOptions={(change: Partial<RaceOptions>) => transact((current) => setOptions(current, change))}
         footer={<RoomLinks room={room} roomName={roomName} onNewRoom={newRoom} />}
       />
     );

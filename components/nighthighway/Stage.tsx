@@ -86,6 +86,7 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
           <span className="sub">
             <span id="dist">0.00</span> km · <span id="nm">0</span> near misses
           </span>
+          <span className="sub power" id="power" aria-live="polite" />
           {mode === "race" ? <span className="sub opp" id="opp" aria-live="off" /> : null}
         </div>
         <div className="hint" id="hint">
@@ -134,6 +135,15 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
                   Drive <kbd>Enter</kbd>
                 </button>
                 <span className="note" id="bestLine" />
+              </div>
+              <div className="row nh-options" aria-label="Options">
+                {/* The engine wires these and remembers them on this device. */}
+                <button type="button" role="switch" aria-checked="true" className="nh-switch" id="optPickups">
+                  Pickups
+                </button>
+                <button type="button" role="switch" aria-checked="false" className="nh-switch" id="optRain">
+                  Rain
+                </button>
               </div>
               <dl className="keys">
                 {[

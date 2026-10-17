@@ -32,6 +32,16 @@ export interface RunResult {
 
 export type Winner = Role | "tie";
 
+/** Switches the players choose before a race. Curves are always on; these aren't. */
+export interface RaceOptions {
+  /** Wet road: less grip, so the car slides. */
+  rain: boolean;
+  /** Nitro, phase and shield pickups on the road (see ./pickups.ts). */
+  pickups: boolean;
+}
+
+export const DEFAULT_OPTIONS: RaceOptions = { rain: false, pickups: true };
+
 export interface RaceRecord {
   race: number;
   /** A seat with no score didn't finish (its device left mid-race). */
@@ -53,12 +63,14 @@ export interface GameState extends WithIdentity {
   results: Partial<Record<Role, RunResult>>;
   wins: Record<Role, number>;
   history: RaceRecord[];
+  /** The next race's switches; fixed for a race once it starts (they can't change mid-race). */
+  options: RaceOptions;
 }
 
 const ROLES: Role[] = ["p1", "p2"];
 
 export function newGame(): GameState {
-  return { phase: "LOBBY", race: 0, ready: {}, results: {}, wins: { p1: 0, p2: 0 }, history: [], names: {} };
+  return { phase: "LOBBY", race: 0, ready: {}, results: {}, wins: { p1: 0, p2: 0 }, history: [], options: { ...DEFAULT_OPTIONS }, names: {} };
 }
 
 /**
@@ -74,7 +86,21 @@ export function normalizeGame(game: GameState): GameState {
     results: game.results ?? {},
     wins: { p1: game.wins?.p1 ?? 0, p2: game.wins?.p2 ?? 0 },
     history: game.history ?? [],
+    // A room made before the options existed has none.
+    options: { rain: game.options?.rain ?? DEFAULT_OPTIONS.rain, pickups: game.options?.pickups ?? DEFAULT_OPTIONS.pickups },
   };
+}
+
+/**
+ * Changes the next race's switches. Not mid-race, and it takes back both
+ * players' Ready, so nobody starts a race with settings they didn't see.
+ */
+export function setOptions(rawGame: GameState, change: Partial<RaceOptions>): GameState {
+  const game = normalizeGame(rawGame);
+  if (game.phase === "RACING") throw new Error("The options can't change mid-race.");
+  const options: RaceOptions = { rain: change.rain ?? game.options.rain, pickups: change.pickups ?? game.options.pickups };
+  if (options.rain === game.options.rain && options.pickups === game.options.pickups) throw new Error("Nothing changed.");
+  return { ...game, options, ready: {} };
 }
 
 /** When a race's driving ends, on the server's clock. */

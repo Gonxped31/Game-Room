@@ -10,7 +10,7 @@ import { lockIn as ftwLockIn, newGame as newFtwGame, nextRound, setPlaced, setPr
 import { customRound, randomRound } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
 import { CASES, getCase } from "@/lib/games/cocounsel/cases";
-import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setReady, submitResult } from "@/lib/games/nighthighway/game";
+import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
 import { cocounselState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
@@ -135,6 +135,8 @@ describe("Night Highway", () => {
     const write = <T,>(state: T) => writeAndReadBack(db, path, state);
     const now = Date.now();
     let game = await write(newNhGame());
+    game = await write(setOptions(game, { rain: true }));
+    game = await write(setOptions(game, { pickups: false }));
     game = await write(setReady(game, "p1", true, now, 11));
     game = await write(setReady(game, "p1", false, now, 11));
     game = await write(setReady(game, "p2", true, now, 11));
@@ -159,6 +161,8 @@ describe("Night Highway", () => {
     ["a result with an extra field", nighthighwayState({ results: { p1: { ...run(1), lapTime: 3 } } })],
     ["a bad winner", nighthighwayState({ history: [{ race: 1, scores: { p1: 1 }, winner: "p3" }] })],
     ["an unknown key", nighthighwayState({ cheats: true })],
+    ["a string option", nighthighwayState({ options: { rain: "yes", pickups: true } })],
+    ["an unknown option", nighthighwayState({ options: { rain: false, pickups: true, turbo: true } })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
   });

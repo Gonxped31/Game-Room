@@ -12,12 +12,23 @@
 //   goes out through onLive ten times a second, and the other racer shows up
 //   as a ghost car (setOpponent).
 // - No pausing or restarting mid-race, since the clock is shared.
+// - Pickups (nitro, phase, shield) and the rain/pickups options; see
+//   lib/games/nighthighway/pickups.ts.
+// - Rain (an option): less grip so the car slides, longer braking, harder
+//   bends; falling rain, a wetter-looking road and a hiss.
+// - Curves: the world is bent sideways in the vertex shaders (the game itself
+//   stays a straight road), and bends push the car outward; see
+//   lib/games/nighthighway/road.ts.
 import * as THREE from 'three';
 import { TrafficSim } from '@/lib/games/nighthighway/traffic';
 import { COUNTDOWN_SECONDS, COUNTDOWN_SPEED, LIVE_INTERVAL_MS, RUN_SECONDS } from '@/lib/games/nighthighway/constants';
-import { COMBO_SECONDS, MAX_COMBO, NEAR_MISS_GAP, NEAR_MISS_MIN_SPEED, nearMissPoints } from '@/lib/games/nighthighway/game';
+import { COMBO_SECONDS, DEFAULT_OPTIONS, MAX_COMBO, NEAR_MISS_GAP, NEAR_MISS_MIN_SPEED, nearMissPoints } from '@/lib/games/nighthighway/game';
+import { NITRO_REFILL, PHASE_SECONDS, pickupsBetween, reaches } from '@/lib/games/nighthighway/pickups';
+import { BEND_EXAGGERATION, BEND_SAMPLES, BEND_START, BEND_STEP, bendAt, CENTRIFUGAL, curvatureAt, fillBendTable } from '@/lib/games/nighthighway/road';
 
-const DEAD_ENGINE = { startSolo() {}, startRace() {}, stopRace() {}, setOpponent() {}, trafficChecksum() { return ''; }, raceTrafficChecksum() { return ''; }, destroy() {} };
+const DEAD_ENGINE = { startSolo() {}, startRace() {}, stopRace() {}, setOpponent() {}, setOptions() {}, trafficChecksum() { return ''; }, raceTrafficChecksum() { return ''; }, destroy() {} };
+// Game Room: how long a broken shield lets the car pass through the car it hit (s).
+const SHIELD_BREAK_SECONDS = 0.8;
 
 export function createEngine(root, options = {}) {
 const $ = (id) => root.querySelector('#' + id);
@@ -72,6 +83,40 @@ const HDR = hdrType === THREE.HalfFloatType;
 const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
+
+// ---------- Game Room: curves ----------
+// Every vertex is pushed sideways by how far the road has bent at its
+// distance ahead (a table refilled every frame from road.ts). The car sits
+// at z = 0 and the road runs toward -z, so "ahead" is -z.
+const BEND = { nhBend: { value: new Float32Array(BEND_SAMPLES) } };
+const BEND_GLSL = `
+uniform float nhBend[${BEND_SAMPLES}];
+float nhBendX(float z) {
+  float f = clamp((-z - (${BEND_START.toFixed(1)})) / ${BEND_STEP.toFixed(1)}, 0.0, ${(BEND_SAMPLES - 1.001).toFixed(3)});
+  int i = int(f);
+  return mix(nhBend[i], nhBend[i + 1], f - float(i));
+}
+`;
+// three's project_vertex chunk, with the bend applied in world space.
+const BEND_PROJECT = `
+vec4 mvPosition = vec4( transformed, 1.0 );
+#ifdef USE_INSTANCING
+  mvPosition = instanceMatrix * mvPosition;
+#endif
+mvPosition = modelMatrix * mvPosition;
+mvPosition.x += nhBendX( mvPosition.z );
+mvPosition = viewMatrix * mvPosition;
+gl_Position = projectionMatrix * mvPosition;
+`;
+// Built-in materials get the bend as they compile (custom shaders below include it themselves).
+function bendMaterial(m) {
+  if (!m || m.isShaderMaterial) return;
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.nhBend = BEND.nhBend;
+    shader.vertexShader = BEND_GLSL + shader.vertexShader.replace('#include <project_vertex>', BEND_PROJECT);
+  };
+}
+let roadSeed = (Math.random() * 4294967296) >>> 0;
 const camera = new THREE.PerspectiveCamera(58, 1, 0.3, 4200);
 
 // ---------- post-processing: HDR scene -> bloom + anamorphic flare -> radial motion blur, grade ----------
@@ -760,7 +805,7 @@ function buildEnvMap() {
 const envMap = buildEnvMap();
 
 // additive light decals (pools, wet-road reflections) fade to black in the haze instead of to fog colour
-const GLOW_VS = `
+const GLOW_VS = BEND_GLSL + `
   varying vec2 vUv; varying float vDepth; varying vec3 vTint;
   void main() {
     vUv = uv;
@@ -772,7 +817,9 @@ const GLOW_VS = `
     #ifdef USE_INSTANCING
       p = instanceMatrix * p;
     #endif
-    vec4 mv = modelViewMatrix * p;
+    vec4 w = modelMatrix * p;
+    w.x += nhBendX(w.z);
+    vec4 mv = viewMatrix * w;
     vDepth = -mv.z;
     gl_Position = projectionMatrix * mv;
   }`;
@@ -785,7 +832,7 @@ const GLOW_FS = `
   }`;
 function makeGlowMaterial(map, color, fogScale) {
   return new THREE.ShaderMaterial({
-    uniforms: { map: { value: map }, uColor: { value: color }, uDensity: { value: FOG_DENSITY * (fogScale || 1) } },
+    uniforms: { map: { value: map }, uColor: { value: color }, uDensity: { value: FOG_DENSITY * (fogScale || 1) }, nhBend: BEND.nhBend },
     vertexShader: GLOW_VS, fragmentShader: GLOW_FS,
     blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
@@ -815,18 +862,18 @@ const roadMat = new THREE.MeshStandardMaterial({
   emissive: hdr(1, 1, 1), emissiveMap: roadTex.emissive, emissiveIntensity: 1.0, envMap, envMapIntensity: 0.7,
 });
 for (const cx of [0, OPP_CENTER]) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, ROAD_LEN), roadMat);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, ROAD_LEN, 1, 140), roadMat);
   m.rotation.x = -Math.PI / 2;
   m.position.set(cx, 0, ROAD_NEAR - ROAD_LEN / 2);
   scene.add(m);
 }
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshStandardMaterial({ color: lin('#0b0f18'), roughness: 1, metalness: 0 }));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000, 1, 90), new THREE.MeshStandardMaterial({ color: lin('#0b0f18'), roughness: 1, metalness: 0 }));
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.15;
 scene.add(ground);
 const walkMat = new THREE.MeshStandardMaterial({ color: lin('#1c212c'), roughness: 0.95, metalness: 0, envMap, envMapIntensity: 0.3 });
 for (const [cx, w] of [[11.45, 4.6], [-28.75, 3.8]]) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, ROAD_LEN), walkMat);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, ROAD_LEN, 1, 140), walkMat);
   m.rotation.x = -Math.PI / 2;
   m.position.set(cx, 0.03, ROAD_NEAR - ROAD_LEN / 2);
   scene.add(m);
@@ -839,7 +886,7 @@ const barMat = new THREE.MeshStandardMaterial({
   roughness: 0.92, metalness: 0, envMap, envMapIntensity: 0.35,
 });
 const barProfile = new THREE.Shape([[-0.305, 0], [0.305, 0], [0.305, 0.075], [0.175, 0.33], [0.075, 0.81], [-0.075, 0.81], [-0.175, 0.33], [-0.305, 0.075]].map((p) => new THREE.Vector2(p[0], p[1])));
-const barGeo = new THREE.ExtrudeGeometry(barProfile, { depth: ROAD_LEN, bevelEnabled: false, steps: 1 });
+const barGeo = new THREE.ExtrudeGeometry(barProfile, { depth: ROAD_LEN, bevelEnabled: false, steps: 140 });
 barGeo.translate(0, 0, ROAD_NEAR - ROAD_LEN);
 for (const x of [MEDIAN_X, RIGHT_X, OPP_OUTER_X]) {
   const m = new THREE.Mesh(barGeo, barMat);
@@ -880,9 +927,9 @@ bGeo.translate(0, 0.5, 0);
 const bSeeds = new THREE.InstancedBufferAttribute(new Float32Array(blds.length), 1);
 bGeo.setAttribute('aSeed', bSeeds);
 const bMat = new THREE.ShaderMaterial({
-  uniforms: { uFogColor: { value: FOG_COLOR }, uFogDensity: { value: FOG_DENSITY } },
+  uniforms: { uFogColor: { value: FOG_COLOR }, uFogDensity: { value: FOG_DENSITY }, nhBend: BEND.nhBend },
   extensions: { derivatives: true },
-  vertexShader: `
+  vertexShader: BEND_GLSL + `
     attribute float aSeed;
     varying vec3 vLocal; varying vec3 vN; varying float vSeed; varying vec3 vSize; varying float vDepth;
     void main() {
@@ -891,7 +938,9 @@ const bMat = new THREE.ShaderMaterial({
       vLocal = vec3((position.x + 0.5) * size.x, position.y * size.y, (position.z + 0.5) * size.z);
       vN = normal;
       vSeed = aSeed;
-      vec4 mv = viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
+      vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
+      w.x += nhBendX(w.z);
+      vec4 mv = viewMatrix * w;
       vDepth = -mv.z;
       gl_Position = projectionMatrix * mv;
     }`,
@@ -1308,7 +1357,9 @@ chassis.add(new THREE.Mesh(flatPlane(2.7, 5.4, 0, 0.02, 0.05), new THREE.MeshBas
   color: 0x000000, alphaMap: texShadow, transparent: true, opacity: 0.82, depthWrite: false,
   polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
 })));
-chassis.add(new THREE.Mesh(flatPlane(2.6, 5.2, 0, 0.03, 0), makeGlowMaterial(texSoftRect, hdr(0.1, 0.08, 0.4))));
+const UNDERGLOW = hdr(0.1, 0.08, 0.4);
+const underglowMat = makeGlowMaterial(texSoftRect, UNDERGLOW.clone());
+chassis.add(new THREE.Mesh(flatPlane(2.6, 5.2, 0, 0.03, 0), underglowMat));
 
 const headSpot = new THREE.SpotLight(lin('#dfe8ff'), 2.4, 120, 0.42, 0.55, 1.2);
 headSpot.position.set(0, 0.7, -2.0);
@@ -1323,6 +1374,52 @@ for (const l of [hemi, moon, headSpot, tailGlow, lampLight]) l.layers.enable(1);
 body.traverse((o) => o.layers.enable(1));
 for (const w of wheels) w.traverse((o) => o.layers.enable(1));
 
+// ---------- Game Room: pickups ----------
+// Floating over the road: a blue nitro canister, a violet phase ring and a
+// gold shield. Laid out from the run's seed (lib/games/nighthighway/pickups.ts),
+// so both racers meet the same ones; each collects in their own world.
+const PICKUP_LOOK = {
+  nitro: { color: hdr(0.6, 1.7, 3.4), geo: () => new THREE.CylinderGeometry(0.26, 0.26, 0.78, 18) },
+  phase: { color: hdr(2.2, 0.9, 3.4), geo: () => new THREE.TorusGeometry(0.42, 0.09, 12, 32) },
+  shield: { color: hdr(3.2, 2.1, 0.45), geo: () => new THREE.OctahedronGeometry(0.46) },
+};
+const PICKUP_POOL = 6; // per kind - more than are ever in sight at once
+const pickupMeshes = {};
+for (const kind of Object.keys(PICKUP_LOOK)) {
+  const look = PICKUP_LOOK[kind];
+  const geo = look.geo();
+  const coreMat = new THREE.MeshBasicMaterial({ color: look.color });
+  const glowMat = makeGlowMaterial(texPool, look.color.clone().multiplyScalar(0.25));
+  pickupMeshes[kind] = [];
+  for (let i = 0; i < PICKUP_POOL; i++) {
+    const grp = new THREE.Group();
+    const core = new THREE.Mesh(geo, coreMat);
+    core.position.y = 0.95;
+    if (kind === 'nitro') core.rotation.z = 0.35;
+    grp.add(core, new THREE.Mesh(flatPlane(2.6, 2.6, 0, 0.05, 0), glowMat));
+    grp.visible = false;
+    grp.userData.core = core;
+    scene.add(grp);
+    pickupMeshes[kind].push(grp);
+  }
+}
+// The car's materials, so phasing can fade it (and restore it afterwards).
+const playerMats = [];
+carRoot.traverse((o) => {
+  if (o.isMesh && !o.material.transparent && !playerMats.some((e) => e.m === o.material)) playerMats.push({ m: o.material, depthWrite: o.material.depthWrite });
+});
+let carFaded = false;
+function setCarFaded(on) {
+  if (on === carFaded) return;
+  carFaded = on;
+  for (const e of playerMats) {
+    e.m.transparent = on;
+    e.m.opacity = on ? 0.3 : 1;
+    e.m.depthWrite = on ? false : e.depthWrite;
+    e.m.needsUpdate = true;
+  }
+}
+
 // ---------- Game Room: the other racer's ghost ----------
 // A copy of the player's car (sharing geometry) in the other player's paint,
 // with their name floating above it. It never collides: it's only where
@@ -1333,6 +1430,7 @@ const ghostDrop = [];
 ghostRoot.traverse((o) => {
   if (o.isLight || (o.isMesh && o.material === flameMat)) ghostDrop.push(o);
   else if (o.isMesh && o.material === paintMat) o.material = ghostPaint;
+  else if (o.isMesh) o.material = o.material.clone();
 });
 for (const o of ghostDrop) o.parent.remove(o);
 const ghostChassis = ghostRoot.children[0];
@@ -1607,6 +1705,49 @@ function updateSparks(dt, pv) {
   sparkCloud.geo.attributes.color.needsUpdate = true;
 }
 
+// ---------- Game Room: rain ----------
+// Thin quads, not lines: WebGL lines are always 1 px, which all but vanishes
+// once the engine lowers its resolution or the motion blur smears it.
+const RAIN_N = 900;
+const rainMat = new THREE.MeshBasicMaterial({ color: hdr(0.5, 0.6, 0.8), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const rainMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.02, 1.0), rainMat, RAIN_N);
+rainMesh.frustumCulled = false;
+rainMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+rainMesh.visible = false;
+scene.add(rainMesh);
+const _rainAxis = new THREE.Vector3(1, 0, 0);
+const _one = new THREE.Vector3(1, 1, 1);
+const drops = [];
+function resetDrop(d, px, anywhere) {
+  d.x = px + rand(-16, 16);
+  d.y = anywhere ? rand(0, 12) : rand(8, 13);
+  // Never right in front of the lens, where a drop would fill the screen.
+  d.z = rand(-70, camera.position.z - 5);
+}
+for (let i = 0; i < RAIN_N; i++) { const d = {}; resetDrop(d, 0, true); drops.push(d); }
+let rainK = 0; // eases in and out, 0 = dry
+function updateRain(dt, pv, px) {
+  rainK = damp(rainK, raining() ? 1 : 0, 2, dt);
+  rainMesh.visible = rainK > 0.01;
+  scene.fog.density = FOG_DENSITY * (1 + 0.7 * rainK);
+  roadMat.roughness = 1 - 0.45 * rainK;
+  if (!rainMesh.visible) return;
+  rainMat.opacity = 0.32 * rainK;
+  // Streaks slant back with speed, as they would past a moving car.
+  _q.setFromAxisAngle(_rainAxis, -Math.min(pv * 0.012, 0.75));
+  const fall = 17;
+  for (let i = 0; i < RAIN_N; i++) {
+    const d = drops[i];
+    d.y -= fall * dt;
+    d.z += pv * dt;
+    if (d.y < 0 || d.z > camera.position.z - 4) resetDrop(d, px, false);
+    _p.set(d.x, d.y, d.z);
+    _m4.compose(_p, _q, _one);
+    rainMesh.setMatrixAt(i, _m4);
+  }
+  rainMesh.instanceMatrix.needsUpdate = true;
+}
+
 const WIND_N = 90;
 const windCloud = lineCloud(WIND_N);
 const wind = [];
@@ -1640,6 +1781,8 @@ const HUD = {
   hint: $('hint'), speedo: $('speedo'), speed: $('speed'), arc: $('arc'), gear: $('gear'), nitro: $('nitro'), pops: $('pops'),
   count: $('count'), title: $('title'), results: $('results'), pause: $('pause'), touch: $('touch'), bestLine: $('bestLine'),
   opp: $('opp'),
+  power: $('power'),
+  optRain: $('optRain'), optPickups: $('optPickups'),
 };
 if (RACE_MODE && HUD.hint) HUD.hint.innerHTML = 'W / ↑ gas · S / ↓ brake · A D / ← → steer<br>Shift or Space nitro · V camera · C paint · L glow · H hide HUD';
 (function drawTicks() {
@@ -1660,7 +1803,7 @@ const G = {
   top: 0, sumV: 0, sumT: 0, combo: 0, comboT: 0, shake: 0, flash: 0, flashCol: new THREE.Vector3(1, 1, 1), paused: false, hudOff: false,
   shot: 0, shotT: 6.5, best: Number(store.get('best', 0)) || 0, hintT: 0,
   // Game Room: the race being driven (see startRace), and the countdown to the next live sample.
-  race: null, liveT: 0,
+  race: null, liveT: 0, pickups: 0,
 };
 const raceLive = () => !!G.race && (G.state === 'countdown' || G.state === 'drive');
 let opponent = null;
@@ -1669,7 +1812,62 @@ let lastFinishedRace = -1;
 const player = {
   x: LANES[2], vx: 0, v: 34, lastV: 34, nitro: 1, boosting: false, throttle: 0, braking: 0, gear: 1, rpm: 900, cut: 0,
   wheelRot: 0, crashT: 0, pop: 0, flame: 0, ap: LANES[2], scrape: 0,
+  // Game Room: pickups - seconds of phasing left, and whether a shield is up.
+  phaseT: 0, shield: false,
 };
+// Game Room: the switches for solo runs (a race brings its own), and this run's pickups.
+let soloOptions = { ...DEFAULT_OPTIONS, ...store.get('options', {}) };
+let pickupSeed = 0;
+let pickupBase = 0;
+let collected = new Set();
+const runOptions = () => (G.race ? G.race.options || DEFAULT_OPTIONS : soloOptions);
+const raining = () => (raceLive() ? runOptions().rain : (RACE_MODE ? previewOptions : soloOptions).rain);
+// The race page shows the next race's switches between races (setOptions).
+let previewOptions = { ...DEFAULT_OPTIONS };
+function resetPickups(seed) {
+  pickupSeed = seed >>> 0;
+  collected = new Set();
+  player.phaseT = 0;
+  player.shield = false;
+}
+function collect(p) {
+  collected.add(p.id);
+  G.pickups++;
+  if (p.kind === 'nitro') {
+    player.nitro = Math.min(1, player.nitro + NITRO_REFILL);
+    popup('Nitro', '+' + Math.round(NITRO_REFILL * 100) + '%', 'cool');
+  } else if (p.kind === 'phase') {
+    player.phaseT = PHASE_SECONDS;
+    popup('Phase', PHASE_SECONDS + ' s · drive through traffic', 'cool');
+  } else {
+    player.shield = true;
+    popup('Shield', 'absorbs your next crash', 'cool');
+  }
+  audio.beep(p.kind === 'nitro' ? 990 : 1320, 0.1);
+}
+// Places the pickups in sight, and collects any the car drives through.
+function updatePickups(dt) {
+  player.phaseT = Math.max(0, player.phaseT - dt);
+  const live = (G.state === 'countdown' || G.state === 'drive') && runOptions().pickups;
+  const used = { nitro: 0, phase: 0, shield: 0 };
+  if (live) {
+    const d = dist - pickupBase;
+    for (const p of pickupsBetween(pickupSeed, d - 30, d + 700)) {
+      if (collected.has(p.id)) continue;
+      if (G.state === 'drive' && reaches(p, d, player.x)) { collect(p); continue; }
+      const grp = pickupMeshes[p.kind][used[p.kind]++];
+      if (!grp) continue;
+      grp.visible = true;
+      grp.position.set(LANES[p.lane], 0, d - p.s);
+      const core = grp.userData.core;
+      core.position.y = 0.95 + (reduceMotion ? 0 : Math.sin(G.t * 2.4 + p.s) * 0.12);
+      core.rotation.y = G.t * 2.2;
+    }
+  }
+  for (const kind of Object.keys(pickupMeshes)) for (let i = used[kind]; i < PICKUP_POOL; i++) pickupMeshes[kind][i].visible = false;
+  setCarFaded(player.phaseT > 0);
+  underglowMat.uniforms.uColor.value.copy(player.shield ? PICKUP_LOOK.shield.color : UNDERGLOW).multiplyScalar(player.shield ? 0.35 : 1);
+}
 const keys = { up: false, down: false, left: false, right: false, boost: false };
 const CAMS = [
   { name: 'Chase', dist: 8.6, h: 2.5, look: 30, lookH: 1.05, fov: 58 },
@@ -1756,8 +1954,13 @@ const audio = {
       this.sFilter = ctx.createBiquadFilter(); this.sFilter.type = 'bandpass'; this.sFilter.frequency.value = 2400; this.sFilter.Q.value = 3;
       this.sGain = ctx.createGain(); this.sGain.gain.value = 0;
       this.scrapeSrc.connect(this.sFilter).connect(this.sGain).connect(this.master);
+      // Game Room: rain's hiss.
+      this.rainSrc = loop(1.3);
+      this.rainFilter = ctx.createBiquadFilter(); this.rainFilter.type = 'highpass'; this.rainFilter.frequency.value = 2600;
+      this.rainGain = ctx.createGain(); this.rainGain.gain.value = 0;
+      this.rainSrc.connect(this.rainFilter).connect(this.rainGain).connect(this.master);
       const t = ctx.currentTime;
-      [this.o1, this.o2, this.o3, this.wind, this.rumble, this.scrapeSrc].forEach((n) => n.start(t));
+      [this.o1, this.o2, this.o3, this.wind, this.rumble, this.scrapeSrc, this.rainSrc].forEach((n) => n.start(t));
     } catch {
       this.ctx = null;
     }
@@ -1769,7 +1972,7 @@ const audio = {
     store.set('sound', on);
     if (this.master) this.master.gain.setTargetAtTime(on ? 0.42 : 0, this.ctx.currentTime, 0.05);
   },
-  update(rpm, throttle, pv, boost, scrape) {
+  update(rpm, throttle, pv, boost, scrape, rain = 0) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const f = Math.max(30, (rpm / 60) * 3);
@@ -1783,6 +1986,7 @@ const audio = {
     this.wGain.gain.setTargetAtTime(s01 * s01 * 0.22 + boost * 0.06, t, 0.1);
     this.rGain.gain.setTargetAtTime(0.05 + s01 * 0.12, t, 0.1);
     this.sGain.gain.setTargetAtTime(scrape * 0.25, t, 0.03);
+    if (this.rainGain) this.rainGain.gain.setTargetAtTime(rain * 0.22, t, 0.3);
   },
   burst(freq, q, dur, vol, type) {
     if (!this.ctx) return;
@@ -1856,7 +2060,8 @@ function drive(dt) {
   const vmax = player.boosting ? 104 : 86;
   let a = 0;
   if (up || player.boosting) a += (player.boosting ? 24 : 15) * Math.max(0, 1 - Math.pow(player.v / vmax, 1.7)) * (player.cut > 0 ? 0.3 : 1);
-  if (down) a -= 32;
+  const wet = raining(); // Game Room: rain - less grip, longer braking
+  if (down) a -= wet ? 21 : 32;
   a -= 0.6 + 0.00042 * player.v * player.v;
   if (player.crashT > 0) a -= 6;
   player.v = clamp(player.v + a * dt, 0, 110);
@@ -1864,8 +2069,11 @@ function drive(dt) {
   player.braking = down ? 1 : 0;
   player.nitro = player.boosting ? Math.max(0, player.nitro - dt * 0.24) : Math.min(1, player.nitro + dt * 0.05);
   const latMax = lerp(3.5, 10.5, clamp(player.v / 45, 0, 1));
-  player.vx = damp(player.vx, steerIn * latMax, 7, dt);
+  // Game Room: on a wet road, sideways speed settles slowly - the car slides.
+  player.vx = damp(player.vx, steerIn * latMax * (wet ? 0.85 : 1), wet ? 2.0 : 7, dt);
   player.x += player.vx * dt;
+  // Game Room: a bend pushes the car toward its outside, harder the faster you go.
+  player.x -= curvatureAt(roadSeed, dist) * player.v * player.v * CENTRIFUGAL * (wet ? 1.5 : 1) * dt;
   player.ap = LANES[nearestLane(player.x)];
   return steerIn;
 }
@@ -1909,7 +2117,15 @@ function checkTraffic() {
     if (v.dir < 0) continue;
     const ox = (v.halfW + P_HALF_W) - Math.abs(v.x - player.x);
     const oz = (v.len / 2 + P_HALF_L) - Math.abs(v.z);
-    if (ox > 0 && oz > 0) {
+    if (ox > 0 && oz > 0 && player.phaseT <= 0 && player.shield) {
+      // Game Room: the shield takes the hit, then the car slips through.
+      player.shield = false;
+      player.phaseT = SHIELD_BREAK_SECONDS;
+      G.flash = 0.25;
+      G.flashCol.set(1.0, 0.8, 0.2);
+      if (G.state === 'drive') popup('Shield', 'crash absorbed', 'cool');
+      audio.whoosh();
+    } else if (ox > 0 && oz > 0 && player.phaseT <= 0) {
       if (ox < oz) {
         const side = Math.sign(player.x - v.x) || 1;
         player.x += side * (ox + 0.02);
@@ -1935,7 +2151,8 @@ function checkTraffic() {
     if (v.prevZ < 0 && v.z >= 0 && G.state === 'drive') {
       G.overtakes++;
       const gap = Math.abs(v.x - player.x) - v.halfW - P_HALF_W;
-      if (gap < NEAR_MISS_GAP && player.v > NEAR_MISS_MIN_SPEED && player.crashT <= 0) nearMiss(gap);
+      // Game Room: driving through a car while phasing isn't a near miss.
+      if (gap < NEAR_MISS_GAP && (player.phaseT <= 0 || gap >= 0) && player.v > NEAR_MISS_MIN_SPEED && player.crashT <= 0) nearMiss(gap);
     }
   }
 }
@@ -1990,13 +2207,13 @@ function updateLampLight() {
 }
 function updateStreaks() {
   streakN = 0;
-  const bk = player.braking ? 1.8 : 1;
+  const bk = (player.braking ? 1.8 : 1) * (1 + 0.6 * rainK); // Game Room: a wet road reflects more
   for (const s of [-0.72, 0.72]) addStreak(player.x + s, 0.76, 2.3, 0.45 * bk, 0.015 * bk, 0.025 * bk, 0.45);
   for (const v of vehicles) {
     const fade = smooth(-900, -560, v.z);
     if (fade <= 0) continue;
     if (v.dir > 0) {
-      const k = 0.3 * fade * (1 + v.brake * 0.8);
+      const k = 0.3 * fade * (1 + v.brake * 0.8) * (1 + 0.6 * rainK);
       const truckish = v.kind === 'truck';
       const off = truckish ? 1.0 : 0.62;
       const y = truckish ? 1.25 : 0.78 * v.sy;
@@ -2028,14 +2245,14 @@ function updateCamera(dt) {
     camPos.x = damp(camPos.x, player.x * (c.inside ? 1 : 0.8) + (c.inside ? 0 : player.vx * 0.05), c.inside ? 40 : 5, dt);
     camPos.y = c.h + (c.inside ? 0 : speedK * 0.2);
     camPos.z = c.dist + (c.inside ? 0 : speedK * 1.3 + boostK * 0.9);
-    camLook.set(player.x * 0.9 + player.vx * 0.15, c.lookH, -c.look);
+    camLook.set(player.x * 0.9 + player.vx * 0.15 + bendAt(BEND.nhBend.value, c.look), c.lookH, -c.look);
     fov = c.fov + speedK * 8 + boostK * 7;
   } else {
     G.shotT -= dt;
     if (G.shotT <= 0) { G.shot = (G.shot + 1) % 4; G.shotT = 6.5; }
     const px = player.x;
     const sway = Math.sin(G.t * 0.25);
-    if (G.shot === 0) { camPos.set(px * 0.8, 1.75, 13); camLook.set(px, 1.7, -42); fov = 46; }
+    if (G.shot === 0) { camPos.set(px * 0.8, 1.75, 13); camLook.set(px + bendAt(BEND.nhBend.value, 42), 1.7, -42); fov = 46; }
     else if (G.shot === 1) { camPos.set(px + 3.0 + sway * 0.3, 0.85, -7.6); camLook.set(px, 0.75, 0.2); fov = 50; blurScale = 0.5; }
     else if (G.shot === 2) { camPos.set(px - 5.6, 1.05, -0.4 + sway); camLook.set(px, 0.7, 0.4); fov = 48; blurScale = 0.6; }
     else { camPos.set(px * 0.6 + sway * 2, 6.2, 16); camLook.set(px, 0.6, -24); fov = 50; }
@@ -2094,6 +2311,12 @@ function updateHUD() {
   setText(HUD.score, 'score', fmt(G.score));
   setText(HUD.dist, 'dist', (G.distRun / 1000).toFixed(2));
   setText(HUD.nm, 'nm', String(G.nearMiss));
+  if (HUD.power) {
+    const parts = [];
+    if (player.phaseT > 0) parts.push('Phase ' + player.phaseT.toFixed(1) + ' s');
+    if (player.shield) parts.push('Shield up');
+    setText(HUD.power, 'power', parts.join('  ·  '));
+  }
   if (HUD.opp) {
     const latest = G.race && opponent ? opponent.latest() : undefined;
     let line = '';
@@ -2117,11 +2340,15 @@ function showTitle() {
   if (HUD.bestLine) HUD.bestLine.textContent = G.best > 0 ? 'Best run on this device: ' + fmt(G.best) : '';
 }
 function resetRunStats() {
-  Object.assign(G, { state: 'countdown', cd: COUNTDOWN_SECONDS, lastCd: COUNTDOWN_SECONDS + 1, time: RUN_SECONDS, score: 0, bonus: 0, distRun: 0, nearMiss: 0, overtakes: 0, crashes: 0, top: 0, sumV: 0, sumT: 0, combo: 0, comboT: 0, hintT: 9, liveT: 0 });
+  Object.assign(G, { state: 'countdown', cd: COUNTDOWN_SECONDS, lastCd: COUNTDOWN_SECONDS + 1, time: RUN_SECONDS, score: 0, bonus: 0, distRun: 0, nearMiss: 0, overtakes: 0, crashes: 0, top: 0, sumV: 0, sumT: 0, combo: 0, comboT: 0, hintT: 9, liveT: 0, pickups: 0 });
 }
 function startRun() {
   audio.init();
   resetRunStats();
+  resetPickups(randomSeed());
+  // Solo runs start where the car already is: pickups lay out from there on.
+  pickupBase = dist;
+  roadSeed = randomSeed();
   togglePause(false);
   player.nitro = 1;
   player.crashT = 0;
@@ -2137,6 +2364,11 @@ function beginRaceCountdown(R, rt) {
   togglePause(false);
   dist = COUNTDOWN_SPEED * Math.max(0, rt);
   newTraffic(R.seed, 'fixed');
+  // A race's pickups come from its seed too (mixed, so they don't track the traffic).
+  resetPickups(R.seed ^ 0x5bd1e995);
+  pickupBase = 0;
+  // ...and so do its curves: both racers drive the same road.
+  roadSeed = (R.seed ^ 0x1b873593) >>> 0;
   trafficClock = Math.max(0, rt);
   traffic.advanceTo(trafficClock);
   player.x = player.ap = LANES[R.lane];
@@ -2147,6 +2379,7 @@ function beginRaceCountdown(R, rt) {
   showRunHud();
 }
 function showRunHud() {
+  if (runOptions().rain) popup('Rain', 'wet road · the car slides', 'cool');
   if (HUD.title) HUD.title.hidden = true;
   if (HUD.results) HUD.results.hidden = true;
   HUD.hud.hidden = false;
@@ -2235,6 +2468,7 @@ function updateGhost(dt, rt) {
       if (z > -900 && z < 60) {
         show = true;
         ghostRoot.position.set(p.x, 0, z);
+        ghostLabel.position.x = bendAt(BEND.nhBend.value, -z); // sprites don't go through the bend
         ghostChassis.rotation.y = damp(ghostChassis.rotation.y, -clamp((p.x - ghostLastX) / Math.max(dt, 1e-3), -10, 10) * 0.028, 10, dt);
         for (const w of ghostWheels) w.rotation.x -= (p.v * dt) / 0.35;
       }
@@ -2299,19 +2533,23 @@ function update(dt) {
     G.sumV += pv * dt;
     G.sumT += dt;
     G.top = Math.max(G.top, pv * 3.6);
-    G.comboT -= dt;
+    if (player.phaseT <= 0) G.comboT -= dt; // Game Room: phasing protects the combo
     if (G.comboT <= 0) G.combo = 0;
     G.score = G.distRun + G.bonus;
     if (G.hintT > 0) { G.hintT -= dt; if (G.hintT <= 0) HUD.hint.style.opacity = '0'; }
   }
   updateTraffic(dt, pv);
   checkTraffic();
+  fillBendTable(roadSeed, dist, BEND.nhBend.value);
+  for (let i = 0; i < BEND_SAMPLES; i++) BEND.nhBend.value[i] *= BEND_EXAGGERATION;
   updateGhost(dt, rt);
+  updatePickups(dt);
   updateWorld(dt);
   writeTraffic();
   updateCarVisual(dt, steerIn);
   updateSparks(dt, pv);
   updateWind(dt, pv, player.x, player.flame);
+  updateRain(dt, pv, player.x);
   updateLampLight();
   G.shake = damp(G.shake, 0, 3.5, dt);
   G.flash = damp(G.flash, 0, 5, dt);
@@ -2325,7 +2563,7 @@ function update(dt) {
   skyMat.uniforms.uTime.value = G.t;
   stars.material.uniforms.uTime.value = G.t;
   stars.material.uniforms.uPR.value = renderer.getPixelRatio();
-  audio.update(player.rpm, player.throttle, pv, player.flame, player.scrape);
+  audio.update(player.rpm, player.throttle, pv, player.flame, player.scrape, rainK);
   updateHUD();
 }
 
@@ -2400,6 +2638,18 @@ listen(document, 'visibilitychange', () => {
   if (document.hidden) audio.suspend(); else if (!G.paused) audio.resume();
 });
 listen($('startBtn'), 'click', startRun);
+// Game Room: the title card's Rain / Pickups switches (solo), remembered on this device.
+function showSoloOptions() {
+  for (const [el, key] of [[HUD.optRain, 'rain'], [HUD.optPickups, 'pickups']]) if (el) el.setAttribute('aria-checked', String(!!soloOptions[key]));
+}
+for (const [el, key] of [[HUD.optRain, 'rain'], [HUD.optPickups, 'pickups']]) {
+  listen(el, 'click', () => {
+    soloOptions = { ...soloOptions, [key]: !soloOptions[key] };
+    store.set('options', soloOptions);
+    showSoloOptions();
+  });
+}
+showSoloOptions();
 listen($('againBtn'), 'click', startRun);
 listen(HUD.pause, 'click', () => togglePause(false));
 listen(canvas, 'pointerdown', () => {
@@ -2496,6 +2746,8 @@ const api = {
   },
   /** Race: who the other racer is, and where their car is (`sample(raceMs)`), or null. */
   setOpponent(o) { opponent = o; setGhostName(o ? o.name : ''); },
+  /** Race page: the next race's switches, shown on the road between races (rain falls in the lobby). */
+  setOptions(o) { previewOptions = { ...DEFAULT_OPTIONS, ...o }; },
   /** A fingerprint of the traffic right now - two devices in the same race should agree. */
   trafficChecksum() { return traffic.checksum(); },
   /** Test hook: the traffic a race with this seed has at this time (s), simulated from scratch in this browser - two browsers must agree. */
@@ -2511,7 +2763,23 @@ const api = {
     if (window.NightHighway === api) delete window.NightHighway;
   },
 };
-if (options.exposeForTests) window.NightHighway = Object.assign(api, { G, player, keys });
+if (options.exposeForTests) {
+  window.NightHighway = Object.assign(api, {
+    G, player, keys,
+    // Test hooks: skip down the road, and read the curve where the car is / ahead of it.
+    jump(metres) { dist += metres; },
+    curvature() { return curvatureAt(roadSeed, dist); },
+    bend(ahead) { return bendAt(BEND.nhBend.value, ahead); },
+    rain() { return { k: rainK, visible: rainMesh.visible }; },
+  });
+}
+// Game Room: curves - bend every built-in material (and the motion-blur mask's),
+// and stop culling, since objects are drawn away from where three thinks they are.
+scene.traverse((o) => {
+  for (const m of [].concat(o.material || [])) bendMaterial(m);
+  o.frustumCulled = false;
+});
+bendMaterial(maskMat);
 boot({});
 return api;
 }

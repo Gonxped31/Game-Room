@@ -10,6 +10,7 @@ import {
   resultsOverdue,
   type RunResult,
   runScore,
+  setOptions,
   setReady,
   submitResult,
 } from "./game";
@@ -52,6 +53,29 @@ describe("setReady", () => {
     expect(next.race).toBe(2);
     expect(next.results).toEqual({});
     expect(next.history).toHaveLength(1);
+  });
+});
+
+describe("setOptions", () => {
+  it("starts with pickups on and rain off", () => {
+    expect(newGame().options).toEqual({ rain: false, pickups: true });
+  });
+
+  it("changes a switch and takes back both players' Ready", () => {
+    const g = setOptions(setReady(newGame(), "p1", true, NOW, 1), { rain: true });
+    expect(g.options).toEqual({ rain: true, pickups: true });
+    expect(g.ready).toEqual({});
+  });
+
+  it("is refused mid-race, or when nothing changes", () => {
+    expect(() => setOptions(racing(), { rain: true })).toThrow();
+    expect(() => setOptions(newGame(), { pickups: true })).toThrow();
+  });
+
+  it("gives a room from before the options the defaults", () => {
+    const old = { ...newGame() } as Partial<GameState>;
+    delete old.options;
+    expect(setOptions(old as GameState, { rain: true }).options).toEqual({ rain: true, pickups: true });
   });
 });
 
@@ -109,6 +133,7 @@ describe("writes Firebase accepts", () => {
   it("never writes undefined across a full race series", () => {
     let g = roundTrip(newGame());
     const steps: ((g: GameState) => GameState)[] = [
+      (s) => setOptions(s, { rain: true, pickups: false }),
       (s) => setReady(s, "p1", true, NOW, 1),
       (s) => setReady(s, "p2", true, NOW, 2),
       (s) => submitResult(s, "p1", result(10)),

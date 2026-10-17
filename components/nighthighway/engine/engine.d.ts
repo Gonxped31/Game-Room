@@ -1,4 +1,4 @@
-import type { RunResult } from "@/lib/games/nighthighway/game";
+import type { RaceOptions, RunResult } from "@/lib/games/nighthighway/game";
 import type { LiveCar } from "@/lib/games/nighthighway/live";
 
 export interface EngineOptions {
@@ -22,6 +22,8 @@ export interface EngineRace {
   startAt: number;
   /** Index into LANES this racer starts in. */
   lane: number;
+  /** The race's switches (GameState.options) - the same for both racers. */
+  options: RaceOptions;
   /** The server's clock (ms), i.e. Date.now() plus the measured offset. */
   serverNow: () => number;
   /** Ten times a second while racing, plus a final sample at the end. */
@@ -43,6 +45,8 @@ export interface Engine {
   startRace(race: EngineRace): void;
   stopRace(): void;
   setOpponent(opponent: EngineOpponent | null): void;
+  /** Race page: the next race's switches, shown on the road between races (e.g. rain in the lobby). */
+  setOptions(options: RaceOptions): void;
   trafficChecksum(): string;
   /** Test hook: a race's traffic at `time` (s), simulated from scratch in this browser. */
   raceTrafficChecksum(seed: number, time: number): string;

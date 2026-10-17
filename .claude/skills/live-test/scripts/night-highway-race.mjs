@@ -7,6 +7,7 @@
 // Checks, in order:
 // - Solo: the title screen's Drive button starts a run.
 // - A creates a room and waits with the invite link; B joins by the link.
+// - A switches Rain on in the lobby: B sees it, and both race in the rain.
 // - Both press Ready; the race starts in the database with a seed.
 // - Both browsers simulate the race's traffic identically (V8 vs JavaScriptCore).
 // - Each player's HUD names the other, and both live cars reach the database.
@@ -69,6 +70,12 @@ try {
   log("both in the lobby");
   await shot(B, "2-lobby-iphone");
 
+  // Options: A turns rain on; B's switch follows (pickups stay on by default).
+  await A.getByRole("switch", { name: "Rain" }).click();
+  await until(async () => (await B.getByRole("switch", { name: "Rain" }).getAttribute("aria-checked")) === "true", "B to see rain switched on");
+  if ((await B.getByRole("switch", { name: "Pickups" }).getAttribute("aria-checked")) !== "true") throw new Error("pickups should default to on");
+  log("A switched rain on; B sees it");
+
   await A.getByRole("button", { name: "Ready" }).click();
   await B.getByText("Sam is ready.").waitFor();
   await B.getByRole("button", { name: "Ready" }).click();
@@ -88,6 +95,9 @@ try {
   await A.keyboard.down("ArrowUp");
   await until(() => A.evaluate(() => window.NightHighway.G.state === "drive"), "Go", 15000);
   log("countdown done, driving");
+  const opts = await Promise.all([A, B].map((p) => p.evaluate(() => window.NightHighway.G.race?.options)));
+  if (!opts.every((o) => o && o.rain === true && o.pickups === true)) throw new Error(`race options differ or are wrong: ${JSON.stringify(opts)}`);
+  log("both race with rain and pickups on");
   await A.waitForTimeout(4000);
   await A.keyboard.down("ArrowLeft");
   await A.waitForTimeout(400);

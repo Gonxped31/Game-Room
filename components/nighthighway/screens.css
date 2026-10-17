@@ -63,3 +63,20 @@
 }
 .nh .nh-race-link:hover { background: var(--taillight); }
 .nh .nh-race-link:focus-visible { outline: 2px solid var(--nitro); outline-offset: 3px; }
+
+/* Pickups status in the HUD, and the option switches (solo title card, race lobby). */
+.nh .power { color: #ffd36a; }
+.nh .nh-options { gap: 10px; }
+.nh .nh-switch {
+  pointer-events: auto; display: inline-flex; align-items: center; gap: 10px; padding: 9px 14px 7px;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--veil-soft); color: var(--ink-dim); cursor: pointer;
+  font: 800 12px/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.nh .nh-switch::before { content: ""; width: 26px; height: 14px; border-radius: 7px; background: var(--track); box-shadow: inset 0 0 0 1px var(--rule); transition: background-color 0.15s; }
+.nh .nh-switch[aria-checked="true"] { color: var(--ink); border-color: var(--ink-dim); }
+.nh .nh-switch[aria-checked="true"]::before { background: var(--nitro); box-shadow: 0 0 10px var(--nitro); }
+.nh .nh-switch:focus-visible { outline: 2px solid var(--nitro); outline-offset: 3px; }
+.nh .nh-switch:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* The solo page's links would cover the HUD's corners: hide them while driving. */
+.nh:has(#hud:not([hidden])) .nh-solo-nav { display: none; }

@@ -35,6 +35,9 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
   - Both players drive the same road at the same time, through identical traffic,
     and see each other as a ghost car.
   - Score is distance plus near-miss bonuses; the higher score wins the race.
+  - The road curves, and bends push you outward. Before a race you can switch on
+    **pickups** (nitro, a few seconds of driving through traffic, a one-crash
+    shield) and **rain** (the car slides).
   - `/nighthighway/solo` is the original single-player game, no room needed.
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
