@@ -29,10 +29,10 @@ export const SAND_START = 220;
 const LANE_HALF = 1.8;
 /**
  * Drag in deep sand, per metre: the car slows by `SAND_DRAG * v²` (m/s²), so
- * crossing a patch costs the same share of its speed at any speed - about a
- * quarter across an average one (1 - e^(-SAND_DRAG * 29) ≈ 0.26).
+ * crossing a patch costs the same share of its speed at any speed - about 40%
+ * across an average one (1 - e^(-SAND_DRAG * 29) ≈ 0.40).
  */
-export const SAND_DRAG = 0.0103;
+export const SAND_DRAG = 0.0176;
 
 /** A segment's seed: the layout seed and segment number mixed with integer ops only. */
 function segmentSeed(seed: number, segment: number): number {
