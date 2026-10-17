@@ -1341,31 +1341,6 @@ const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9
 const offRoad = (near, far, r) => { const x = rand(near, far) + r; return Math.random() < 0.5 ? x : -x; };
 const DESERT_L = 1600;
 
-// The road's edges: a low bank of sand and rock where the city had barriers
-// (the car still stops at the same place, LIM, and scrapes along it).
-function bermTexture() {
-  const W = 128, H = 256, c = makeCanvas(W, H), g = c.getContext('2d');
-  g.fillStyle = '#b08458'; g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 260; i++) {
-    g.fillStyle = Math.random() < 0.6 ? `rgba(84,52,34,${rand(0.2, 0.5).toFixed(2)})` : `rgba(226,186,140,${rand(0.2, 0.5).toFixed(2)})`;
-    g.beginPath(); g.ellipse(rand(0, W), rand(0, H), rand(1, 5), rand(1, 4), 0, 0, Math.PI * 2); g.fill();
-  }
-  return toTex(c, { repeat: true, aniso: true });
-}
-const bermTex = bermTexture();
-bermTex.repeat.set(0.5, 1 / 8);
-const bermMat = new THREE.MeshStandardMaterial({ color: hdr(1, 0.92, 0.85), map: bermTex, roughness: 1, metalness: 0, side: THREE.DoubleSide });
-const bermProfile = new THREE.Shape([[-0.9, 0], [2.6, 0], [2.0, 0.45], [1.1, 0.8], [0.1, 0.78], [-0.6, 0.35]].map((p) => new THREE.Vector2(p[0], p[1])));
-const bermGeo = new THREE.ExtrudeGeometry(bermProfile, { depth: ROAD_LEN, bevelEnabled: false, steps: 140, curveSegments: 1 });
-bermGeo.translate(0, 0, ROAD_NEAR - ROAD_LEN);
-for (const side of [1, -1]) {
-  const m = new THREE.Mesh(bermGeo, bermMat);
-  m.position.x = side * 9.4;
-  m.scale.x = side;
-  scene.add(m);
-  desertObjs.push(m);
-}
-
 // The canyon: a wall on each side, rebuilt every frame from the world
 // distance, so it winds in and out and rises and falls as you drive. Rows
 // are 10 m apart so the walls follow the hills. A picture only: nothing
@@ -1443,7 +1418,81 @@ function updateWall(w) {
   w.geo.computeVertexNormals();
 }
 
+// The road's edges wander, like a dirt track's: sand drifts in over the outer
+// lanes in tongues, and behind it a low bank of sand and rock (where the city
+// had barriers) bulges in and out. Both are strips rebuilt every frame from the
+// road position, like the canyon walls. A picture only: the car still stops at
+// the same place (LIM) and scrapes along the bank.
+function bermTexture() {
+  const W = 128, H = 256, c = makeCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#b08458'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 260; i++) {
+    g.fillStyle = Math.random() < 0.6 ? `rgba(84,52,34,${rand(0.2, 0.5).toFixed(2)})` : `rgba(226,186,140,${rand(0.2, 0.5).toFixed(2)})`;
+    g.beginPath(); g.ellipse(rand(0, W), rand(0, H), rand(1, 5), rand(1, 4), 0, 0, Math.PI * 2); g.fill();
+  }
+  return toTex(c, { repeat: true, aniso: true });
+}
+const bermMat = new THREE.MeshStandardMaterial({ color: hdr(1, 0.92, 0.85), map: bermTexture(), roughness: 1, metalness: 0, side: THREE.DoubleSide });
+const spillMat = new THREE.MeshStandardMaterial({ color: hdr(1.08, 0.98, 0.9), map: sandTexture(), roughness: 1, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+// A strip of `rows` cross-sections, `cols` points each, 5 m apart; its positions and uvs are rewritten every frame.
+const EDGE_ROWS = 341, EDGE_STEP = 5;
+function stripMesh(rows, cols, mat) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(rows * cols * 3), 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(rows * cols * 2), 2));
+  const idx = [];
+  for (let r = 0; r < rows - 1; r++) {
+    for (let k = 0; k < cols - 1; k++) {
+      const a = r * cols + k, b = a + cols;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  }
+  geo.setIndex(idx);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.frustumCulled = false;
+  scene.add(mesh);
+  desertObjs.push(mesh);
+  return geo;
+}
+// How far sand has drifted in over the road's edge here (m, from the edge toward the middle).
+const sandSpill = (s, seed) => clamp(2.2 * wallNoise(s, 55, seed) - 0.55, 0, 1.7) + 0.3 * wallNoise(s, 9, seed + 2);
+const edges = [1, -1].map((side) => ({ side, seed: side > 0 ? 11 : 23, spill: stripMesh(EDGE_ROWS, 3, spillMat), berm: stripMesh(EDGE_ROWS, 6, bermMat) }));
+// The bank's cross-section: [metres out from its foot, share of its height].
+const BERM_PROFILE = [[0, 0], [0.5, 0.45], [1.1, 0.95], [2.0, 1], [3.0, 0.45], [3.9, 0]];
+function updateEdge(e) {
+  const sp = e.spill.attributes.position.array, su = e.spill.attributes.uv.array;
+  const bp = e.berm.attributes.position.array, bu = e.berm.attributes.uv.array;
+  for (let r = 0; r < EDGE_ROWS; r++) {
+    const z = ROAD_NEAR - r * EDGE_STEP;
+    const s = dist - z;
+    const foot = 8.75 + 0.9 * wallNoise(s, 30, e.seed + 4); // never inside where the car stops
+    const height = 0.45 + 0.6 * wallNoise(s, 18, e.seed + 6);
+    const inner = 8.5 - sandSpill(s, e.seed);
+    const xs = [inner, foot, foot + 0.6];
+    const ys = [0.015, 0.03, 0.12];
+    for (let k = 0; k < 3; k++) {
+      const o = r * 3 + k;
+      sp[o * 3] = e.side * xs[k]; sp[o * 3 + 1] = ys[k]; sp[o * 3 + 2] = z;
+      su[o * 2] = xs[k] / SAND_TILE; su[o * 2 + 1] = s / SAND_TILE;
+    }
+    for (let k = 0; k < BERM_PROFILE.length; k++) {
+      const o = r * BERM_PROFILE.length + k;
+      bp[o * 3] = e.side * (foot + BERM_PROFILE[k][0]); bp[o * 3 + 1] = BERM_PROFILE[k][1] * height; bp[o * 3 + 2] = z;
+      bu[o * 2] = BERM_PROFILE[k][0] / 4; bu[o * 2 + 1] = s / 8;
+    }
+  }
+  for (const g of [e.spill, e.berm]) { g.attributes.position.needsUpdate = true; g.attributes.uv.needsUpdate = true; }
+  e.spill.computeVertexNormals();
+  e.berm.computeVertexNormals();
+}
+
 const desertUpdaters = [
+  // Loose stones on the track itself (you drive straight over them).
+  scatter(new THREE.DodecahedronGeometry(1, 0), rockMat, 220, 500, 40, (it) => {
+    const k = rand(0.05, 0.2);
+    it.x = rand(-8.2, 8.2); it.sx = k * rand(1, 1.6); it.sy = k * rand(0.4, 0.7); it.sz = k * rand(1, 1.6); it.rot = rand(0, 6.3);
+    it.color.copy(lin(pickOne(['#7a5a44', '#a0805e', '#5e4434', '#b89470'])));
+  }),
   // Boulders: small ones on the berms, big ones out on the canyon floor.
   scatter(new THREE.DodecahedronGeometry(1, 0), rockMat, 90, DESERT_L, 60, (it) => {
     const big = Math.random() < 0.35;
@@ -1474,8 +1523,8 @@ const desertUpdaters = [
 function updateDesert() {
   sandTex.offset.y = (dist / SAND_TILE) % 1;
   roadTexDesert.map.offset.y = (dist / ROAD_TEX_LEN) % 1;
-  bermTex.offset.y = (dist / 8) % 1;
   for (const w of canyonWalls) updateWall(w);
+  for (const e of edges) updateEdge(e);
   for (const u of desertUpdaters) u();
 }
 
@@ -2155,6 +2204,114 @@ function updateSparks(dt, pv) {
   sparkCloud.geo.attributes.color.needsUpdate = true;
 }
 
+
+// ---------- Game Room: dust (the desert) ----------
+// Soft puffs kicked up behind the player's wheels (more when sliding or on
+// nitro), behind the traffic and behind the ghost. Each is dragged along in
+// its vehicle's wake at first (`carry`, m/s), then slows and streams back. Camera-facing quads, bent and
+// lifted with the road like everything else.
+const DUST_N = 320;
+const dustGeo = new THREE.PlaneGeometry(1, 1);
+const dustAlpha = new THREE.InstancedBufferAttribute(new Float32Array(DUST_N), 1);
+dustAlpha.setUsage(THREE.DynamicDrawUsage);
+dustGeo.setAttribute('aAlpha', dustAlpha);
+const dustMat = new THREE.ShaderMaterial({
+  uniforms: { map: { value: texPool }, uColor: { value: hdr(0.6, 0.4, 0.26) }, uFog: { value: scene.fog.color }, uDensity: { value: FOG_DENSITY }, nhBend: BEND.nhBend, nhHill: BEND.nhHill },
+  vertexShader: BEND_GLSL + `
+    attribute float aAlpha;
+    varying vec2 vUv; varying float vA; varying float vDepth;
+    void main() {
+      vUv = uv;
+      vA = aAlpha;
+      vec4 c = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+      float size = length(instanceMatrix[0].xyz);
+      c.xy += nhBendXY(c.z);
+      vec4 mv = viewMatrix * c;
+      mv.xy += position.xy * size;
+      vDepth = -mv.z;
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    uniform sampler2D map; uniform vec3 uColor; uniform vec3 uFog; uniform float uDensity;
+    varying vec2 vUv; varying float vA; varying float vDepth;
+    void main() {
+      float fd = vDepth * uDensity;
+      float f = 1.0 - exp(-fd * fd);
+      gl_FragColor = vec4(mix(uColor, uFog, f), texture2D(map, vUv).r * vA * (1.0 - 0.7 * f));
+    }`,
+  transparent: true, depthWrite: false,
+});
+const dustMesh = new THREE.InstancedMesh(dustGeo, dustMat, DUST_N);
+dustMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+dustMesh.frustumCulled = false;
+scene.add(dustMesh);
+desertObjs.push(dustMesh);
+const dust = [];
+for (let i = 0; i < DUST_N; i++) dust.push({ life: 1, max: 1, x: 0, y: 0, z: 0, vx: 0, vy: 0, carry: 0, size: 1, grow: 1, a: 0 });
+let dustCursor = 0;
+function kickDust(x, z, size, a, carry) {
+  const d = dust[dustCursor];
+  dustCursor = (dustCursor + 1) % DUST_N;
+  d.x = x + rand(-0.3, 0.3); d.y = rand(0.2, 0.5); d.z = z + rand(-0.3, 0.3);
+  d.vx = rand(-0.8, 0.8); d.vy = rand(0.4, 1.4);
+  d.size = size * rand(0.7, 1.2); d.grow = size * rand(1.2, 2.2);
+  d.carry = carry * rand(0.7, 0.9);
+  d.life = 0; d.max = rand(1.4, 2.6); d.a = a;
+}
+let dustAcc = 0;
+const dustFrom = new Map();
+function updateDust(dt, pv) {
+  dustMat.uniforms.uDensity.value = scene.fog.density;
+  if (G.state === 'drive' || G.state === 'countdown' || G.state === 'title' || G.state === 'end') {
+    // The player's rear wheels: more dust the faster, the more sideways, and on nitro.
+    const speedK = clamp(player.v / 60, 0, 1.4);
+    dustAcc += dt * speedK * (40 + 90 * clamp(Math.abs(player.vx) / 8, 0, 1) + 40 * player.flame);
+    while (dustAcc >= 1) {
+      dustAcc -= 1;
+      kickDust(player.x + (Math.random() < 0.5 ? -0.86 : 0.86), 1.6, 1.8, 0.75, pv);
+    }
+    // The traffic near enough to see, and the ghost.
+    for (const v of vehicles) {
+      if (v.dir < 0 || v.z === HIDDEN_Z || v.z < -260 || v.z > 30) continue;
+      const k = (dustFrom.get(v) || 0) + dt * 9;
+      dustFrom.set(v, k % 1);
+      if (k >= 1) kickDust(v.x + rand(-v.halfW, v.halfW), v.z + v.len / 2, v.kind === 'truck' ? 2.6 : 1.8, 0.6, v.v);
+    }
+    if (ghostRoot.visible && Math.random() < dt * 24) kickDust(ghostRoot.position.x + rand(-0.86, 0.86), ghostRoot.position.z + 1.6, 1.8, 0.6, pv);
+  }
+  const a = dustMesh.instanceMatrix.array;
+  for (let i = 0; i < DUST_N; i++) {
+    const d = dust[i];
+    d.life += dt;
+    const t = d.life / d.max;
+    if (t >= 1) { dustAlpha.array[i] = 0; a.fill(0, i * 16, i * 16 + 16); continue; }
+    d.x += d.vx * dt; d.y += d.vy * dt; d.z += (pv - d.carry) * dt;
+    d.carry *= 1 - Math.min(1, dt * 1.6);
+    d.vy *= 1 - dt * 0.8;
+    const size = d.size + d.grow * d.life;
+    const o = i * 16;
+    a.fill(0, o, o + 16);
+    a[o] = size; a[o + 5] = size; a[o + 10] = size; a[o + 15] = 1;
+    a[o + 12] = d.x; a[o + 13] = d.y; a[o + 14] = d.z;
+    dustAlpha.array[i] = d.a * Math.pow(1 - t, 1.5) * Math.min(1, d.life * 6);
+  }
+  dustMesh.instanceMatrix.needsUpdate = true;
+  dustAlpha.needsUpdate = true;
+}
+
+// The desert track's bumps under a point `s` m down the road (m): washboard,
+// a rolling surface and the odd stone. A picture only - it moves the truck's
+// body and the camera, never the game.
+function dirtBump(s) {
+  const wash = Math.sin(s * 2.4) * 0.012;
+  const roll = Math.sin(s * 0.55 + Math.sin(s * 0.13) * 2) * 0.028;
+  const seg = Math.floor(s / 14);
+  const h = Math.sin(seg * 91.7) * 43758.5;
+  const r = h - Math.floor(h);
+  const jolt = r > 0.78 ? Math.sin(Math.PI * clamp((s / 14 - seg - 0.4) / 0.12, 0, 1)) * 0.1 * ((r - 0.78) / 0.22) : 0;
+  return wash + roll + jolt;
+}
+
 // ---------- Game Room: rain ----------
 // Thin quads, not lines: WebGL lines are always 1 px, which all but vanishes
 // once the engine lowers its resolution or the motion blur smears it.
@@ -2523,10 +2680,12 @@ function drive(dt) {
   player.nitro = player.boosting ? Math.max(0, player.nitro - dt * 0.24) : Math.min(1, player.nitro + dt * 0.05);
   const latMax = lerp(3.5, 10.5, clamp(player.v / 45, 0, 1));
   // Game Room: on a wet road, sideways speed settles slowly - the car slides.
-  player.vx = damp(player.vx, steerIn * latMax * (wet ? 0.85 : 1), wet ? 2.0 : 7, dt);
+  // The desert's loose dirt does the same, more mildly (and more so when wet).
+  const dirt = circuit === 'desert';
+  player.vx = damp(player.vx, steerIn * latMax * (wet ? 0.85 : 1), wet ? (dirt ? 1.6 : 2.0) : dirt ? 3.2 : 7, dt);
   player.x += player.vx * dt;
-  // Game Room: a bend pushes the car toward its outside, harder the faster you go.
-  player.x -= curvatureAt(roadSeed, dist) * player.v * player.v * CENTRIFUGAL * (wet ? 1.5 : 1) * dt;
+  // Game Room: a bend pushes the car toward its outside, harder the faster you go (and on dirt).
+  player.x -= curvatureAt(roadSeed, dist) * player.v * player.v * CENTRIFUGAL * (wet ? 1.5 : 1) * (dirt ? 1.2 : 1) * dt;
   player.ap = LANES[nearestLane(player.x)];
   return steerIn;
 }
@@ -2639,6 +2798,15 @@ function updateCarVisual(dt, steerIn) {
   }
   orBody.rotation.copy(body.rotation);
   orBody.position.copy(body.position);
+  if (circuit === 'desert') {
+    // The wheels follow the dirt's bumps exactly; the body follows them softly, a little behind, and pitches with them.
+    for (const w of orWheels) w.position.y = OR_WHEEL_R + dirtBump(dist - w.position.z);
+    const front = dirtBump(dist + 1.45), rear = dirtBump(dist - 1.45);
+    player.bounce = damp(player.bounce || 0, (front + rear) * 0.5, 14, dt);
+    player.pitchB = damp(player.pitchB || 0, (front - rear) / 2.9, 14, dt);
+    orBody.position.y += player.bounce * 1.3;
+    orBody.rotation.x += player.pitchB * 1.2;
+  }
   const brakeK = player.braking ? 2.3 : 1;
   tailMat.color.copy(TAIL_ON).multiplyScalar(brakeK);
   tailGlow.intensity = 1.6 * brakeK;
@@ -2718,13 +2886,14 @@ function updateCamera(dt) {
   }
   let sx = 0, sy = 0;
   if (!reduceMotion) {
-    const amp = speedK * speedK * 0.025 + G.shake * 0.18 + boostK * 0.02;
+    const amp = speedK * speedK * 0.025 + G.shake * 0.18 + boostK * 0.02 + (circuit === 'desert' ? speedK * 0.05 : 0); // Game Room: dirt rumbles
     sx = (Math.random() - 0.5) * amp;
     sy = (Math.random() - 0.5) * amp;
   }
   // Game Room: the camera rides the hills, and looks up or down the road with them.
   const hills = BEND.nhHill.value;
-  camera.position.set(camPos.x + sx, camPos.y + sy + bendAt(hills, -camPos.z), camPos.z);
+  const jolt = circuit === 'desert' && driving ? (player.bounce || 0) * 0.9 : 0;
+  camera.position.set(camPos.x + sx, camPos.y + sy + jolt + bendAt(hills, -camPos.z), camPos.z);
   camera.lookAt(camLook.x, camLook.y + bendAt(hills, -camLook.z), camLook.z);
   if (driving) camera.rotateZ(-player.vx * 0.0035);
   else if (camera.aspect > 1.2) camera.rotateY(0.13);
@@ -3012,6 +3181,7 @@ function update(dt) {
   writeTraffic();
   updateCarVisual(dt, steerIn);
   updateSparks(dt, pv);
+  if (circuit === 'desert') updateDust(dt, pv);
   updateWind(dt, pv, player.x, player.flame);
   updateRain(dt, pv, player.x);
   updateLampLight();

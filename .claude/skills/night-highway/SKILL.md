@@ -175,8 +175,10 @@ single-file game (visuals, controls, physics, scoring).
     race sync don't change): packed dirt with ruts and no paint
     (`makeRoadTextures(true)`, fully matte). No oncoming road, barriers or
     oncoming cars (`highwayOnly`, hidden in `writeTraffic`/`updateStreaks`).
-  - The road edge is a low rocky berm (`bermGeo`) where the barriers were; the car
-    still stops at `LIM` and scrapes along it.
+  - The road edges wander: sand drifts in over the outer lanes (`sandSpill`) and a
+    low rocky bank bulges in and out behind it (`edges`/`updateEdge`, strips rebuilt
+    each frame like the walls). A picture only: the car still stops at `LIM` and
+    scrapes along the bank. Loose stones lie on the track (visual).
   - Canyon walls (`canyonWall`/`updateWall`): one strip per side, rebuilt every
     frame from the world distance (`wallNoise`), so they wind, step and rise as
     you drive; 10 m rows so they follow the hills. Layered strata texture.
@@ -188,6 +190,16 @@ single-file game (visuals, controls, physics, scoring).
     ghost too). It shares the car's paint, lamps and nitro flame, and its hitbox,
     so racing doesn't change. Lamps move with it (`LAMPS`); no neon underglow
     there (`UNDERGLOW_DESERT`).
+- **Driving on dirt** (desert only, same for both racers):
+  - Loose grip: sideways speed settles slowly after steering (`drive()`: settle
+    rate 3.2 vs the car's 7, 1.6 when wet too) and bends push 1.2x harder. Measured:
+    0.3 s after letting go, 33% of the slide is left vs 9% in the city.
+  - Bumpy ride: `dirtBump(s)` (washboard, rolling, the odd stone; a picture only)
+    moves the truck's wheels exactly and its body softly, and jolts the camera,
+    which also rumbles with speed.
+  - Dust (`updateDust`): puffs from the player's wheels (more when sliding or on
+    nitro), the traffic and the ghost. Each starts with its vehicle's speed
+    (`carry`) and slows, or it would vanish behind the camera at once.
 - **Built beside the city, swapped by `setCircuit()`** (called every frame from
   the shown switch; it only does work when the circuit changes). `CIRCUITS` holds
   each one's look; `cityObjs`/`desertObjs` are hidden and shown. Any new
