@@ -79,7 +79,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   // with an empty hash). Set from an effect, per this repo's
   // react-hooks/immutability lint rule.
   useEffect(() => {
-    if (startingSlug) window.location.href = new URL(`/${startingSlug}`, window.location.origin).href;
+    if (startingSlug) window.location.href = new URL(`/${gameBySlug(startingSlug)?.startPath ?? startingSlug}`, window.location.origin).href;
   }, [startingSlug]);
 
   const close = useCallback(() => setOpen(null), []);

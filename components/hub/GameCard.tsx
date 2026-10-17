@@ -3,6 +3,7 @@
 import type { CSSProperties, JSX } from "react";
 import CoCounselArt from "@/components/gameRoom/CoCounselArt";
 import FtwArt from "@/components/gameRoom/FtwArt";
+import IaiArt from "@/components/gameRoom/IaiArt";
 import NightHighwayArt from "@/components/gameRoom/NightHighwayArt";
 import type { GameEntry } from "@/lib/games/registry";
 
@@ -10,6 +11,7 @@ const ART_BY_SLUG: Record<string, () => JSX.Element> = {
   ftw: FtwArt,
   cocounsel: CoCounselArt,
   nighthighway: NightHighwayArt,
+  iai: IaiArt,
 };
 
 /** On the white card: a 3px teal focus outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
@@ -66,7 +68,7 @@ export default function GameCard({ game, index, startingSlug, joinOpen, onStart,
         <div className="mt-1.5 flex gap-2.5">
           <button
             type="button"
-            aria-label={`Start a ${game.title} room`}
+            aria-label={game.startPath ? `Start ${game.title}` : `Start a ${game.title} room`}
             disabled={startingSlug != null}
             onClick={() => onStart(game.slug)}
             className={`${buttonBase} disabled:opacity-80`}

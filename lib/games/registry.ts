@@ -9,6 +9,11 @@ export interface GameEntry {
   tags: string[];
   /** How many players this game needs. Defaults to 2 (1v1) when omitted. */
   maxPlayers?: number;
+  /**
+   * Where the hub's Start goes, if not the room page (`/<slug>`, which creates
+   * a room) - e.g. a game whose default is a solo page.
+   */
+  startPath?: string;
   /** Title color, chip border color, and the card buttons' border/shadow/text color - see references/game-room/game-room-ui-spec.md. */
   ink: string;
   /** Description text color. */
@@ -72,6 +77,21 @@ export const ALL_GAMES: GameEntry[] = [
     accentColor: "#FF2B45",
     titleClassName: "font-[family-name:var(--font-big-shoulders)] font-black uppercase tracking-[0.01em]",
     buttonTextClassName: "font-[family-name:var(--font-big-shoulders)] text-[20px] font-extrabold uppercase tracking-[0.04em]",
+  },
+  {
+    slug: "iai",
+    title: "Iaï",
+    description: "One blade against endless foes. Cut at the perfect moment, alone or side by side with a friend.",
+    tags: ["Solo", "Co-op soon"],
+    maxPlayers: 2,
+    // Solo is the default; co-op will live at the room page.
+    startPath: "iai/solo",
+    ink: "#0C0D1C",
+    textSecondary: "#4A4536",
+    // The game's gold (its seal red is too dark for ink-coloured button text).
+    accentColor: "#C9A24F",
+    titleClassName: "font-[family-name:var(--font-cormorant)] font-bold tracking-[0.12em]",
+    buttonTextClassName: "font-[family-name:var(--font-cormorant)] text-[20px] font-bold tracking-[0.08em]",
   },
 ];
 

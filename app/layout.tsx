@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Narrow, Big_Shoulders, Courier_Prime, Fredoka, Overpass, Overpass_Mono } from "next/font/google";
+import { Archivo, Archivo_Narrow, Big_Shoulders, Cormorant_Garamond, Courier_Prime, Fredoka, Overpass, Overpass_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
 import LocalModeBanner from "@/components/LocalModeBanner";
@@ -56,6 +56,13 @@ const overpassMono = Overpass_Mono({
   preload: false,
 });
 
+// Iaï's text face, for its hub card (the game itself embeds its own copy, components/iai/fonts.css).
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["600", "700"],
+});
+
 export const metadata: Metadata = {
   title: APP_TITLE,
   // Opened from the Home Screen, iOS runs it as a standalone app - whose
@@ -72,7 +79,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable}`}>
+    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${cormorant.variable}`}>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />
