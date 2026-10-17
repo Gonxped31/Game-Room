@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { setIdentityName as setName } from "@/lib/session/identity";
 import { pruneLikeFirebase, undefinedPaths } from "@/lib/store/firebaseShape";
-import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPlaced, setPrompt, submitGuess } from "./game";
+import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPlaced, setPrompt, setTopics, submitGuess } from "./game";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 
@@ -286,5 +286,38 @@ describe("setPlaced (live placement progress)", () => {
     expect("placed" in guessing.current).toBe(false);
     const revealed = submitGuess(setPlaced(guessing, "GUESSING", ids), ids);
     expect("placed" in revealed.current).toBe(false);
+  });
+});
+
+describe("setTopics", () => {
+  const KNOWN = ["Food", "Music", "Space"];
+
+  it("keeps the chosen topics in bank order, at any point in the round", () => {
+    const game = setTopics(freshGame(), ["Space", "Food"], KNOWN);
+    expect(game.topics).toEqual(["Food", "Space"]);
+    const guessing = lockIn(game, game.current.items.map((i) => i.id));
+    expect(setTopics(guessing, ["Music"], KNOWN).topics).toEqual(["Music"]);
+  });
+
+  it("stores no field for none or every topic (both mean every topic), never an explicit undefined", () => {
+    const some = setTopics(freshGame(), ["Food"], KNOWN);
+    for (const game of [setTopics(some, [], KNOWN), setTopics(some, KNOWN.slice(), KNOWN)]) {
+      expect("topics" in game).toBe(false);
+      expect(undefinedPaths(game)).toEqual([]);
+    }
+  });
+
+  it("drops duplicates and refuses a topic the bank doesn't have", () => {
+    expect(setTopics(freshGame(), ["Food", "Food"], KNOWN).topics).toEqual(["Food"]);
+    expect(() => setTopics(freshGame(), ["Cars"], KNOWN)).toThrow();
+  });
+
+  it("survives the next round and a new game started with them", () => {
+    let game = setTopics(freshGame(), ["Music"], KNOWN);
+    const ids = game.current.items.map((i) => i.id);
+    game = submitGuess(lockIn(game, ids), ids);
+    expect(nextRound(game, makeRound("Next", LABELS)).topics).toEqual(["Music"]);
+    expect(newGame(makeRound("Again", LABELS), ["Music"]).topics).toEqual(["Music"]);
+    expect("topics" in newGame(makeRound("Again", LABELS))).toBe(false);
   });
 });

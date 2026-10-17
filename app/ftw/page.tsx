@@ -15,9 +15,10 @@ import {
   nextRound as advanceRound,
   setPlaced,
   setPrompt,
+  setTopics,
   submitGuess,
 } from "@/lib/games/ftw/game";
-import { randomRound } from "@/lib/games/ftw/prompts";
+import { randomRound, TOPICS } from "@/lib/games/ftw/prompts";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RolePicker from "@/components/RolePicker";
@@ -25,6 +26,7 @@ import RoundBoard from "@/components/ftw/RoundBoard";
 import RoleStickers from "@/components/RoleStickers";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import SessionRecap from "@/components/ftw/SessionRecap";
+import TopicPicker from "@/components/ftw/TopicPicker";
 
 export default function FirstToWorstPage() {
   const createInitialState = useCallback(() => newGame(randomRound()), []);
@@ -53,10 +55,13 @@ export default function FirstToWorstPage() {
   const handlePlacedChange = (placedIds: string[]) => {
     if (status === "RANKING" || status === "GUESSING") transact((current) => setPlaced(current, status, placedIds));
   };
-  const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [])));
+  const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [], current.topics ?? [])));
+  const handleTopicsChange = (topics: string[]) => transact((current) => setTopics(current, topics, TOPICS));
   // Seats live at the room level, so a reset keeps both players seated -
-  // only the game itself starts over.
-  const handleResetGame = () => setGame(newGame(randomRound()));
+  // only the game itself starts over (with the same topics).
+  // Only topics the bank still has (a renamed category drops out rather than blocking changes).
+  const topics = (game?.topics ?? []).filter((t) => TOPICS.includes(t));
+  const handleResetGame = () => setGame(newGame(randomRound([], topics), topics));
 
   // RoundBoard's primary action renders in a bar fixed to the viewport
   // bottom while placing or revealed, which would otherwise cover the
@@ -102,6 +107,7 @@ export default function FirstToWorstPage() {
             masterName={masterName}
             guesserName={guesserName}
             usedPrompts={game.usedPrompts ?? []}
+            topics={topics}
             masterOrder={game.current.masterOrder ?? null}
             guessOrder={game.current.guessOrder ?? null}
             score={game.current.score ?? null}
@@ -112,6 +118,7 @@ export default function FirstToWorstPage() {
             onNextRound={handleNextRound}
             onChangePrompt={handleChangePrompt}
           />
+          <TopicPicker topics={topics} onChange={handleTopicsChange} />
           <SessionRecap history={game.history ?? []} names={names} />
         </>
       )}

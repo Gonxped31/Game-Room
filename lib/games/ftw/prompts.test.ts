@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ITEMS_PER_ROUND, MAX_ITEM_LENGTH, MAX_PROMPT_LENGTH } from "./constants";
-import { customRound, PROMPTS, randomRound } from "./prompts";
+import { customRound, PROMPTS, randomRound, TOPICS } from "./prompts";
 
 describe("PROMPTS", () => {
   it("has at least 25 built-in prompts", () => {
@@ -93,5 +93,36 @@ describe("built-in bank vs. the length caps", () => {
       expect(entry.prompt.length).toBeLessThanOrEqual(MAX_PROMPT_LENGTH);
       for (const item of entry.items) expect(item.length).toBeLessThanOrEqual(MAX_ITEM_LENGTH);
     }
+  });
+});
+
+describe("topics", () => {
+  const groupOf = (prompt: string) => PROMPTS.find((p) => p.prompt === prompt)!.group;
+
+  it("lists every group in the bank exactly once", () => {
+    expect(new Set(TOPICS).size).toBe(TOPICS.length);
+    expect(new Set(PROMPTS.map((p) => p.group))).toEqual(new Set(TOPICS));
+  });
+
+  it("only draws prompts from the chosen topics", () => {
+    const topics = [TOPICS[0], TOPICS[3]];
+    for (let i = 0; i < 100; i++) expect(topics).toContain(groupOf(randomRound([], topics).prompt));
+  });
+
+  it("goes through every prompt of the chosen topics before repeating, then cycles within them", () => {
+    const topics = [TOPICS[1]];
+    const size = PROMPTS.filter((p) => p.group === topics[0]).length;
+    const used: string[] = [];
+    for (let i = 0; i < size; i++) used.push(randomRound(used, topics).prompt);
+    expect(new Set(used).size).toBe(size);
+    const after = randomRound(used, topics).prompt;
+    expect(groupOf(after)).toBe(topics[0]);
+    expect(after).not.toBe(used[used.length - 1]);
+  });
+
+  it("draws from the whole bank when no topic is chosen", () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 300; i++) seen.add(groupOf(randomRound().prompt));
+    expect(seen.size).toBeGreaterThan(10);
   });
 });
