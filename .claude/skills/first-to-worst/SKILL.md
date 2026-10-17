@@ -24,22 +24,28 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   is mathematically impossible** (if four cards match, so does the fifth), and the
   tests check all 120 permutations. Expected, not a bug.
 - `lib/games/ftw/prompts.ts` + `prompts.json` - the prompt bank, plus
-  `randomRound(usedPrompts)` and `customRound(prompt, items)`.
+  `TOPICS`, `randomRound(usedPrompts, topics)` and `customRound(prompt, items)`.
 - `lib/games/ftw/constants.ts`:
   - `GAME_TITLE` - the only place the title lives.
   - `ITEMS_PER_ROUND` - **the only place "5" is encoded; never hardcode it**.
   - `MAX_PROMPT_LENGTH` (120) / `MAX_ITEM_LENGTH` (60).
   - `CONTAINER_MAX_WIDTH_CLASS` and `NUMBER_GRADIENTS`.
 - `components/ftw/` - `RoundBoard`, `CardTable`, `CardSlot`, `CardFace`, `Hand`,
-  `CustomPromptForm`, `SessionRecap`.
+  `CustomPromptForm`, `TopicPicker`, `SessionRecap`.
 - `app/ftw/page.tsx` - wires `useGameSession({ gameSlug: "ftw" })` to all of the
   above.
 
 ## State and Firebase
 
 - `GameState` contains `round`, `totals{p1,p2}`, `current{prompt, items[5],
-  status, masterOrder?, guessOrder?, score?, placed?}`, `usedPrompts[]` and
-  `history[]`.
+  status, masterOrder?, guessOrder?, score?, placed?}`, `usedPrompts[]`,
+  `history[]` and `topics?[]`.
+- **Topics** (`topics`, written by `setTopics`): the prompt-bank categories the
+  players want prompts from. Shared - either player can change it at any time in
+  `TopicPicker` (under the board) - and it applies from the next prompt (Shuffle,
+  Next round, Reset game). Absent means every topic: `setTopics` stores no field
+  for none or all, and `nextRound`/`newGame` carry it over. Validated by the rules
+  (strings ≤ 60, at most 99 entries).
 - **Live placement progress** (`current.placed`, written by `setPlaced`): the IDs
   of the slots the player whose turn it is has filled so far - **never the
   numbers**, because the other player can read the room. The other player sees
@@ -65,8 +71,10 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   doesn't matter.
 - `prompts.ts` flattens the JSON and interleaves categories with
   `interleaveByGroup()`, so no more than 2 consecutive prompts share a category.
-  This is enforced by code, not by file order. The `group` field is dev-only and
-  never shown.
+  This is enforced by code, not by file order. **The categories are the topics
+  players pick** (`TOPICS`, in file order), so a category's name is user-facing
+  and must stay ≤ 60 characters; renaming one drops it from rooms that chose it
+  (`setTopics` refuses unknown names, `randomRound` falls back to every topic).
 - `npm test` (`prompts.test.ts`) checks:
   - exactly `ITEMS_PER_ROUND` unique items per prompt;
   - no duplicate prompt text;
@@ -78,8 +86,9 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   - Anime & Manga and Pokémon are "pick your favorite from this list" prompts,
     about real series and games only.
 - **No repeats in a session**: `usedPrompts` records every prompt seen (shuffled,
-  custom or played). `randomRound` excludes all of them until the whole bank has
-  come up, then cycles while still avoiding the most recent prompt.
+  custom or played). `randomRound` excludes all of them until every prompt of the
+  chosen topics (or the whole bank) has come up, then cycles within them while
+  still avoiding the most recent prompt.
 
 ## Seats and players (current behavior)
 

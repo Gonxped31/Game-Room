@@ -5,7 +5,7 @@ import promptsByGroup from "./prompts.json";
 export interface PromptEntry {
   prompt: string;
   items: string[];
-  /** Dev-only categorization tag for auditing topic coverage - never shown in the UI. */
+  /** The prompt's category in prompts.json - a topic players can choose (TOPICS). */
   group: string;
 }
 
@@ -50,9 +50,8 @@ function interleaveByGroup<T extends { group: string }>(entries: T[], maxRun: nu
  * adding a prompt is "find your category's array, add an entry" - no need
  * to touch this file, pick an insertion point, or worry about ordering).
  * Every entry must have exactly ITEMS_PER_ROUND unique items - see
- * prompts.test.ts. The category grouping in the JSON is dev-only (never
- * shown in the UI); PROMPTS itself is a flat, reordered array so
- * randomRound doesn't need to know groups exist at all.
+ * prompts.test.ts. The categories are the topics players can choose from
+ * (TOPICS, shown by TopicPicker); PROMPTS itself is a flat, reordered array.
  */
 export const PROMPTS: PromptEntry[] = interleaveByGroup(
   Object.entries(promptsByGroup as Record<string, { prompt: string; items: string[] }[]>).flatMap(([group, entries]) =>
@@ -60,6 +59,9 @@ export const PROMPTS: PromptEntry[] = interleaveByGroup(
   ),
   2,
 );
+
+/** The bank's groups (the topics players can choose from), in prompts.json order. */
+export const TOPICS: readonly string[] = Object.keys(promptsByGroup);
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -71,18 +73,21 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
- * Picks a random built-in prompt, excluding every prompt in `usedPrompts`
- * (the session's history, so nothing repeats until the whole bank has come
- * up). Once that exhausts the pool, it cycles: picks from the full bank
- * again, still avoiding an immediate repeat of the very last prompt.
+ * Picks a random built-in prompt from the chosen `topics` (every topic when
+ * none are chosen), excluding every prompt in `usedPrompts` (the session's
+ * history, so nothing repeats until those topics have all come up). Once that
+ * exhausts the pool, it cycles: picks from those topics again, still avoiding
+ * an immediate repeat of the very last prompt.
  */
-export function randomRound(usedPrompts: string[] = []): CurrentRound {
+export function randomRound(usedPrompts: string[] = [], topics: string[] = []): CurrentRound {
+  const chosen = PROMPTS.filter((p) => topics.includes(p.group));
+  const bank = chosen.length ? chosen : PROMPTS;
   const avoid = new Set(usedPrompts);
-  let pool = PROMPTS.filter((p) => !avoid.has(p.prompt));
+  let pool = bank.filter((p) => !avoid.has(p.prompt));
   if (pool.length === 0) {
     const last = usedPrompts[usedPrompts.length - 1];
-    pool = PROMPTS.filter((p) => p.prompt !== last);
-    if (pool.length === 0) pool = PROMPTS; // only reachable if the whole bank is a single prompt
+    pool = bank.filter((p) => p.prompt !== last);
+    if (pool.length === 0) pool = bank; // only reachable if the topics hold a single prompt
   }
   const choice = pool[Math.floor(Math.random() * pool.length)];
   return makeRound(choice.prompt, shuffle(choice.items));

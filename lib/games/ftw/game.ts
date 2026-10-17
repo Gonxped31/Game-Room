@@ -39,6 +39,12 @@ export interface GameState extends WithIdentity {
   usedPrompts: string[];
   /** One entry per completed (REVEALED) round this session, oldest first - the session recap. */
   history: RoundRecord[];
+  /**
+   * The prompt-bank groups the players want prompts from (shared by both,
+   * either can change it). Absent means every topic - Firebase drops the
+   * empty array anyway.
+   */
+  topics?: string[];
 }
 
 export interface RoundRecord {
@@ -79,8 +85,25 @@ function isValidOrder(order: string[] | undefined, items: RoundItem[]): order is
   return order.every((id) => ids.has(id));
 }
 
-export function newGame(firstRound: CurrentRound): GameState {
-  return { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], names: {}, history: [] };
+export function newGame(firstRound: CurrentRound, topics: string[] = []): GameState {
+  const game: GameState = { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], names: {}, history: [] };
+  return topics.length ? { ...game, topics } : game;
+}
+
+/**
+ * Chooses which topics prompts are drawn from, at any point in the game (it
+ * applies from the next prompt). `known` is the bank's groups, in bank order;
+ * the choice is kept in that order, and choosing none (or every one) means
+ * every topic, stored as no field at all.
+ */
+export function setTopics(game: GameState, topics: string[], known: readonly string[]): GameState {
+  if (!topics.every((t) => known.includes(t))) {
+    throw new Error("Unknown topic.");
+  }
+  const chosen = known.filter((t) => topics.includes(t));
+  const rest = { ...game };
+  delete rest.topics;
+  return chosen.length && chosen.length < known.length ? { ...rest, topics: chosen } : rest;
 }
 
 /** The round without its live `placed` progress - built fresh (not set to undefined), since Firebase refuses an explicit undefined. */
@@ -164,7 +187,7 @@ export function nextRound(game: GameState, round: CurrentRound): GameState {
   // always empty now (it lives at the room level) and Firebase drops empty
   // objects and arrays, so they read back missing - and Firebase refuses to
   // write an explicit `undefined`.
-  return {
+  const next: GameState = {
     round: game.round + 1,
     totals: game.totals,
     current: round,
@@ -172,4 +195,5 @@ export function nextRound(game: GameState, round: CurrentRound): GameState {
     names: game.names ?? {},
     history: game.history ?? [],
   };
+  return game.topics?.length ? { ...next, topics: game.topics } : next;
 }
