@@ -39,16 +39,23 @@ can judge whether it still applies) · **Where** (files involved).
 
 ## Next time someone has a real iPhone handy
 
-- **Do:** open an FTW room on a real iPhone (Safari) and check two things.
-  - Are the five hand cards in the bottom bar showing their numbered faces
+- **Do:** on a real iPhone (Safari), check:
+  - FTW: are the five hand cards in the bottom bar showing their numbered faces
     (1-5), not a mirrored "RANK CARD" back?
-  - Does "Shuffle prompt" read as one word (not "Shuff le")?
+  - FTW: does "Shuffle prompt" read as one word (not "Shuff le")?
+  - Night Highway: does the road render smoothly (the engine lowers its own
+    resolution when frames run slow), do the touch buttons steer, brake and boost,
+    and does the HUD clear the notch and home bar? Is the "Night Highway" wordmark
+    heavy, not hairline-thin?
 
-  If both look right, delete this entry. If not, fix it (the card flip's
+  If all of that looks right, delete this entry. If not, fix it (the card flip's
   `backfaceVisibility` in `components/ftw/CardFace.tsx`; Fredoka's `ffl`
-  ligature) and verify on the phone.
-- **Why:** both show up only in Playwright's WebKit on Windows, not on the Android
-  or desktop profiles. Adding the `-webkit-backface-visibility` prefix made no
-  difference there. That points to how WebKit's Windows build draws 3D transforms
-  and fonts, not to a real iPhone bug, but only a real device can confirm it.
-- **Where:** `components/ftw/CardFace.tsx`, `components/ftw/Hand.tsx`.
+  ligature; Night Highway's `components/nighthighway/`) and verify on the phone.
+- **Why:** the FTW issues show up only in Playwright's WebKit on Windows, not on
+  the Android or desktop profiles. Adding the `-webkit-backface-visibility` prefix
+  made no difference there. That points to how WebKit's Windows build draws 3D
+  transforms and fonts, not to a real iPhone bug, but only a real device can
+  confirm it. Night Highway can't be judged there either: that WebKit draws the
+  3D road slowly and renders variable-font weights hairline-thin.
+- **Where:** `components/ftw/CardFace.tsx`, `components/ftw/Hand.tsx`,
+  `components/nighthighway/`.

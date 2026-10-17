@@ -96,6 +96,10 @@ workflow.
    - array key ranges (arrays are stored as objects keyed `0..n`).
 4. Add valid and invalid state tests to `tests/rules/gameState.test.ts`. Build the
    valid states by playing the real state machine, as the existing tests do.
+5. **Data that changes many times a second** (positions in a real-time game) does
+   not belong in the game state, where every write is a transaction both players
+   contend over. Give it a sibling node that each seat writes only for itself, like
+   Night Highway's `nighthighwayCars/{seat}` (see the `night-highway` skill).
 
 ## 5. Verify
 

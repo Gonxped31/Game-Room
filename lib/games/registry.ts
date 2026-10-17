@@ -61,6 +61,18 @@ export const ALL_GAMES: GameEntry[] = [
     titleClassName: "font-[family-name:var(--font-archivo)] font-extrabold tracking-[-0.02em]",
     buttonTextClassName: "font-[family-name:var(--font-archivo)] text-[18px] font-extrabold",
   },
+  {
+    slug: "nighthighway",
+    title: "Night Highway",
+    description: "Race a friend down the same freeway after midnight. Same traffic, same 60 seconds, highest score wins.",
+    tags: ["2 players", "Live", "Solo too"],
+    maxPlayers: 2,
+    ink: "#04070F",
+    textSecondary: "#3A4560",
+    accentColor: "#FF2B45",
+    titleClassName: "font-[family-name:var(--font-big-shoulders)] font-black uppercase tracking-[0.01em]",
+    buttonTextClassName: "font-[family-name:var(--font-big-shoulders)] text-[20px] font-extrabold uppercase tracking-[0.04em]",
+  },
 ];
 
 /** The games shown as cards on the hub. */

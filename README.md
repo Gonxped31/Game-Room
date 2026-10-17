@@ -30,6 +30,12 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
     matching pair while talking it out loud.
   - There are no live scores. How well you listened (Trust) and remembered (Focus)
     only shows up at the end of the case.
+- **Night Highway** (`/nighthighway`) - a 60-second race down a 3D freeway after
+  midnight.
+  - Both players drive the same road at the same time, through identical traffic,
+    and see each other as a ghost car.
+  - Score is distance plus near-miss bonuses; the higher score wins the race.
+  - `/nighthighway/solo` is the original single-player game, no room needed.
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
 game, the database-rules workflow and live two-player testing are Claude Code skills
@@ -134,7 +140,8 @@ games/{roomCode}/
   players:    { p1: { name }, ... }          // display names
   presence:   { [uid]: { online, lastSeen } }
   lastActive: number
-  ftw | cocounsel: { ...game state... }      // one per room, validated field by field
+  ftw | cocounsel | nighthighway: { ...game state... }  // one per room, validated field by field
+  nighthighwayCars: { p1: {...}, p2: {...} }  // each racer's live car, 10x a second (own seat only)
 roomsByName/{nameKey}: roomCode              // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 ```

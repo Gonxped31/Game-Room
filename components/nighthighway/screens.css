@@ -1,0 +1,65 @@
+/*
+ * Night Highway's race-page screens (./Screens.tsx), in the original title
+ * card's language: the variables and type come from ./nighthighway.css.
+ */
+.nh .nh-screen { pointer-events: none; }
+.nh .nh-wordmark { font-size: clamp(56px, 11vw, 132px); }
+.nh .nh-back {
+  pointer-events: auto; position: absolute;
+  top: max(16px, env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--rule); background: var(--veil-soft); color: var(--ink);
+  font: 600 18px/1 var(--font-mono); text-decoration: none;
+}
+.nh .nh-back:focus-visible, .nh .nh-field:focus-visible, .nh .nh-linkbtn:focus-visible, .nh .card a:focus-visible { outline: 2px solid var(--nitro); outline-offset: 3px; }
+.nh .card a, .nh .nh-linkbtn { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.nh .nh-linkbtn { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.nh .card { -webkit-user-select: text; user-select: text; }
+.nh .cta:disabled { cursor: not-allowed; background: var(--track); color: var(--ink-dim); }
+.nh .cta:disabled:hover { background: var(--track); color: var(--ink-dim); }
+
+.nh .nh-field {
+  min-width: 0; flex: 1 1 14rem; max-width: 22rem; height: 44px; padding: 0 14px;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--veil); color: var(--ink);
+  font: 400 16px/1 var(--font-body);
+}
+.nh .nh-field::placeholder { color: var(--ink-faint); }
+.nh .nh-field[aria-invalid="true"] { border-color: var(--taillight); }
+.nh .nh-error { color: var(--taillight); }
+
+.nh .nh-headline { font-size: clamp(48px, 9vw, 112px); text-transform: uppercase; }
+.nh .nh-headline.nh-win { color: var(--taillight); text-shadow: 0 0 18px rgba(255, 43, 69, 0.55), 0 0 64px rgba(255, 43, 69, 0.35); }
+
+.nh .nh-table-wrap { overflow-x: auto; padding-top: 14px; border-top: 1px solid var(--rule); }
+.nh .nh-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.nh .nh-table th, .nh .nh-table td { padding: 5px 14px 5px 0; text-align: left; white-space: nowrap; }
+.nh .nh-table thead th { font: 600 11px/1 var(--font-mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); padding-bottom: 8px; }
+.nh .nh-table tbody th { font: 600 11px/1.2 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); }
+.nh .nh-table td { font: 800 20px/1.1 var(--font-display); }
+
+/* The shared invite banner keeps its own look; give it room to breathe on the dark card. */
+.nh .nh-invite { pointer-events: auto; max-width: 30rem; color: #000; }
+.nh .nh-links { pointer-events: auto; }
+
+.nh .nh-getready { display: grid; place-items: center; }
+.nh .nh-getready p { margin: 0; font: 900 clamp(48px, 9vw, 110px)/1 var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.nh .opp { color: var(--nitro); }
+
+@media (max-height: 520px) {
+  .nh .nh-wordmark { font-size: clamp(40px, 14vh, 90px); }
+  .nh .nh-headline { font-size: clamp(40px, 14vh, 90px); }
+}
+
+/* Solo page: the way out, and the way to a race. */
+.nh .nh-solo-nav {
+  position: fixed; z-index: 2; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; pointer-events: none;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+}
+.nh .nh-solo-nav .nh-back { position: static; }
+.nh .nh-race-link {
+  pointer-events: auto; padding: 10px 14px 8px; border: 1px solid var(--rule); border-radius: 3px; background: var(--veil-soft);
+  color: var(--ink); font: 800 12px/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none;
+}
+.nh .nh-race-link:hover { background: var(--taillight); }
+.nh .nh-race-link:focus-visible { outline: 2px solid var(--nitro); outline-offset: 3px; }

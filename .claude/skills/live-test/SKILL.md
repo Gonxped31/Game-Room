@@ -61,6 +61,22 @@ It covers:
 It exits non-zero on failure and prints browser console errors. Zero console
 errors is part of passing.
 
+**Night Highway** has its own check, since a race lasts a full minute (about 1.5
+minutes in all):
+
+```bash
+node .claude/skills/live-test/scripts/night-highway-race.mjs [baseUrl] [screenshotDir]
+```
+
+It starts a solo run, then races a desktop player against an iPhone:
+- Ready on both sides starts the race in the database.
+- Chromium and WebKit compute identical traffic for the race's seed.
+- Each HUD names the other driver, and both live cars reach the database.
+- Both results land when the clock runs out, and both see the results screen.
+
+Headless browsers render the 3D road at a few frames per second. That's expected:
+the engine makes up slow frames in a race, so scores stay comparable.
+
 ## 3. Writing a check for your own change
 
 Copy the patterns from `scripts/two-players.mjs`:

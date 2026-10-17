@@ -5,6 +5,7 @@ import {
   firebaseSetOnDisconnect,
   firebaseUpdateRoot,
   firebaseWatchConnection,
+  firebaseWatchServerTimeOffset,
 } from "./firebaseStore";
 import { localSetOnDisconnect, localStore, localUpdateRoot } from "./localDb";
 import type { Store } from "./types";
@@ -48,6 +49,17 @@ export function serverTimestamp(): unknown {
 export function watchConnection(onChange: (connected: boolean) => void): () => void {
   if (hasFirebaseConfig) return firebaseWatchConnection(onChange);
   const id = setTimeout(() => onChange(true), 0);
+  return () => clearTimeout(id);
+}
+
+/**
+ * Calls back with how far (ms) this device's clock is from the server's, so
+ * `Date.now() + offset` is the server's time - what two devices need to start
+ * something at the same moment. Always 0 in local mode (one machine, one clock).
+ */
+export function watchServerTimeOffset(onChange: (offsetMs: number) => void): () => void {
+  if (hasFirebaseConfig) return firebaseWatchServerTimeOffset(onChange);
+  const id = setTimeout(() => onChange(0), 0);
   return () => clearTimeout(id);
 }
 

@@ -88,6 +88,11 @@ export function firebaseWatchConnection(onChange: (connected: boolean) => void):
   return onValue(ref(getFirebaseDatabase(), ".info/connected"), (snapshot) => onChange(snapshot.val() === true));
 }
 
+/** Calls back with this client's estimated offset (ms) from the server's clock, whenever Firebase refines it. */
+export function firebaseWatchServerTimeOffset(onChange: (offsetMs: number) => void): () => void {
+  return onValue(ref(getFirebaseDatabase(), ".info/serverTimeOffset"), (snapshot) => onChange(Number(snapshot.val()) || 0));
+}
+
 /** Has the server write `value` at `path` if this client disconnects. Returns a function that cancels it. */
 export async function firebaseSetOnDisconnect(path: string, value: unknown): Promise<() => Promise<void>> {
   const handle = onDisconnect(ref(getFirebaseDatabase(), path));

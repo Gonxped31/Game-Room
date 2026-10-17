@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Narrow, Courier_Prime, Fredoka } from "next/font/google";
+import { Archivo, Archivo_Narrow, Big_Shoulders, Courier_Prime, Fredoka, Overpass, Overpass_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
 import LocalModeBanner from "@/components/LocalModeBanner";
@@ -30,6 +30,32 @@ const courierPrime = Courier_Prime({
   weight: ["400", "700"],
 });
 
+// Night Highway's type (references/night-highway/Night Highway.html). Google
+// now ships "Big Shoulders Display" as Big Shoulders' large optical sizes: the
+// browser picks the size from the font size (the opsz axis), so big headings
+// get the Display cut. It's also the hub card's title face, so it preloads;
+// the Overpass faces only ever appear in the game, so they don't.
+const bigShoulders = Big_Shoulders({
+  variable: "--font-big-shoulders",
+  subsets: ["latin"],
+  axes: ["opsz"],
+  // next/font has no metrics to size-match a fallback for it; name one instead.
+  adjustFontFallback: false,
+  fallback: ["Oswald", "Arial Narrow", "Impact", "sans-serif"],
+});
+const overpass = Overpass({
+  variable: "--font-overpass",
+  subsets: ["latin"],
+  weight: ["400", "600", "800"],
+  preload: false,
+});
+const overpassMono = Overpass_Mono({
+  variable: "--font-overpass-mono",
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: APP_TITLE,
   // Opened from the Home Screen, iOS runs it as a standalone app - whose
@@ -46,7 +72,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable}`}>
+    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable}`}>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />

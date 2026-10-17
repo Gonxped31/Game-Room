@@ -6,8 +6,8 @@ import { gameBySlug } from "@/lib/games/registry";
  * The 40px game tile at the start of each "Your rooms" row
  * (references/game-room/game-room-ui-spec.md, "Your rooms content"): First to
  * Worst is a teal square with a mini "1" number card; Co-Counsel is the
- * blue/red split with the yellow lens. Decorative - the row's text names the
- * game.
+ * blue/red split with the yellow lens; Night Highway is the night road with a
+ * pair of taillights. Decorative - the row's text names the game.
  */
 export default function GameTile({ slug }: { slug: string }) {
   if (slug === "ftw") {
@@ -37,6 +37,15 @@ export default function GameTile({ slug }: { slug: string }) {
           <span className="absolute right-0 top-0 h-[18px] w-[18px] rounded-full border-2 border-white" />
           <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ backgroundColor: COLOR.yellow }} />
         </span>
+      </span>
+    );
+  }
+  if (slug === "nighthighway") {
+    return (
+      <span aria-hidden="true" className="relative block h-10 w-10 shrink-0 overflow-hidden rounded-[10px]" style={{ background: "linear-gradient(#0a1633, #04070f)" }}>
+        <span className="absolute inset-x-0 bottom-0 h-[22px]" style={{ background: "#1b2135", clipPath: "polygon(42% 0, 58% 0, 100% 100%, 0 100%)" }} />
+        <span className="absolute bottom-[8px] left-[11px] h-[3px] w-[5px] rounded-[1px] bg-[#ff2b45] shadow-[0_0_6px_2px_rgba(255,43,69,.7)]" />
+        <span className="absolute bottom-[8px] right-[11px] h-[3px] w-[5px] rounded-[1px] bg-[#ff2b45] shadow-[0_0_6px_2px_rgba(255,43,69,.7)]" />
       </span>
     );
   }

@@ -1,7 +1,7 @@
 /**
  * Game-state .validate rules (spec §8). Valid states come from each game's
  * real state machine - a full round of First to Worst and a whole
- * Co-Counsel case, written one transition at a time - so the rules are
+ * Co-Counsel case, a Night Highway race series, written one transition at a time - so the rules are
  * checked against what the app actually writes, not a hand-built fixture.
  */
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
@@ -10,7 +10,8 @@ import { lockIn as ftwLockIn, newGame as newFtwGame, nextRound, setPlaced, setPr
 import { customRound, randomRound } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
 import { CASES, getCase } from "@/lib/games/cocounsel/cases";
-import { cocounselState, dbAs, ftwState, ROOM, seedRoom, setupEnv } from "./helpers";
+import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setReady, submitResult } from "@/lib/games/nighthighway/game";
+import { cocounselState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -119,5 +120,74 @@ describe("Co-Counsel", () => {
     ["a reveal with no cards", cocounselState({ lastReveal: { outcome: "solved" } })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+});
+
+describe("Night Highway", () => {
+  const path = `games/${ROOM}/nighthighway`;
+  const run = (score: number): RunResult => ({ score, distance: 3120, top: 291, avg: 187, nearMiss: 6, overtakes: 41, crashes: 2 });
+  beforeEach(async () => {
+    await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], gameSlug: "nighthighway" });
+  });
+
+  it("accepts every state of a real race series, including a race given up on", async () => {
+    const db = dbAs(env, "alice");
+    const write = <T,>(state: T) => writeAndReadBack(db, path, state);
+    const now = Date.now();
+    let game = await write(newNhGame());
+    game = await write(setReady(game, "p1", true, now, 11));
+    game = await write(setReady(game, "p1", false, now, 11));
+    game = await write(setReady(game, "p2", true, now, 11));
+    game = await write(setReady(game, "p1", true, now, 4242));
+    expect(game.phase).toBe("RACING");
+    game = await write(submitResult(game, "p2", run(14250)));
+    game = await write(submitResult(game, "p1", run(9800)));
+    expect(game.phase).toBe("DONE");
+    game = await write(setReady(setReady(game, "p1", true, now, 1), "p2", true, now, 99));
+    game = await write(submitResult(game, "p1", run(300)));
+    game = await write(giveUpOnMissingResults(game, now + 60 * 60 * 1000));
+    expect(game.history).toHaveLength(2);
+  });
+
+  it.each([
+    ["a bad phase", nighthighwayState({ phase: "PAUSED" })],
+    ["no wins", (() => { const s: Record<string, unknown> = nighthighwayState(); delete s.wins; return s; })()],
+    ["a ready flag for p3", nighthighwayState({ ready: { p3: true } })],
+    ["a ready flag that isn't true", nighthighwayState({ ready: { p1: "yes" } })],
+    ["a string seed", nighthighwayState({ seed: "abc" })],
+    ["a result missing a field", nighthighwayState({ results: { p1: { score: 1 } } })],
+    ["a result with an extra field", nighthighwayState({ results: { p1: { ...run(1), lapTime: 3 } } })],
+    ["a bad winner", nighthighwayState({ history: [{ race: 1, scores: { p1: 1 }, winner: "p3" }] })],
+    ["an unknown key", nighthighwayState({ cheats: true })],
+  ])("rejects %s", async (_, state) => {
+    await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+});
+
+describe("Night Highway live cars", () => {
+  const car = (overrides: Record<string, unknown> = {}) => ({ race: 1, t: 1500, s: 46.5, x: -1.8, v: 31, score: 0, paint: 2, ...overrides });
+  beforeEach(async () => {
+    await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], gameSlug: "nighthighway" });
+  });
+
+  it("lets each player write and clear only their own car", async () => {
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/nighthighwayCars/p1`).set(car()));
+    await assertSucceeds(dbAs(env, "bob").ref(`games/${ROOM}/nighthighwayCars/p2`).set(car()));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/nighthighwayCars/p2`).set(car()));
+    await assertFails(dbAs(env, "carol").ref(`games/${ROOM}/nighthighwayCars/p1`).set(car()));
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/nighthighwayCars/p1`).remove());
+  });
+
+  it.each([
+    ["a missing field", (() => { const c: Record<string, unknown> = car(); delete c.s; return c; })()],
+    ["an extra field", car({ boost: 1 })],
+    ["a string position", car({ s: "46" })],
+  ])("rejects %s", async (_, value) => {
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/nighthighwayCars/p1`).set(value));
+  });
+
+  it("is refused in a room of another game", async () => {
+    await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], room: "zzz234" });
+    await assertFails(dbAs(env, "alice").ref("games/zzz234/nighthighwayCars/p1").set(car()));
   });
 });

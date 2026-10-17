@@ -19,7 +19,8 @@ games/{roomCode}/
   players     { pN: { name } } -- only the seat's holder writes it
   presence    { uid: { online, lastSeen } } -- own entry only, members only
   lastActive  members only
-  ftw | cocounsel              -- members of a room of that gameSlug (or the creating write); fully .validate'd
+  ftw | cocounsel | nighthighway -- members of a room of that gameSlug (or the creating write); fully .validate'd
+  nighthighwayCars/{pN}        -- Night Highway's live cars: only the uid seated in pN writes it
 roomsByName/{nameKey}: code    -- unique; only the room's creator can claim or delete it
 users/{uid}/rooms/{code}       -- only that uid reads or writes; fixed fields
 ```
@@ -65,8 +66,8 @@ Reads: any signed-in guest can read one room or one name entry. Nobody can read
 
 ### Testing 3+ seat rooms
 
-- The deployed rules only allow `ftw`/`cocounsel`, which both force
-  `maxPlayers == 2`.
+- The deployed rules only allow `ftw`/`cocounsel`/`nighthighway`, which all
+  force `maxPlayers == 2`.
 - `setupEnv(projectId, "mptest")` in `tests/rules/helpers.ts` injects a test-only
   slug **in memory**. Never add it to the file itself.
 - `mptest` has no game-state node, so drop its game path from a create update in

@@ -7,7 +7,7 @@ export const TS = { ".sv": "timestamp" } as const;
 
 /**
  * `database.rules.json`, optionally with an extra game slug allowed in
- * `meta/gameSlug`. The deployed rules only know 'ftw' and 'cocounsel', which
+ * `meta/gameSlug`. The deployed rules only know 'ftw', 'cocounsel' and 'nighthighway', which
  * both require maxPlayers == 2 - a test-only slug is the only way to cover
  * 3+ seat rooms (rules test 5, the multiplayer module) without shipping a
  * slug nobody plays to production.
@@ -54,6 +54,10 @@ export function ftwState(overrides: Record<string, unknown> = {}) {
   };
 }
 
+export function nighthighwayState(overrides: Record<string, unknown> = {}) {
+  return { phase: "LOBBY", race: 0, wins: { p1: 0, p2: 0 }, ...overrides };
+}
+
 export function cocounselState(overrides: Record<string, unknown> = {}) {
   return { caseId: "ruined-birthday", partIndex: 0, attempts: 0, phase: "SELECTING", ...overrides };
 }
@@ -70,7 +74,7 @@ export async function seedRoom(
   const { creator, seated = [], gameSlug = "ftw", maxPlayers = 2, room = ROOM, presence = {} } = opts;
   const data: Record<string, unknown> = {
     [`games/${room}/meta`]: { ...metaFor(creator, gameSlug, maxPlayers), createdAt: Date.now() - 1000 },
-    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : ftwState(),
+    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : gameSlug === "nighthighway" ? nighthighwayState() : ftwState(),
   };
   seated.forEach((uid, i) => {
     data[`games/${room}/seats/p${i + 1}`] = uid;

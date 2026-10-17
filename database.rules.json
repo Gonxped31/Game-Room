@@ -10,8 +10,8 @@
         "meta": {
           ".write": "auth != null && !data.exists() && $room.matches(/^[a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9]$/)",
           ".validate": "newData.hasChildren(['gameSlug', 'maxPlayers', 'createdAt', 'createdBy'])",
-          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel'" },
-          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel') || newData.val() == 2)" },
+          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel' || newData.val() == 'nighthighway'" },
+          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel' && newData.parent().child('gameSlug').val() != 'nighthighway') || newData.val() == 2)" },
           "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
           "createdBy": { ".validate": "newData.val() == auth.uid" },
           "name": {
@@ -230,6 +230,80 @@
           },
           "$other": {
             ".validate": false
+          }
+        },
+
+        "nighthighway": {
+          ".write": "auth != null && newData.parent().child('meta/gameSlug').val() == 'nighthighway' && (newData.parent().child('members/' + auth.uid).exists() || (!data.parent().child('meta').exists() && newData.parent().child('meta/createdBy').val() == auth.uid))",
+          ".validate": "newData.hasChildren(['phase', 'race', 'wins'])",
+          "phase": { ".validate": "newData.val() == 'LOBBY' || newData.val() == 'RACING' || newData.val() == 'DONE'" },
+          "race": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "ready": {
+            "p1": { ".validate": "newData.val() == true" },
+            "p2": { ".validate": "newData.val() == true" },
+            "$other": { ".validate": false }
+          },
+          "seed": { ".validate": "newData.isNumber()" },
+          "startAt": { ".validate": "newData.isNumber()" },
+          "results": {
+            "p1": {
+              ".validate": "newData.hasChildren(['score', 'distance', 'top', 'avg', 'nearMiss', 'overtakes', 'crashes'])",
+              "score": { ".validate": "newData.isNumber()" },
+              "distance": { ".validate": "newData.isNumber()" },
+              "top": { ".validate": "newData.isNumber()" },
+              "avg": { ".validate": "newData.isNumber()" },
+              "nearMiss": { ".validate": "newData.isNumber()" },
+              "overtakes": { ".validate": "newData.isNumber()" },
+              "crashes": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            },
+            "p2": {
+              ".validate": "newData.hasChildren(['score', 'distance', 'top', 'avg', 'nearMiss', 'overtakes', 'crashes'])",
+              "score": { ".validate": "newData.isNumber()" },
+              "distance": { ".validate": "newData.isNumber()" },
+              "top": { ".validate": "newData.isNumber()" },
+              "avg": { ".validate": "newData.isNumber()" },
+              "nearMiss": { ".validate": "newData.isNumber()" },
+              "overtakes": { ".validate": "newData.isNumber()" },
+              "crashes": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            },
+            "$other": { ".validate": false }
+          },
+          "wins": {
+            ".validate": "newData.hasChildren(['p1', 'p2'])",
+            "p1": { ".validate": "newData.isNumber()" },
+            "p2": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          },
+          "history": {
+            "$i": {
+              ".validate": "$i.matches(/^[0-9]+$/) && $i.length <= 4 && newData.hasChildren(['race', 'winner'])",
+              "race": { ".validate": "newData.isNumber()" },
+              "scores": {
+                "p1": { ".validate": "newData.isNumber()" },
+                "p2": { ".validate": "newData.isNumber()" },
+                "$other": { ".validate": false }
+              },
+              "winner": { ".validate": "newData.val() == 'p1' || newData.val() == 'p2' || newData.val() == 'tie'" },
+              "$other": { ".validate": false }
+            }
+          },
+          "$other": { ".validate": false }
+        },
+
+        "nighthighwayCars": {
+          "$seat": {
+            ".write": "auth != null && root.child('games/' + $room + '/meta/gameSlug').val() == 'nighthighway' && root.child('games/' + $room + '/members/' + auth.uid).val() == $seat",
+            ".validate": "newData.hasChildren(['race', 't', 's', 'x', 'v', 'score', 'paint'])",
+            "race": { ".validate": "newData.isNumber()" },
+            "t": { ".validate": "newData.isNumber()" },
+            "s": { ".validate": "newData.isNumber()" },
+            "x": { ".validate": "newData.isNumber()" },
+            "v": { ".validate": "newData.isNumber()" },
+            "score": { ".validate": "newData.isNumber()" },
+            "paint": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
           }
         },
 
