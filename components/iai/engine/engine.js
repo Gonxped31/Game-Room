@@ -1943,7 +1943,8 @@ function drawLeg(g, L, out, cos, back, t, flap) {
     const kO = add2(K, mul2(nT, cos.kneeW + 5)), kI = add2(K, mul2(nS, -cos.kneeW * .85));
     const hy = Math.max(A[1] + 3, -2) + (A[1] < -6 ? 0 : 0);
     const hemO = [A[0] + nS[0] * cos.hemW + fl * 8 + out * 6, hy], hemI = [A[0] - nS[0] * cos.hemW * .9 - out * 4, hy];
-    if (A[1] < -6) { hemO[1] = A[1] + 4; hemI[1] = A[1] + 6; }
+    // Game Room: a lifted foot (a jump) - the hem wraps the ankle across the shin, gathered, so the bent knee shows.
+    if (A[1] < -6) { const sd = nrm2(sub2(A, K)); hemO[0] = A[0] + nS[0] * cos.hemW * .62 + sd[0] * 4 + fl * 5; hemO[1] = A[1] + nS[1] * cos.hemW * .62 + sd[1] * 4; hemI[0] = A[0] - nS[0] * cos.hemW * .55 + sd[0] * 4; hemI[1] = A[1] - nS[1] * cos.hemW * .55 + sd[1] * 4; }
     const crotch = lerp2(add2(H, mul2(nT, -cos.hipW * .5)), K, .55);
     g.beginPath(); g.moveTo(hipI[0], hipI[1]); g.lineTo(hipO[0], hipO[1]);
     g.quadraticCurveTo(kO[0], kO[1], hemO[0], hemO[1]);
@@ -1972,7 +1973,7 @@ function drawLeg(g, L, out, cos, back, t, flap) {
     for (let k = 1; k < 5; k++) { const q = lerp2(K, A, .25 + k * .14); g.beginPath(); g.moveTo(q[0] - 6, q[1] - 2); g.lineTo(q[0] + 6, q[1] + 2); g.stroke(); }
   }
   // tabi + waraji sandal
-  const fd = A[1] < -6 ? nrm2([1, .35]) : [1, 0];
+  const sd = nrm2(sub2(A, K)), fd = A[1] < -6 ? nrm2([sd[1] + .2, -sd[0] + .8]) : [1, 0];
   g.save(); g.translate(A[0], A[1]); g.rotate(Math.atan2(fd[1], fd[0]));
   g.fillStyle = '#efe8d6'; g.beginPath(); g.moveTo(-8, -6); g.quadraticCurveTo(10, -9, 16, -2); g.lineTo(16, 1); g.lineTo(-9, 1); g.closePath(); g.fill();
   g.strokeStyle = INK; g.lineWidth = 1.3; g.stroke();
@@ -2223,10 +2224,20 @@ const POSE = {
   // Game Room: slumped on one knee, blade down.
   fallen: { lean: .62, crouch: 1.05, step: 34, gx: 64, gy: 88, sA: TAU + .62, head: .5 },
 };
-function samuraiRig(p) {
-  const hipY = -138 + 26 * p.crouch, H = [p.step * .4, hipY];
-  const ff = [44 + p.step, 0], bf = [-42 - p.crouch * 10 - p.step * .15, 0];
-  const lean = p.lean;
+// Game Room: `air` bends the body for a jump - feet lifted (fy/by), shifted
+// (fx/bx), extra crouch and lean - on top of the pose.
+const AIR = {
+  rise: { fx: -8, fy: 60, bx: -10, by: 6, crouch: -.1, lean: .1 },   // a knee driven up, the push-off leg trailing
+  top: { fx: -20, fy: 66, bx: 26, by: 54, crouch: .12, lean: .05 },  // both knees tucked
+  fall: { fx: 6, fy: 22, bx: 8, by: 30, crouch: 0, lean: -.05 },     // legs reaching for the ground
+  land: { fx: 8, fy: 0, bx: -8, by: 0, crouch: .45, lean: .12 },     // knees absorbing the landing
+};
+const NO_AIR = { fx: 0, fy: 0, bx: 0, by: 0, crouch: 0, lean: 0 };
+function samuraiRig(p, air = NO_AIR) {
+  const crouch = p.crouch + air.crouch;
+  const hipY = -138 + 26 * crouch, H = [p.step * .4, hipY];
+  const ff = [44 + p.step + air.fx, -air.fy], bf = [-42 - crouch * 10 - p.step * .15 + air.bx, -air.by];
+  const lean = p.lean + air.lean;
   const Sh = add2(H, rot2(0, -82, lean)), N = add2(Sh, rot2(2, -12, lean)), Hd = add2(N, rot2(8, -22, lean + p.head));
   const SF = add2(Sh, rot2(9, 3, lean)), SB = add2(Sh, rot2(-12, 1, lean));
   const Hf = add2(H, rot2(7, 2, lean)), Hb = add2(H, rot2(-7, 2, lean));
@@ -2260,7 +2271,22 @@ class Samurai {
   howl() { this.play([[POSE.howl, .2, Ease.outBack], [POSE.howl, 1.1, null], [POSE.ready, .35, Ease.inOutCubic]]); }
   sheath() { this.play([[POSE.follow, .12, Ease.outCubic], [POSE.sheath, .5, Ease.inOutCubic], [POSE.sheath, 99, null]]); }
   die() { this.play([[POSE.hurt, .1, Ease.outCubic], [POSE.fallen, .55, Ease.inOutCubic], [POSE.fallen, 1e6, null]]); }
-  rig() { return samuraiRig(this.pose); }
+  rig() { return samuraiRig(this.pose, this.legAir); }
+  // Game Room: the body in the air, from how fast the samurai rises or falls
+  // (measured, so a mirrored partner moves the same way).
+  updateAir(dt) {
+    if (dt <= 0) return;
+    const prev = this.prevY == null ? this.y : this.prevY;
+    this.vyS = lerp(this.vyS || 0, (this.y - prev) / dt, Math.min(1, dt * 20));
+    const up = this.y < -2 && !this.dead;
+    this.upT = up ? (this.upT || 0) + dt : (this.upT > .15 && !this.dead ? (this.land = 1, 0) : 0);
+    this.prevY = this.y;
+    this.airK = lerp(this.airK || 0, up ? 1 : 0, Math.min(1, dt * (up ? 22 : 30)));
+    this.land = Math.max(0, (this.land || 0) - dt * 4.5);
+    const v = this.vyS, k1 = smoothstep(-950, -250, v), k2 = smoothstep(150, 700, v), l = this.land, sq = l * l * (3 - 2 * l);
+    const A = this.legAir || (this.legAir = Object.assign({}, NO_AIR));
+    for (const key in NO_AIR) A[key] = lerp(lerp(AIR.rise[key], AIR.top[key], k1), AIR.fall[key], k2) * this.airK + AIR.land[key] * sq;
+  }
   drawTails(g, R, wind) {
     // two tapering haori tails streaming behind in the wind
     const T = (x, y) => add2(R.H, rot2(x, y, R.lean)), t = this.t;
@@ -2298,11 +2324,11 @@ class Samurai {
     } else {
       const b = Math.sin(this.t * 2.2);
       this.pose.crouch = POSE.ready.crouch + b * .015; this.pose.gy = POSE.ready.gy + b * 1.5; this.pose.lean = POSE.ready.lean + Math.sin(this.t * 1.1) * .01;
-      // Game Room: a quick stride while walking, and knees tucked in the air.
+      // Game Room: a quick stride while walking (the air pose is updateAir's).
       const stride = this.moving && this.y >= 0 ? Math.sin(this.t * 15) * 22 : 0;
       this.pose.step = lerp(this.pose.step, stride, Math.min(1, dt * 18));
-      if (this.y < 0) this.pose.crouch = lerp(this.pose.crouch, .8, Math.min(1, dt * 12));
     }
+    this.updateAir(dt);
     const R = this.rig();
     if (this.lastG && dt > 0) {
       const vx = (R.G[0] - this.lastG[0]) / dt, vy = (R.G[1] - this.lastG[1]) / dt;
@@ -3552,7 +3578,7 @@ const api = {
   },
 };
 if (options.exposeForTests) {
-  window.Iai = Object.assign(api, { GAME, P, R, COOP, V, WOLF, INPUT, slash, howl, startRun });
+  window.Iai = Object.assign(api, { GAME, P, R, COOP, V, WOLF, AS, INPUT, slash, howl, startRun });
   // A live getter: PLAYERS is replaced when a co-op run starts or ends.
   Object.defineProperty(api, 'PLAYERS', { get: () => PLAYERS, configurable: true });
 }

@@ -30,6 +30,9 @@ A combo multiplier (up to ×8) and a wolf-spirit gauge (Shift unleashes a wave).
   you face, Shift unleashes the wolf. Phones: ◀ ▶ JUMP on the left, 斬 on the right,
   the wolf button in the HUD. Jumping clears arrows (chest high) and enemy swings
   and fists (`AIRBORNE_Y`); stepping back during an enemy's wind-up makes it miss.
+  The body moves through the jump (`AIR` + `Samurai.updateAir`, from the measured
+  vertical speed, so a mirrored partner jumps the same way): a knee driven up on
+  the way up, both tucked at the top, legs reaching down, then a squash on landing.
 - **Enemies chase a samurai** (the nearest to their entry side) at their own
   speed, in world space: walking away really gains ground, and walking moves
   only your samurai (never re-anchor an enemy to `target.x + side * d`). `d` is
