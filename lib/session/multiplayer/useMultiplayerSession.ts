@@ -47,7 +47,7 @@ export interface MultiplayerSession<TState extends WithMultiplayerIdentity> {
  * a full room is enforced by the database, not just this hook). Kept as a
  * separate hook rather than merged with `useGameSession`, whose API every
  * 1v1 game depends on. No game is built on this yet - the first one that is
- * triggers merging the two hooks into one engine (see docs/follow-ups.md).
+ * triggers merging the two hooks into one engine (todo T-014).
  */
 export function useMultiplayerSession<TState extends WithMultiplayerIdentity>(opts: {
   gameSlug: string;
