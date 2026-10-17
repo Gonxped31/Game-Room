@@ -48,7 +48,7 @@ describe("deep sand layout", () => {
     expect(inSand(11, p.s + p.length / 2, right + 0.5)).toBe(false);
   });
 
-  it("costs about a quarter of the speed across an average patch, at any speed", () => {
+  it("costs about 40% of the speed across an average patch, at any speed", () => {
     for (const v0 of [25, 50, 90]) {
       let v = v0;
       let s = 0;
@@ -57,8 +57,8 @@ describe("deep sand layout", () => {
         v -= SAND_DRAG * v * v * dt;
         s += v * dt;
       }
-      expect(1 - v / v0).toBeGreaterThan(0.22);
-      expect(1 - v / v0).toBeLessThan(0.3);
+      expect(1 - v / v0).toBeGreaterThan(0.36);
+      expect(1 - v / v0).toBeLessThan(0.44);
     }
   });
 });

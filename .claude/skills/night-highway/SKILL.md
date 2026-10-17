@@ -208,8 +208,8 @@ single-file game (visuals, controls, physics, scoring).
   - Deep sand (`sand.ts`): drifts of soft sand across one or two lanes, 18-40 m
     long, never on the start and always leaving a lane free; laid out from the
     run's seed (mixed from the pickups', integer-op randomness only), so both
-    racers meet the same ones. In one, the car slows by `SAND_DRAG * v²` - a
-    quarter of its speed across an average drift, at any speed - slides like in
+    racers meet the same ones. In one, the car slows by `SAND_DRAG * v²` - about
+    40% of its speed across an average drift, at any speed - slides like in
     rain, and throws a plume. Drawn opaque (`sandPatchMat`): faded in at soft
     edges, they vanished against the dirt. Test hook: `sand()`.
   - Dust (`updateDust`): puffs from the player's wheels (more when sliding or on
