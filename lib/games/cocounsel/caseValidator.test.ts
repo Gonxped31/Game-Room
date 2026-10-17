@@ -15,6 +15,19 @@ describe("validateCase", () => {
     }
   });
 
+  it("rejects a correct pair that shares a distinctive word (content rule 5)", () => {
+    const c = freshCase();
+    c.parts[0].hands.investigator[0].text = "He looked shocked about the dinner.";
+    expect(validateCase(c).some((e) => e.includes('"dinner"'))).toBe(true);
+  });
+
+  it("ignores common words when checking a correct pair's wording", () => {
+    const c = freshCase();
+    c.parts[0].hands.investigator[0].text = "He would never look guilty about it.";
+    c.parts[0].hands.defendant[0].text = "I would never have known tonight was the night.";
+    expect(validateCase(c)).toEqual([]);
+  });
+
   it("rejects a hand with the wrong number of cards", () => {
     const c = freshCase();
     c.parts[0].hands.investigator.push({ id: "I-extra", text: "An extra card for testing", type: "decoy", contradicts: [] });

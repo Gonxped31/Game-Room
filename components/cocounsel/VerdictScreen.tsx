@@ -17,6 +17,8 @@ interface VerdictScreenProps {
   totalParts: number;
   onSeeRecap: () => void;
   onRematch: () => void;
+  /** Opens the case picker - the room's owner only; absent for the other player. */
+  onPickAnotherCase?: () => void;
   onBack: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
@@ -53,6 +55,7 @@ export default function VerdictScreen({
   totalParts,
   onSeeRecap,
   onRematch,
+  onPickAnotherCase,
   onBack,
   theme,
   onToggleTheme,
@@ -85,9 +88,15 @@ export default function VerdictScreen({
         </p>
         <div className="mt-6 flex flex-col gap-3">
           <Button onClick={onSeeRecap}>See the full case file</Button>
+          {onPickAnotherCase ? <Button onClick={onPickAnotherCase}>Pick another case</Button> : null}
           <Button variant="secondary" onClick={onRematch}>
             Rematch with swapped roles
           </Button>
+          {onPickAnotherCase ? null : (
+            <p aria-live="polite" className="text-center font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
+              Or wait for your partner to pick another case.
+            </p>
+          )}
         </div>
       </div>
     </div>

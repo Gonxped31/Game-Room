@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pruneLikeFirebase, undefinedPaths } from "@/lib/store/firebaseShape";
-import { getCase } from "./cases";
+import { CASES, getCase } from "./cases";
 import { DEFENDANT, INVESTIGATOR } from "./constants";
 import {
   classifyDuo,
@@ -277,6 +277,23 @@ describe("a full clean playthrough of the shipped case", () => {
     expect(focusPercent(game.log)).toBe(100);
     expect(totalAttempts(game.log)).toBe(3);
     expect(classifyDuo(trustPercent(game.log), focusPercent(game.log))).toBe("Mind-Reading Team");
+  });
+});
+
+describe("every shipped case", () => {
+  it.each(Object.keys(CASES))("%s can be played through, first try, to a perfect score", (id) => {
+    const caseDef = getCase(id);
+    let game = newGame(id);
+    for (const part of caseDef.parts) {
+      game = lockIn(game, caseDef, INVESTIGATOR, part.correct[0]);
+      game = lockIn(game, caseDef, DEFENDANT, part.correct[1]);
+      expect(game.lastReveal?.outcome).toBe("solved");
+      game = continueAfterReveal(game, caseDef);
+    }
+    expect(game.phase).toBe("CASE_DONE");
+    expect(game.log).toHaveLength(caseDef.parts.length);
+    expect(trustPercent(game.log)).toBe(100);
+    expect(focusPercent(game.log)).toBe(100);
   });
 });
 

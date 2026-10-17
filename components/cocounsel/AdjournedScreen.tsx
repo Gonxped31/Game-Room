@@ -21,7 +21,8 @@ interface AdjournedScreenProps {
    */
   verdict?: CaseVerdict;
   onSeeRecap?: () => void;
-  onStartNewCase: () => void;
+  /** Opens the case picker - the room's owner only; absent for the other player, who waits for them instead. */
+  onStartNewCase?: () => void;
   onBack: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
@@ -79,7 +80,13 @@ export default function AdjournedScreen({
               See the full case file
             </Button>
           ) : null}
-          <Button onClick={onStartNewCase}>Start a new case</Button>
+          {onStartNewCase ? (
+            <Button onClick={onStartNewCase}>Start a new case</Button>
+          ) : (
+            <p aria-live="polite" className="text-center font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
+              Waiting for your partner to pick the next case…
+            </p>
+          )}
         </div>
       </div>
     </div>

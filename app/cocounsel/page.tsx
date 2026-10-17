@@ -6,7 +6,7 @@ import { useGameSession } from "@/lib/session/useGameSession";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
 import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
-import { getCase } from "@/lib/games/cocounsel/cases";
+import { caseForState, DEFAULT_CASE_ID } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
 import { classifyDuo, continueAfterReveal, focusPercent, type GameState, lockIn, newGame, screenOfRole, totalAttempts, trustPercent } from "@/lib/games/cocounsel/game";
 import { COLOR, CONTAINER_MAX_WIDTH_CLASS } from "@/lib/games/cocounsel/theme";
@@ -23,14 +23,21 @@ import RolePicker from "@/components/cocounsel/RolePicker";
 import VerdictScreen from "@/components/cocounsel/VerdictScreen";
 import Wordmark from "@/components/cocounsel/Wordmark";
 
-const CASE_ID = "ruined-birthday";
-
 export default function CoCounselPage() {
-  const caseDef = getCase(CASE_ID);
-  const createInitialState = useCallback((): GameState => newGame(CASE_ID), []);
+  // A new room starts on the default case; its owner then picks the real one
+  // in CasePicker, which restarts the shared game on that case.
+  const createInitialState = useCallback((): GameState => newGame(DEFAULT_CASE_ID), []);
   const session = useGameSession<GameState>({ gameSlug: "cocounsel", createInitialState });
   const { room, game, me, names, bothJoined, roomName, canRenameRoom, setRoomName, roomNameError, canTakeOver, pickIdentity, releaseAllIdentities, transact, setGame, newRoom } =
     session;
+  // A brand-new room's owner picks the case BEFORE taking a seat, but the
+  // database only accepts game writes from seated players - so that first
+  // choice is held here and written once the owner's seat claim lands (see
+  // claimRole). Until then the role picker already shows its characters.
+  const [pendingCaseId, setPendingCaseId] = useState<string | null>(null);
+  // The case lives in the shared game state, so both devices always play
+  // the same one - whichever the owner last picked.
+  const caseDef = caseForState(pendingCaseId ?? game?.caseId);
   const { theme, toggleTheme } = useTheme();
 
   // Whoever visits with no #room in the URL at all is the one about to
@@ -59,14 +66,18 @@ export default function CoCounselPage() {
   // correct here, rather than this component trying to work around an
   // unreliable signal.
   const [isCreator, setIsCreator] = useState<boolean | null>(() => (typeof window !== "undefined" ? window.location.hash === "" : null));
-  const isJoiner = isCreator === false;
+  // The room's owner picks every case. `isCreator` covers the first visit
+  // (before the room's meta has loaded); `canRenameRoom` (meta.createdBy is
+  // this guest) keeps the owner recognised after a reload, when the hash is
+  // already set and `isCreator` reads false.
+  const isOwner = isCreator === true || canRenameRoom;
+  const isJoiner = !isOwner;
 
-  // Local, not synced - v1 has exactly one real case, so this is a static
-  // confirmation step (per the design doc's own note), not a shared choice -
-  // and since the creator already chose it when sharing the link, a joiner
-  // never gets to (re)select a case at all, not even via the back link
-  // (isJoiner gates showCasePicker unconditionally below; forceCasePicker
-  // alone can't override it).
+  // Local, not synced: whether the owner has been through CasePicker since
+  // creating the room. Only a fresh creation shows it unprompted - an owner
+  // reopening an existing room resumes play and can reach the picker via
+  // the back link or "Start a new case". A joiner never sees it at all
+  // (isJoiner gates showCasePicker unconditionally below).
   const [caseConfirmed, setCaseConfirmed] = useState(false);
   // CasePicker is Co-Counsel's own "home" screen for its OWNER - every
   // screen's back link (see components/cocounsel/BackLink.tsx) re-shows it
@@ -74,7 +85,7 @@ export default function CoCounselPage() {
   // Cleared once the owner reconfirms via "Choose this case", resuming
   // wherever the shared game state actually has them.
   const [forceCasePicker, setForceCasePicker] = useState(false);
-  const showCasePicker = !isJoiner && (forceCasePicker || !caseConfirmed);
+  const showCasePicker = isOwner && (forceCasePicker || (isCreator === true && !caseConfirmed));
   // From CasePicker itself (Co-Counsel's "home"), back goes up a level to
   // the game picker instead - CasePicker's own back link uses this directly.
   const router = useRouter();
@@ -128,6 +139,22 @@ export default function CoCounselPage() {
   // render, which react-hooks/refs forbids.
   const pickingRef = useRef(false);
 
+  // Claims a role, then starts the owner's pending case choice (if any) now
+  // that this device holds a seat and may write the game.
+  const claimRole = (role: typeof INVESTIGATOR | typeof DEFENDANT) => {
+    pickingRef.current = true;
+    const claim = pickIdentity(role, caseDef.characters[screenOfRole(role)]);
+    claim.finally(() => {
+      pickingRef.current = false;
+    });
+    return claim.then(() => {
+      if (pendingCaseId) {
+        setGame(newGame(pendingCaseId));
+        setPendingCaseId(null);
+      }
+    });
+  };
+
   // With exactly two roles, once one is taken the other is already decided -
   // auto-claim it instead of making the second player tap a button whose
   // outcome is no longer really a choice. Only fires while genuinely
@@ -149,15 +176,10 @@ export default function CoCounselPage() {
   useEffect(() => {
     if (!game || showCasePicker || me || pickingRef.current) return;
     if (investigatorTaken === defendantTaken) return;
-    pickingRef.current = true;
-    const assign = investigatorTaken
-      ? pickIdentity(DEFENDANT, caseDef.characters.defendant)
-      : pickIdentity(INVESTIGATOR, caseDef.characters.investigator);
-    assign.finally(() => {
-      pickingRef.current = false;
-    });
-    assign.then(() => setRoleConfirmedThisVisit(true));
-  }, [game, showCasePicker, me, investigatorTaken, defendantTaken, pickIdentity, caseDef]);
+    claimRole(investigatorTaken ? DEFENDANT : INVESTIGATOR).then(() => setRoleConfirmedThisVisit(true));
+    // claimRole is rebuilt every render; the values it reads are all listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, showCasePicker, me, investigatorTaken, defendantTaken, pickIdentity, caseDef, pendingCaseId]);
 
   const phase = game?.phase;
   const isMyTurnToAct =
@@ -177,19 +199,35 @@ export default function CoCounselPage() {
   // Restarting a case resets only the game: seats live at the room level,
   // so both players keep their roles and go straight into Part 1 (they can
   // still trade roles from ConfirmRoleScreen next time they open the room).
-  // `caseConfirmed`/`isCreator` stay untouched - no case-reconfirmation
-  // screen, same room. `forceCasePicker` is
-  // cleared defensively (nothing currently triggers a reset while it's
-  // active, since CasePicker's own screen has no reset affordance).
+  // "Rematch" and the footer's reset replay the SAME case; picking a
+  // different one goes through CasePicker (handleChooseCase).
   const handleResetCase = () => {
-    setGame(newGame(CASE_ID));
+    setGame(newGame(caseDef.id));
     setForceCasePicker(false);
   };
   const handleRematch = () => {
-    setGame(newGame(CASE_ID));
+    setGame(newGame(caseDef.id));
     setForceCasePicker(false);
     setShowRecap(false);
   };
+  // "Start a new case" / "Pick another case" (owner only): open CasePicker
+  // with the just-played case marked. The other player stays on the ending
+  // screen, waiting, until the owner's choice restarts the shared game.
+  const handleOpenCasePicker = () => {
+    setForceCasePicker(true);
+    setShowRecap(false);
+  };
+  // Choosing the case the game is already on, mid-case, just resumes it;
+  // anything else (another case, or replaying a finished one) starts it
+  // fresh for both players.
+  const handleChooseCase = (caseId: string) => {
+    if (!me) setPendingCaseId(caseId);
+    else if (!game || caseId !== game.caseId || game.phase === "CASE_DONE") setGame(newGame(caseId));
+    setCaseConfirmed(true);
+    setForceCasePicker(false);
+  };
+  const isCaseUnderway = Boolean(game) && (game!.partIndex > 0 || game!.attempts > 0 || Boolean(game!.locks?.p1 || game!.locks?.p2));
+  const currentCaseStatus = game?.phase === "CASE_DONE" ? "done" : isCaseUnderway ? "inProgress" : "fresh";
   // Generating a brand new room via the footer's "New room" link makes this
   // device the creator of THAT room (even if it joined the current one via a
   // link) - reset the flag so the fresh room's case-picker shows correctly.
@@ -208,6 +246,7 @@ export default function CoCounselPage() {
     setIsCreator(true);
     setCaseConfirmed(false);
     setForceCasePicker(false);
+    setPendingCaseId(null);
     newRoom();
   };
 
@@ -235,11 +274,9 @@ export default function CoCounselPage() {
           </p>
         ) : showCasePicker ? (
           <CasePicker
-            caseDef={caseDef}
-            onChoose={() => {
-              setCaseConfirmed(true);
-              setForceCasePicker(false);
-            }}
+            currentCaseId={caseDef.id}
+            currentStatus={currentCaseStatus}
+            onChoose={handleChooseCase}
             onBack={handleBackToGameRoom}
             theme={theme}
             onToggleTheme={toggleTheme}
@@ -262,17 +299,11 @@ export default function CoCounselPage() {
             canTakeOverInvestigator={Boolean(canTakeOver[INVESTIGATOR])}
             canTakeOverDefendant={Boolean(canTakeOver[DEFENDANT])}
             onPickInvestigator={() => {
-              pickingRef.current = true;
-              pickIdentity(INVESTIGATOR, caseDef.characters.investigator).finally(() => {
-                pickingRef.current = false;
-              });
+              void claimRole(INVESTIGATOR);
               setRoleConfirmedThisVisit(true);
             }}
             onPickDefendant={() => {
-              pickingRef.current = true;
-              pickIdentity(DEFENDANT, caseDef.characters.defendant).finally(() => {
-                pickingRef.current = false;
-              });
+              void claimRole(DEFENDANT);
               setRoleConfirmedThisVisit(true);
             }}
             onBack={handleBack}
@@ -309,7 +340,7 @@ export default function CoCounselPage() {
               totalParts={caseDef.parts.length}
               verdict={game.log.at(-1)?.outcome === "judgeRevealed" ? caseDef.verdict : undefined}
               onSeeRecap={() => setShowRecap(true)}
-              onStartNewCase={handleRematch}
+              onStartNewCase={isOwner ? handleOpenCasePicker : undefined}
               onBack={handleBack}
               theme={theme}
               onToggleTheme={toggleTheme}
@@ -326,6 +357,7 @@ export default function CoCounselPage() {
               totalParts={caseDef.parts.length}
               onSeeRecap={() => setShowRecap(true)}
               onRematch={handleRematch}
+              onPickAnotherCase={isOwner ? handleOpenCasePicker : undefined}
               onBack={handleBack}
               theme={theme}
               onToggleTheme={toggleTheme}

@@ -43,17 +43,27 @@ A 2-player cooperative, asymmetric deduction game.
 
 ## Case data
 
-- `cases.json` holds every case, keyed by ID (currently just
-  `"ruined-birthday"`), so the content can be hand-edited. **Adding a second
-  case triggers a follow-up**: the case choice must move into shared state (see
-  `docs/follow-ups.md`).
+- `cases.json` holds every case, keyed by ID, so the content can be hand-edited.
+  Five ship today: Easy `ruined-birthday` (3 Parts) and `missed-arrival` (3),
+  Medium `midnight-playlist` (4) and `empty-frame` (5), Hard
+  `unlocked-session` (6). **Adding a case needs no code change**: `CasePicker`
+  lists every case by its `tier`, and the tests play each one through.
+- **The case being played is `game.caseId`, in the shared state**, so both devices
+  always play the same one. The page reads it through `caseForState()`, which
+  falls back to `DEFAULT_CASE_ID` for an ID no longer in `cases.json`.
 - `cases.ts` casts the import once (`as unknown as CaseBank`, because JSON
-  imports widen tuples and literal unions) and exports `CASES`/`getCase(id)`.
+  imports widen tuples and literal unions) and exports `CASES`/`getCase(id)`,
+  `caseForState`, `DEFAULT_CASE_ID` and `casesByTier()`.
 - `caseTypes.ts` has the full shape: `CaseDefinition` → `CasePart` →
   `screens`/`hands`/`correct`/`traps`/`theory`, plus `characters` and `verdict`.
 - `caseValidator.ts` implements the design doc's 8 validator checks.
   `caseValidator.test.ts` runs them against the real `cases.json`, so **adding or
-  editing a case means running `npm test`**.
+  editing a case means running `npm test`**. That includes content rule 5: the
+  correct pair must not share a distinctive word (5+ letters, minus common
+  words), so a Part can't be solved by matching wording alone.
+- **Writing a case:** each Part needs a theory except the last; traps should be
+  pairs that *feel* right but contradict the partner's screen, and memory lures
+  should misremember an earlier Part's fact. Keep the teaser spoiler-free.
 - **One deliberate deviation from the doc's wording**: memory-lure cards are
   required in every Part *after the mechanic first appears*, not in every Part
   from Part 2 on. The shipped case first uses it in Part 3.
@@ -109,7 +119,16 @@ The page renders the first state that applies:
 - That's why everything that navigates *into* a room uses a hard navigation (a
   plain `<a>` or `window.location`, never `router.push`), so the hash is settled
   by the first render.
-- **Only the owner (creator) ever sees `CasePicker`.**
+- **Only the owner ever sees `CasePicker`.** `isOwner = isCreator === true ||
+  canRenameRoom` (`meta.createdBy` is this guest), so the owner is still
+  recognised after a reload. Only a fresh creation shows the picker unprompted.
+- **The owner picks the first case before taking a seat**, but the rules only
+  accept game writes from seated players. So that choice waits in
+  `pendingCaseId` and is written by `claimRole` once the seat claim lands. The
+  role picker already shows the pending case's characters.
+- **Choosing a case** (`handleChooseCase`) starts it fresh for both players,
+  except the case already underway, which just resumes ("Resume this case"). The
+  picker marks the current case "In progress" or "Just played".
 
 **Back links:**
 - **On the owner's screens**, back returns to `CasePicker` (`forceCasePicker`),
@@ -120,6 +139,11 @@ The page renders the first state that applies:
 **Endings:**
 - `"adjourned"` never offers the recap, because it would spoil the answers.
 - `"judgeRevealed"` shows the case verdict and offers "See the full case file".
+- **"Start a new case"** (`AdjournedScreen`) and **"Pick another case"**
+  (`VerdictScreen`) open the picker for the owner only. The other player sees
+  "Waiting for your partner to pick the next case…" until the owner's choice
+  restarts the shared game. **"Rematch"** and the footer's reset replay the same
+  case.
 
 ## Visual system
 

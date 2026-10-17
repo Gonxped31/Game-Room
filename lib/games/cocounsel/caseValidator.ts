@@ -17,6 +17,18 @@ function pairKey(pair: [string, string]): string {
   return pair.join("+");
 }
 
+/** Common words too generic to give a correct pair away, even when both cards use them. */
+const COMMON_WORDS = new Set([
+  "about", "after", "again", "before", "being", "could", "every", "never", "other", "still",
+  "their", "there", "these", "those", "under", "until", "where", "which", "while", "would",
+]);
+
+/** A card's distinctive words: 5+ letters, lowercased, minus common words. */
+function distinctiveWords(text: string): Set<string> {
+  const words = text.toLowerCase().match(/[a-z0-9]+(?:[-'][a-z0-9]+)*/g) ?? [];
+  return new Set(words.filter((w) => w.length >= 5 && !COMMON_WORDS.has(w)));
+}
+
 /**
  * Validates a case against the rules in references/co-counsel/co-counsel-game-design.md's
  * "Content Rules" section. Returns a list of human-readable problems, empty if
@@ -81,6 +93,17 @@ export function validateCase(caseDef: CaseDefinition): string[] {
       const hasMemoryLure = [...part.hands.investigator, ...part.hands.defendant].some((c) => c.type === "memoryLure");
       if (!hasMemoryLure) {
         errors.push(`${label}: has no memory-lure card, but an earlier Part already introduced the mechanic.`);
+      }
+    }
+
+    // 5. No keyword matching: the correct pair must not share a distinctive
+    //    word, so players can't solve a Part by matching wording alone.
+    const correctCards = part.correct.map((id) => [...part.hands.investigator, ...part.hands.defendant].find((c) => c.id === id));
+    if (correctCards[0] && correctCards[1]) {
+      const theirs = distinctiveWords(correctCards[1].text);
+      const shared = [...distinctiveWords(correctCards[0].text)].filter((w) => theirs.has(w));
+      if (shared.length) {
+        errors.push(`${label}: the correct pair shares the word(s) ${shared.map((w) => `"${w}"`).join(", ")}, which gives it away.`);
       }
     }
 

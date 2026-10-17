@@ -9,7 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { lockIn as ftwLockIn, newGame as newFtwGame, nextRound, setPlaced, setPrompt, submitGuess } from "@/lib/games/ftw/game";
 import { customRound, randomRound } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
-import { getCase } from "@/lib/games/cocounsel/cases";
+import { CASES, getCase } from "@/lib/games/cocounsel/cases";
 import { cocounselState, dbAs, ftwState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
@@ -82,7 +82,8 @@ describe("Co-Counsel", () => {
     await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], gameSlug: "cocounsel" });
   });
 
-  it("accepts every state of a real case, including a miss", async () => {
+  it.each(Object.keys(CASES))("accepts every state of case %s, including a miss", async (id) => {
+    const caseDef = getCase(id);
     const db = dbAs(env, "alice");
     const write = <T,>(state: T) => writeAndReadBack(db, path, state);
     let game = await write(newCcGame(caseDef.id));

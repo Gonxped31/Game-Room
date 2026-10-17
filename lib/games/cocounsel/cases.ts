@@ -14,3 +14,23 @@ export function getCase(caseId: string): CaseDefinition {
   }
   return caseDef;
 }
+
+/** The case a brand-new room starts on, before its owner picks one. */
+export const DEFAULT_CASE_ID = "ruined-birthday";
+
+/**
+ * The case a room's state points at, or the default one if that ID isn't
+ * in this build (e.g. a case renamed or removed since the room was made) -
+ * so a stale room still renders instead of crashing the page.
+ */
+export function caseForState(caseId: string | undefined): CaseDefinition {
+  return (caseId && CASES[caseId]) || getCase(DEFAULT_CASE_ID);
+}
+
+export const CASE_TIERS: CaseDefinition["tier"][] = ["easy", "medium", "hard"];
+
+/** Every case grouped by tier, in cases.json order within each tier. */
+export function casesByTier(): { tier: CaseDefinition["tier"]; cases: CaseDefinition[] }[] {
+  const all = Object.values(CASES);
+  return CASE_TIERS.map((tier) => ({ tier, cases: all.filter((c) => c.tier === tier) }));
+}

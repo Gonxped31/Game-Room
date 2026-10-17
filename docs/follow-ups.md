@@ -29,19 +29,6 @@ can judge whether it still applies) · **Where** (files involved).
   `lib/session/types.ts`, `components/RolePicker.tsx`, `components/Header.tsx`,
   both games' `game.ts` (`names: {}` in `newGame`).
 
-## Co-Counsel gets a second case
-
-- **Do:** turn `CasePicker` into a real choice and store the chosen case ID in the
-  shared game state.
-  - Today the confirmation is local to the creator's device, and the case is fixed
-    by `CASE_ID` in `app/cocounsel/page.tsx`.
-  - Update `database.rules.json` if the state shape changes, using the
-    `database-rules` skill.
-- **Why:** with one case there's nothing to sync. With two, the joiner must load the
-  creator's choice.
-- **Where:** `app/cocounsel/page.tsx`, `components/cocounsel/CasePicker.tsx`,
-  `lib/games/cocounsel/game.ts`, `lib/games/cocounsel/cases.json`.
-
 ## Preview deployments should stop sharing production's data
 
 - **Do:** create a second Firebase project, deploy `database.rules.json` to it, and

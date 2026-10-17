@@ -15,9 +15,11 @@
 // - A third guest can read the room but not take a seat.
 // - "Your rooms" and the Continue chip list the room, also after a reload;
 //   the back gesture closes the sheet; Start opens a fresh room.
-// - Co-Counsel: the creator picks Defendant, the joiner is auto-assigned,
-//   then "Switch role instead" swaps both seats; Part 1 is solved and
-//   "Continue to Part 2" advances.
+// - Co-Counsel: the creator picks a case and Defendant, the joiner is
+//   auto-assigned, then "Switch role instead" swaps both seats; Part 1 is
+//   solved and "Continue to Part 2" advances. The owner switches case from
+//   the picker mid-game (both devices follow); three misses adjourn it, the
+//   joiner waits while the owner picks the next case from "Start a new case".
 // Exits non-zero on the first failure; prints any browser console errors.
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
 
@@ -168,7 +170,7 @@ try {
   const D = await newPlayer("desktop", "D (desktop)");
   const E = await newPlayer("iphone-se", "E (iPhone SE)");
   await D.page.goto(`${BASE}/cocounsel`);
-  await D.page.getByRole("button", { name: /Choose this case/ }).click();
+  await D.page.getByRole("button", { name: "Choose The Case of the Missed Arrival" }).click();
   await D.page.getByRole("button", { name: "I'm the Defendant" }).click();
   await D.page.getByText("Copy invite link").waitFor();
   const cc = hashOf(D.page);
@@ -197,6 +199,33 @@ try {
   await until(async () => (await adminRead(`games/${cc}/cocounsel/partIndex`)) === 1, "Part 2 written to the database");
   await E.page.getByRole("radiogroup", { name: "Your cards" }).waitFor();
   log("Co-Counsel: Part 1 solved, Continue to Part 2 works");
+
+  // The owner's back link opens the case picker, with the current case
+  // marked in progress; choosing another case restarts it for both.
+  await D.page.getByRole("button", { name: "Back to case selection" }).click();
+  await D.page.getByRole("button", { name: "Resume The Case of the Missed Arrival" }).waitFor();
+  await D.page.getByRole("button", { name: "Choose The Case of the Empty Frame" }).click();
+  await until(async () => (await adminRead(`games/${cc}/cocounsel/caseId`)) === "empty-frame", "case switched in the database");
+  await E.page.getByText("The Empty Frame").first().waitFor();
+  log("Co-Counsel: the owner switched case mid-game and the joiner followed");
+
+  // Three misses (card 2 is never Part 1's correct card) adjourn the case.
+  for (let miss = 1; miss <= 3; miss++) {
+    for (const player of [D, E]) {
+      await player.page.getByRole("radiogroup", { name: "Your cards" }).getByRole("radio").nth(1).click();
+      await player.page.getByRole("button", { name: "Lock in card 2" }).click();
+    }
+    await D.page.getByRole("button", { name: miss < 3 ? "Pick again" : "See what happened" }).click();
+  }
+  await E.page.getByText("Waiting for your partner to pick the next case…").waitFor();
+  if (await E.page.getByRole("button", { name: "Start a new case" }).count()) throw new Error("the joiner was offered Start a new case");
+  await D.page.getByRole("button", { name: "Start a new case" }).click();
+  await D.page.getByText("Just played").waitFor();
+  await D.page.getByRole("button", { name: "Choose The Case of the Unlocked Session" }).click();
+  await until(async () => (await adminRead(`games/${cc}/cocounsel/caseId`)) === "unlocked-session", "next case in the database");
+  await E.page.getByRole("radiogroup", { name: "Your cards" }).waitFor();
+  await E.page.getByText("The Flag").first().waitFor();
+  log("Co-Counsel: adjourned; the joiner waited while the owner picked the next case");
 
   console.log(errors.length ? `\nCONSOLE ERRORS:\n  ${errors.join("\n  ")}` : "\nPASS - no console errors");
   process.exitCode = errors.length ? 1 : 0;
