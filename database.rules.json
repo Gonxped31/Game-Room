@@ -253,6 +253,7 @@
           "options": {
             "rain": { ".validate": "newData.isBoolean()" },
             "pickups": { ".validate": "newData.isBoolean()" },
+            "desert": { ".validate": "newData.isBoolean()" },
             "$other": { ".validate": false }
           },
           "results": {

@@ -1,6 +1,6 @@
 ---
 name: night-highway
-description: Reference for working on Night Highway, the 3D night-freeway racing game - its engine port (three.js r128), the deterministic shared traffic, the race state machine and server-clock timing, the live ghost car channel, curves, pickups, rain and the race options, solo mode, and gotchas. Use whenever changing or debugging anything under lib/games/nighthighway/, components/nighthighway/ or app/nighthighway/, or answering questions about how Night Highway plays.
+description: Reference for working on Night Highway, the 3D night-freeway racing game - its engine port (three.js r128), the deterministic shared traffic, the race state machine and server-clock timing, the live ghost car channel, curves, pickups, rain, the desert circuit and its hills, and the race options, solo mode, and gotchas. Use whenever changing or debugging anything under lib/games/nighthighway/, components/nighthighway/ or app/nighthighway/, or answering questions about how Night Highway plays.
 ---
 
 # Night Highway
@@ -13,7 +13,8 @@ near misses for points (combo up to ×9), and see how far one minute takes you.
 - **Solo** (`/nighthighway/solo`): the original single-player game, no room. Best
   score per device (localStorage `night-highway:best`).
 - **Always on**: curves. **Options** (switches before a race; in solo, on the title
-  card, remembered per device): **Pickups** (on by default) and **Rain** (off).
+  card, remembered per device): **Pickups** (on by default), **Rain** (off) and
+  **Desert** (off: the city at night).
 
 **Source of truth**: `references/night-highway/Night Highway.html`, the original
 single-file game (visuals, controls, physics, scoring).
@@ -113,14 +114,18 @@ single-file game (visuals, controls, physics, scoring).
 
 ## Options (`GameState.options`)
 
-- `{ rain, pickups }`, defaults `DEFAULT_OPTIONS` (pickups on, rain off).
+- `{ rain, pickups, desert }`, defaults `DEFAULT_OPTIONS` (pickups on, rain and
+  desert off).
   `normalizeGame` fills them in for a room made before they existed.
 - `setOptions(game, change)` - either player, in the lobby only (refused mid-race),
   and it **clears both Readys** so nobody races with switches they didn't see.
 - A race passes them to the engine in `startRace` (`race.options`); between races
   the page previews them with `engine.setOptions` (rain falls in the lobby). Solo
   keeps its own, in localStorage `night-highway:options`, flipped by the title
-  card's switches (`#optPickups`/`#optRain`, wired by the engine).
+  card's switches (`#optPickups`/`#optRain`/`#optDesert`, wired by the engine).
+- The engine shows the switches of whatever the road is showing (`shownOptions()`:
+  the race's while one runs, otherwise the lobby's or solo's), so flipping Desert
+  in the lobby swaps the circuit behind the card.
 
 ## Pickups (`pickups.ts`)
 
@@ -159,6 +164,32 @@ single-file game (visuals, controls, physics, scoring).
 - New materials added later must go through `bendMaterial` (or include
   `BEND_GLSL`), or they won't follow the road.
 
+## The desert circuit (an option)
+
+- **Sunset instead of night**: a low sun ahead-left (`SUN_DIR`, drawn in the sky
+  shader), an orange-to-violet sky, warm fog, a warm grade, sunset reflections
+  (a second env map), sun-bleached road with sand on its edges, and mesas on the
+  horizon instead of the skyline.
+- **Built beside the city, swapped by `setCircuit()`** (called every frame from
+  the shown switch; it only does work when the circuit changes). `CIRCUITS` holds
+  each one's look; `cityObjs`/`desertObjs` are hidden and shown. Any new
+  look-dependent value belongs in `CIRCUITS`.
+- **Scenery** (`scatter()`): dunes, mesas, rocks, saguaros and telephone poles,
+  instanced, recycled along the road, re-rolled when they wrap. `offRoad(near,
+  far, r)` keeps a piece of radius `r` clear of both carriageways - a wide dune
+  placed by its centre once spilled across the road.
+- **Hills** (`road.ts`: `heightAt`, `fillHillTable`): drawn like the curves - a
+  second table (`nhHill`) on the same grid lifts every vertex in the shaders
+  (`nhBendXY`). Picture only: traffic, pickups and the race sync don't change.
+  Each 260 m segment is flat or one crest/dip of 6-18 m (from the race's seed).
+  The camera rides them (`updateCamera`); sprites are lifted by hand (the
+  ghost's label). Zeros in the city.
+  - **Anything long must be subdivided** (~10 m rows) or its straight segments
+    cut through the road on a dip: the big ground plane had 100 m rows and showed
+    as an orange band over the road.
+- **The screens and HUD get a deeper veil and a text shadow** over the bright
+  sky (`.nh.nh-desert`, toggled on the stage root by `setCircuit`).
+
 ## Rain (an option)
 
 - **Driving**: sideways speed settles slowly (the car slides after you let go of
@@ -193,7 +224,8 @@ single-file game (visuals, controls, physics, scoring).
   `npm run test:rules` for shape changes.
 - **Test hooks** on `window.NightHighway` (the stage sets `exposeForTests`):
   `jump(m)` skips down the road, `curvature()` / `bend(ahead)` read the curve,
-  `rain()` the rain state, plus `G`, `player`, `keys` and `raceTrafficChecksum`.
+  `rain()` the rain state, `circuit()` the circuit shown and `hill(ahead)` the
+  road's height ahead, plus `G`, `player`, `keys` and `raceTrafficChecksum`.
 - **The live race check**: `node .claude/skills/live-test/scripts/night-highway-race.mjs`
   (`live-test` skill) - a full race, desktop vs iPhone, about 1.5 minutes.
 - Screens: `ui-review` skill. Give the road time to draw (`--wait=9000`):

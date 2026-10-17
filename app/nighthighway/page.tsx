@@ -32,6 +32,7 @@ export default function NightHighwayPage() {
   // The race's switches, as plain values so the effect below re-runs only when they change.
   const rain = game?.options.rain ?? false;
   const pickups = game?.options.pickups ?? true;
+  const desert = game?.options.desert ?? false;
   // Ticks through a race (for "Get ready" before the countdown, and the overdue check after it).
   const now = useTicker(racing, serverNow);
   const beforeStart = racing && startAt !== undefined && now !== null && now < startAt;
@@ -48,17 +49,17 @@ export default function NightHighwayPage() {
       seed,
       startAt,
       lane: START_LANE[me],
-      options: { rain, pickups },
+      options: { rain, pickups, desert },
       serverNow,
       onLive: send,
       onFinish: (result) => transact((current) => submitResult(current, me, result)),
     });
-  }, [engine, me, racing, race, seed, startAt, myResult, rain, pickups, serverNow, send, transact]);
+  }, [engine, me, racing, race, seed, startAt, myResult, rain, pickups, desert, serverNow, send, transact]);
 
   // Between races the road previews the next race's switches (rain falls in the lobby).
   useEffect(() => {
-    engine?.setOptions({ rain, pickups });
-  }, [engine, rain, pickups]);
+    engine?.setOptions({ rain, pickups, desert });
+  }, [engine, rain, pickups, desert]);
 
   // The room left the race (e.g. "New room"): stop driving it.
   useEffect(() => {

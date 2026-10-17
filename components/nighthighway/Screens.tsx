@@ -230,6 +230,7 @@ export function Lobby({
           [
             ["pickups", "Pickups"],
             ["rain", "Rain"],
+            ["desert", "Desert"],
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" role="switch" aria-checked={game.options[key]} className="nh-switch" onClick={() => onOptions({ [key]: !game.options[key] })}>

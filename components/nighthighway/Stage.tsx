@@ -144,6 +144,9 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
                 <button type="button" role="switch" aria-checked="false" className="nh-switch" id="optRain">
                   Rain
                 </button>
+                <button type="button" role="switch" aria-checked="false" className="nh-switch" id="optDesert">
+                  Desert
+                </button>
               </div>
               <dl className="keys">
                 {[

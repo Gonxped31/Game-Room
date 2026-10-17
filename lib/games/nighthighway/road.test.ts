@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BEND_SAMPLES, BEND_START, BEND_STEP, bendAt, CURVATURE_MAX, CURVE_SEGMENT, curvatureAt, fillBendTable, segmentCurvature } from "./road";
+import { BEND_SAMPLES, BEND_START, BEND_STEP, bendAt, CURVATURE_MAX, CURVE_SEGMENT, curvatureAt, fillBendTable, fillHillTable, heightAt, HILL_HEIGHT_MAX, HILL_SEGMENT, segmentCurvature, segmentHill } from "./road";
 
 describe("curvature", () => {
   it("is the same for the same seed and differs between seeds", () => {
@@ -61,5 +61,31 @@ describe("the bend table", () => {
   it("interpolates between samples", () => {
     const table = Array.from({ length: BEND_SAMPLES }, (_, i) => i * 10);
     expect(bendAt(table, BEND_START + BEND_STEP * 2.5)).toBeCloseTo(25);
+  });
+});
+
+describe("hills", () => {
+  it("are the same for the same seed, and keep the start flat", () => {
+    const at = (seed: number) => Array.from({ length: 80 }, (_, i) => heightAt(seed, i * 61));
+    expect(at(3)).toEqual(at(3));
+    expect(at(3)).not.toEqual(at(4));
+    for (let s = -50; s <= HILL_SEGMENT; s += 5) expect(heightAt(3, s)).toBe(0);
+  });
+
+  it("has crests, dips and flats, within range, with no steps", () => {
+    const peaks = Array.from({ length: 300 }, (_, i) => segmentHill(11, i + 1));
+    expect(peaks.some((h) => h > 0)).toBe(true);
+    expect(peaks.some((h) => h < 0)).toBe(true);
+    expect(peaks.some((h) => h === 0)).toBe(true);
+    for (const h of peaks) expect(Math.abs(h)).toBeLessThanOrEqual(HILL_HEIGHT_MAX);
+    for (let s = 0; s < 20000; s += 2) expect(Math.abs(heightAt(5, s + 2) - heightAt(5, s))).toBeLessThan(0.5);
+  });
+
+  it("fills a table relative to the car", () => {
+    const table = new Float32Array(BEND_SAMPLES);
+    const dist = 5000;
+    fillHillTable(7, dist, table);
+    for (let i = 0; i < BEND_SAMPLES; i++) expect(table[i]).toBeCloseTo(heightAt(7, dist + BEND_START + i * BEND_STEP) - heightAt(7, dist), 4);
+    expect(bendAt(table, 0)).toBeCloseTo(0, 4);
   });
 });

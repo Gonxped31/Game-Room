@@ -16,6 +16,9 @@
 //   lib/games/nighthighway/pickups.ts.
 // - Rain (an option): less grip so the car slides, longer braking, harder
 //   bends; falling rain, a wetter-looking road and a hiss.
+// - The desert circuit (an option): sunset, dunes, mesas and cacti in place
+//   of the city at night, and hills - the world lifted in the vertex shaders
+//   the way the curves bend it. See setCircuit().
 // - Curves: the world is bent sideways in the vertex shaders (the game itself
 //   stays a straight road), and bends push the car outward; see
 //   lib/games/nighthighway/road.ts.
@@ -24,7 +27,7 @@ import { TrafficSim } from '@/lib/games/nighthighway/traffic';
 import { COUNTDOWN_SECONDS, COUNTDOWN_SPEED, LIVE_INTERVAL_MS, RUN_SECONDS } from '@/lib/games/nighthighway/constants';
 import { COMBO_SECONDS, DEFAULT_OPTIONS, MAX_COMBO, NEAR_MISS_GAP, NEAR_MISS_MIN_SPEED, nearMissPoints } from '@/lib/games/nighthighway/game';
 import { NITRO_REFILL, PHASE_SECONDS, pickupsBetween, reaches } from '@/lib/games/nighthighway/pickups';
-import { BEND_EXAGGERATION, BEND_SAMPLES, BEND_START, BEND_STEP, bendAt, CENTRIFUGAL, curvatureAt, fillBendTable } from '@/lib/games/nighthighway/road';
+import { BEND_EXAGGERATION, BEND_SAMPLES, BEND_START, BEND_STEP, bendAt, CENTRIFUGAL, curvatureAt, fillBendTable, fillHillTable } from '@/lib/games/nighthighway/road';
 
 const DEAD_ENGINE = { startSolo() {}, startRace() {}, stopRace() {}, setOpponent() {}, setOptions() {}, trafficChecksum() { return ''; }, raceTrafficChecksum() { return ''; }, destroy() {} };
 // Game Room: how long a broken shield lets the car pass through the car it hit (s).
@@ -88,13 +91,16 @@ const scene = new THREE.Scene();
 // Every vertex is pushed sideways by how far the road has bent at its
 // distance ahead (a table refilled every frame from road.ts). The car sits
 // at z = 0 and the road runs toward -z, so "ahead" is -z.
-const BEND = { nhBend: { value: new Float32Array(BEND_SAMPLES) } };
+// Game Room: the desert's hills lift it the same way, from a second table
+// on the same grid (all zeros in the city).
+const BEND = { nhBend: { value: new Float32Array(BEND_SAMPLES) }, nhHill: { value: new Float32Array(BEND_SAMPLES) } };
 const BEND_GLSL = `
 uniform float nhBend[${BEND_SAMPLES}];
-float nhBendX(float z) {
+uniform float nhHill[${BEND_SAMPLES}];
+vec2 nhBendXY(float z) {
   float f = clamp((-z - (${BEND_START.toFixed(1)})) / ${BEND_STEP.toFixed(1)}, 0.0, ${(BEND_SAMPLES - 1.001).toFixed(3)});
   int i = int(f);
-  return mix(nhBend[i], nhBend[i + 1], f - float(i));
+  return vec2(mix(nhBend[i], nhBend[i + 1], f - float(i)), mix(nhHill[i], nhHill[i + 1], f - float(i)));
 }
 `;
 // three's project_vertex chunk, with the bend applied in world space.
@@ -104,7 +110,7 @@ vec4 mvPosition = vec4( transformed, 1.0 );
   mvPosition = instanceMatrix * mvPosition;
 #endif
 mvPosition = modelMatrix * mvPosition;
-mvPosition.x += nhBendX( mvPosition.z );
+mvPosition.xy += nhBendXY( mvPosition.z );
 mvPosition = viewMatrix * mvPosition;
 gl_Position = projectionMatrix * mvPosition;
 `;
@@ -113,6 +119,7 @@ function bendMaterial(m) {
   if (!m || m.isShaderMaterial) return;
   m.onBeforeCompile = (shader) => {
     shader.uniforms.nhBend = BEND.nhBend;
+    shader.uniforms.nhHill = BEND.nhHill;
     shader.vertexShader = BEND_GLSL + shader.vertexShader.replace('#include <project_vertex>', BEND_PROJECT);
   };
 }
@@ -220,7 +227,7 @@ uniform sampler2D tScene; uniform sampler2D tBloom; uniform sampler2D tFlare; un
 uniform vec2 uRes; uniform vec2 uVP;
 uniform float uBlur; uniform float uSamples; uniform float uBloom; uniform float uFlare; uniform vec3 uFlareTint;
 uniform float uExposure; uniform float uTime; uniform float uAberr; uniform float uVignette; uniform float uGrain;
-uniform vec3 uFlash;
+uniform vec3 uFlash; uniform vec3 uTint; uniform float uTintAmt; uniform vec3 uLift;
 varying vec2 vUv;
 vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
 vec3 toSRGB(vec3 c) {
@@ -262,8 +269,8 @@ void main() {
   col += uFlash;
   col = aces(col * uExposure);
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  col = mix(col, col * vec3(0.9, 0.98, 1.14), (1.0 - l) * 0.55);
-  col += vec3(0.004, 0.007, 0.016) * (1.0 - l);
+  col = mix(col, col * uTint, (1.0 - l) * uTintAmt);
+  col += uLift * (1.0 - l);
   vec2 vq = cd * vec2(uRes.x / uRes.y, 1.0);
   col *= mix(1.0, smoothstep(1.25, 0.32, length(vq)), uVignette);
   vec3 o = toSRGB(col);
@@ -276,6 +283,8 @@ void main() {
   uFlareTint: { value: new THREE.Vector3(0.45, 0.65, 1.25) },
   uExposure: { value: 0.95 }, uTime: { value: 0 }, uAberr: { value: 0.02 }, uVignette: { value: 0.7 }, uGrain: { value: 0.035 },
   uFlash: { value: new THREE.Vector3() },
+  // Game Room: the grade's shadow tint and lift, per circuit (night blue in the city, warm in the desert).
+  uTint: { value: new THREE.Vector3(0.9, 0.98, 1.14) }, uTintAmt: { value: 0.55 }, uLift: { value: new THREE.Vector3(0.004, 0.007, 0.016) },
 });
 const maskMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
 
@@ -450,14 +459,15 @@ function rr(g, x, y, w, h, r) {
 
 const ROAD_W = 17;
 const ROAD_TEX_LEN = 24;
-function makeRoadTextures() {
+// Game Room: the desert's road is sun-bleached, warmer asphalt with sand drifting onto its edges.
+function makeRoadTextures(desert) {
   const W = 512, H = 2048;
   const px = (x) => (x + ROAD_W / 2) * W / ROAD_W;
   const py = (m) => m * H / ROAD_TEX_LEN;
   const base = makeCanvas(W, H), g = base.getContext('2d');
   const emc = makeCanvas(W, H), e = emc.getContext('2d');
   const roc = makeCanvas(W, H), r = roc.getContext('2d');
-  g.fillStyle = '#26292f'; g.fillRect(0, 0, W, H);
+  g.fillStyle = desert ? '#4a433d' : '#26292f'; g.fillRect(0, 0, W, H);
   e.fillStyle = '#000000'; e.fillRect(0, 0, W, H);
   r.fillStyle = 'rgb(168,168,168)'; r.fillRect(0, 0, W, H);
   const blot = (ctx, x, y, rx, ry, style) => {
@@ -465,8 +475,9 @@ function makeRoadTextures() {
     for (const oy of [-H, 0, H]) { ctx.beginPath(); ctx.ellipse(x, y + oy, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
   };
   for (let i = 0; i < 80; i++) {
-    blot(g, rand(0, W), rand(0, H), rand(8, 46), rand(30, 220), Math.random() < 0.55 ? `rgba(0,0,0,${rand(0.05, 0.14).toFixed(3)})` : `rgba(120,126,138,${rand(0.03, 0.07).toFixed(3)})`);
+    blot(g, rand(0, W), rand(0, H), rand(8, 46), rand(30, 220), Math.random() < 0.55 ? `rgba(0,0,0,${rand(0.05, 0.14).toFixed(3)})` : desert ? `rgba(176,150,118,${rand(0.05, 0.1).toFixed(3)})` : `rgba(120,126,138,${rand(0.03, 0.07).toFixed(3)})`);
   }
+  if (desert) for (let i = 0; i < 60; i++) blot(g, px((Math.random() < 0.5 ? -1 : 1) * rand(7.7, 8.6)), rand(0, H), rand(6, 26), rand(40, 260), `rgba(200,160,112,${rand(0.25, 0.6).toFixed(3)})`);
   for (let i = 0; i < 28; i++) blot(r, rand(0, W), rand(0, H), rand(20, 70), rand(80, 360), `rgba(55,55,55,${rand(0.35, 0.7).toFixed(3)})`);
   for (const lc of [-5.4, -1.8, 1.8, 5.4]) {
     for (const off of [-0.8, 0.8]) {
@@ -629,17 +640,24 @@ if (document.fonts && document.fonts.load) {
 // ---------- sky, stars, distant skyline ----------
 const SKY = { zenith: lin('#03060f'), mid: lin('#0a1633'), horizon: lin('#1b3263'), glow: lin('#25386a') };
 const FOG_DENSITY = 0.0021;
+// Game Room: where the desert's sun hangs - low, ahead and to the left.
+const SUN_DIR = new THREE.Vector3(-0.62, 0.06, -0.78).normalize();
 const FOG_COLOR = SKY.horizon.clone().add(SKY.glow.clone().multiplyScalar(0.45));
 scene.fog = new THREE.FogExp2(FOG_COLOR, FOG_DENSITY);
 
 const skyMat = new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false,
-  uniforms: { uZenith: { value: SKY.zenith }, uMid: { value: SKY.mid }, uHorizon: { value: SKY.horizon }, uGlow: { value: SKY.glow }, uTime: { value: 0 } },
+  uniforms: {
+    uZenith: { value: SKY.zenith.clone() }, uMid: { value: SKY.mid.clone() }, uHorizon: { value: SKY.horizon.clone() }, uGlow: { value: SKY.glow.clone() }, uTime: { value: 0 },
+    // Game Room: the desert's low sun (uSun 0 in the city).
+    uSunDir: { value: new THREE.Vector3(0, 0, -1) }, uSunCol: { value: new THREE.Color(0, 0, 0) }, uSun: { value: 0 },
+  },
   vertexShader: `
     varying vec3 vDir;
     void main() { vDir = position; vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }`,
   fragmentShader: `
     uniform vec3 uZenith; uniform vec3 uMid; uniform vec3 uHorizon; uniform vec3 uGlow; uniform float uTime;
+    uniform vec3 uSunDir; uniform vec3 uSunCol; uniform float uSun;
     varying vec3 vDir;
     float h21(vec2 p) { p = fract(p * vec2(234.34, 435.345)); p += dot(p, p + 34.23); return fract(p.x * p.y); }
     float vnoise(vec2 p) {
@@ -658,6 +676,8 @@ const skyMat = new THREE.ShaderMaterial({
       float band = smoothstep(0.02, 0.10, h) * (1.0 - smoothstep(0.30, 0.65, h));
       float cl = smoothstep(0.48, 0.82, c) * band;
       col = mix(col, uGlow * 0.9 + uMid * 0.5, cl * 0.45);
+      float sd = max(dot(d, uSunDir), 0.0);
+      col += uSunCol * uSun * (smoothstep(0.99935, 0.9996, sd) * 6.0 + pow(sd, 60.0) * 0.6 + pow(sd, 6.0) * 0.18);
       col = mix(col, uHorizon + uGlow * 0.45, smoothstep(0.0, -0.05, h));
       gl_FragColor = vec4(col, 1.0);
     }`,
@@ -739,14 +759,44 @@ function makeSkylineTextures() {
   }
   return { sil: toTex(sc, { repeat: true }), lit: toTex(lc, { repeat: true }) };
 }
+// Game Room: the desert's horizon - mesas and buttes, no lights.
+function makeMesaTextures() {
+  const W = 2048, H = 512;
+  const sc = makeCanvas(W, H), g = sc.getContext('2d');
+  const ridge = (x0, w, h, shade) => {
+    for (const ox of [0, -W, W]) {
+      const X = x0 + ox;
+      if (X > W || X + w < 0) continue;
+      const slope = w * rand(0.12, 0.22);
+      g.fillStyle = shade;
+      g.beginPath();
+      g.moveTo(X, H);
+      g.lineTo(X + slope * rand(0.6, 1), H - h * rand(0.75, 0.9));
+      g.lineTo(X + slope, H - h);
+      g.lineTo(X + w - slope, H - h + rand(-4, 4));
+      g.lineTo(X + w - slope * rand(0.6, 1), H - h * rand(0.7, 0.9));
+      g.lineTo(X + w, H);
+      g.closePath();
+      g.fill();
+    }
+  };
+  // A low far range first, then the mesas in front of it.
+  for (let x = 0; x < W; x += rand(60, 160)) ridge(x, rand(120, 320), rand(18, 50), 'rgb(92,60,84)');
+  for (let x = 0; x < W; x += rand(140, 420)) ridge(x, rand(60, 260), Math.random() < 0.3 ? rand(110, 190) : rand(40, 100), `rgb(${62 + rand(0, 14) | 0},${36 + rand(0, 8) | 0},${46 + rand(0, 10) | 0})`);
+  const lc = makeCanvas(4, 4), l = lc.getContext('2d');
+  l.fillStyle = '#000000'; l.fillRect(0, 0, 4, 4);
+  return { sil: toTex(sc, { repeat: true }), lit: toTex(lc) };
+}
 const skylineTex = makeSkylineTextures();
+const mesaTex = makeMesaTextures();
+mesaTex.sil.wrapT = THREE.ClampToEdgeWrapping;
 skylineTex.sil.wrapT = THREE.ClampToEdgeWrapping;
 skylineTex.lit.wrapT = THREE.ClampToEdgeWrapping;
 const skyline = new THREE.Mesh(
   new THREE.CylinderGeometry(1700, 1700, 380, 96, 1, true),
   new THREE.ShaderMaterial({
     side: THREE.BackSide, transparent: true, depthWrite: false, fog: false,
-    uniforms: { tSil: { value: skylineTex.sil }, tLit: { value: skylineTex.lit }, uHaze: { value: FOG_COLOR } },
+    uniforms: { tSil: { value: skylineTex.sil }, tLit: { value: skylineTex.lit }, uHaze: { value: FOG_COLOR.clone() } },
     vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: `
       uniform sampler2D tSil; uniform sampler2D tLit; uniform vec3 uHaze;
@@ -767,12 +817,13 @@ skyline.frustumCulled = false;
 scene.add(skyline);
 
 // ---------- environment reflections (built once) ----------
-function buildEnvMap() {
+// Game Room: built twice - the city at night, and the desert at sunset (a warm sky, no lamps, the sun low ahead).
+function buildEnvMap(desert) {
   const envScene = new THREE.Scene();
   const envGeo = new THREE.SphereGeometry(60, 64, 32);
   const ep = envGeo.attributes.position;
   const ec = new Float32Array(ep.count * 3);
-  const zen = lin('#0b1530'), hor = lin('#3d5ea6'), gnd = lin('#0a0d16');
+  const zen = lin(desert ? '#3a3f86' : '#0b1530'), hor = lin(desert ? '#ff9a5a' : '#3d5ea6'), gnd = lin(desert ? '#6a4030' : '#0a0d16');
   const ccol = new THREE.Color();
   for (let i = 0; i < ep.count; i++) {
     const h = ep.getY(i) / 60;
@@ -782,6 +833,15 @@ function buildEnvMap() {
   }
   envGeo.setAttribute('color', new THREE.BufferAttribute(ec, 3));
   envScene.add(new THREE.Mesh(envGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  if (desert) {
+    const sun = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 8), new THREE.MeshBasicMaterial({ color: hdr(3.2, 1.8, 0.8) }));
+    sun.position.copy(SUN_DIR).multiplyScalar(52);
+    envScene.add(sun);
+    const pmremD = new THREE.PMREMGenerator(renderer);
+    const rtD = pmremD.fromScene(envScene, 0.03);
+    pmremD.dispose();
+    return rtD.texture;
+  }
   const lampMat = new THREE.MeshBasicMaterial({ color: hdr(2.6, 2.5, 2.4) });
   for (let i = 0; i < 6; i++) {
     const b = new THREE.Mesh(new THREE.BoxGeometry(14, 0.5, 1.6), lampMat);
@@ -802,7 +862,8 @@ function buildEnvMap() {
   pmrem.dispose();
   return rt.texture;
 }
-const envMap = buildEnvMap();
+const envMap = buildEnvMap(false);
+const envMapDesert = buildEnvMap(true);
 
 // additive light decals (pools, wet-road reflections) fade to black in the haze instead of to fog colour
 const GLOW_VS = BEND_GLSL + `
@@ -818,7 +879,7 @@ const GLOW_VS = BEND_GLSL + `
       p = instanceMatrix * p;
     #endif
     vec4 w = modelMatrix * p;
-    w.x += nhBendX(w.z);
+    w.xy += nhBendXY(w.z);
     vec4 mv = viewMatrix * w;
     vDepth = -mv.z;
     gl_Position = projectionMatrix * mv;
@@ -832,7 +893,7 @@ const GLOW_FS = `
   }`;
 function makeGlowMaterial(map, color, fogScale) {
   return new THREE.ShaderMaterial({
-    uniforms: { map: { value: map }, uColor: { value: color }, uDensity: { value: FOG_DENSITY * (fogScale || 1) }, nhBend: BEND.nhBend },
+    uniforms: { map: { value: map }, uColor: { value: color }, uDensity: { value: FOG_DENSITY * (fogScale || 1) }, nhBend: BEND.nhBend, nhHill: BEND.nhHill },
     vertexShader: GLOW_VS, fragmentShader: GLOW_FS,
     blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
@@ -855,8 +916,10 @@ const moon = new THREE.DirectionalLight(lin('#9fb6ff'), 0.35);
 moon.position.set(-60, 120, 40);
 scene.add(hemi, moon);
 
-const roadTex = makeRoadTextures();
+const roadTex = makeRoadTextures(false);
 roadTex.map.repeat.set(1, ROAD_LEN / ROAD_TEX_LEN);
+const roadTexDesert = makeRoadTextures(true);
+roadTexDesert.map.repeat.set(1, ROAD_LEN / ROAD_TEX_LEN);
 const roadMat = new THREE.MeshStandardMaterial({
   color: hdr(1.2, 1.2, 1.3), map: roadTex.map, roughnessMap: roadTex.rough, roughness: 1, metalness: 0,
   emissive: hdr(1, 1, 1), emissiveMap: roadTex.emissive, emissiveIntensity: 1.0, envMap, envMapIntensity: 0.7,
@@ -867,16 +930,19 @@ for (const cx of [0, OPP_CENTER]) {
   m.position.set(cx, 0, ROAD_NEAR - ROAD_LEN / 2);
   scene.add(m);
 }
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000, 1, 90), new THREE.MeshStandardMaterial({ color: lin('#0b0f18'), roughness: 1, metalness: 0 }));
+// Game Room: 10 m rows (the original had 100 m), so the desert's hills can't lift it through the road.
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000, 1, 900), new THREE.MeshStandardMaterial({ color: lin('#0b0f18'), roughness: 1, metalness: 0 }));
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.15;
 scene.add(ground);
 const walkMat = new THREE.MeshStandardMaterial({ color: lin('#1c212c'), roughness: 0.95, metalness: 0, envMap, envMapIntensity: 0.3 });
+const walks = []; // Game Room: the city's sidewalks, which the desert doesn't have
 for (const [cx, w] of [[11.45, 4.6], [-28.75, 3.8]]) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, ROAD_LEN, 1, 140), walkMat);
   m.rotation.x = -Math.PI / 2;
   m.position.set(cx, 0.03, ROAD_NEAR - ROAD_LEN / 2);
   scene.add(m);
+  walks.push(m);
 }
 
 const barTex = makeBarrierTextures();
@@ -927,7 +993,7 @@ bGeo.translate(0, 0.5, 0);
 const bSeeds = new THREE.InstancedBufferAttribute(new Float32Array(blds.length), 1);
 bGeo.setAttribute('aSeed', bSeeds);
 const bMat = new THREE.ShaderMaterial({
-  uniforms: { uFogColor: { value: FOG_COLOR }, uFogDensity: { value: FOG_DENSITY }, nhBend: BEND.nhBend },
+  uniforms: { uFogColor: { value: FOG_COLOR }, uFogDensity: { value: FOG_DENSITY }, nhBend: BEND.nhBend, nhHill: BEND.nhHill },
   extensions: { derivatives: true },
   vertexShader: BEND_GLSL + `
     attribute float aSeed;
@@ -939,7 +1005,7 @@ const bMat = new THREE.ShaderMaterial({
       vN = normal;
       vSeed = aSeed;
       vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
-      w.x += nhBendX(w.z);
+      w.xy += nhBendXY(w.z);
       vec4 mv = viewMatrix * w;
       vDepth = -mv.z;
       gl_Position = projectionMatrix * mv;
@@ -1192,7 +1258,194 @@ addProp(makeBillboard(texBoards[0], 1), 330, 1440, 70);
 addProp(makeBillboard(texBoards[1], 1), 1010, 1440, 70);
 addProp(makeBillboard(texBoards[2], -1), 700, 1440, 70);
 
+
+// ---------- Game Room: the desert circuit ----------
+// Sand, dunes, mesas, cacti, rocks and telephone poles in place of the city,
+// at sunset. Built once beside the city; setCircuit() swaps them, along with
+// the sky, fog, light, grade, reflections and road. The hills are drawn by
+// the shaders (see BEND), so everything here rides them for free.
+const desertObjs = [];
+const _dm4 = new THREE.Matrix4();
+const _dq = new THREE.Quaternion();
+const _dp = new THREE.Vector3();
+const _ds = new THREE.Vector3();
+const _dy = new THREE.Vector3(0, 1, 0);
+const _dc = new THREE.Color();
+const pickOne = (arr) => arr[(Math.random() * arr.length) | 0];
+function sandTexture() {
+  const W = 256, c = makeCanvas(W, W), g = c.getContext('2d');
+  g.fillStyle = '#c99a6a'; g.fillRect(0, 0, W, W);
+  // Wind ripples, and some darker grit.
+  for (let y = 0; y < W; y += 3) {
+    g.fillStyle = `rgba(${Math.random() < 0.5 ? '120,80,52' : '236,200,156'},${rand(0.04, 0.12).toFixed(3)})`;
+    g.fillRect(0, y, W, rand(1, 2.5));
+  }
+  const img = g.getImageData(0, 0, W, W), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const nz = (Math.random() - 0.5) * 22; d[i] += nz; d[i + 1] += nz; d[i + 2] += nz; }
+  g.putImageData(img, 0, 0);
+  return toTex(c, { repeat: true, aniso: true });
+}
+const SAND_TILE = 60;
+const SAND_LEN = 1700;
+const sandTex = sandTexture();
+sandTex.repeat.set(1600 / SAND_TILE, SAND_LEN / SAND_TILE);
+const sandMat = new THREE.MeshStandardMaterial({ color: hdr(1.05, 0.95, 0.88), map: sandTex, roughness: 1, metalness: 0 });
+const sand = new THREE.Mesh(new THREE.PlaneGeometry(1600, SAND_LEN, 1, 170), sandMat);
+sand.rotation.x = -Math.PI / 2;
+sand.position.set(-8, -0.06, ROAD_NEAR - SAND_LEN / 2);
+scene.add(sand);
+desertObjs.push(sand);
+// Things scattered along the road, recycled like the city's buildings: each
+// re-rolls (`roll`) when it wraps from behind the car to the far end.
+function scatter(geo, mat, count, L, near, roll) {
+  const mesh = instanced(geo, mat, count);
+  const items = [];
+  const write = (i, it) => {
+    _dq.setFromAxisAngle(_dy, it.rot || 0);
+    _dm4.compose(_dp.set(it.x, it.y || 0, it.z || 0), _dq, _ds.set(it.sx, it.sy, it.sz));
+    _dm4.toArray(mesh.instanceMatrix.array, i * 16);
+    mesh.setColorAt(i, _dc.copy(it.color));
+  };
+  for (let i = 0; i < count; i++) {
+    const it = { base: rand(0, L), z: null, color: new THREE.Color() };
+    roll(it);
+    items.push(it);
+    write(i, it);
+  }
+  mesh.instanceColor.needsUpdate = true;
+  desertObjs.push(mesh);
+  return () => {
+    const a = mesh.instanceMatrix.array;
+    let colors = false;
+    for (let i = 0; i < count; i++) {
+      const it = items[i];
+      const z = near - mod(it.base - dist, L);
+      const wrapped = it.z !== null && z < it.z - L * 0.5;
+      it.z = z;
+      if (wrapped) { roll(it); write(i, it); colors = true; }
+      a[i * 16 + 14] = z;
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (colors) mesh.instanceColor.needsUpdate = true;
+  };
+}
+const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0, flatShading: true, envMap: envMapDesert, envMapIntensity: 0.2 });
+// Either side of both carriageways, `near` to `far` from our road's centre on
+// the right, or as far beyond the oncoming one on the left (mirrored about
+// the median), keeping a thing of radius `r` clear of the road.
+const offRoad = (near, far, r) => { const x = rand(near, far) + r; return Math.random() < 0.55 ? x : 2 * MEDIAN_X - x; };
+const DESERT_L = 1600;
+const duneMat = new THREE.MeshStandardMaterial({ color: lin('#c3915f'), roughness: 1, metalness: 0 });
+const desertUpdaters = [
+  // Dunes: big, soft swells of sand.
+  scatter(new THREE.SphereGeometry(1, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2), duneMat, 46, DESERT_L, 120, (it) => {
+    it.sx = rand(30, 110); it.sz = rand(30, 90); it.sy = rand(4, 16); it.y = -1; it.rot = rand(0, 6.3);
+    it.x = offRoad(30, 380, Math.max(it.sx, it.sz));
+    it.color.setRGB(1, 1, 1);
+  }),
+  // Mesas: flat-topped red rock, further out.
+  scatter(new THREE.CylinderGeometry(0.72, 1, 1, 7, 1).translate(0, 0.5, 0), rockMat, 22, DESERT_L, 200, (it) => {
+    it.x = (Math.random() < 0.5 ? 1 : -1) * rand(260, 700) - 8; it.sx = rand(40, 140); it.sz = it.sx * rand(0.5, 0.9); it.sy = rand(30, 110); it.rot = rand(0, 6.3);
+    it.color.copy(lin(pickOne(['#8c4a32', '#9d5a3a', '#7a3f2e', '#a8623f'])));
+  }),
+  // Rocks and boulders near the road.
+  scatter(new THREE.DodecahedronGeometry(1, 0), rockMat, 70, DESERT_L, 60, (it) => {
+    const k = Math.random() < 0.8 ? rand(0.3, 1.2) : rand(1.6, 4);
+    it.sx = k * rand(0.8, 1.5); it.sy = k * rand(0.5, 0.9); it.sz = k * rand(0.8, 1.4); it.rot = rand(0, 6.3);
+    it.x = offRoad(11, 90, Math.max(it.sx, it.sz));
+    it.color.copy(lin(pickOne(['#7d5a44', '#8f6a4e', '#6b4a3a', '#a07655'])));
+  }),
+  // Saguaros: a trunk and two arms.
+  scatter(mergeGeometries([
+    cylAt(0.3, 0.34, 5, 9, 0, 2.5, 0), new THREE.SphereGeometry(0.3, 9, 5, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 5, 0),
+    boxAt(0.7, 0.36, 0.36, 0.38, 1.7, 0), cylAt(0.2, 0.22, 1.6, 8, 0.72, 2.5, 0),
+    boxAt(0.6, 0.32, 0.32, -0.34, 2.4, 0), cylAt(0.18, 0.2, 1.3, 8, -0.62, 3.0, 0),
+  ]), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, envMap: envMapDesert, envMapIntensity: 0.3 }), 60, DESERT_L, 60, (it) => {
+    const k = rand(0.7, 1.5);
+    it.x = offRoad(12, 110, 1.2 * k);
+    it.sx = k * (Math.random() < 0.5 ? -1 : 1); it.sy = k; it.sz = k; it.rot = rand(0, 6.3);
+    it.color.copy(lin(pickOne(['#3f5a35', '#4a6a3c', '#36502f'])));
+  }),
+  // Telephone poles down the right side, 55 m apart.
+  (() => {
+    const N = 28, SP = 55;
+    let k = 0;
+    return scatter(mergeGeometries([cylAt(0.13, 0.17, 9, 7, 0, 4.5, 0), boxAt(2.4, 0.16, 0.16, 0, 8.4, 0), boxAt(1.6, 0.14, 0.14, 0, 7.6, 0)]),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0 }), N, N * SP, 60, (it) => {
+        if (it.z === null) it.base = (k++) * SP;
+        it.x = 14.5; it.sx = 1; it.sy = rand(0.95, 1.05); it.sz = 1; it.rot = rand(-0.08, 0.08);
+        it.color.copy(lin('#4a3424'));
+      });
+  })(),
+];
+function updateDesert() {
+  sandTex.offset.y = (dist / SAND_TILE) % 1;
+  roadTexDesert.map.offset.y = (dist / ROAD_TEX_LEN) % 1;
+  for (const u of desertUpdaters) u();
+}
+
+// The two circuits' looks, applied all at once when the shown switch changes.
+const CIRCUITS = {
+  city: {
+    sky: SKY, sun: 0, fog: FOG_COLOR.clone(), fogDensity: FOG_DENSITY,
+    hemi: ['#86a2e6', '#0d0f18', 0.8], light: ['#9fb6ff', 0.35, [-60, 120, 40]], ground: '#0b0f18',
+    tint: [0.9, 0.98, 1.14], tintAmt: 0.55, lift: [0.004, 0.007, 0.016], flareTint: [0.45, 0.65, 1.25], exposure: 1,
+    env: envMap, skyline: skylineTex, road: roadTex, roadColor: hdr(1.2, 1.2, 1.3), roadGlow: 1.0, barrier: hdr(1.2, 1.2, 1.28), barrierGlow: 1.1,
+  },
+  desert: {
+    sky: { zenith: lin('#1c2250'), mid: lin('#6e3a74'), horizon: lin('#ff8746'), glow: lin('#ffad55') }, sun: 1,
+    fog: lin('#d0805e'), fogDensity: 0.0013,
+    hemi: ['#ffb791', '#4a2c22', 1.2], light: ['#ffb070', 1.4, [SUN_DIR.x * 300, 40, SUN_DIR.z * 300]], ground: '#9c6440',
+    tint: [1.05, 0.94, 1.06], tintAmt: 0.35, lift: [0.012, 0.006, 0.01], flareTint: [1.25, 0.7, 0.45], exposure: 1.05,
+    env: envMapDesert, skyline: mesaTex, road: roadTexDesert, roadColor: hdr(1.25, 1.15, 1.05), roadGlow: 0.25, barrier: hdr(1.55, 1.32, 1.12), barrierGlow: 0.3,
+  },
+};
+const cityObjs = [bMesh, lampPoles, lampHeads, lampPools, slPosts, slHeads, slPools, stars, ...walks, ...props.map((p) => p.obj)];
+let circuit = null;
+let circuitFog = FOG_DENSITY;
+let circuitExposure = 1;
+function setCircuit(name) {
+  if (name === circuit) return;
+  circuit = name;
+  const c = CIRCUITS[name];
+  const desert = name === 'desert';
+  for (const o of cityObjs) o.visible = !desert;
+  root.classList.toggle('nh-desert', desert); // the screens and HUD need more contrast over a bright sky
+  for (const o of desertObjs) o.visible = desert;
+  const su = skyMat.uniforms;
+  su.uZenith.value.copy(c.sky.zenith); su.uMid.value.copy(c.sky.mid); su.uHorizon.value.copy(c.sky.horizon); su.uGlow.value.copy(c.sky.glow);
+  su.uSun.value = c.sun;
+  su.uSunDir.value.copy(SUN_DIR);
+  su.uSunCol.value.setRGB(1.6, 0.85, 0.4);
+  scene.fog.color.copy(c.fog);
+  circuitFog = c.fogDensity;
+  scene.fog.density = circuitFog;
+  hemi.color.copy(lin(c.hemi[0])); hemi.groundColor.copy(lin(c.hemi[1])); hemi.intensity = c.hemi[2];
+  moon.color.copy(lin(c.light[0])); moon.intensity = c.light[1]; moon.position.set(...c.light[2]);
+  ground.material.color.copy(lin(c.ground));
+  const cu = compositeMat.uniforms;
+  cu.uTint.value.set(...c.tint); cu.uTintAmt.value = c.tintAmt; cu.uLift.value.set(...c.lift); cu.uFlareTint.value.set(...c.flareTint);
+  circuitExposure = c.exposure;
+  const sk = skyline.material.uniforms;
+  sk.tSil.value = c.skyline.sil; sk.tLit.value = c.skyline.lit; sk.uHaze.value.copy(c.fog);
+  roadMat.map = c.road.map; roadMat.emissiveMap = c.road.emissive; roadMat.roughnessMap = c.road.rough;
+  roadMat.color.copy(c.roadColor); roadMat.emissiveIntensity = c.roadGlow;
+  barMat.color.copy(c.barrier); barMat.emissiveIntensity = c.barrierGlow;
+  // Everything that reflects the sky reflects this circuit's.
+  scene.traverse((o) => {
+    for (const m of [].concat(o.material || [])) if (m.envMap === envMap || m.envMap === envMapDesert) m.envMap = c.env;
+  });
+  if (!desert) BEND.nhHill.value.fill(0);
+  applyGlow();
+}
+
 function updateWorld(dt) {
+  if (circuit === 'desert') {
+    // Game Room: the desert moves its own scenery instead (the barriers are shared).
+    barTex.map.offset.y = (dist / 6) % 1;
+    updateDesert();
+    return;
+  }
   roadTex.map.offset.y = (dist / ROAD_TEX_LEN) % 1;
   barTex.map.offset.y = (dist / 6) % 1;
   updateBuildings();
@@ -1729,7 +1982,7 @@ let rainK = 0; // eases in and out, 0 = dry
 function updateRain(dt, pv, px) {
   rainK = damp(rainK, raining() ? 1 : 0, 2, dt);
   rainMesh.visible = rainK > 0.01;
-  scene.fog.density = FOG_DENSITY * (1 + 0.7 * rainK);
+  scene.fog.density = circuitFog * (1 + 0.7 * rainK);
   roadMat.roughness = 1 - 0.45 * rainK;
   if (!rainMesh.visible) return;
   rainMat.opacity = 0.32 * rainK;
@@ -1782,7 +2035,7 @@ const HUD = {
   count: $('count'), title: $('title'), results: $('results'), pause: $('pause'), touch: $('touch'), bestLine: $('bestLine'),
   opp: $('opp'),
   power: $('power'),
-  optRain: $('optRain'), optPickups: $('optPickups'),
+  optRain: $('optRain'), optPickups: $('optPickups'), optDesert: $('optDesert'),
 };
 if (RACE_MODE && HUD.hint) HUD.hint.innerHTML = 'W / ↑ gas · S / ↓ brake · A D / ← → steer<br>Shift or Space nitro · V camera · C paint · L glow · H hide HUD';
 (function drawTicks() {
@@ -1821,7 +2074,9 @@ let pickupSeed = 0;
 let pickupBase = 0;
 let collected = new Set();
 const runOptions = () => (G.race ? G.race.options || DEFAULT_OPTIONS : soloOptions);
-const raining = () => (raceLive() ? runOptions().rain : (RACE_MODE ? previewOptions : soloOptions).rain);
+// Game Room: the switches the road shows right now - the race's while one runs, otherwise the next race's (or solo's).
+const shownOptions = () => (raceLive() ? runOptions() : RACE_MODE ? previewOptions : soloOptions);
+const raining = () => shownOptions().rain;
 // The race page shows the next race's switches between races (setOptions).
 let previewOptions = { ...DEFAULT_OPTIONS };
 function resetPickups(seed) {
@@ -1887,7 +2142,7 @@ function applyGlow() {
   const cu = compositeMat.uniforms;
   cu.uBloom.value = g.bloom * (HDR ? 1 : 0.8);
   cu.uFlare.value = g.flare;
-  cu.uExposure.value = g.exposure;
+  cu.uExposure.value = g.exposure * circuitExposure;
 }
 applyGlow();
 setPaint(Number(store.get('paint', 0)) || 0);
@@ -2200,6 +2455,7 @@ function updateCarVisual(dt, steerIn) {
   fu.uTime.value = G.t;
 }
 function updateLampLight() {
+  if (circuit === 'desert') { lampLight.intensity = 0; return; } // Game Room: no street lamps in the desert
   let bd = 1e9, bz = 0;
   for (let i = 0; i < LAMP_N; i++) { const d = Math.abs(lampZ[i] - 0.5); if (d < bd) { bd = d; bz = lampZ[i]; } }
   lampLight.position.set(LAMP_OUR_X, LAMP_Y - 0.4, bz);
@@ -2263,8 +2519,10 @@ function updateCamera(dt) {
     sx = (Math.random() - 0.5) * amp;
     sy = (Math.random() - 0.5) * amp;
   }
-  camera.position.set(camPos.x + sx, camPos.y + sy, camPos.z);
-  camera.lookAt(camLook);
+  // Game Room: the camera rides the hills, and looks up or down the road with them.
+  const hills = BEND.nhHill.value;
+  camera.position.set(camPos.x + sx, camPos.y + sy + bendAt(hills, -camPos.z), camPos.z);
+  camera.lookAt(camLook.x, camLook.y + bendAt(hills, -camLook.z), camLook.z);
   if (driving) camera.rotateZ(-player.vx * 0.0035);
   else if (camera.aspect > 1.2) camera.rotateY(0.13);
   if (camera.aspect < 1.3) fov = Math.min(88, fov * lerp(1.45, 1, clamp((camera.aspect - 0.45) / 0.85, 0, 1)));
@@ -2469,6 +2727,7 @@ function updateGhost(dt, rt) {
         show = true;
         ghostRoot.position.set(p.x, 0, z);
         ghostLabel.position.x = bendAt(BEND.nhBend.value, -z); // sprites don't go through the bend
+        ghostLabel.position.y = 2.15 + bendAt(BEND.nhHill.value, -z); // ...or the hills
         ghostChassis.rotation.y = damp(ghostChassis.rotation.y, -clamp((p.x - ghostLastX) / Math.max(dt, 1e-3), -10, 10) * 0.028, 10, dt);
         for (const w of ghostWheels) w.rotation.x -= (p.v * dt) / 0.35;
       }
@@ -2481,6 +2740,7 @@ function updateGhost(dt, rt) {
 
 function update(dt) {
   G.t += dt;
+  setCircuit(shownOptions().desert ? 'desert' : 'city');
   let steerIn = 0;
   // Game Room: in a race the clock, not the frame count, drives the countdown and the run.
   const R = G.race;
@@ -2542,6 +2802,7 @@ function update(dt) {
   checkTraffic();
   fillBendTable(roadSeed, dist, BEND.nhBend.value);
   for (let i = 0; i < BEND_SAMPLES; i++) BEND.nhBend.value[i] *= BEND_EXAGGERATION;
+  if (circuit === 'desert') fillHillTable(roadSeed, dist, BEND.nhHill.value);
   updateGhost(dt, rt);
   updatePickups(dt);
   updateWorld(dt);
@@ -2638,11 +2899,12 @@ listen(document, 'visibilitychange', () => {
   if (document.hidden) audio.suspend(); else if (!G.paused) audio.resume();
 });
 listen($('startBtn'), 'click', startRun);
-// Game Room: the title card's Rain / Pickups switches (solo), remembered on this device.
+// Game Room: the title card's Pickups / Rain / Desert switches (solo), remembered on this device.
+const SOLO_SWITCHES = [[HUD.optRain, 'rain'], [HUD.optPickups, 'pickups'], [HUD.optDesert, 'desert']];
 function showSoloOptions() {
-  for (const [el, key] of [[HUD.optRain, 'rain'], [HUD.optPickups, 'pickups']]) if (el) el.setAttribute('aria-checked', String(!!soloOptions[key]));
+  for (const [el, key] of SOLO_SWITCHES) if (el) el.setAttribute('aria-checked', String(!!soloOptions[key]));
 }
-for (const [el, key] of [[HUD.optRain, 'rain'], [HUD.optPickups, 'pickups']]) {
+for (const [el, key] of SOLO_SWITCHES) {
   listen(el, 'click', () => {
     soloOptions = { ...soloOptions, [key]: !soloOptions[key] };
     store.set('options', soloOptions);
@@ -2771,6 +3033,9 @@ if (options.exposeForTests) {
     curvature() { return curvatureAt(roadSeed, dist); },
     bend(ahead) { return bendAt(BEND.nhBend.value, ahead); },
     rain() { return { k: rainK, visible: rainMesh.visible }; },
+    // ...the circuit shown, and the road's height (m) `ahead` of the car relative to it.
+    circuit() { return circuit; },
+    hill(ahead) { return bendAt(BEND.nhHill.value, ahead); },
   });
 }
 // Game Room: curves - bend every built-in material (and the motion-blur mask's),
