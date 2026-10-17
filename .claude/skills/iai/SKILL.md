@@ -95,6 +95,16 @@ A combo multiplier (up to ×8) and a wolf-spirit gauge (Shift unleashes a wave).
   writes only its own; `d` ≤ 30 000 chars). Change a shape → update the rules and
   `tests/rules/gameState.test.ts`, then `npm run test:rules`.
 
+## Cost and weight (measured 2026-10-17)
+
+- **Co-op traffic** (WebSocket frames, emulator, 6 enemies on screen): snapshot
+  ~330 chars; the host downloads 0.4 KB/s, the partner 4.2 KB/s. About 17 MB per
+  room-hour, so ~600 co-op hours a month fit Firebase's free 10 GB. The partner's
+  15 sends a second are only ~9% of that; not worth trimming.
+- **Page weight**: the engine loads only on Iaï pages, but `fonts.css` (~220 KB of
+  embedded woff2, ~163 KB gzipped) blocks first paint there. Yuji Boku is already
+  subset; dropping an unused Cormorant weight would save ~30 KB each.
+
 ## Verifying a change
 
 - `npm test` (rules, co-op state), `npm run test:rules` for shape changes.
