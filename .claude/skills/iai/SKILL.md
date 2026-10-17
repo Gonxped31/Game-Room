@@ -30,9 +30,14 @@ A combo multiplier (up to ×8) and a wolf-spirit gauge (Shift unleashes a wave).
   you face, Shift unleashes the wolf. Phones: ◀ ▶ JUMP on the left, 斬 on the right,
   the wolf button in the HUD. Jumping clears arrows (chest high) and enemy swings
   and fists (`AIRBORNE_Y`); stepping back during an enemy's wind-up makes it miss.
-- **Enemies chase a samurai** (the nearest to their entry side), keeping a
-  distance `d` to their target, so the original's arrival timing still works;
-  they turn around if you jump over them. A swing is rooted once it winds up.
+- **Enemies chase a samurai** (the nearest to their entry side) at their own
+  speed, in world space: walking away really gains ground, and walking moves
+  only your samurai (never re-anchor an enemy to `target.x + side * d`). `d` is
+  recomputed each frame from the real distance. They turn around if you jump
+  over them; knock-backs aim at a world spot fixed when the blow lands (`rx`).
+  A swing is rooted once it winds up. Perfect cuts are judged by distance and
+  closing speed (`judge`), not by the spawn's planned arrival time, since you
+  may have moved.
 - **Art**: the hero is armoured (lacquered cobalt, gold lacing, kabuto with gold
   kuwagata horns, a plain iron face guard; the white plume is the original's
   hair physics); the spirit is a wolf; the oni follows the hannya mask. All

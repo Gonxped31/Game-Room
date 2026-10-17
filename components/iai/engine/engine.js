@@ -2586,12 +2586,14 @@ function fireArrow(e) {
 
 /* ---------------- enemy behaviour ---------------- */
 function setPose(e, P, k) { e.pose = lerpPose(e.pose, P, k); }
-// A chasing enemy keeps a distance `d` from its target on side `side`; if the
-// target gets past it (a jump over its head), it turns around.
+// Enemies move in the world at their own speed: walking away from one really
+// gains ground. chase() re-aims at the target - its side, facing and distance
+// `d` - turning around if the target got past (a jump over its head).
 function chase(e) {
   if (!e.target || e.target.dead) e.target = nearestLiving(e.x) || e.target;
   const tx = e.target ? e.target.x : 0, rel = e.x - tx;
-  if (Math.abs(rel) > 1 && Math.sign(rel) !== e.side) { e.side = Math.sign(rel); e.face = -e.side; e.d = Math.abs(rel); }
+  if (Math.abs(rel) > 1 && Math.sign(rel) !== e.side) { e.side = Math.sign(rel); e.face = -e.side; }
+  e.d = Math.abs(rel);
   return tx;
 }
 function updateEnemies(dt) {
@@ -2601,23 +2603,23 @@ function updateEnemies(dt) {
     switch (e.state) {
       case 'approach': {
         const tx = chase(e);
-        e.d -= e.speed * dt; e.x = tx + e.side * e.d;
+        e.x -= e.side * e.speed * dt; e.d = Math.abs(e.x - tx);
         e.phase += dt * (e.speed / 34) * (e.kind === 'armored' ? .75 : 1);
         setPose(e, e.kind === 'armored' ? Object.assign({}, EPOSE.run, { lean: .18 }) : EPOSE.run, blend);
-        if (e.kind === 'shinobi' && !e.feinted && e.d <= FEINT_D) { e.state = 'feint'; e.t = 0; e.d = FEINT_D; e.x = tx + e.side * e.d; e.feinted = true; }
-        else if (e.d <= ATTACK_D) { e.state = 'windup'; e.t = 0; e.d = ATTACK_D; e.x = tx + e.side * e.d; }
+        if (e.kind === 'shinobi' && !e.feinted && e.d <= FEINT_D) { e.state = 'feint'; e.t = 0; e.feinted = true; }
+        else if (e.d <= ATTACK_D) { e.state = 'windup'; e.t = 0; }
         break;
       }
       case 'feint': {
-        const tx = chase(e); e.x = tx + e.side * e.d;
+        chase(e); // crouched where it stands, watching
         setPose(e, EPOSE.crouch, blend);
         if (e.t > e.wait) { e.state = 'dash'; e.t = 0; e.speed = 1050; smoke(e.x, -10, 3, 30); SND.whoosh(SND.t, .25, e.side * .6, .8, .12); }
         break;
       }
       case 'dash': {
         const tx = chase(e);
-        e.d -= 1050 * dt; e.x = tx + e.side * e.d; e.phase += dt * 30; setPose(e, EPOSE.dash, blend);
-        if (e.d <= ATTACK_D) { e.state = 'windup'; e.t = 0; e.d = ATTACK_D; e.x = tx + e.side * e.d; }
+        e.x -= e.side * 1050 * dt; e.d = Math.abs(e.x - tx); e.phase += dt * 30; setPose(e, EPOSE.dash, blend);
+        if (e.d <= ATTACK_D) { e.state = 'windup'; e.t = 0; }
         break;
       }
       case 'windup': {
@@ -2636,13 +2638,15 @@ function updateEnemies(dt) {
         if (e.t > .2) { e.state = 'recoil'; e.t = 0; e.struck = false; }
         break;
       case 'recoil': case 'stagger': {
-        const tx = chase(e);
+        chase(e);
         setPose(e, EPOSE.recoil, blend);
-        const back = e.state === 'stagger' ? 330 : 380;
-        e.d = lerp(e.d, back, 1 - Math.exp(-dt * 7)); e.x = tx + e.side * e.d;
+        // Knocked back to a spot fixed when the blow landed (not one that follows the samurai).
+        if (e.rx == null) e.rx = e.x + e.side * Math.max(0, (e.state === 'stagger' ? 330 : 380) - e.d);
+        e.x = lerp(e.x, e.rx, 1 - Math.exp(-dt * 7));
         if (e.t > .38) {
+          chase(e);
           const arr = claim(GAME.t + .5);
-          e.arrival = arr; e.speed = (e.d - R_IDEAL) / Math.max(.3, arr - GAME.t); e.state = 'approach'; e.t = 0; e.feinted = true;
+          e.arrival = arr; e.speed = Math.max(220, (e.d - R_IDEAL) / Math.max(.3, arr - GAME.t)); e.state = 'approach'; e.t = 0; e.feinted = true; e.rx = null;
         }
         break;
       }
@@ -2824,7 +2828,7 @@ function impact(x, y, dir, perfect, p) {
 function hitEnemy(e, dir, p, d, forced) {
   // Its scheduled arrival times a perfect cut on the samurai it was chasing; anyone else is judged by distance.
   const speed = e.state === 'windup' || e.state === 'feint' || e.state === 'aim' ? 0 : e.state === 'dash' ? 1050 : e.speed;
-  const perfect = forced != null ? forced : judge(d, speed, e.state === 'approach' && e.target === p ? e.arrival : null);
+  const perfect = forced != null ? forced : judge(d, speed, null);
   const x = e.x, y = -150 * ENEMY_KIND[e.kind].scale;
   if (e.kind === 'armored' && e.hp > 1) {
     e.hp--; e.state = 'stagger'; e.t = 0;
