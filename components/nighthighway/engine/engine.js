@@ -459,7 +459,7 @@ function rr(g, x, y, w, h, r) {
 
 const ROAD_W = 17;
 const ROAD_TEX_LEN = 24;
-// Game Room: the desert's road is sun-bleached, warmer asphalt with sand drifting onto its edges.
+// Game Room: the desert's road is packed dirt - ruts where the wheels run, sand drifting in at the edges, no paint.
 function makeRoadTextures(desert) {
   const W = 512, H = 2048;
   const px = (x) => (x + ROAD_W / 2) * W / ROAD_W;
@@ -467,9 +467,9 @@ function makeRoadTextures(desert) {
   const base = makeCanvas(W, H), g = base.getContext('2d');
   const emc = makeCanvas(W, H), e = emc.getContext('2d');
   const roc = makeCanvas(W, H), r = roc.getContext('2d');
-  g.fillStyle = desert ? '#4a433d' : '#26292f'; g.fillRect(0, 0, W, H);
+  g.fillStyle = desert ? '#8c6a4a' : '#26292f'; g.fillRect(0, 0, W, H);
   e.fillStyle = '#000000'; e.fillRect(0, 0, W, H);
-  r.fillStyle = 'rgb(168,168,168)'; r.fillRect(0, 0, W, H);
+  r.fillStyle = desert ? 'rgb(255,255,255)' : 'rgb(168,168,168)'; r.fillRect(0, 0, W, H); // dirt doesn't shine
   const blot = (ctx, x, y, rx, ry, style) => {
     ctx.fillStyle = style;
     for (const oy of [-H, 0, H]) { ctx.beginPath(); ctx.ellipse(x, y + oy, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
@@ -478,16 +478,16 @@ function makeRoadTextures(desert) {
     blot(g, rand(0, W), rand(0, H), rand(8, 46), rand(30, 220), Math.random() < 0.55 ? `rgba(0,0,0,${rand(0.05, 0.14).toFixed(3)})` : desert ? `rgba(176,150,118,${rand(0.05, 0.1).toFixed(3)})` : `rgba(120,126,138,${rand(0.03, 0.07).toFixed(3)})`);
   }
   if (desert) for (let i = 0; i < 60; i++) blot(g, px((Math.random() < 0.5 ? -1 : 1) * rand(7.7, 8.6)), rand(0, H), rand(6, 26), rand(40, 260), `rgba(200,160,112,${rand(0.25, 0.6).toFixed(3)})`);
-  for (let i = 0; i < 28; i++) blot(r, rand(0, W), rand(0, H), rand(20, 70), rand(80, 360), `rgba(55,55,55,${rand(0.35, 0.7).toFixed(3)})`);
+  if (!desert) for (let i = 0; i < 28; i++) blot(r, rand(0, W), rand(0, H), rand(20, 70), rand(80, 360), `rgba(55,55,55,${rand(0.35, 0.7).toFixed(3)})`);
   for (const lc of [-5.4, -1.8, 1.8, 5.4]) {
     for (const off of [-0.8, 0.8]) {
       const x0 = px(lc + off - 0.38), x1 = px(lc + off + 0.38);
       const gd = g.createLinearGradient(x0, 0, x1, 0);
-      gd.addColorStop(0, 'rgba(0,0,0,0)'); gd.addColorStop(0.5, 'rgba(0,0,0,0.17)'); gd.addColorStop(1, 'rgba(0,0,0,0)');
+      gd.addColorStop(0, 'rgba(0,0,0,0)'); gd.addColorStop(0.5, `rgba(0,0,0,${desert ? 0.3 : 0.17})`); gd.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = gd; g.fillRect(x0, 0, x1 - x0, H);
       const gr = r.createLinearGradient(x0, 0, x1, 0);
       gr.addColorStop(0, 'rgba(80,80,80,0)'); gr.addColorStop(0.5, 'rgba(80,80,80,0.55)'); gr.addColorStop(1, 'rgba(80,80,80,0)');
-      r.fillStyle = gr; r.fillRect(x0, 0, x1 - x0, H);
+      if (!desert) { r.fillStyle = gr; r.fillRect(x0, 0, x1 - x0, H); }
     }
   }
   const img = g.getImageData(0, 0, W, H), d = img.data;
@@ -499,6 +499,7 @@ function makeRoadTextures(desert) {
     e.fillStyle = glow; e.fillRect(X0, Y0, X1 - X0, Y1 - Y0);
     r.fillStyle = 'rgb(205,205,205)'; r.fillRect(X0, Y0, X1 - X0, Y1 - Y0);
   };
+  if (desert) return { map: toTex(base, { repeat: true, aniso: true }), emissive: toTex(emc, { repeat: true, aniso: true }), rough: toTex(roc, { srgb: false, repeat: true, aniso: true }) };
   paint(-7.43, -7.27, 0, 24, '#cfae45', '#2c2408');   // median-side edge line (yellow)
   paint(7.27, 7.43, 0, 24, '#dcd9cf', '#2a2a2a');     // outside edge line (white)
   for (const lx of [-3.6, 0, 3.6]) for (const y0 of [0, 12]) paint(lx - 0.075, lx + 0.075, y0, y0 + 3, '#d6d3ca', '#262626');
@@ -924,11 +925,13 @@ const roadMat = new THREE.MeshStandardMaterial({
   color: hdr(1.2, 1.2, 1.3), map: roadTex.map, roughnessMap: roadTex.rough, roughness: 1, metalness: 0,
   emissive: hdr(1, 1, 1), emissiveMap: roadTex.emissive, emissiveIntensity: 1.0, envMap, envMapIntensity: 0.7,
 });
+const highwayOnly = []; // Game Room: the oncoming road and the barriers - the desert is a single track
 for (const cx of [0, OPP_CENTER]) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, ROAD_LEN, 1, 140), roadMat);
   m.rotation.x = -Math.PI / 2;
   m.position.set(cx, 0, ROAD_NEAR - ROAD_LEN / 2);
   scene.add(m);
+  if (cx !== 0) highwayOnly.push(m);
 }
 // Game Room: 10 m rows (the original had 100 m), so the desert's hills can't lift it through the road.
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000, 1, 900), new THREE.MeshStandardMaterial({ color: lin('#0b0f18'), roughness: 1, metalness: 0 }));
@@ -958,6 +961,7 @@ for (const x of [MEDIAN_X, RIGHT_X, OPP_OUTER_X]) {
   const m = new THREE.Mesh(barGeo, barMat);
   m.position.x = x;
   scene.add(m);
+  highwayOnly.push(m);
 }
 
 // ---------- city blocks: one instanced draw, windows generated in the shader ----------
@@ -1292,7 +1296,7 @@ sandTex.repeat.set(1600 / SAND_TILE, SAND_LEN / SAND_TILE);
 const sandMat = new THREE.MeshStandardMaterial({ color: hdr(1.05, 0.95, 0.88), map: sandTex, roughness: 1, metalness: 0 });
 const sand = new THREE.Mesh(new THREE.PlaneGeometry(1600, SAND_LEN, 1, 170), sandMat);
 sand.rotation.x = -Math.PI / 2;
-sand.position.set(-8, -0.06, ROAD_NEAR - SAND_LEN / 2);
+sand.position.set(0, -0.06, ROAD_NEAR - SAND_LEN / 2);
 scene.add(sand);
 desertObjs.push(sand);
 // Things scattered along the road, recycled like the city's buildings: each
@@ -1333,54 +1337,145 @@ const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9
 // Either side of both carriageways, `near` to `far` from our road's centre on
 // the right, or as far beyond the oncoming one on the left (mirrored about
 // the median), keeping a thing of radius `r` clear of the road.
-const offRoad = (near, far, r) => { const x = rand(near, far) + r; return Math.random() < 0.55 ? x : 2 * MEDIAN_X - x; };
+// A single track now: either side of it, mirrored, keeping a thing of radius `r` clear of the road.
+const offRoad = (near, far, r) => { const x = rand(near, far) + r; return Math.random() < 0.5 ? x : -x; };
 const DESERT_L = 1600;
-const duneMat = new THREE.MeshStandardMaterial({ color: lin('#c3915f'), roughness: 1, metalness: 0 });
+
+// The road's edges: a low bank of sand and rock where the city had barriers
+// (the car still stops at the same place, LIM, and scrapes along it).
+function bermTexture() {
+  const W = 128, H = 256, c = makeCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#b08458'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 260; i++) {
+    g.fillStyle = Math.random() < 0.6 ? `rgba(84,52,34,${rand(0.2, 0.5).toFixed(2)})` : `rgba(226,186,140,${rand(0.2, 0.5).toFixed(2)})`;
+    g.beginPath(); g.ellipse(rand(0, W), rand(0, H), rand(1, 5), rand(1, 4), 0, 0, Math.PI * 2); g.fill();
+  }
+  return toTex(c, { repeat: true, aniso: true });
+}
+const bermTex = bermTexture();
+bermTex.repeat.set(0.5, 1 / 8);
+const bermMat = new THREE.MeshStandardMaterial({ color: hdr(1, 0.92, 0.85), map: bermTex, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+const bermProfile = new THREE.Shape([[-0.9, 0], [2.6, 0], [2.0, 0.45], [1.1, 0.8], [0.1, 0.78], [-0.6, 0.35]].map((p) => new THREE.Vector2(p[0], p[1])));
+const bermGeo = new THREE.ExtrudeGeometry(bermProfile, { depth: ROAD_LEN, bevelEnabled: false, steps: 140, curveSegments: 1 });
+bermGeo.translate(0, 0, ROAD_NEAR - ROAD_LEN);
+for (const side of [1, -1]) {
+  const m = new THREE.Mesh(bermGeo, bermMat);
+  m.position.x = side * 9.4;
+  m.scale.x = side;
+  scene.add(m);
+  desertObjs.push(m);
+}
+
+// The canyon: a wall on each side, rebuilt every frame from the world
+// distance, so it winds in and out and rises and falls as you drive. Rows
+// are 10 m apart so the walls follow the hills. A picture only: nothing
+// here touches the game.
+function strataTexture() {
+  const W = 128, H = 512, c = makeCanvas(W, H), g = c.getContext('2d');
+  const bands = ['#8a3f28', '#a14b2c', '#b8603a', '#7a3424', '#c47a4a', '#9a4a30', '#6e2f22', '#b35c36', '#d08a58', '#8e4229'];
+  let y = 0;
+  while (y < H) {
+    const h = rand(6, 40);
+    g.fillStyle = pickOne(bands);
+    g.fillRect(0, y, W, h + 1);
+    y += h;
+  }
+  // Thin ledges, and dark streaks of desert varnish down the cliffs.
+  for (let i = 0; i < 26; i++) { g.fillStyle = `rgba(50,22,14,${rand(0.15, 0.4).toFixed(2)})`; g.fillRect(0, rand(0, H), W, rand(1, 3)); }
+  for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(40,18,12,${rand(0.08, 0.22).toFixed(2)})`; g.fillRect(rand(0, W), rand(0, H), rand(1, 4), rand(30, 160)); }
+  const img = g.getImageData(0, 0, W, H), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const nz = (Math.random() - 0.5) * 26; d[i] += nz; d[i + 1] += nz; d[i + 2] += nz; }
+  g.putImageData(img, 0, 0);
+  return toTex(c, { repeat: true, aniso: true });
+}
+const strataTex = strataTexture();
+const wallMat = new THREE.MeshStandardMaterial({ color: hdr(0.85, 0.78, 0.74), map: strataTex, roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
+const WALL_ROWS = 171, WALL_STEP = 10;
+// The wall's cross-section from its foot outward: [metres out, share of its height] - a talus slope, the cliff, the rim, the plateau.
+const WALL_PROFILE = [[0, 0], [6, 0.04], [10, 0.13], [11, 0.3], [11.5, 0.72], [12.4, 0.95], [15, 1], [80, 1.04]];
+const WP = WALL_PROFILE.length;
+// Smooth value noise in 0..1 along the road (a picture only, so Math.sin is fine here).
+function wallNoise(s, scale, seed) {
+  const f = s / scale, i = Math.floor(f), t = f - i, u = t * t * (3 - 2 * t);
+  const h = (n) => { const x = Math.sin((n + seed) * 127.1) * 43758.5453; return x - Math.floor(x); };
+  return h(i) + (h(i + 1) - h(i)) * u;
+}
+function canyonWall(side) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(WALL_ROWS * WP * 3), 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(WALL_ROWS * WP * 2), 2));
+  const idx = [];
+  for (let r = 0; r < WALL_ROWS - 1; r++) {
+    for (let k = 0; k < WP - 1; k++) {
+      const a = r * WP + k, b = a + WP;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  }
+  geo.setIndex(idx);
+  const mesh = new THREE.Mesh(geo, wallMat);
+  mesh.frustumCulled = false;
+  scene.add(mesh);
+  desertObjs.push(mesh);
+  return { geo, side, seed: side > 0 ? 0 : 57 };
+}
+const canyonWalls = [canyonWall(1), canyonWall(-1)];
+function updateWall(w) {
+  const pos = w.geo.attributes.position.array, uv = w.geo.attributes.uv.array;
+  for (let r = 0; r < WALL_ROWS; r++) {
+    const z = ROAD_NEAR - r * WALL_STEP;
+    const s = dist - z; // this row's distance down the road
+    const foot = 20 + 16 * wallNoise(s, 170, w.seed) + 5 * wallNoise(s, 45, w.seed + 9);
+    // Blocky: the rim steps up and down every few rows, like buttresses along the cliff.
+    const height = (25 + 65 * wallNoise(s, 260, w.seed + 3)) * (0.82 + 0.3 * wallNoise(s, 22, w.seed + 5));
+    for (let k = 0; k < WP; k++) {
+      const [dx, dy] = WALL_PROFILE[k];
+      const y = dy * height;
+      const o = (r * WP + k) * 3;
+      pos[o] = w.side * (foot + dx * (0.8 + 0.4 * wallNoise(s, 90, w.seed + k)));
+      pos[o + 1] = y;
+      pos[o + 2] = z;
+      uv[(r * WP + k) * 2] = s / 40;
+      uv[(r * WP + k) * 2 + 1] = y / 38;
+    }
+  }
+  w.geo.attributes.position.needsUpdate = true;
+  w.geo.attributes.uv.needsUpdate = true;
+  w.geo.computeVertexNormals();
+}
+
 const desertUpdaters = [
-  // Dunes: big, soft swells of sand.
-  scatter(new THREE.SphereGeometry(1, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2), duneMat, 46, DESERT_L, 120, (it) => {
-    it.sx = rand(30, 110); it.sz = rand(30, 90); it.sy = rand(4, 16); it.y = -1; it.rot = rand(0, 6.3);
-    it.x = offRoad(30, 380, Math.max(it.sx, it.sz));
-    it.color.setRGB(1, 1, 1);
-  }),
-  // Mesas: flat-topped red rock, further out.
-  scatter(new THREE.CylinderGeometry(0.72, 1, 1, 7, 1).translate(0, 0.5, 0), rockMat, 22, DESERT_L, 200, (it) => {
-    it.x = (Math.random() < 0.5 ? 1 : -1) * rand(260, 700) - 8; it.sx = rand(40, 140); it.sz = it.sx * rand(0.5, 0.9); it.sy = rand(30, 110); it.rot = rand(0, 6.3);
-    it.color.copy(lin(pickOne(['#8c4a32', '#9d5a3a', '#7a3f2e', '#a8623f'])));
-  }),
-  // Rocks and boulders near the road.
-  scatter(new THREE.DodecahedronGeometry(1, 0), rockMat, 70, DESERT_L, 60, (it) => {
-    const k = Math.random() < 0.8 ? rand(0.3, 1.2) : rand(1.6, 4);
+  // Boulders: small ones on the berms, big ones out on the canyon floor.
+  scatter(new THREE.DodecahedronGeometry(1, 0), rockMat, 90, DESERT_L, 60, (it) => {
+    const big = Math.random() < 0.35;
+    const k = big ? rand(1.6, 4.2) : rand(0.25, 0.9);
     it.sx = k * rand(0.8, 1.5); it.sy = k * rand(0.5, 0.9); it.sz = k * rand(0.8, 1.4); it.rot = rand(0, 6.3);
-    it.x = offRoad(11, 90, Math.max(it.sx, it.sz));
-    it.color.copy(lin(pickOne(['#7d5a44', '#8f6a4e', '#6b4a3a', '#a07655'])));
+    it.x = big ? offRoad(12, 22, it.sx) : offRoad(9.6, 11.5, 0);
+    it.y = big ? 0 : 0.45;
+    it.color.copy(lin(pickOne(['#a0583a', '#b8693f', '#8c4a32', '#c47a4a'])));
   }),
-  // Saguaros: a trunk and two arms.
+  // Scrub: low dry bushes on the canyon floor.
+  scatter(new THREE.IcosahedronGeometry(1, 0).translate(0, 0.6, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true }), 60, DESERT_L, 60, (it) => {
+    const k = rand(0.4, 1.1);
+    it.x = offRoad(11.5, 24, k); it.sx = k * rand(1, 1.6); it.sy = k * rand(0.6, 0.9); it.sz = k * rand(1, 1.6); it.rot = rand(0, 6.3);
+    it.color.copy(lin(pickOne(['#6b6a3a', '#7d7444', '#5a5a34', '#8a7a4a'])));
+  }),
+  // A few saguaros.
   scatter(mergeGeometries([
     cylAt(0.3, 0.34, 5, 9, 0, 2.5, 0), new THREE.SphereGeometry(0.3, 9, 5, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 5, 0),
     boxAt(0.7, 0.36, 0.36, 0.38, 1.7, 0), cylAt(0.2, 0.22, 1.6, 8, 0.72, 2.5, 0),
     boxAt(0.6, 0.32, 0.32, -0.34, 2.4, 0), cylAt(0.18, 0.2, 1.3, 8, -0.62, 3.0, 0),
-  ]), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, envMap: envMapDesert, envMapIntensity: 0.3 }), 60, DESERT_L, 60, (it) => {
-    const k = rand(0.7, 1.5);
-    it.x = offRoad(12, 110, 1.2 * k);
+  ]), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, envMap: envMapDesert, envMapIntensity: 0.3 }), 16, DESERT_L, 60, (it) => {
+    const k = rand(0.7, 1.3);
+    it.x = offRoad(12, 20, 1.2 * k);
     it.sx = k * (Math.random() < 0.5 ? -1 : 1); it.sy = k; it.sz = k; it.rot = rand(0, 6.3);
     it.color.copy(lin(pickOne(['#3f5a35', '#4a6a3c', '#36502f'])));
   }),
-  // Telephone poles down the right side, 55 m apart.
-  (() => {
-    const N = 28, SP = 55;
-    let k = 0;
-    return scatter(mergeGeometries([cylAt(0.13, 0.17, 9, 7, 0, 4.5, 0), boxAt(2.4, 0.16, 0.16, 0, 8.4, 0), boxAt(1.6, 0.14, 0.14, 0, 7.6, 0)]),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0 }), N, N * SP, 60, (it) => {
-        if (it.z === null) it.base = (k++) * SP;
-        it.x = 14.5; it.sx = 1; it.sy = rand(0.95, 1.05); it.sz = 1; it.rot = rand(-0.08, 0.08);
-        it.color.copy(lin('#4a3424'));
-      });
-  })(),
 ];
 function updateDesert() {
   sandTex.offset.y = (dist / SAND_TILE) % 1;
   roadTexDesert.map.offset.y = (dist / ROAD_TEX_LEN) % 1;
+  bermTex.offset.y = (dist / 8) % 1;
+  for (const w of canyonWalls) updateWall(w);
   for (const u of desertUpdaters) u();
 }
 
@@ -1397,10 +1492,10 @@ const CIRCUITS = {
     fog: lin('#d0805e'), fogDensity: 0.0013,
     hemi: ['#ffb791', '#4a2c22', 1.2], light: ['#ffb070', 1.4, [SUN_DIR.x * 300, 40, SUN_DIR.z * 300]], ground: '#9c6440',
     tint: [1.05, 0.94, 1.06], tintAmt: 0.35, lift: [0.012, 0.006, 0.01], flareTint: [1.25, 0.7, 0.45], exposure: 1.05,
-    env: envMapDesert, skyline: mesaTex, road: roadTexDesert, roadColor: hdr(1.25, 1.15, 1.05), roadGlow: 0.25, barrier: hdr(1.55, 1.32, 1.12), barrierGlow: 0.3,
+    env: envMapDesert, skyline: mesaTex, road: roadTexDesert, roadColor: hdr(1.1, 1.0, 0.92), roadGlow: 0, barrier: hdr(1.55, 1.32, 1.12), barrierGlow: 0.3,
   },
 };
-const cityObjs = [bMesh, lampPoles, lampHeads, lampPools, slPosts, slHeads, slPools, stars, ...walks, ...props.map((p) => p.obj)];
+const cityObjs = [bMesh, lampPoles, lampHeads, lampPools, slPosts, slHeads, slPools, stars, ...walks, ...highwayOnly, ...props.map((p) => p.obj)];
 let circuit = null;
 let circuitFog = FOG_DENSITY;
 let circuitExposure = 1;
@@ -1868,7 +1963,8 @@ function syncTraffic() {
 }
 function writeTraffic() {
   for (const v of vehicles) {
-    if (v.z === HIDDEN_Z) { _m4.makeScale(0, 0, 0); (v.kind === 'truck' ? truckBodies : carBodies).setMatrixAt(v.idx, _m4); (v.kind === 'truck' ? truckLights : carLights).setMatrixAt(v.idx, _m4); continue; }
+    // Game Room: no oncoming lane in the desert.
+    if (v.z === HIDDEN_Z || (v.dir < 0 && circuit === 'desert')) { _m4.makeScale(0, 0, 0); (v.kind === 'truck' ? truckBodies : carBodies).setMatrixAt(v.idx, _m4); (v.kind === 'truck' ? truckLights : carLights).setMatrixAt(v.idx, _m4); continue; }
     const bodyM = v.kind === 'truck' ? truckBodies : carBodies;
     const lightM = v.kind === 'truck' ? truckLights : carLights;
     let yaw = v.dir > 0 ? 0 : Math.PI;
@@ -2476,7 +2572,7 @@ function updateStreaks() {
       const zz = v.z + (truckish ? 7.24 : 2.42);
       addStreak(v.x - off, y, zz, k, k * 0.03, k * 0.05);
       addStreak(v.x + off, y, zz, k, k * 0.03, k * 0.05);
-    } else {
+    } else if (circuit !== 'desert') {
       const k = 0.22 * fade;
       for (const s of [-0.62, 0.62]) addStreak(v.x + s, 0.66 * v.sy, v.z + 2.42, k * 0.92, k * 0.95, k);
     }

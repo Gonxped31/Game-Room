@@ -166,18 +166,27 @@ single-file game (visuals, controls, physics, scoring).
 
 ## The desert circuit (an option)
 
-- **Sunset instead of night**: a low sun ahead-left (`SUN_DIR`, drawn in the sky
-  shader), an orange-to-violet sky, warm fog, a warm grade, sunset reflections
-  (a second env map), sun-bleached road with sand on its edges, and mesas on the
-  horizon instead of the skyline.
+- **A dirt track through a red-rock canyon at sunset** (reference:
+  `references/night-highway/desert-canyon-road.png`, its shapes, not its light):
+  - Sunset: a low sun ahead-left (`SUN_DIR`, drawn in the sky shader), an
+    orange-to-violet sky, warm fog, a warm grade, sunset reflections (a second env
+    map), mesas on the horizon instead of the skyline.
+  - A single track, still 4 lanes wide (same invisible lanes, so traffic and the
+    race sync don't change): packed dirt with ruts and no paint
+    (`makeRoadTextures(true)`, fully matte). No oncoming road, barriers or
+    oncoming cars (`highwayOnly`, hidden in `writeTraffic`/`updateStreaks`).
+  - The road edge is a low rocky berm (`bermGeo`) where the barriers were; the car
+    still stops at `LIM` and scrapes along it.
+  - Canyon walls (`canyonWall`/`updateWall`): one strip per side, rebuilt every
+    frame from the world distance (`wallNoise`), so they wind, step and rise as
+    you drive; 10 m rows so they follow the hills. Layered strata texture.
+  - Boulders, scrub and a few saguaros on the canyon floor (`scatter`); `offRoad`
+    mirrors about the track and keeps a piece's whole radius off it.
+  - The title kicker swaps per circuit (`.nh-city-only` / `.nh-desert-only`).
 - **Built beside the city, swapped by `setCircuit()`** (called every frame from
   the shown switch; it only does work when the circuit changes). `CIRCUITS` holds
   each one's look; `cityObjs`/`desertObjs` are hidden and shown. Any new
   look-dependent value belongs in `CIRCUITS`.
-- **Scenery** (`scatter()`): dunes, mesas, rocks, saguaros and telephone poles,
-  instanced, recycled along the road, re-rolled when they wrap. `offRoad(near,
-  far, r)` keeps a piece of radius `r` clear of both carriageways - a wide dune
-  placed by its centre once spilled across the road.
 - **Hills** (`road.ts`: `heightAt`, `fillHillTable`): drawn like the curves - a
   second table (`nhHill`) on the same grid lifts every vertex in the shaders
   (`nhBendXY`). Picture only: traffic, pickups and the race sync don't change.

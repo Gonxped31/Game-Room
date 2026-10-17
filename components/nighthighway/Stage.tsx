@@ -124,7 +124,11 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
         <>
           <section id="title" className="layer screen" hidden>
             <div className="card">
-              <p className="kicker">60 seconds · one road · after midnight</p>
+              <p className="kicker">
+                {/* The engine marks the stage .nh-desert in the desert. */}
+                <span className="nh-city-only">60 seconds · one road · after midnight</span>
+                <span className="nh-desert-only">60 seconds · one canyon · at sundown</span>
+              </p>
               <h1 className="wordmark">
                 <span>Night</span>
                 <span className="hot">Highway</span>
