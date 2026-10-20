@@ -39,10 +39,11 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
     **pickups** (nitro, a few seconds of driving through traffic, a one-crash
     shield) and **rain** (the car slides).
   - `/nighthighway/solo` is the original single-player game, no room needed.
-- **Iaï** (`/iai/solo`) - an ink-painting samurai game. Enemies run in from both
-  sides; walk, jump and cut at the perfect moment, until you fall.
-  - The oni wakes, and returns stronger each time you slay it.
-  - `/iai` is co-op: two samurai back to back on one field, until both fall.
+- **Buzzer Quiz** (`/buzzerquiz`) - 2 to 4 players race to buzz in on
+  multiple-choice questions, in English or French.
+  - The host picks the topics and the length; everyone plays.
+  - A wrong answer is struck out for everyone and its player is locked out, so the
+    question gets easier but is worth less (3, 2, then 1 point).
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
 game, the database-rules workflow and live two-player testing are Claude Code skills

@@ -5,8 +5,8 @@ A small platform for private 2-player games played through a shared link.
 - Each game lives at `/<slug>#<roomCode>`.
 - No sign-in: every browser gets an invisible guest ID.
 - Games: **First to Worst** (`/ftw`), **Co-Counsel** (`/cocounsel`), **Night
-  Highway** (`/nighthighway`, plus `/nighthighway/solo`) and **Iaï** (`/iai/solo`,
-  plus co-op at `/iai`).
+  Highway** (`/nighthighway`, plus `/nighthighway/solo`) and **Buzzer Quiz**
+  (`/buzzerquiz`, 2-4 players).
 
 This file holds what must stay true on **every** change. Everything else loads on
 demand:
@@ -16,12 +16,12 @@ demand:
 | Working on First to Worst | `first-to-worst` skill (`.claude/skills/first-to-worst/`) |
 | Working on Co-Counsel | `co-counsel` skill |
 | Working on Night Highway (3D race, deterministic traffic, live ghost car) | `night-highway` skill |
-| Working on Iaï (ink samurai game, solo + co-op on one field) | `iai` skill |
+| Working on Buzzer Quiz (2-4 players, buzz in, EN/FR question bank) | `buzzerquiz` skill |
 | Adding (or removing) a game | `add-game` skill |
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |
 | Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |
 | Testing a change with two players on phone + desktop (emulators + Playwright) | `live-test` skill |
-| Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `night-highway/`, `iai/`) |
+| Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `night-highway/`, `buzzer-quiz/`, `scramble/`) |
 | The work queue, including deferred work waiting on a trigger ("when X ships, do Y") | `todo` skill |
 
 **Before finishing any task, check the todos** (`node .claude/skills/todo/scripts/todo.mjs list --all`)
@@ -54,7 +54,7 @@ games/{roomCode}/
   players:    { p1: { name }, ... }   presence: { [uid]: { online, lastSeen } }
   lastActive: number                  ftw | cocounsel | nighthighway: { ...game state... }  // validated per game
   nighthighwayCars: { p1: {...}, p2: {...} }                                 // live cars, each seat writes its own
-  iai: { ...co-op room state... }     iaiLive: { p1: {run, d}, p2: {run, d} }  // Iaï co-op: the host's snapshots, the partner's moves
+  buzzerquiz: { ...game state, buzzes included... }                         // Buzzer Quiz, maxPlayers 4
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 ```
@@ -91,14 +91,22 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
   - `presence.ts` - `.info/connected` + `onDisconnect`, keyed by uid. Cleanup
     marks a guest offline but never deletes the entry, because takeover is judged
     on `lastSeen`.
+  - `serverClock.ts` - `useServerClock`, `useTicker`, and `useDeadline`, which
+    fires on every device when a stored server-time deadline passes.
+    `deadline.ts` has the matching pure helpers: a timed step must call
+    `assertDue` so that only the first device's commit moves the game on.
   - `useRoom.ts` - the core hook:
     - It waits for auth and a real `#code` before touching the database.
     - A bare visit creates the room *then* sets the hash.
     - It listens to `meta`/`seats`/`members`/`players`/`presence`/game separately,
       never the whole room.
     - It runs seat actions and presence, and writes `lastActive` at most once a
-      minute while every seat is filled.
-- **`lib/session/useGameSession.ts`** - the 1v1 hook every game page calls.
+      minute while at least `minPlayers` seats are filled.
+- **`lib/session/useSession.ts`** - the session hook for any game size (2–8
+  seats, `maxPlayers` and optional `minPlayers`): seats, presence, room name,
+  `isHost`, `moveToSeat`. Games with more than 2 players call it directly.
+- **`lib/session/useGameSession.ts`** - the 1v1 wrapper over `useSession` that
+  every 2-player game page calls.
   - **Its public API is stable**: `room, game, gameStore, me, other, names,
     bothJoined, roomName, setRoomName, online, pickIdentity, releaseAllIdentities,
     transact, setGame, newRoom`.
@@ -108,12 +116,10 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
   - **Seats survive `setGame()` resets.**
   - `releaseAllIdentities` means "switch role": a swap, or a move to the empty
     seat.
-- **`lib/session/types.ts`** - `Role` (`"p1"|"p2"`, never renamed per game) and
-  `WithIdentity`, which every game state must extend. Its `names` field is now
-  always `{}`: names live in `players`.
-- **`lib/session/multiplayer/`** - `useMultiplayerSession` for 3–8 seats, built on
-  the same `useRoom`. No game uses it yet; keep it separate from `useGameSession`
-  until one does.
+- **`lib/session/types.ts`** - `Role` (`"p1"|"p2"`, never renamed per game),
+  `SeatId`/`seatIds`, and `WithIdentity` (1v1) / `WithMultiplayerIdentity`, which
+  every game state must extend. Their `names` field is always `{}`: names live in
+  `players`.
 - **`lib/store/`** - backend-agnostic:
   - `createPathStore(path)`, `createGameStore(room, slug)`, `updateRoot`,
     `serverTimestamp` (required for the rules' `<= now` checks), `watchConnection`,
@@ -126,10 +132,10 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
     offline errors, so code never acts on "missing" data it didn't actually see.
   - UI code never knows which backend is active.
 - **`lib/games/<slug>/`** - each game's pure state machine, constants, content and
-  tests. **`components/<slug>/`** and **`app/<slug>/page.tsx`** - each game's UI.
+  tests. `lib/games/shared/language.ts` - the room content language (`en`/`fr`). **`components/<slug>/`** and **`app/<slug>/page.tsx`** - each game's UI.
   **`components/`** - shared pieces:
   - `Header`, `Footer`, `Button`, `RoleStickers`.
-  - `RolePicker` - FTW's name entry, with takeover.
+  - `RolePicker` - name entry with takeover, for 2 seats (FTW) or a `seats` list.
   - `InviteLinkBanner` - the name field shows only for the creator.
   - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button
     or floating pill), `GameCard` (Start + Join), `HubOverlay` (one shared

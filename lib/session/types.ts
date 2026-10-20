@@ -2,11 +2,27 @@
 export type Role = "p1" | "p2";
 
 /**
- * Every per-game state type must carry this so the shared session layer
- * (lib/session/useGameSession.ts) can show "who's in this room" without
- * knowing anything else about the game.
+ * A seat in any game, whatever its size: "p1", "p2", ..., "p8". Plain
+ * `string` rather than a literal union (unlike `Role`) since the count varies
+ * per game - a game declares its own `maxPlayers` and gets exactly that many.
+ */
+export type SeatId = string;
+
+/** Every seat for a game with this many players: `["p1", "p2", ..., "pN"]`. */
+export function seatIds(maxPlayers: number): SeatId[] {
+  return Array.from({ length: maxPlayers }, (_, i) => `p${i + 1}`);
+}
+
+/**
+ * Every 1v1 game's state type extends this. Its `names` field is always `{}`:
+ * seats and display names live at the room level (`players`), not in the
+ * game's own state.
  */
 export interface WithIdentity {
-  /** Display names the two players picked for themselves, keyed by seat - not by in-game role, since in-game roles can rotate (e.g. master/guesser, emperor/slave). */
   names: Partial<Record<Role, string>>;
+}
+
+/** The same for a game with more than 2 seats (`useSession`), keyed by the open `SeatId`. */
+export interface WithMultiplayerIdentity {
+  names: Partial<Record<SeatId, string>>;
 }

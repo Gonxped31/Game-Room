@@ -1,8 +1,8 @@
 "use client";
 
-import { useRoom } from "./shared/useRoom";
 import type { Store } from "@/lib/store";
 import type { Role, WithIdentity } from "./types";
+import { useSession } from "./useSession";
 
 export interface GameSession<TState extends WithIdentity> {
   room: string;
@@ -56,14 +56,12 @@ export interface GameSession<TState extends WithIdentity> {
   newRoom: () => void;
 }
 
-const ROLES: readonly Role[] = ["p1", "p2"];
+const asRole = (seat: string | null): Role | null => (seat === "p1" || seat === "p2" ? seat : null);
 
 /**
- * All the game-agnostic 2-player session mechanics shared by every 1v1 game
- * on this platform: guest identity, room resolution (including creating a
- * fresh room for a bare visit), the backend-agnostic store, seats, presence.
- * A game's page calls this once with its own state type and a factory for a
- * fresh game, then only has to deal with its own rules.
+ * The 1v1 session hook every 2-player game page calls: `useSession` with two
+ * seats, narrowed to the `Role` pair and the stable API those games were
+ * built on (`other`, `bothJoined`, `releaseAllIdentities`).
  *
  * Seats live at the room level (`games/{room}/seats`, keyed to guest IDs),
  * not in the game's own state, so a game resetting itself ("Reset game",
@@ -74,45 +72,37 @@ export function useGameSession<TState extends WithIdentity>(opts: {
   gameSlug: string;
   createInitialState: () => TState;
 }): GameSession<TState> {
-  const core = useRoom<TState>({ gameSlug: opts.gameSlug, maxPlayers: 2, createInitialState: opts.createInitialState });
+  const session = useSession<TState>({ gameSlug: opts.gameSlug, maxPlayers: 2, createInitialState: opts.createInitialState });
 
-  const me: Role | null = core.mySeat === "p1" || core.mySeat === "p2" ? core.mySeat : null;
+  const me = asRole(session.me);
   const other: Role | null = me === "p1" ? "p2" : me === "p2" ? "p1" : null;
   const names: Partial<Record<Role, string>> = {};
-  const online: Partial<Record<Role, boolean>> = {};
-  const canTakeOver: Partial<Record<Role, boolean>> = {};
-  for (const role of ROLES) {
-    if (core.names[role]) names[role] = core.names[role];
-    online[role] = core.isOnline(role);
-    canTakeOver[role] = core.canTakeOverSeat(role);
-  }
+  if (session.names.p1) names.p1 = session.names.p1;
+  if (session.names.p2) names.p2 = session.names.p2;
 
   return {
-    room: core.room,
-    game: core.game,
-    gameStore: core.gameStore,
-    uid: core.uid,
-    connectionError: core.connectionError,
-    roomMissing: core.roomMissing,
+    room: session.room,
+    game: session.game,
+    gameStore: session.gameStore,
+    uid: session.uid,
+    connectionError: session.connectionError,
+    roomMissing: session.roomMissing,
     me,
     other,
     names,
     bothJoined: Boolean(names.p1 && names.p2),
-    roomName: core.meta?.name,
-    canRenameRoom: core.isCreator,
-    setRoomName: core.setRoomName,
-    roomNameError: core.roomNameError,
-    online,
-    canTakeOver,
-    pickIdentity: async (role, name) => {
-      await core.claimSeat(role, name);
-    },
+    roomName: session.roomName,
+    canRenameRoom: session.canRenameRoom,
+    setRoomName: session.setRoomName,
+    roomNameError: session.roomNameError,
+    online: { p1: Boolean(session.online.p1), p2: Boolean(session.online.p2) },
+    canTakeOver: { p1: Boolean(session.canTakeOver.p1), p2: Boolean(session.canTakeOver.p2) },
+    pickIdentity: session.pickIdentity,
     releaseAllIdentities: () => {
-      if (!other) return;
-      void core.moveOrSwapTo(other, names[me!] ?? "");
+      if (other) session.moveToSeat(other);
     },
-    transact: core.transact,
-    setGame: core.gameStore.set,
-    newRoom: () => void core.newRoom(),
+    transact: session.transact,
+    setGame: session.setGame,
+    newRoom: session.newRoom,
   };
 }

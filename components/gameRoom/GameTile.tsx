@@ -49,11 +49,10 @@ export default function GameTile({ slug }: { slug: string }) {
       </span>
     );
   }
-  if (slug === "iai") {
+  if (slug === "buzzerquiz") {
     return (
-      <span aria-hidden="true" className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[#ebe3cf]">
-        <span className="absolute right-[6px] top-[6px] h-[12px] w-[12px] rounded-full bg-[#b21e26]" />
-        <span className="relative font-serif text-[17px] leading-none text-[#0c0d1c]">居</span>
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#16113A]">
+        <span className="h-[26px] w-[26px] rounded-full border-4 border-[#9E1B14] bg-[#FF4B3E]" />
       </span>
     );
   }

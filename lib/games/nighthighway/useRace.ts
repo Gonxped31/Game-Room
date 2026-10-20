@@ -5,7 +5,7 @@ import type { Role } from "@/lib/session/types";
 import { createPathStore } from "@/lib/store";
 import { GhostTrack, type LiveCar } from "./live";
 
-// The server clock and the ticker are shared session tools now (Iaï uses them too).
+// The server clock and the ticker are shared session tools now (Buzzer Quiz uses them too).
 export { useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 
 /**

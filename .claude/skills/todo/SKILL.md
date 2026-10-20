@@ -38,7 +38,7 @@ Line format: `ID | P | dep | size | tags | description`.
 - **IDs** are never reused, even after `rm` (the highest ever issued is kept in `.todo-last-id`).
 - **Tags:** lowercase only (others are rejected), comma-separated, `-` for none. Area tags: devops, infra,
   frontend, backend, full-stack, docs. Game slugs (`ftw`, `cocounsel`,
-  `nighthighway`, `iai`) are valid tags too.
+  `nighthighway`, `buzzerquiz`, `wordscramble`) are valid tags too.
 - **Detail files:** `done` and `rm` both delete `todos/T-XXX.md`. The archive keeps
   only the one-line entry, so put anything worth keeping in the code or commit.
 - **Color** is for humans only: it turns on in a terminal (`--pretty`, `--color=always`,

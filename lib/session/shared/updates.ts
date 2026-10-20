@@ -12,8 +12,8 @@
  *   lib/store) - passed in rather than imported so these stay pure and the
  *   rules tests can feed the emulator's own placeholder through them.
  *
- * Shared by both session hooks (useGameSession for 1v1 games,
- * useMultiplayerSession for 3+): a seat is just a string here (`"p1".."p8"`).
+ * Used by the session hook (useSession, whatever the game's size): a seat is
+ * just a string here (`"p1".."p8"`).
  */
 
 export const room = (code: string, sub: string) => `games/${code}/${sub}`;

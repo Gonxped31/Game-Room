@@ -1,6 +1,6 @@
 ---
 name: add-game
-description: Step-by-step checklist for adding a new game to the Game Room platform - registry entry, state machine, components, page, database rules and their tests, and verification. Use when creating a new game, adding a new game slug, or wiring a game onto useGameSession or useMultiplayerSession. Also use (in reverse) when removing a game.
+description: Step-by-step checklist for adding a new game to the Game Room platform - registry entry, state machine, components, page, database rules and their tests, and verification. Use when creating a new game, adding a new game slug, or wiring a game onto useGameSession or useSession. Also use (in reverse) when removing a game.
 ---
 
 # Adding a game to Game Room
@@ -55,13 +55,10 @@ a 3rd+ card.
   const createInitialState = useCallback(() => newGame(...), []); // must be stable
   const session = useGameSession({ gameSlug: "<slug>", createInitialState });
   ```
-  For a 3+ player game, use `useMultiplayerSession({ gameSlug, maxPlayers,
-  createInitialState })` instead. Note that `RolePicker` and `Header` are 2-seat
-  only.
-  **The first 3+ player game triggers a planned refactor**: merging the two
-  session hooks into one engine, building N-player picker/header components, and
-  removing dead identity code. See todo T-014 (`todo` skill), and raise it with the user
-  before building on `useMultiplayerSession` as it stands.
+  For a game with more than 2 players, use `useSession({ gameSlug, maxPlayers,
+  minPlayers, createInitialState })` instead (`lib/session/useSession.ts`). It has
+  `seats`, `joinedSeats`, `enoughJoined`, `isHost` and `moveToSeat`. `RolePicker`
+  takes a `seats` list for N players; `Header` is 2-player only.
 - **Handle the session states in this order** before any game screen:
   `session.connectionError` (show `CONNECTION_ERROR_MESSAGE`),
   `session.roomMissing` (`ROOM_MISSING_MESSAGE`), `!game` ("Connecting…"),
@@ -111,8 +108,8 @@ workflow.
 
 ## 6. Document it
 
-- Check the todos (`todo` skill, `list --all`) for items this new game triggers
-  (T-014 if it has 3+ players). Do them, or tell the user they're now due.
+- Check the todos (`todo` skill, `list --all`) for items this new game triggers.
+  Do them, or tell the user they're now due.
 - Tag new todos for the game with its slug (e.g. `--tag frontend,<slug>`).
 - Create a `.claude/skills/<slug>/SKILL.md` reference for the game. Follow the
   `first-to-worst` or `co-counsel` skill: rules, files, state, page flow and

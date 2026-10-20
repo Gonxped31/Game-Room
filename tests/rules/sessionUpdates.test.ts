@@ -1,8 +1,8 @@
 /**
  * The session layer's own multi-path updates (lib/session/shared/updates.ts),
  * sent through the emulator exactly as the app builds them - so the client
- * and database.rules.json can't drift apart unnoticed. Also covers the
- * multiplayer module: a `maxPlayers: 3` room (via the test-only 'mptest'
+ * and database.rules.json can't drift apart unnoticed. Also covers rooms
+ * with more than 2 seats: a `maxPlayers: 3` room (via the test-only 'mptest'
  * slug - the deployed rules only know 2-player games) seats three guests and
  * refuses a fourth.
  */
@@ -19,7 +19,7 @@ import {
   switchSeatUpdate,
   takeOverSeatUpdate,
 } from "@/lib/session/shared/updates";
-import { seatIds } from "@/lib/session/multiplayer/types";
+import { seatIds } from "@/lib/session/types";
 import { newGame as newFtwGame } from "@/lib/games/ftw/game";
 import { randomRound } from "@/lib/games/ftw/prompts";
 import { newGame as newCcGame } from "@/lib/games/cocounsel/game";
@@ -119,7 +119,7 @@ describe("a 1v1 room's lifecycle, with the app's own updates", () => {
   });
 });
 
-describe("the multiplayer module's rooms", () => {
+describe("rooms with more than 2 seats", () => {
   it("seats three guests in a maxPlayers: 3 room, and a fourth finds it full", async () => {
     // 'mptest' has no game-state node in the rules (a real game adds one -
     // see the checklist in rooms.test.ts), so leave its state out.

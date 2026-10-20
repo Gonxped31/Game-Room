@@ -11,8 +11,9 @@ import { customRound, randomRound, TOPICS } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
 import { CASES, getCase } from "@/lib/games/cocounsel/cases";
 import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
-import { abandonRun, type CoopResult, finishRun, newGame as newIaiGame, setReady as iaiReady } from "@/lib/games/iai/coop";
-import { cocounselState, dbAs, ftwState, iaiState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
+import * as quiz from "@/lib/games/buzzerquiz/game";
+import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
+import { buzzerquizState, cocounselState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -208,44 +209,84 @@ describe("Night Highway live cars", () => {
   });
 });
 
-describe("Iaï co-op", () => {
-  const path = `games/${ROOM}/iai`;
-  const result = (score: number): CoopResult => ({ score, survived: 120, kills: 51, oni: 2, combo: 31, perfect: 44 });
+describe("Buzzer Quiz", () => {
+  const path = `games/${ROOM}/buzzerquiz`;
   beforeEach(async () => {
-    await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], gameSlug: "iai" });
+    await seedRoom(env, { creator: "alice", seated: ["alice", "bob", "carol"], gameSlug: "buzzerquiz", maxPlayers: 4 });
   });
 
-  it("accepts every state of a real series", async () => {
-    const db = dbAs(env, "alice");
-    const write = <T,>(state: T) => writeAndReadBack(db, path, state);
-    const now = Date.now();
-    let game = await write(newIaiGame());
-    game = await write(iaiReady(game, "p2", true, now));
-    game = await write(iaiReady(game, "p1", true, now));
-    expect(game.phase).toBe("RUNNING");
-    game = await write(finishRun(game, 1, result(12500)));
-    expect(game.best).toBe(12500);
-    game = await write(iaiReady(iaiReady(game, "p1", true, now), "p2", true, now));
-    game = await write(abandonRun(game));
-    expect(game.phase).toBe("LOBBY");
+  it("accepts every state of a real game", async () => {
+    const db = dbAs(env, "bob");
+    const write = (state: quiz.QuizState) => writeAndReadBack(db, path, state);
+    const ids = Array.from({ length: 5 }, (_, i) => `sci-en-${i}`);
+    let t = 1_000_000;
+    let game = await write(quiz.newGame("fr"));
+    game = await write(quiz.toggleTopic(quiz.toggleTopic(game, "music"), "science"));
+    game = await write(quiz.setLength(quiz.setLang(game, "en"), 5));
+    game = await write(quiz.toLobby(game));
+    game = await write(quiz.start(game, { players: ["p1", "p2", "p3"], questionIds: ids, seed: 12345, now: t }));
+    // Question 1: two buzz, the faster wins and answers wrong; the next answers right.
+    t += COUNTDOWN_MS;
+    game = await write(quiz.reveal(game, t));
+    game = await write(quiz.buzz(game, "p2", 800, t + 800));
+    game = await write(quiz.buzz(game, "p1", 650, t + 900));
+    t += 800 + BUZZ_WINDOW_MS;
+    game = await write(quiz.resolveBuzz(game, t));
+    expect(game.buzzer).toBe("p1");
+    game = await write(quiz.pick(game, "p1", 3, t + 1000));
+    expect(game.struck).toEqual([3]);
+    t += 1500;
+    game = await write(quiz.resolveBuzz(await write(quiz.buzz(game, "p3", 300, t)), t + BUZZ_WINDOW_MS));
+    game = await write(quiz.pick(game, "p3", 0, t + 1000));
+    expect(game.outcome).toEqual({ kind: "right", seat: "p3", points: 2 });
+    t += 1000 + RESULT_MS;
+    game = await write(quiz.next(game, t));
+    // Question 2: the buzzer doesn't answer in time, then it times out.
+    t += COUNTDOWN_MS;
+    game = await write(quiz.reveal(game, t));
+    game = await write(quiz.resolveBuzz(await write(quiz.buzz(game, "p2", 400, t + 400)), t + 400 + BUZZ_WINDOW_MS));
+    t += 400 + BUZZ_WINDOW_MS + ANSWER_MS;
+    game = await write(quiz.answerTimeout(game, t));
+    expect(game.timeLeft).toBeUndefined();
+    game = await write(quiz.questionTimeout(game, t + QUESTION_MS));
+    expect(game.outcome).toEqual({ kind: "none", reason: "timeout" });
+    // Questions 3-5 time out, then the final ranking, a rematch and New topics.
+    t += QUESTION_MS + RESULT_MS;
+    game = await write(quiz.next(game, t));
+    for (let i = 0; i < 3; i++) {
+      t += COUNTDOWN_MS;
+      game = await write(quiz.reveal(game, t));
+      t += QUESTION_MS;
+      game = await write(quiz.questionTimeout(game, t));
+      t += RESULT_MS;
+      game = await write(quiz.next(game, t));
+    }
+    expect(game.phase).toBe("final");
+    expect(game.scores).toEqual({ p1: 0, p2: 0, p3: 2 });
+    game = await write(quiz.rematch(game, { players: ["p1", "p2", "p3", "p4"], questionIds: ids, seed: 9, now: t }));
+    game = await write(quiz.newTopics({ ...game, phase: "final" }));
+    expect(game.phase).toBe("setup");
   });
 
   it.each([
-    ["a bad phase", iaiState({ phase: "PAUSED" })],
-    ["a result missing a field", iaiState({ result: { score: 1 } })],
-    ["a string best", iaiState({ best: "9" })],
-    ["an unknown key", iaiState({ lives: 3 })],
+    ["a bad phase", buzzerquizState({ phase: "paused" })],
+    ["an unknown language", buzzerquizState({ settings: { lang: "de", length: 10 } })],
+    ["an unknown length", buzzerquizState({ settings: { lang: "en", length: 12 } })],
+    ["an unknown topic", buzzerquizState({ settings: { lang: "en", length: 10, topics: ["cooking"] } })],
+    ["a fifth player", buzzerquizState({ players: ["p1", "p2", "p3", "p4", "p5"] })],
+    ["a seat that doesn't exist", buzzerquizState({ buzzer: "p5" })],
+    ["a negative reaction time", buzzerquizState({ buzzes: [{ seat: "p1", ms: -1 }] })],
+    ["the right answer struck", buzzerquizState({ struck: [0] })],
+    ["too many points", buzzerquizState({ outcome: { kind: "right", seat: "p1", points: 4 } })],
+    ["an outcome without its reason", buzzerquizState({ outcome: { kind: "none" } })],
+    ["a negative score", buzzerquizState({ scores: { p1: -1 } })],
+    ["a missing seed", { phase: "setup", settings: { lang: "en", length: 10 }, index: 0, round: 0 }],
+    ["an unknown key", buzzerquizState({ host: "p1" })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
   });
 
-  it("lets each player write only their own live messages", async () => {
-    const msg = { run: 1, d: '{"r":1}' };
-    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p1`).set(msg));
-    await assertSucceeds(dbAs(env, "bob").ref(`games/${ROOM}/iaiLive/p2`).set(msg));
-    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p2`).set(msg));
-    await assertFails(dbAs(env, "carol").ref(`games/${ROOM}/iaiLive/p1`).set(msg));
-    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p1`).set({ run: 1, d: "x".repeat(30001) }));
-    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/iaiLive/p1`).set({ run: 1 }));
+  it("lets only the room's members write", async () => {
+    await assertFails(dbAs(env, "dave").ref(path).set(buzzerquizState()));
   });
 });

@@ -38,8 +38,8 @@ export interface GameEntry {
  * components/<slug>/ + app/<slug>/page.tsx, AND its own node in
  * database.rules.json (without that, every write is refused on Firebase). The
  * full checklist is the `add-game` skill (.claude/skills/add-game/SKILL.md). A
- * 3+ player game calls useMultiplayerSession (lib/session/multiplayer/)
- * instead of useGameSession.
+ * 1v1 game's page calls useGameSession; a bigger one calls useSession
+ * (lib/session/useSession.ts) with its own maxPlayers.
  */
 export const ALL_GAMES: GameEntry[] = [
   {
@@ -79,19 +79,16 @@ export const ALL_GAMES: GameEntry[] = [
     buttonTextClassName: "font-[family-name:var(--font-big-shoulders)] text-[20px] font-extrabold uppercase tracking-[0.04em]",
   },
   {
-    slug: "iai",
-    title: "Iaï",
-    description: "One blade against endless foes. Cut at the perfect moment, alone or side by side with a friend.",
-    tags: ["Solo", "2-player co-op"],
-    maxPlayers: 2,
-    // Solo is the default; co-op lives at the room page (/iai), opened from the solo screen or joined by code.
-    startPath: "iai/solo",
-    ink: "#0C0D1C",
-    textSecondary: "#4A4536",
-    // The game's gold (its seal red is too dark for ink-coloured button text).
-    accentColor: "#C9A24F",
-    titleClassName: "font-[family-name:var(--font-cormorant)] font-bold tracking-[0.12em]",
-    buttonTextClassName: "font-[family-name:var(--font-cormorant)] text-[20px] font-bold tracking-[0.08em]",
+    slug: "buzzerquiz",
+    title: "Buzzer Quiz",
+    description: "Race to buzz in. Every wrong answer gets struck out, so the question gets easier but worth less.",
+    tags: ["2–4 players", "EN or FR"],
+    maxPlayers: 4,
+    ink: "#16113A",
+    textSecondary: "#4A4570",
+    accentColor: "#FF4B3E",
+    titleClassName: "font-[family-name:var(--font-bricolage)] font-extrabold",
+    buttonTextClassName: "font-[family-name:var(--font-bricolage)] text-[19px] font-extrabold",
   },
 ];
 

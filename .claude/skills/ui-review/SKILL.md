@@ -16,8 +16,8 @@ it's been seen on both. Game-specific visual rules live in the `first-to-worst` 
 | Hub (`/`): game cards, join form, "Your rooms" | `references/game-room/game-room-ui-spec.md` + every board in `references/game-room/visual-design/` (desktop **and** mobile, plus the open Join and Your rooms states). Its breakpoint is **760px** (`min-[760px]:`), not Tailwind's `md:`. Background `#0F7983`. |
 | First to Worst | `references/ftw/first-to-worst.html` (the original prototype) + `first-to-worst-game-design.md` |
 | Co-Counsel | `references/co-counsel/co-counsel-visual-spec.md` + `Visual Design-png/` |
-| Iaï | `references/iai/iai.html` (the original; Game Room's version redesigns the hero, wolf and oni, see the `iai` skill) |
 | Night Highway | `references/night-highway/Night Highway.html` (the original game; its title card is the style for the race page's own screens) |
+| Buzzer Quiz | `references/buzzer-quiz/buzzer-quiz-visual-spec.md` (look, screens, copy) + `buzzer-quiz-game-design.md` (behavior). Its breakpoint is **900px**. |
 
 Read the spec itself, not just the mockup images; it pins exact sizes, colors,
 states and motion. One past redesign matched only the mobile mockup and missed the

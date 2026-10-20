@@ -76,18 +76,16 @@ It starts a solo run, then races a desktop player against an iPhone:
 - Each HUD names the other driver, and both live cars reach the database.
 - Both results land when the clock runs out, and both see the results screen.
 
-**Iaï co-op** has its own check too (about two minutes):
+**Buzzer Quiz** has its own check too (about a minute):
 
 ```bash
-node .claude/skills/live-test/scripts/iai-coop.mjs [baseUrl] [screenshotDir]
+node .claude/skills/live-test/scripts/buzzer-quiz.mjs [baseUrl] [screenshotDir]
 ```
 
-A desktop host and an Android partner join, ready up and fight on one field: the
-host must see the partner where they are, the partner's cuts must count on the
-host, and when both fall both must see the run's result.
-
-Headless browsers render the 3D road at a few frames per second. That's expected:
-the engine makes up slow frames in a race, so scores stay comparable.
+A desktop host sets up a French 5-question quiz, and an iPhone and an Android
+player join. Two players buzz at once and the lower reaction time answers. A wrong
+pick is struck out on all three and locks its player out. The host answers right
+by keyboard for 2 points and wins, and a player starts the rematch.
 
 ## 3. Writing a check for your own change
 

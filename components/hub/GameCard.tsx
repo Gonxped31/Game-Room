@@ -1,9 +1,9 @@
 "use client";
 
 import type { CSSProperties, JSX } from "react";
+import BuzzerQuizArt from "@/components/gameRoom/BuzzerQuizArt";
 import CoCounselArt from "@/components/gameRoom/CoCounselArt";
 import FtwArt from "@/components/gameRoom/FtwArt";
-import IaiArt from "@/components/gameRoom/IaiArt";
 import NightHighwayArt from "@/components/gameRoom/NightHighwayArt";
 import type { GameEntry } from "@/lib/games/registry";
 
@@ -11,7 +11,7 @@ const ART_BY_SLUG: Record<string, () => JSX.Element> = {
   ftw: FtwArt,
   cocounsel: CoCounselArt,
   nighthighway: NightHighwayArt,
-  iai: IaiArt,
+  buzzerquiz: BuzzerQuizArt,
 };
 
 /** On the white card: a 3px teal focus outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */

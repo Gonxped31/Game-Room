@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { setIdentityName as setName } from "@/lib/session/identity";
 import { pruneLikeFirebase, undefinedPaths } from "@/lib/store/firebaseShape";
 import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPlaced, setPrompt, setTopics, submitGuess } from "./game";
 
@@ -58,30 +57,9 @@ describe("newGame", () => {
   });
 });
 
-describe("setName", () => {
-  it("sets a player's name, trimmed", () => {
-    const game = setName(freshGame(), "p1", "  Sam  ");
-    expect(game.names.p1).toBe("Sam");
-  });
-
-  it("does not touch the other player's name", () => {
-    const game = setName(setName(freshGame(), "p1", "Sam"), "p2", "Alex");
-    expect(game.names).toEqual({ p1: "Sam", p2: "Alex" });
-  });
-
-  it("rejects an empty (or whitespace-only) name", () => {
-    expect(() => setName(freshGame(), "p1", "   ")).toThrow();
-  });
-
-  it("is valid regardless of round status", () => {
-    const game = freshGame();
-    const order = game.current.items.map((i) => i.id);
-    const revealed = submitGuess(lockIn(game, order), order);
-    expect(() => setName(revealed, "p1", "Sam")).not.toThrow();
-  });
-
+describe("names", () => {
   it("survives a round transition", () => {
-    const game = setName(setName(freshGame(), "p1", "Sam"), "p2", "Alex");
+    const game = { ...freshGame(), names: { p1: "Sam", p2: "Alex" } };
     const order = game.current.items.map((i) => i.id);
     const revealed = submitGuess(lockIn(game, order), order);
     const round2 = nextRound(revealed, makeRound("Vacation spots", ["Beach", "Mountains", "Big city", "Countryside", "Cruise"]));

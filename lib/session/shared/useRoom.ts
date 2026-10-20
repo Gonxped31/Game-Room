@@ -70,16 +70,22 @@ export interface RoomCore<TState> {
 }
 
 /**
- * The room mechanics both session hooks share (useGameSession for 1v1 games,
- * useMultiplayerSession for 3+): guest sign-in, room resolution and creation,
+ * The room mechanics behind the session hook (useSession, and its 1v1
+ * wrapper useGameSession): guest sign-in, room resolution and creation,
  * the separate live subscriptions (meta, seats, members, players, presence,
  * the game's own subtree - never the whole room, which would resend
  * everything to every device on each presence change), seat claiming via
- * multi-path updates, presence and `lastActive`. Each hook maps this onto
- * its own public API.
+ * multi-path updates, presence and `lastActive`. useSession maps this onto
+ * its public API.
  */
-export function useRoom<TState>(opts: { gameSlug: string; maxPlayers: number; createInitialState: () => TState }): RoomCore<TState> {
-  const { gameSlug, maxPlayers, createInitialState } = opts;
+export function useRoom<TState>(opts: {
+  gameSlug: string;
+  maxPlayers: number;
+  /** The fewest seated players a game can run with; `lastActive` is kept fresh once this many are seated. */
+  minPlayers: number;
+  createInitialState: () => TState;
+}): RoomCore<TState> {
+  const { gameSlug, maxPlayers, minPlayers, createInitialState } = opts;
   const auth = useGuestAuth();
   const uid = auth.status === "ready" ? auth.uid : null;
 
@@ -173,9 +179,9 @@ export function useRoom<TState>(opts: { gameSlug: string; maxPlayers: number; cr
   }, [active, room, uid, seated]);
 
   // `lastActive`, at most once a minute, while a game is in progress (this
-  // guest is seated and every seat is filled).
+  // guest is seated and at least `minPlayers` seats are filled).
   const seatedCount = Object.values(seats).filter(Boolean).length;
-  const inProgress = active && seated && seatedCount >= maxPlayers;
+  const inProgress = active && seated && seatedCount >= minPlayers;
   useEffect(() => {
     if (!inProgress) return;
     const touch = () => updateRoot({ [roomPath(room, "lastActive")]: serverTimestamp() }).catch(() => {});

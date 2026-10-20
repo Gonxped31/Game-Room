@@ -174,3 +174,15 @@ textarea:focus-visible {
     animation: none !important;
   }
 }
+
+/* Buzzer Quiz: the "+3" pill over a score chip (references/buzzer-quiz/buzzer-quiz-visual-spec.md). */
+@keyframes bq-pop {
+  0% { transform: translateX(-50%) scale(0.6); }
+  60% { transform: translateX(-50%) scale(1.1); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="bq-pop"] {
+    animation: none !important;
+  }
+}

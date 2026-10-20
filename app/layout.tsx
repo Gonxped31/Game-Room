@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Narrow, Big_Shoulders, Cormorant_Garamond, Courier_Prime, Fredoka, Overpass, Overpass_Mono } from "next/font/google";
+import { Archivo, Archivo_Narrow, Atkinson_Hyperlegible, Big_Shoulders, Bricolage_Grotesque, Courier_Prime, Fredoka, Overpass, Overpass_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
 import LocalModeBanner from "@/components/LocalModeBanner";
@@ -57,11 +57,19 @@ const overpassMono = Overpass_Mono({
   preload: false,
 });
 
-// Iaï's text face, for its hub card (the game itself embeds its own copy, components/iai/fonts.css).
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+// Buzzer Quiz's type (references/buzzer-quiz/buzzer-quiz-visual-spec.md).
+// Bricolage Grotesque is also its hub card's title face, so it preloads;
+// Atkinson Hyperlegible only appears in the game.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  weight: ["600", "700"],
+  axes: ["opsz"],
+});
+const atkinson = Atkinson_Hyperlegible({
+  variable: "--font-atkinson",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -80,7 +88,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${cormorant.variable}`}>
+    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable}`}>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />

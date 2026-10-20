@@ -1,22 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { Role } from "@/lib/session/types";
+import type { SeatId } from "@/lib/session/types";
 import Button from "./Button";
 
-interface RolePickerProps {
+interface RolePickerProps<S extends SeatId> {
   /** Names of the seats already held in this room, if any - so a returning player (new device, cleared storage) can just say who they are. */
-  names: Partial<Record<Role, string>>;
+  names: Partial<Record<S, string>>;
   /** Which held seats this guest may take over (their holder has been offline for 2 minutes). */
-  canTakeOver: Partial<Record<Role, boolean>>;
-  onPick: (role: Role, name: string) => void;
+  canTakeOver: Partial<Record<S, boolean>>;
+  onPick: (seat: S, name: string) => void;
+  /** Every seat of the game, in order. Defaults to the 1v1 pair. */
+  seats?: readonly S[];
 }
 
-export default function RolePicker({ names, canTakeOver, onPick }: RolePickerProps) {
+const PAIR = ["p1", "p2"] as const;
+
+const bubble = "m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]";
+
+/** "Sam", "Sam and Alex", "Sam, Alex and Kim". */
+const listNames = (names: string[]) => (names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
+
+export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPick, seats = PAIR as unknown as readonly S[] }: RolePickerProps<S>) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
 
-  const unclaimed: Role | null = !names.p1 ? "p1" : !names.p2 ? "p2" : null;
+  // A newcomer takes the first free seat, so seat order is join order.
+  const unclaimed = seats.find((seat) => !names[seat]) ?? null;
+  const held = seats.filter((seat) => names[seat]);
 
   if (unclaimed) {
     const submit = () => {
@@ -28,14 +39,15 @@ export default function RolePicker({ names, canTakeOver, onPick }: RolePickerPro
       setError("");
       onPick(unclaimed, name);
     };
-    const otherName = names.p1 ?? names.p2;
+    const inAlready = held.map((seat) => names[seat]!);
+    const prompt = inAlready.length
+      ? `${listNames(inAlready)} ${inAlready.length === 1 ? "is" : "are"} already in. What's your name?`
+      : seats.length === 2
+        ? "What's your name? The other player joins next with their own."
+        : "What's your name? The others join next with their own.";
     return (
       <div className="mt-6 grid gap-3">
-        <p className="m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
-          {otherName
-            ? `${otherName} is already in. What's your name?`
-            : "What's your name? The other player joins next with their own."}
-        </p>
+        <p className={bubble}>{prompt}</p>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -46,7 +58,7 @@ export default function RolePicker({ names, canTakeOver, onPick }: RolePickerPro
           className="w-full rounded-xl border-0 bg-white p-3.5 text-lg text-black shadow-[0_3px_8px_rgba(0,0,0,.25)] placeholder:text-black/45"
         />
         {error ? (
-          <p role="alert" className="m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
+          <p role="alert" className={bubble}>
             {error}
           </p>
         ) : null}
@@ -55,23 +67,28 @@ export default function RolePicker({ names, canTakeOver, onPick }: RolePickerPro
     );
   }
 
-  // Both seats are held by other guests - this device lost its guest ID
-  // (wiped storage, another browser) or is a third visitor. A seat can be
-  // taken over once its holder has been offline for 2 minutes.
-  const anyFree = canTakeOver.p1 || canTakeOver.p2;
+  // Every seat is held by other guests - this device lost its guest ID
+  // (wiped storage, another browser) or is one visitor too many. A seat can
+  // be taken over once its holder has been offline for 2 minutes.
+  const anyFree = seats.some((seat) => canTakeOver[seat]);
   return (
     <div className="mt-6 grid gap-3">
-      <p className="m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
+      <p className={bubble}>
         {anyFree
           ? "Welcome back! Which one are you on this device?"
-          : "Both seats are taken. A seat frees up 2 minutes after its player goes offline."}
+          : `${seats.length === 2 ? "Both" : "All"} seats are taken. A seat frees up 2 minutes after its player goes offline.`}
       </p>
-      <Button disabled={!canTakeOver.p1} onClick={() => onPick("p1", names.p1!)}>
-        {canTakeOver.p1 ? `I'm ${names.p1} · Take this seat` : `${names.p1} is playing`}
-      </Button>
-      <Button variant="alt" disabled={!canTakeOver.p2} className="disabled:cursor-not-allowed disabled:opacity-60" onClick={() => onPick("p2", names.p2!)}>
-        {canTakeOver.p2 ? `I'm ${names.p2} · Take this seat` : `${names.p2} is playing`}
-      </Button>
+      {seats.map((seat, i) => (
+        <Button
+          key={seat}
+          variant={i % 2 ? "alt" : undefined}
+          disabled={!canTakeOver[seat]}
+          className={i % 2 ? "disabled:cursor-not-allowed disabled:opacity-60" : undefined}
+          onClick={() => onPick(seat, names[seat]!)}
+        >
+          {canTakeOver[seat] ? `I'm ${names[seat]} · Take this seat` : `${names[seat]} is playing`}
+        </Button>
+      ))}
     </div>
   );
 }
