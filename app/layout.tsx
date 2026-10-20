@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Narrow, Atkinson_Hyperlegible, Big_Shoulders, Bricolage_Grotesque, Courier_Prime, Fredoka, Overpass, Overpass_Mono } from "next/font/google";
+import { Archivo, Archivo_Narrow, Atkinson_Hyperlegible, Big_Shoulders, Bricolage_Grotesque, Courier_Prime, Fredoka, Lilita_One, Nunito, Overpass, Overpass_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
 import LocalModeBanner from "@/components/LocalModeBanner";
@@ -72,6 +72,21 @@ const atkinson = Atkinson_Hyperlegible({
   preload: false,
 });
 
+// Word Scramble's type (references/scramble/word-scramble-visual-spec.md).
+// Lilita One is also its hub card's title face, so it preloads; Nunito only
+// appears in the game.
+const lilita = Lilita_One({
+  variable: "--font-lilita",
+  subsets: ["latin"],
+  weight: "400",
+});
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: APP_TITLE,
   // Opened from the Home Screen, iOS runs it as a standalone app - whose
@@ -88,7 +103,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable}`}>
+    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable}`}>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />

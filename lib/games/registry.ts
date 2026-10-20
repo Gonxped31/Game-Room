@@ -90,6 +90,18 @@ export const ALL_GAMES: GameEntry[] = [
     titleClassName: "font-[family-name:var(--font-bricolage)] font-extrabold",
     buttonTextClassName: "font-[family-name:var(--font-bricolage)] text-[19px] font-extrabold",
   },
+  {
+    slug: "wordscramble",
+    title: "Word Scramble",
+    description: "Two teams take turns unscrambling a word against the clock. Hints help, but cost points.",
+    tags: ["2–8 players", "2 teams"],
+    maxPlayers: 8,
+    ink: "#2A1B12",
+    textSecondary: "#5A4636",
+    accentColor: "#FF7A1A",
+    titleClassName: "font-[family-name:var(--font-lilita)] font-normal",
+    buttonTextClassName: "font-[family-name:var(--font-nunito)] text-[19px] font-extrabold",
+  },
 ];
 
 /** The games shown as cards on the hub. */

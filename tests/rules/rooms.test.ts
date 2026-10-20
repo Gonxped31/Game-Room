@@ -15,7 +15,7 @@
  */
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
-import { buzzerquizState, dbAs, ftwState, metaFor, ROOM, seed, seedRoom, setupEnv, TS } from "./helpers";
+import { buzzerquizState, dbAs, wordscrambleState, ftwState, metaFor, ROOM, seed, seedRoom, setupEnv, TS } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -38,13 +38,14 @@ function createUpdate(uid: string, opts: { room?: string; gameSlug?: string; max
     [g("meta", room)]: metaFor(uid, gameSlug, maxPlayers, name && nameKey ? { name, nameKey } : {}),
     [`users/${uid}/rooms/${room}`]: { gameSlug, addedAt: TS, createdByMe: true },
   };
-  if (gameSlug === "ftw" || gameSlug === "cocounsel" || gameSlug === "nighthighway" || gameSlug === "buzzerquiz") update[g(gameSlug, room)] = ftwOrCc(gameSlug);
+  if (gameSlug === "ftw" || gameSlug === "cocounsel" || gameSlug === "nighthighway" || gameSlug === "buzzerquiz" || gameSlug === "wordscramble") update[g(gameSlug, room)] = ftwOrCc(gameSlug);
   if (nameKey) update[`roomsByName/${nameKey}`] = room;
   return update;
 }
 function ftwOrCc(slug: string) {
   if (slug === "nighthighway") return { phase: "LOBBY", race: 0, wins: { p1: 0, p2: 0 } };
   if (slug === "buzzerquiz") return buzzerquizState();
+  if (slug === "wordscramble") return wordscrambleState();
   return slug === "ftw" ? ftwState() : { caseId: "ruined-birthday", partIndex: 0, attempts: 0, phase: "SELECTING" };
 }
 
@@ -130,6 +131,11 @@ describe("5. maxPlayers", () => {
     await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "nighthighway", maxPlayers: 3 })));
     await assertSucceeds(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "cocounsel" })));
     await assertSucceeds(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "nighthighway", room: "bcd345" })));
+  });
+
+  it("must be 8 for wordscramble", async () => {
+    await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "wordscramble", maxPlayers: 4 })));
+    await assertSucceeds(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "wordscramble", maxPlayers: 8, room: "cde456" })));
   });
 
   it("must be 4 for buzzerquiz", async () => {

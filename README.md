@@ -44,6 +44,10 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
   - The host picks the topics and the length; everyone plays.
   - A wrong answer is struck out for everyone and its player is locked out, so the
     question gets easier but is worth less (3, 2, then 1 point).
+- **Word Scramble** (`/wordscramble`) - two teams (1v1 to 4v4) take turns
+  unscrambling a word against a 30-second clock, in English or French.
+  - Anyone on the playing team can guess; the other team watches.
+  - A word is worth its letters; each hint places a letter but costs a point.
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
 game, the database-rules workflow and live two-player testing are Claude Code skills

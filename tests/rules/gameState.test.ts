@@ -12,8 +12,10 @@ import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@
 import { CASES, getCase } from "@/lib/games/cocounsel/cases";
 import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
 import * as quiz from "@/lib/games/buzzerquiz/game";
+import * as ws from "@/lib/games/wordscramble/game";
+import { RESULT_MS as WS_RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
-import { buzzerquizState, cocounselState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
+import { buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -288,5 +290,73 @@ describe("Buzzer Quiz", () => {
 
   it("lets only the room's members write", async () => {
     await assertFails(dbAs(env, "dave").ref(path).set(buzzerquizState()));
+  });
+});
+
+describe("Word Scramble", () => {
+  const path = `games/${ROOM}/wordscramble`;
+  const SEATED = ["p1", "p2", "p3", "p4"];
+  beforeEach(async () => {
+    await seedRoom(env, { creator: "alice", seated: ["alice", "bob", "carol", "dave"], gameSlug: "wordscramble", maxPlayers: 8 });
+  });
+
+  it("accepts every state of a real game", async () => {
+    const db = dbAs(env, "carol");
+    const write = (state: ws.ScrambleState) => writeAndReadBack(db, path, state);
+    let t = 1_000_000;
+    let game = await write(ws.newGame("fr"));
+    game = await write(ws.setTurnsPerTeam(ws.setMode(ws.setLang(game, "en"), "turns"), 3));
+    game = await write(ws.setTarget(game, 40));
+    for (const [seat, team] of [["p1", "A"], ["p2", "B"], ["p3", "A"], ["p4", "B"]] as const) game = await write(ws.pickTeam(game, seat, team));
+    game = await write(ws.start(game, { seated: SEATED, next: { wordId: "en-001", seed: 1 }, now: t }));
+    t += START_LEAD_MS;
+    // Team A: a wrong guess, a hint, then the right word.
+    game = await write(ws.guess(game, "p3", "drib", "bird", t + 2000));
+    game = await write(ws.hint(game, "p1", "bird", t + 3000));
+    game = await write(ws.guess(game, "p1", "bird", "bird", t + 4000));
+    expect(game.scores).toEqual({ A: 3, B: 0 });
+    t += 4000 + WS_RESULT_MS;
+    game = await write(ws.afterResult(game, t));
+    t += SCOREBOARD_MS;
+    game = await write(ws.nextTurn(game, { wordId: "en-200", seed: 2 }, t));
+    // Team B runs out of time; the rest of the game too.
+    for (let turn = 1; turn < 6; turn++) {
+      t += TURN_MS;
+      game = await write(ws.timeUp(game, t));
+      t += WS_RESULT_MS;
+      game = await write(ws.afterResult(game, t));
+      if (game.phase === "end") break;
+      t += SCOREBOARD_MS;
+      game = await write(ws.nextTurn(game, { wordId: `en-${100 + turn}`, seed: turn }, t));
+    }
+    expect(game.phase).toBe("end");
+    game = await write(ws.shuffle(game, SEATED, Math.random));
+    expect(game.phase).toBe("lobby");
+  });
+
+  it.each([
+    ["a bad phase", wordscrambleState({ phase: "paused" })],
+    ["an unknown mode", wordscrambleState({ settings: { lang: "en", mode: "sprint", turnsPerTeam: 5, target: 30 } })],
+    ["too many turns per team", wordscrambleState({ settings: { lang: "en", mode: "turns", turnsPerTeam: 11, target: 30 } })],
+    ["an unknown target", wordscrambleState({ settings: { lang: "en", mode: "target", turnsPerTeam: 5, target: 25 } })],
+    ["a third team", wordscrambleState({ teams: { p1: "C" } })],
+    ["a ninth seat", wordscrambleState({ teams: { p9: "A" } })],
+    ["an overlong guess", wordscrambleState({ guesses: [{ seat: "p1", text: "ABCDEFGHIJKLM" }] })],
+    ["a 31st guess", wordscrambleState({ guesses: Object.fromEntries(Array.from({ length: 31 }, (_, i) => [String(i), { seat: "p1", text: "NOPE" }])) })],
+    ["a score missing a team", wordscrambleState({ scores: { A: 3 } })],
+    ["a negative score", wordscrambleState({ scores: { A: -1, B: 0 } })],
+    ["too many points for a word", wordscrambleState({ history: [{ team: "A", wordId: "en-001", points: 9 }] })],
+    ["an unknown key", wordscrambleState({ word: "TIGER" })],
+  ])("rejects %s", async (_, state) => {
+    await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+
+  it("lets each player write only their own typing signal", async () => {
+    const at = { at: { ".sv": "timestamp" } };
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/wordscrambleTyping/p1`).set(at));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/wordscrambleTyping/p2`).set(at));
+    await assertFails(dbAs(env, "eve").ref(`games/${ROOM}/wordscrambleTyping/p1`).set(at));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/wordscrambleTyping/p1`).set({ at: Date.now() + 60_000 }));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/wordscrambleTyping/p1`).set({ at: 1, text: "TIG" }));
   });
 });

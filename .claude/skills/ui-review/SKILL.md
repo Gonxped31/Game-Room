@@ -18,6 +18,7 @@ it's been seen on both. Game-specific visual rules live in the `first-to-worst` 
 | Co-Counsel | `references/co-counsel/co-counsel-visual-spec.md` + `Visual Design-png/` |
 | Night Highway | `references/night-highway/Night Highway.html` (the original game; its title card is the style for the race page's own screens) |
 | Buzzer Quiz | `references/buzzer-quiz/buzzer-quiz-visual-spec.md` (look, screens, copy) + `buzzer-quiz-game-design.md` (behavior). Its breakpoint is **900px**. |
+| Word Scramble | `references/scramble/word-scramble-visual-spec.md` + `word-scramble-game-design.md`. Breakpoint **900px**. |
 
 Read the spec itself, not just the mockup images; it pins exact sizes, colors,
 states and motion. One past redesign matched only the mobile mockup and missed the

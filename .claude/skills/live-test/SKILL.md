@@ -87,6 +87,22 @@ player join. Two players buzz at once and the lower reaction time answers. A wro
 pick is struck out on all three and locks its player out. The host answers right
 by keyboard for 2 points and wins, and a player starts the rematch.
 
+**Word Scramble** has its own check too (about a minute and a half):
+
+```bash
+node .claude/skills/live-test/scripts/word-scramble.mjs [baseUrl] [screenshotDir]
+```
+
+A desktop host and three phones form two teams of two. The uneven-teams warning shows
+until the fourth player joins. They play 3 turns per team:
+- a wrong arrangement shows in both teams' feeds;
+- a hint costs a point and locks its letter in place;
+- a tile is dragged with the mouse, the rest tapped in and confirmed;
+- right guesses are scored;
+- one turn times out.
+
+Then come the end screen and a rematch with the same teams.
+
 ## 3. Writing a check for your own change
 
 Copy the patterns from `scripts/two-players.mjs`:

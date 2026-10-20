@@ -10,8 +10,8 @@
         "meta": {
           ".write": "auth != null && !data.exists() && $room.matches(/^[a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9]$/)",
           ".validate": "newData.hasChildren(['gameSlug', 'maxPlayers', 'createdAt', 'createdBy'])",
-          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel' || newData.val() == 'nighthighway' || newData.val() == 'buzzerquiz'" },
-          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel' && newData.parent().child('gameSlug').val() != 'nighthighway') || newData.val() == 2) && (newData.parent().child('gameSlug').val() != 'buzzerquiz' || newData.val() == 4)" },
+          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel' || newData.val() == 'nighthighway' || newData.val() == 'buzzerquiz' || newData.val() == 'wordscramble'" },
+          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel' && newData.parent().child('gameSlug').val() != 'nighthighway') || newData.val() == 2) && (newData.parent().child('gameSlug').val() != 'buzzerquiz' || newData.val() == 4) && (newData.parent().child('gameSlug').val() != 'wordscramble' || newData.val() == 8)" },
           "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
           "createdBy": { ".validate": "newData.val() == auth.uid" },
           "name": {
@@ -378,6 +378,71 @@
             "$seat": { ".validate": "$seat.matches(/^p[1-4]$/) && newData.isNumber() && newData.val() >= 0" }
           },
           "$other": { ".validate": false }
+        },
+
+        "wordscramble": {
+          ".write": "auth != null && newData.parent().child('meta/gameSlug').val() == 'wordscramble' && (newData.parent().child('members/' + auth.uid).exists() || (!data.parent().child('meta').exists() && newData.parent().child('meta/createdBy').val() == auth.uid))",
+          ".validate": "newData.hasChildren(['phase', 'settings', 'turn', 'seed', 'hints', 'scores'])",
+          "phase": { ".validate": "newData.val() == 'lobby' || newData.val() == 'turn' || newData.val() == 'result' || newData.val() == 'scoreboard' || newData.val() == 'end'" },
+          "settings": {
+            ".validate": "newData.hasChildren(['lang', 'mode', 'turnsPerTeam', 'target'])",
+            "lang": { ".validate": "newData.val() == 'en' || newData.val() == 'fr'" },
+            "mode": { ".validate": "newData.val() == 'turns' || newData.val() == 'target'" },
+            "turnsPerTeam": { ".validate": "newData.isNumber() && newData.val() >= 3 && newData.val() <= 10" },
+            "target": { ".validate": "newData.val() == 20 || newData.val() == 30 || newData.val() == 40" },
+            "$other": { ".validate": false }
+          },
+          "teams": {
+            "$seat": { ".validate": "$seat.matches(/^p[1-8]$/) && (newData.val() == 'A' || newData.val() == 'B')" }
+          },
+          "turn": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 40" },
+          "wordId": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" },
+          "seed": { ".validate": "newData.isNumber()" },
+          "hints": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6" },
+          "startAt": { ".validate": "newData.isNumber()" },
+          "deadline": { ".validate": "newData.isNumber()" },
+          "guesses": {
+            "$i": {
+              ".validate": "$i.matches(/^[12]?[0-9]$/) && newData.hasChildren(['seat', 'text'])",
+              "seat": { ".validate": "newData.isString() && newData.val().matches(/^p[1-8]$/)" },
+              "text": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
+              "$other": { ".validate": false }
+            }
+          },
+          "found": {
+            ".validate": "newData.hasChildren(['seat', 'ms'])",
+            "seat": { ".validate": "newData.isString() && newData.val().matches(/^p[1-8]$/)" },
+            "ms": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": false }
+          },
+          "scores": {
+            ".validate": "newData.hasChildren(['A', 'B'])",
+            "A": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "B": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": false }
+          },
+          "history": {
+            "$i": {
+              ".validate": "$i.matches(/^[0-3]?[0-9]$/) && newData.hasChildren(['team', 'wordId', 'points'])",
+              "team": { ".validate": "newData.val() == 'A' || newData.val() == 'B'" },
+              "wordId": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" },
+              "points": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 8" },
+              "$other": { ".validate": false }
+            }
+          },
+          "usedWordIds": {
+            "$i": { ".validate": "$i.matches(/^[0-3]?[0-9]$/) && newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" }
+          },
+          "$other": { ".validate": false }
+        },
+
+        "wordscrambleTyping": {
+          "$seat": {
+            ".write": "auth != null && root.child('games/' + $room + '/meta/gameSlug').val() == 'wordscramble' && root.child('games/' + $room + '/members/' + auth.uid).val() == $seat",
+            ".validate": "newData.hasChildren(['at'])",
+            "at": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$other": { ".validate": false }
+          }
         },
 
         "$other": { ".validate": false }

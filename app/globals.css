@@ -186,3 +186,16 @@ textarea:focus-visible {
     animation: none !important;
   }
 }
+
+/* Word Scramble: a wrong guess shakes the field (references/scramble/word-scramble-visual-spec.md). */
+@keyframes ws-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  50% { transform: translateX(8px); }
+  75% { transform: translateX(-4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="ws-shake"] {
+    animation: none !important;
+  }
+}

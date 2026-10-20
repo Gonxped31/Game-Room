@@ -62,6 +62,18 @@ export function buzzerquizState(overrides: Record<string, unknown> = {}) {
   return { phase: "setup", settings: { lang: "en", length: 10 }, seed: 0, index: 0, round: 0, ...overrides };
 }
 
+export function wordscrambleState(overrides: Record<string, unknown> = {}) {
+  return {
+    phase: "lobby",
+    settings: { lang: "en", mode: "turns", turnsPerTeam: 5, target: 30 },
+    turn: 0,
+    seed: 0,
+    hints: 0,
+    scores: { A: 0, B: 0 },
+    ...overrides,
+  };
+}
+
 export function cocounselState(overrides: Record<string, unknown> = {}) {
   return { caseId: "ruined-birthday", partIndex: 0, attempts: 0, phase: "SELECTING", ...overrides };
 }
@@ -78,7 +90,7 @@ export async function seedRoom(
   const { creator, seated = [], gameSlug = "ftw", maxPlayers = 2, room = ROOM, presence = {} } = opts;
   const data: Record<string, unknown> = {
     [`games/${room}/meta`]: { ...metaFor(creator, gameSlug, maxPlayers), createdAt: Date.now() - 1000 },
-    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : gameSlug === "nighthighway" ? nighthighwayState() : gameSlug === "buzzerquiz" ? buzzerquizState() : ftwState(),
+    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : gameSlug === "nighthighway" ? nighthighwayState() : gameSlug === "buzzerquiz" ? buzzerquizState() : gameSlug === "wordscramble" ? wordscrambleState() : ftwState(),
   };
   seated.forEach((uid, i) => {
     data[`games/${room}/seats/p${i + 1}`] = uid;

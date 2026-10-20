@@ -5,8 +5,9 @@ A small platform for private 2-player games played through a shared link.
 - Each game lives at `/<slug>#<roomCode>`.
 - No sign-in: every browser gets an invisible guest ID.
 - Games: **First to Worst** (`/ftw`), **Co-Counsel** (`/cocounsel`), **Night
-  Highway** (`/nighthighway`, plus `/nighthighway/solo`) and **Buzzer Quiz**
-  (`/buzzerquiz`, 2-4 players).
+  Highway** (`/nighthighway`, plus `/nighthighway/solo`), **Buzzer Quiz**
+  (`/buzzerquiz`, 2-4 players) and **Word Scramble** (`/wordscramble`, 2 teams,
+  2-8 players).
 
 This file holds what must stay true on **every** change. Everything else loads on
 demand:
@@ -17,6 +18,7 @@ demand:
 | Working on Co-Counsel | `co-counsel` skill |
 | Working on Night Highway (3D race, deterministic traffic, live ghost car) | `night-highway` skill |
 | Working on Buzzer Quiz (2-4 players, buzz in, EN/FR question bank) | `buzzerquiz` skill |
+| Working on Word Scramble (2 teams, unscramble against the clock, EN/FR words) | `wordscramble` skill |
 | Adding (or removing) a game | `add-game` skill |
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |
 | Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |
@@ -55,6 +57,7 @@ games/{roomCode}/
   lastActive: number                  ftw | cocounsel | nighthighway: { ...game state... }  // validated per game
   nighthighwayCars: { p1: {...}, p2: {...} }                                 // live cars, each seat writes its own
   buzzerquiz: { ...game state, buzzes included... }                         // Buzzer Quiz, maxPlayers 4
+  wordscramble: { ...game state... }  wordscrambleTyping: { pN: { at } }     // Word Scramble, maxPlayers 8; each seat its own typing signal
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 ```

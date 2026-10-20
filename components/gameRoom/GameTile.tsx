@@ -56,6 +56,15 @@ export default function GameTile({ slug }: { slug: string }) {
       </span>
     );
   }
+  if (slug === "wordscramble") {
+    return (
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#F6E2B8]">
+        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] bg-[#F2CF8D] font-[family-name:var(--font-lilita)] text-[16px] leading-none text-[#2A1B12] shadow-[0_3px_0_#B98535]">
+          W
+        </span>
+      </span>
+    );
+  }
   // A game without its own tile yet: its accent color with the first letter.
   const game = gameBySlug(slug);
   return (
