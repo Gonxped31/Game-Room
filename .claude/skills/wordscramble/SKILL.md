@@ -31,7 +31,7 @@ score (20/30/40).
 
 ## How a game runs
 
-`lobby → [turn → result → scoreboard] × N → end`
+`lobby → [turn → (stealOffer → stealing) → result → scoreboard] × N → end`
 
 - **Teams** live in the state (`teams`: seat to A/B), so Rematch keeps them. A newcomer
   in the lobby is put on the smaller team (the page does it); anyone can switch. Start
@@ -48,6 +48,17 @@ score (20/30/40).
 - **Scramble**: `scramble(word, seed)` is never the word, and moves at least half the
   letters from 5 up. Hints place the leftmost letters, and are refused below 2 letters
   left to find.
+- **Steal**: when time runs out (`timeUp`), the phase becomes `stealOffer` for 3 s.
+  The first member of the other team to `claimSteal` gets `stealing`: 10 s and one
+  `stealGuess`. `stealTimeout` counts as a miss, and `noSteal` applies when nobody
+  claims. A steal is worth `stealValue` = ceil(worth / 2), won or lost, so scores can
+  go negative (the rules allow −999..999). `advance` needs the current word to time
+  out a steal.
+- **Words**: `pickWord(bank, game, forTurn, random)`. Team B's word (odd turns)
+  matches the length of Team A's word that round, so a clean game is level. Even turns
+  change the length when they can. `usedWordIds` lives for the whole room session (it
+  isn't cleared by Rematch or the lobby) and starts over only once a repeat was
+  unavoidable. The rules allow up to 999 entries.
 - **Ends**: turns mode, after both teams' last turn. Target mode, after a pair of turns
   in which a team reached the target (capped at 20 turns per team). A tie is a draw.
 - **Guessing is drag and drop** (`components/wordscramble/TileBoard.tsx`). Each

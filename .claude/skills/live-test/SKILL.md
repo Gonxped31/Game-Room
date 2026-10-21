@@ -99,7 +99,7 @@ until the fourth player joins. They play 3 turns per team:
 - a hint costs a point and locks its letter in place;
 - a tile is dragged with the mouse, the rest tapped in and confirmed;
 - right guesses are scored;
-- one turn times out.
+- one turn times out and the other team steals it.
 
 Then come the end screen and a rematch with the same teams.
 

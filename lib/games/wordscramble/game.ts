@@ -8,24 +8,28 @@ import {
   RESULT_MS,
   SCOREBOARD_MS,
   START_LEAD_MS,
+  STEAL_MS,
+  STEAL_OFFER_MS,
   TARGET_TURN_CAP,
   TARGETS,
   TURN_MS,
   TURNS_PER_TEAM,
 } from "./constants";
-import { onlySeated, setTeam, shuffleTeams, startProblem, type Team, type Teams } from "./teams";
+import { onlySeated, otherTeam, setTeam, shuffleTeams, startProblem, type Team, type Teams } from "./teams";
 
 /**
  * Word Scramble's state machine (references/scramble/word-scramble-game-design.md).
  *
- * Team A plays the even turns, Team B the odd ones. The word itself never
+ * Team A plays the even turns, Team B the odd ones. When a turn runs out of
+ * time, the other team may steal: one of them taps Steal within 3 s and gets
+ * one try in 10 s, worth half the word (rounded up), won or lost. The word itself never
  * lives in the state, only its id: transitions that need it (`guess`, `hint`)
  * take it from the caller. Every timed step (`timeUp`, `afterResult`,
  * `nextTurn`) checks its phase and deadline with `assertDue`, so every device
  * can try it and only the first commit counts.
  */
 
-export type Phase = "lobby" | "turn" | "result" | "scoreboard" | "end";
+export type Phase = "lobby" | "turn" | "stealOffer" | "stealing" | "result" | "scoreboard" | "end";
 
 export interface Settings {
   lang: Lang;
@@ -43,6 +47,8 @@ export interface Played {
   team: Team;
   wordId: string;
   points: number;
+  /** A steal on this word: the other team's points, won (+) or lost (-). */
+  steal?: number;
 }
 
 export interface ScrambleState extends WithMultiplayerIdentity {
@@ -64,6 +70,11 @@ export interface ScrambleState extends WithMultiplayerIdentity {
   guesses: Guess[];
   /** Who found this turn's word, and how fast. */
   found?: { seat: SeatId; ms: number };
+  /** Who is stealing this word (phase "stealing"). */
+  stealer?: SeatId;
+  /** How the steal went, shown on the result: its player and the points won (+) or lost (-). */
+  stolen?: { seat: SeatId; points: number };
+  /** Scores can go below 0: a missed steal costs points. */
   scores: Record<Team, number>;
   history: Played[];
   usedWordIds: string[];
@@ -180,20 +191,19 @@ export function toLobby(state: ScrambleState): ScrambleState {
   const game = normalize(state);
   if (game.phase !== "end" && game.phase !== "lobby") throw new Error("A game is under way.");
   return {
-    ...without(game, "wordId", "startAt", "deadline", "found"),
+    ...without(game, "wordId", "startAt", "deadline", "found", "stealer", "stolen"),
     phase: "lobby",
     turn: 0,
     hints: 0,
     guesses: [],
     scores: { A: 0, B: 0 },
     history: [],
-    usedWordIds: [],
   };
 }
 
 function beginTurn(game: ScrambleState, next: NextWord, startAt: number): ScrambleState {
   return {
-    ...without(game, "found"),
+    ...without(game, "found", "stealer", "stolen"),
     phase: "turn",
     wordId: next.wordId,
     seed: next.seed,
@@ -201,7 +211,9 @@ function beginTurn(game: ScrambleState, next: NextWord, startAt: number): Scramb
     guesses: [],
     startAt,
     deadline: startAt + TURN_MS,
-    usedWordIds: [...game.usedWordIds, next.wordId],
+    // Every word of the room's session, across rematches; once a repeat had to
+    // happen (the list ran out), the cycle starts over.
+    usedWordIds: game.usedWordIds.includes(next.wordId) ? [next.wordId] : [...game.usedWordIds, next.wordId],
   };
 }
 
@@ -259,16 +271,65 @@ export function hint(state: ScrambleState, seat: SeatId, word: string, now: numb
   return { ...game, hints: game.hints + 1 };
 }
 
-/** Time's up: the word is revealed, no points. */
+/** Time's up: no points for the playing team, and the other team may steal. */
 export function timeUp(state: ScrambleState, now: number): ScrambleState {
   const game = normalize(state);
   assertDue(game, "turn", game.deadline, now);
   return {
     ...game,
-    phase: "result",
+    phase: "stealOffer",
     history: [...game.history, { team: playingTeam(game.turn), wordId: game.wordId!, points: 0 }],
+    deadline: now + STEAL_OFFER_MS,
+  };
+}
+
+/** What a steal is worth, won or lost: half the word's current value, rounded up. */
+export const stealValue = (word: string, hints: number): number => Math.ceil(worth(word, hints) / 2);
+
+/** A member of the other team taps Steal: the first one gets the word, 10 s and one try. */
+export function claimSteal(state: ScrambleState, seat: SeatId, now: number): ScrambleState {
+  const game = normalize(state);
+  if (game.phase !== "stealOffer") throw new Error("Nothing to steal.");
+  if (game.teams[seat] !== otherTeam(playingTeam(game.turn))) throw new Error("Only the other team can steal.");
+  return { ...game, phase: "stealing", stealer: seat, deadline: now + STEAL_MS };
+}
+
+function settleSteal(game: ScrambleState, right: boolean, word: string, now: number): ScrambleState {
+  const team = otherTeam(playingTeam(game.turn));
+  const points = (right ? 1 : -1) * stealValue(word, game.hints);
+  const history = [...game.history];
+  history[history.length - 1] = { ...history[history.length - 1], steal: points };
+  return {
+    ...without(game, "stealer"),
+    phase: "result",
+    stolen: { seat: game.stealer!, points },
+    scores: { ...game.scores, [team]: game.scores[team] + points },
+    history,
     deadline: now + RESULT_MS,
   };
+}
+
+/** The stealing player's one try: right wins the steal's points, wrong loses them. */
+export function stealGuess(state: ScrambleState, seat: SeatId, text: string, word: string, now: number): ScrambleState {
+  const game = normalize(state);
+  if (game.phase !== "stealing" || seat !== game.stealer) throw new Error("Not your steal.");
+  const attempt = plain(text);
+  if (!attempt || attempt.length > MAX_GUESS_LENGTH) throw new Error("Bad guess.");
+  return settleSteal(game, attempt === plain(word), word, now);
+}
+
+/** The stealing player ran out of time: that's a missed steal. */
+export function stealTimeout(state: ScrambleState, word: string, now: number): ScrambleState {
+  const game = normalize(state);
+  assertDue(game, "stealing", game.deadline, now);
+  return settleSteal(game, false, word, now);
+}
+
+/** Nobody tapped Steal: the word is revealed. */
+export function noSteal(state: ScrambleState, now: number): ScrambleState {
+  const game = normalize(state);
+  assertDue(game, "stealOffer", game.deadline, now);
+  return { ...game, phase: "result", deadline: now + RESULT_MS };
 }
 
 /** Whether the game is over once turn `turn` has been played. */
@@ -297,11 +358,20 @@ export function nextTurn(state: ScrambleState, next: NextWord, now: number): Scr
 /** The deadline a device should be waiting on in this phase, if any. */
 export const dueAt = (game: ScrambleState): number | undefined => (game.phase === "lobby" || game.phase === "end" ? undefined : game.deadline);
 
-/** The timed step for this phase, applied once its deadline passes. `next` is only used after the scoreboard. */
-export function advance(state: ScrambleState, now: number, next: NextWord): ScrambleState {
+/**
+ * The timed step for this phase, applied once its deadline passes. `next` is
+ * only used after the scoreboard; `word` (the current word) only when a steal
+ * runs out of time.
+ */
+export function advance(state: ScrambleState, now: number, next: NextWord, word = ""): ScrambleState {
   switch (state.phase) {
     case "turn":
       return timeUp(state, now);
+    case "stealOffer":
+      return noSteal(state, now);
+    case "stealing":
+      if (!word) throw new Error("The word is needed.");
+      return stealTimeout(state, word, now);
     case "result":
       return afterResult(state, now);
     case "scoreboard":
@@ -355,17 +425,35 @@ export function scramble(word: string, seed: number): string[] {
 }
 
 /**
- * Draws the next word: the room's language, not used yet this game, and a
- * length different from the previous word's when possible, so a game's
- * lengths stay varied.
+ * Draws the word for turn `forTurn`, in the room's language, never one the
+ * room has already seen this session (until every word has been played).
+ *
+ * Fairness: a word is worth its letters, so both teams get the same length in
+ * each round. Team B's word (odd turns) matches Team A's word of that round
+ * (the current word); Team A's word (even turns) changes length from the
+ * previous round when it can, so a game's lengths stay varied. If no unused
+ * word of the right length is left, the nearest length is used.
  */
-export function pickWord(bank: readonly Word[], game: Pick<ScrambleState, "settings" | "usedWordIds" | "wordId">, random: () => number): Word {
+export function pickWord(
+  bank: readonly Word[],
+  game: Pick<ScrambleState, "settings" | "usedWordIds" | "wordId">,
+  forTurn: number,
+  random: () => number,
+): Word {
   const used = new Set(game.usedWordIds ?? []);
-  const fresh = bank.filter((w) => w.lang === game.settings.lang && !used.has(w.id));
-  const pool = fresh.length ? fresh : bank.filter((w) => w.lang === game.settings.lang);
-  if (!pool.length) throw new Error("No words.");
+  const inLang = bank.filter((w) => w.lang === game.settings.lang);
+  if (!inLang.length) throw new Error("No words.");
+  const fresh = inLang.filter((w) => !used.has(w.id));
+  const pool = fresh.length ? fresh : inLang;
+  const len = (w: Word) => plain(w.word).length;
   const last = bank.find((w) => w.id === game.wordId);
-  const varied = last ? pool.filter((w) => plain(w.word).length !== plain(last.word).length) : pool;
-  const from = varied.length ? varied : pool;
+  let from: Word[];
+  if (forTurn % 2 === 1 && last) {
+    const gap = Math.min(...pool.map((w) => Math.abs(len(w) - len(last))));
+    from = pool.filter((w) => Math.abs(len(w) - len(last)) === gap);
+  } else {
+    const varied = last ? pool.filter((w) => len(w) !== len(last)) : pool;
+    from = varied.length ? varied : pool;
+  }
   return from[Math.floor(random() * from.length)];
 }

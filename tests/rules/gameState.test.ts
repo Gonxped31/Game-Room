@@ -13,7 +13,7 @@ import { CASES, getCase } from "@/lib/games/cocounsel/cases";
 import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
 import * as quiz from "@/lib/games/buzzerquiz/game";
 import * as ws from "@/lib/games/wordscramble/game";
-import { RESULT_MS as WS_RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
+import { RESULT_MS as WS_RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
 import { buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
@@ -318,11 +318,34 @@ describe("Word Scramble", () => {
     t += 4000 + WS_RESULT_MS;
     game = await write(ws.afterResult(game, t));
     t += SCOREBOARD_MS;
-    game = await write(ws.nextTurn(game, { wordId: "en-200", seed: 2 }, t));
-    // Team B runs out of time; the rest of the game too.
-    for (let turn = 1; turn < 6; turn++) {
+    game = await write(ws.nextTurn(game, { wordId: "en-002", seed: 2 }, t));
+    // Team B runs out of time, and Team A steals "fish" right: +2.
+    t += TURN_MS;
+    game = await write(ws.timeUp(game, t));
+    game = await write(ws.claimSteal(game, "p3", t + 1000));
+    game = await write(ws.stealGuess(game, "p3", "fish", "fish", t + 3000));
+    expect(game.scores).toEqual({ A: 5, B: 0 });
+    t += 3000 + WS_RESULT_MS;
+    game = await write(ws.afterResult(game, t));
+    t += SCOREBOARD_MS;
+    game = await write(ws.nextTurn(game, { wordId: "en-003", seed: 3 }, t));
+    // Team A runs out of time, and Team B's steal runs out too: -2, below zero.
+    t += TURN_MS;
+    game = await write(ws.timeUp(game, t));
+    game = await write(ws.claimSteal(game, "p2", t));
+    t += STEAL_MS;
+    game = await write(ws.stealTimeout(game, "lamp", t));
+    expect(game.scores).toEqual({ A: 5, B: -2 });
+    t += WS_RESULT_MS;
+    game = await write(ws.afterResult(game, t));
+    t += SCOREBOARD_MS;
+    game = await write(ws.nextTurn(game, { wordId: "en-004", seed: 4 }, t));
+    // The rest of the game runs out of time, and nobody steals.
+    for (let turn = 3; turn < 6; turn++) {
       t += TURN_MS;
       game = await write(ws.timeUp(game, t));
+      t += STEAL_OFFER_MS;
+      game = await write(ws.noSteal(game, t));
       t += WS_RESULT_MS;
       game = await write(ws.afterResult(game, t));
       if (game.phase === "end") break;
@@ -344,7 +367,9 @@ describe("Word Scramble", () => {
     ["an overlong guess", wordscrambleState({ guesses: [{ seat: "p1", text: "ABCDEFGHIJKLM" }] })],
     ["a 31st guess", wordscrambleState({ guesses: Object.fromEntries(Array.from({ length: 31 }, (_, i) => [String(i), { seat: "p1", text: "NOPE" }])) })],
     ["a score missing a team", wordscrambleState({ scores: { A: 3 } })],
-    ["a negative score", wordscrambleState({ scores: { A: -1, B: 0 } })],
+    ["a score that isn't a number", wordscrambleState({ scores: { A: "3", B: 0 } })],
+    ["a steal worth too much", wordscrambleState({ stolen: { seat: "p2", points: 5 } })],
+    ["a stealer that isn't a seat", wordscrambleState({ phase: "stealing", stealer: "p9" })],
     ["too many points for a word", wordscrambleState({ history: [{ team: "A", wordId: "en-001", points: 9 }] })],
     ["an unknown key", wordscrambleState({ word: "TIGER" })],
   ])("rejects %s", async (_, state) => {

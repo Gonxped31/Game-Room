@@ -309,6 +309,11 @@ export function SoFar({ history, words }: { history: Played[]; words: (id: strin
             <span className="w-16 shrink-0 text-[var(--muted)]">Team {h.team}</span>
             <span className="min-w-0 flex-1 truncate uppercase">{words(h.wordId)}</span>
             <span className={DISPLAY}>{h.points ? `+${h.points}` : "0"}</span>
+            {h.steal ? (
+              <span className={`${TEXT} rounded-full px-2 py-0.5 text-[13px] font-extrabold`} style={{ background: teamColor(h.team === "A" ? "B" : "A"), color: teamText(h.team === "A" ? "B" : "A") }}>
+                steal {h.steal > 0 ? `+${h.steal}` : `−${-h.steal}`}
+              </span>
+            ) : null}
           </li>
         ))}
       </ul>

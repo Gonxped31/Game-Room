@@ -383,7 +383,7 @@
         "wordscramble": {
           ".write": "auth != null && newData.parent().child('meta/gameSlug').val() == 'wordscramble' && (newData.parent().child('members/' + auth.uid).exists() || (!data.parent().child('meta').exists() && newData.parent().child('meta/createdBy').val() == auth.uid))",
           ".validate": "newData.hasChildren(['phase', 'settings', 'turn', 'seed', 'hints', 'scores'])",
-          "phase": { ".validate": "newData.val() == 'lobby' || newData.val() == 'turn' || newData.val() == 'result' || newData.val() == 'scoreboard' || newData.val() == 'end'" },
+          "phase": { ".validate": "newData.val() == 'lobby' || newData.val() == 'turn' || newData.val() == 'stealOffer' || newData.val() == 'stealing' || newData.val() == 'result' || newData.val() == 'scoreboard' || newData.val() == 'end'" },
           "settings": {
             ".validate": "newData.hasChildren(['lang', 'mode', 'turnsPerTeam', 'target'])",
             "lang": { ".validate": "newData.val() == 'en' || newData.val() == 'fr'" },
@@ -415,10 +415,17 @@
             "ms": { ".validate": "newData.isNumber() && newData.val() >= 0" },
             "$other": { ".validate": false }
           },
+          "stealer": { ".validate": "newData.isString() && newData.val().matches(/^p[1-8]$/)" },
+          "stolen": {
+            ".validate": "newData.hasChildren(['seat', 'points'])",
+            "seat": { ".validate": "newData.isString() && newData.val().matches(/^p[1-8]$/)" },
+            "points": { ".validate": "newData.isNumber() && newData.val() >= -4 && newData.val() <= 4" },
+            "$other": { ".validate": false }
+          },
           "scores": {
             ".validate": "newData.hasChildren(['A', 'B'])",
-            "A": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-            "B": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "A": { ".validate": "newData.isNumber() && newData.val() >= -999 && newData.val() <= 999" },
+            "B": { ".validate": "newData.isNumber() && newData.val() >= -999 && newData.val() <= 999" },
             "$other": { ".validate": false }
           },
           "history": {
@@ -427,11 +434,12 @@
               "team": { ".validate": "newData.val() == 'A' || newData.val() == 'B'" },
               "wordId": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" },
               "points": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 8" },
+              "steal": { ".validate": "newData.isNumber() && newData.val() >= -4 && newData.val() <= 4" },
               "$other": { ".validate": false }
             }
           },
           "usedWordIds": {
-            "$i": { ".validate": "$i.matches(/^[0-3]?[0-9]$/) && newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" }
+            "$i": { ".validate": "$i.matches(/^[0-9]?[0-9]?[0-9]$/) && newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" }
           },
           "$other": { ".validate": false }
         },

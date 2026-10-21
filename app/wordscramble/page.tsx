@@ -8,10 +8,11 @@ import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { createPathStore, serverTimestamp } from "@/lib/store";
 import { defaultLang, LANG_LABELS } from "@/lib/games/shared/language";
-import { GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, RESULT_MS, SCOREBOARD_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
+import { GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, RESULT_MS, SCOREBOARD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import {
   advance,
   canHint,
+  claimSteal,
   guess,
   hint,
   newGame,
@@ -29,6 +30,8 @@ import {
   setTurnsPerTeam,
   shuffle,
   start,
+  stealGuess,
+  stealValue,
   winner,
   worth,
 } from "@/lib/games/wordscramble/game";
@@ -40,7 +43,11 @@ import { End, GetReady, InviteRow, Lobby, Message, NameEntry, Scoreboard } from 
 import { seatName, THEME } from "@/components/wordscramble/ui";
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
-const drawNext = (game: ScrambleState): NextWord => ({ wordId: pickWord(WORDS, game, Math.random).id, seed: randomSeed() });
+/** The word for the turn about to start: the next one after a scoreboard, else the first. */
+const drawNext = (game: ScrambleState): NextWord => ({
+  wordId: pickWord(WORDS, game, game.phase === "scoreboard" ? game.turn + 1 : 0, Math.random).id,
+  seed: randomSeed(),
+});
 
 /** How often this device tells its teammates it's typing, and how long "is typing…" lasts. */
 const TYPING_EVERY_MS = 2000;
@@ -65,7 +72,7 @@ export default function WordScramblePage() {
   const [watching, setWatching] = useState(false);
 
   useDeadline(game && game.phase !== "lobby" && game.phase !== "end" ? game.deadline : undefined, serverNow, () =>
-    transact((current) => advance(current, serverNow(), drawNext(normalize(current)))),
+    transact((current) => advance(current, serverNow(), drawNext(normalize(current)), getWord(current.wordId)?.word ?? "")),
   );
   const timed = game != null && game.phase !== "lobby" && game.phase !== "end";
   const now = useTicker(timed, serverNow, 200);
@@ -100,11 +107,14 @@ export default function WordScramblePage() {
   const onGuess = useCallback(
     (text: string) => {
       if (!me || !word) return false;
-      transact((s) => guess(s, me, text, word.word, serverNow()));
+      transact((s) => (s.phase === "stealing" ? stealGuess(s, me, text, word.word, serverNow()) : guess(s, me, text, word.word, serverNow())));
       return plain(text) === plain(word.word);
     },
     [me, word, transact, serverNow],
   );
+  const onSteal = useCallback(() => {
+    if (me) transact((s) => claimSteal(s, me, serverNow()));
+  }, [me, transact, serverNow]);
   const onHint = useCallback(() => {
     if (me && word) transact((s) => hint(s, me, word.word, serverNow()));
   }, [me, word, transact, serverNow]);
@@ -191,10 +201,11 @@ export default function WordScramblePage() {
       const typingNames = Object.entries(typing ?? {})
         .filter(([seat, v]) => seat !== me && game.teams[seat] === team && v && t - v.at < TYPING_SHOWN_MS)
         .map(([seat]) => seatName(names, seat));
-      const leftMs = game.phase === "turn" ? Math.max(0, (game.deadline ?? 0) - t) : 0;
+      const leftMs = game.phase === "result" ? 0 : Math.max(0, (game.deadline ?? 0) - t);
+      const phaseMs = game.phase === "stealOffer" ? STEAL_OFFER_MS : game.phase === "stealing" ? STEAL_MS : TURN_MS;
       const points = game.phase === "result" ? game.history.at(-1)?.points ?? 0 : worth(word.word, game.hints);
       const view: TurnView = {
-        phase: game.phase === "result" ? "result" : "turn",
+        phase: game.phase === "result" || game.phase === "stealOffer" || game.phase === "stealing" ? game.phase : "turn",
         team,
         playing: myTeam === team,
         myTeam,
@@ -211,12 +222,16 @@ export default function WordScramblePage() {
         typing: typingNames,
         found: game.found ? { name: seatName(names, game.found.seat), seconds: Math.round(game.found.ms / 1000), points } : undefined,
         seconds: Math.ceil(leftMs / 1000),
-        fraction: leftMs / TURN_MS,
+        fraction: leftMs / phaseMs,
         nextTeam: otherTeam(team),
         nextSeconds: game.phase === "result" ? Math.min(RESULT_MS / 1000, Math.max(1, secondsLeft(game.deadline ?? 0, t))) : 0,
+        stealValue: stealValue(word.word, game.hints),
+        stealerName: game.stealer ? seatName(names, game.stealer) : undefined,
+        isStealer: me != null && game.stealer === me,
+        stolen: game.stolen ? { name: seatName(names, game.stolen.seat), points: game.stolen.points } : undefined,
         pointsLine: `+${points} Team ${team} · ${answer.length} letters${game.hints ? ` − ${game.hints} hint${game.hints > 1 ? "s" : ""}` : ""}`,
       };
-      screen = <TurnScreen view={view} onGuess={onGuess} onHint={onHint} onTyping={onTyping} />;
+      screen = <TurnScreen view={view} onGuess={onGuess} onHint={onHint} onTyping={onTyping} onSteal={onSteal} />;
     } else {
       screen = <Message text="Loading the word…" />;
     }

@@ -19,6 +19,10 @@ export const TURN_MS = 30_000;
 /** "Got it!" or "Time's up", then the scoreboard, then the next turn. */
 export const RESULT_MS = 3000;
 export const SCOREBOARD_MS = 3000;
+/** After time runs out, how long the other team has to tap Steal. */
+export const STEAL_OFFER_MS = 3000;
+/** How long the stealing player has to confirm one word. */
+export const STEAL_MS = 10_000;
 
 /** A turn keeps at most this many wrong guesses, each at most this long. */
 export const MAX_GUESSES = 30;

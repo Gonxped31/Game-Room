@@ -111,10 +111,22 @@ try {
       await shot(watcher, "turn-watching");
     }
     if (turn === 3) {
-      // Let this one run out.
-      await until(async () => (await state())?.phase === "result", "time's up", 40000);
-      await watcher.getByText("Time's up").waitFor();
-      log(`turn ${turn + 1}: time's up, the word was ${word}`);
+      // Let this one run out; the other team steals it.
+      await until(async () => (await state())?.phase === "stealOffer", "time's up", 40000);
+      await p.getByText(/can steal/).waitFor();
+      await shot(watcher, "steal-offer");
+      const before = (await state()).scores;
+      await watcher.getByRole("button", { name: "Steal!" }).click();
+      await until(async () => (await state())?.phase === "stealing", "the steal");
+      await p.getByText(/is stealing/).waitFor();
+      await arrange(watcher, [...plain(word)]);
+      const r = await until(async () => { const v = await state(); return v?.phase === "result" ? v : null; }, "the steal's result");
+      const value = Math.ceil(plain(word).length / 2);
+      const thief = team === "A" ? "B" : "A";
+      if (r.stolen?.points !== value || r.scores[thief] !== before[thief] + value) throw new Error(`steal: ${JSON.stringify(r.stolen)} ${JSON.stringify(r.scores)}`);
+      await p.getByText("Stolen!").waitFor();
+      await shot(p, "stolen");
+      log(`turn ${turn + 1}: time's up, Team ${thief} stole ${word} for ${value}`);
       continue;
     }
     await arrange(p, [...plain(word)].slice(turn === 0 ? 2 : 0));

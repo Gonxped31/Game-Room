@@ -1,15 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, TURN_MS } from "./constants";
+import { RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "./constants";
 import {
   advance,
   afterResult,
   canHint,
+  claimSteal,
   dueAt,
   guess,
   hint,
   isOver,
   newGame,
   nextTurn,
+  noSteal,
   normalize,
   pickTeam,
   pickWord,
@@ -23,6 +25,9 @@ import {
   setTurnsPerTeam,
   shuffle,
   start,
+  stealGuess,
+  stealTimeout,
+  stealValue,
   timeUp,
   toLobby,
   type Word,
@@ -164,12 +169,15 @@ describe("hint", () => {
 });
 
 describe("timeUp, scoreboard and the next turn", () => {
-  it("time's up scores nothing", () => {
+  it("time's up scores nothing, and offers the other team a steal", () => {
     const { game, at } = playing();
     expect(() => timeUp(game, at + TURN_MS - 1)).toThrow();
     const g = timeUp(game, at + TURN_MS);
-    expect(g).toMatchObject({ phase: "result", scores: { A: 0, B: 0 } });
+    expect(g).toMatchObject({ phase: "stealOffer", scores: { A: 0, B: 0 }, deadline: at + TURN_MS + STEAL_OFFER_MS });
     expect(g.history).toEqual([{ team: "A", wordId: "w0", points: 0 }]);
+    const none = noSteal(g, at + TURN_MS + STEAL_OFFER_MS);
+    expect(none).toMatchObject({ phase: "result", scores: { A: 0, B: 0 } });
+    expect(none.stolen).toBeUndefined();
   });
 
   it("goes result -> scoreboard -> Team B's turn with a new word", () => {
@@ -191,7 +199,85 @@ describe("timeUp, scoreboard and the next turn", () => {
     const { game, at } = playing();
     const g = timeUp(game, at + TURN_MS);
     expect(() => timeUp(g, at + TURN_MS + 10)).toThrow();
-    expect(() => afterResult(g, at + TURN_MS + RESULT_MS - 1)).toThrow();
+    expect(() => noSteal(g, at + TURN_MS + STEAL_OFFER_MS - 1)).toThrow();
+    const r = noSteal(g, at + TURN_MS + STEAL_OFFER_MS);
+    expect(() => afterResult(r, at + TURN_MS + STEAL_OFFER_MS + RESULT_MS - 1)).toThrow();
+  });
+});
+
+describe("steal", () => {
+  /** Team A's turn ran out; the steal is offered to Team B (p2, p4). */
+  function offered() {
+    const { game, at } = playing();
+    const t = at + TURN_MS;
+    return { game: timeUp(game, t), t };
+  }
+
+  it("is worth half the word, rounded up", () => {
+    expect(stealValue("TIGER", 0)).toBe(3);
+    expect(stealValue("GARDEN", 0)).toBe(3);
+    expect(stealValue("LIBRARY", 1)).toBe(3);
+    expect(stealValue("DOOR", 2)).toBe(1);
+  });
+
+  it("the first member of the other team to tap gets it, with 10 s", () => {
+    const { game, t } = offered();
+    const g = claimSteal(game, "p4", t + 500);
+    expect(g).toMatchObject({ phase: "stealing", stealer: "p4", deadline: t + 500 + STEAL_MS });
+    expect(() => claimSteal(g, "p2", t + 600)).toThrow(); // already claimed
+  });
+
+  it("only the other team can steal, and only while it's offered", () => {
+    const { game, t } = offered();
+    expect(() => claimSteal(game, "p1", t)).toThrow();
+    expect(() => claimSteal(game, "p9", t)).toThrow();
+    expect(() => claimSteal(playing().game, "p2", t)).toThrow();
+  });
+
+  it("a right steal wins the points for the stealing team", () => {
+    const { game, t } = offered();
+    const g = stealGuess(claimSteal(game, "p2", t), "p2", "tiger", "TIGER", t + 4000);
+    expect(g).toMatchObject({ phase: "result", stolen: { seat: "p2", points: 3 }, scores: { A: 0, B: 3 }, deadline: t + 4000 + RESULT_MS });
+    expect(g.stealer).toBeUndefined();
+    expect(g.history).toEqual([{ team: "A", wordId: "w0", points: 0, steal: 3 }]);
+  });
+
+  it("a wrong steal costs the same, and scores can go below zero", () => {
+    const { game, t } = offered();
+    const g = stealGuess(claimSteal(game, "p2", t), "p2", "tigre", "TIGER", t + 4000);
+    expect(g).toMatchObject({ phase: "result", stolen: { seat: "p2", points: -3 }, scores: { A: 0, B: -3 } });
+    expect(g.history.at(-1)?.steal).toBe(-3);
+  });
+
+  it("counts hints the playing team used", () => {
+    const { game, at } = playing();
+    const hinted = hint(hint(game, "p1", "LIBRARY", at), "p1", "LIBRARY", at);
+    const g = stealGuess(claimSteal(timeUp(hinted, at + TURN_MS), "p2", at + TURN_MS), "p2", "library", "LIBRARY", at + TURN_MS + 1000);
+    expect(g.stolen?.points).toBe(3); // 7 letters - 2 hints = 5, half rounded up
+  });
+
+  it("gives one try only, to the stealer only", () => {
+    const { game, t } = offered();
+    const g = claimSteal(game, "p2", t);
+    expect(() => stealGuess(g, "p4", "tiger", "TIGER", t)).toThrow();
+    const after = stealGuess(g, "p2", "tigre", "TIGER", t);
+    expect(() => stealGuess(after, "p2", "tiger", "TIGER", t)).toThrow();
+  });
+
+  it("running out of time is a missed steal", () => {
+    const { game, t } = offered();
+    const g = claimSteal(game, "p2", t);
+    expect(() => stealTimeout(g, "TIGER", t + STEAL_MS - 1)).toThrow();
+    expect(stealTimeout(g, "TIGER", t + STEAL_MS)).toMatchObject({ phase: "result", stolen: { seat: "p2", points: -3 }, scores: { A: 0, B: -3 } });
+  });
+
+  it("is cleared by the next turn", () => {
+    const { game, t } = offered();
+    let g = stealGuess(claimSteal(game, "p2", t), "p2", "tiger", "TIGER", t);
+    g = afterResult(g, t + RESULT_MS);
+    g = nextTurn(g, next(1), t + RESULT_MS + SCOREBOARD_MS);
+    expect(g.stolen).toBeUndefined();
+    expect(g.scores).toEqual({ A: 0, B: 3 });
   });
 });
 
@@ -200,7 +286,7 @@ describe("the end", () => {
     let { game: g, at: t } = playing((x) => setTurnsPerTeam(x, turnsPerTeam));
     for (let turn = 0; turn < turnsPerTeam * 2; turn++) {
       const seat = playingTeam(turn) === "A" ? "p1" : "p2";
-      g = scoreFor(turn) ? guess(g, seat, "tiger", "TIGER", t) : timeUp(g, (t = g.deadline!));
+      g = scoreFor(turn) ? guess(g, seat, "tiger", "TIGER", t) : noSteal(timeUp(g, (t = g.deadline!)), (t += STEAL_OFFER_MS));
       t += RESULT_MS;
       g = afterResult(g, t);
       if (g.phase === "end") break;
@@ -231,8 +317,20 @@ describe("the end", () => {
   it("Rematch keeps the teams and settings, scores back to 0", () => {
     const end = playAll(3, () => true);
     const g = start(end, { seated: SEATED, next: next(9), now: T0 });
-    expect(g).toMatchObject({ phase: "turn", turn: 0, scores: { A: 0, B: 0 }, history: [], usedWordIds: ["w9"], teams: lobby().teams });
+    expect(g).toMatchObject({ phase: "turn", turn: 0, scores: { A: 0, B: 0 }, history: [], teams: lobby().teams });
     expect(g.settings.turnsPerTeam).toBe(3);
+  });
+
+  it("remembers every word of the session across rematches and the lobby", () => {
+    const end = playAll(3, () => true);
+    expect(end.usedWordIds).toEqual(["w0", "w1", "w2", "w3", "w4", "w5"]);
+    expect(start(end, { seated: SEATED, next: next(9), now: T0 }).usedWordIds).toEqual(["w0", "w1", "w2", "w3", "w4", "w5", "w9"]);
+    expect(toLobby(end).usedWordIds).toHaveLength(6);
+  });
+
+  it("starts the cycle over once a word had to repeat", () => {
+    const end = playAll(3, () => true);
+    expect(start(end, { seated: SEATED, next: next(2), now: T0 }).usedWordIds).toEqual(["w2"]);
   });
 
   it("goes back to the lobby, keeping teams", () => {
@@ -245,11 +343,24 @@ describe("advance", () => {
   it("applies the timed step of the current phase", () => {
     const { game, at } = playing();
     expect(dueAt(game)).toBe(at + TURN_MS);
-    const g = advance(advance(game, at + TURN_MS, next(1)), at + TURN_MS + RESULT_MS, next(1));
+    let t = at + TURN_MS;
+    let g = advance(game, t, next(1));
+    expect(g.phase).toBe("stealOffer");
+    g = advance(g, (t += STEAL_OFFER_MS), next(1));
+    expect(g.phase).toBe("result");
+    g = advance(g, t + RESULT_MS, next(1));
     expect(g.phase).toBe("scoreboard");
     expect(advance(g, g.deadline!, next(1)).wordId).toBe("w1");
     expect(dueAt(lobby())).toBeUndefined();
     expect(() => advance(lobby(), T0, next(1))).toThrow();
+  });
+
+  it("times out a steal, which needs the word", () => {
+    const { game, at } = playing();
+    const t = at + TURN_MS;
+    const g = claimSteal(advance(game, t, next(1)), "p2", t);
+    expect(() => advance(g, t + STEAL_MS, next(1))).toThrow();
+    expect(advance(g, t + STEAL_MS, next(1), "TIGER").stolen?.points).toBe(-3);
   });
 });
 
@@ -287,17 +398,47 @@ describe("pickWord", () => {
     { id: "a", lang: "en", word: "TIGER" },
     { id: "b", lang: "en", word: "HOUSE" },
     { id: "c", lang: "en", word: "GARDEN" },
+    { id: "e", lang: "en", word: "BIRD" },
     { id: "d", lang: "fr", word: "MAISON" },
   ];
   const settings = newGame("en").settings;
 
-  it("draws an unused word in the room's language, varying the length", () => {
-    const w = pickWord(bank, { settings, usedWordIds: ["a"], wordId: "a" }, () => 0);
-    expect(w.id).toBe("c");
-    expect(pickWord(bank, { settings: { ...settings, lang: "fr" }, usedWordIds: [] }, Math.random).id).toBe("d");
+  it("gives Team B a word as long as Team A's of the same round", () => {
+    // Turn 1 (Team B) after Team A's TIGER: the other unused 5-letter word.
+    expect(pickWord(bank, { settings, usedWordIds: ["a"], wordId: "a" }, 1, Math.random).id).toBe("b");
   });
 
-  it("reuses words once every word has been played", () => {
-    expect(pickWord(bank, { settings: { ...settings, lang: "fr" }, usedWordIds: ["d"] }, Math.random).id).toBe("d");
+  it("changes the length for the next round when it can", () => {
+    for (let i = 0; i < 20; i++) {
+      const w = pickWord(bank, { settings, usedWordIds: ["a", "b"], wordId: "b" }, 2, Math.random);
+      expect(["c", "e"]).toContain(w.id);
+    }
+  });
+
+  it("falls back to the nearest length when none of the same length is left", () => {
+    // No unused 5-letter word after TIGER and HOUSE: GARDEN (6) is the only one left.
+    expect(pickWord(bank, { settings, usedWordIds: ["a", "b", "e"], wordId: "a" }, 1, Math.random).id).toBe("c");
+    // GARDEN (6) and BIRD (4) are both 1 away: either will do.
+    expect(["c", "e"]).toContain(pickWord(bank, { settings, usedWordIds: ["a", "b"], wordId: "a" }, 1, Math.random).id);
+  });
+
+  it("only draws the room's language, and reuses words once every word has been played", () => {
+    expect(pickWord(bank, { settings: { ...settings, lang: "fr" }, usedWordIds: [] }, 0, Math.random).id).toBe("d");
+    expect(pickWord(bank, { settings: { ...settings, lang: "fr" }, usedWordIds: ["d"] }, 0, Math.random).id).toBe("d");
+  });
+
+  it("with the real lists, both teams can reach the same score in every round", async () => {
+    const { WORDS } = await import("./words");
+    for (const lang of ["en", "fr"] as const) {
+      let g = { settings: { ...settings, lang }, usedWordIds: [] as string[], wordId: undefined as string | undefined };
+      const lengths: number[] = [];
+      for (let turn = 0; turn < 40; turn++) {
+        const w = pickWord(WORDS, g, turn, Math.random);
+        lengths.push(plain(w.word).length);
+        g = { ...g, usedWordIds: [...g.usedWordIds, w.id], wordId: w.id };
+      }
+      for (let i = 0; i < 40; i += 2) expect(lengths[i + 1], `${lang} round ${i / 2 + 1}`).toBe(lengths[i]);
+      expect(new Set(g.usedWordIds).size).toBe(40);
+    }
   });
 });
