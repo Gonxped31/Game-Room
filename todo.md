@@ -10,3 +10,4 @@ T-046 | 3 | - | L | full-stack,wordchain | Later: word-building team game (Ghost
 T-049 | 3 | T-040 | L | content,buzzerquiz | Grow the Buzzer Quiz bank from 20 toward ~40 questions per topic per language (~480), fact-checked
 T-050 | 3 | - | S | full-stack | Drop the always-empty names field from WithIdentity/WithMultiplayerIdentity and every game's state (ftw, cocounsel, nighthighway, buzzerquiz, wordscramble: newGame + normalize), checking the rules still accept old states
 T-051 | 3 | - | S | frontend | Hub copy assumes 2 players ("share with your partner", "Send your partner the link"): reword now that Buzzer Quiz takes up to 4
+T-054 | 1 | - | S | devops | CI npm ci fails: package-lock.json is missing optional @emnapi entries (Windows npm drops them). Fix the lockfile so npm ci passes on Linux, then restore CI
