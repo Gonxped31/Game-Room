@@ -1,0 +1,2 @@
+#!/bin/sh
+exec node "$(dirname "$0")/quiet.mjs" test:rules npm run test:rules

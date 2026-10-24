@@ -1,7 +1,30 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node .claude/skills/todo/scripts/todo.mjs:*)"
+      "Bash(node .claude/skills/todo/scripts/todo.mjs:*)",
+      "Bash(./scripts/check:*)",
+      "Bash(./scripts/build:*)",
+      "Bash(./scripts/test-rules:*)"
+    ],
+    "deny": [
+      "Read(./package-lock.json)",
+      "Read(./node_modules/**)",
+      "Read(./.next/**)",
+      "Read(./*.log)",
+      "Read(./tsconfig.tsbuildinfo)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/block-big-read.mjs\""
+          }
+        ]
+      }
     ]
   }
 }

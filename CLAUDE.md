@@ -49,31 +49,6 @@ leaving it in chat. Only ever touch todos through that script.
 
 ### Room data model (`database.rules.json` is the source of truth)
 
-```
-games/{roomCode}/
-  meta:       { gameSlug, maxPlayers, createdAt, createdBy, name?, nameKey? }  // write-once except name/nameKey (creator only)
-  seats:      { p1: uid, ... }        members: { [uid]: "p1" }               // always written together
-  players:    { p1: { name }, ... }   presence: { [uid]: { online, lastSeen } }
-  lastActive: number                  ftw | cocounsel | nighthighway: { ...game state... }  // validated per game
-  nighthighwayCars: { p1: {...}, p2: {...} }                                 // live cars, each seat writes its own
-  buzzerquiz: { ...game state, buzzes included... }                         // Buzzer Quiz, maxPlayers 4
-  wordscramble: { ...game state... }  wordscrambleTyping: { pN: { at } }     // Word Scramble, maxPlayers 8; each seat its own typing signal
-roomsByName/{nameKey}: roomCode                                             // unique, first come first served
-users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
-```
-
-- **Seat and room writes are multi-path updates built by the pure functions in
-  `lib/session/shared/updates.ts`**, sent with `updateRoot()`:
-  - `createRoomUpdate` - seats nobody; the creator then picks a seat like anyone
-    else.
-  - `claimSeatUpdate`, `switchSeatUpdate`.
-  - `swapSeatsUpdate` - two seated members trade seats; it can never kick anyone.
-  - `leaveRoomUpdate`.
-  - `takeOverSeatUpdate` - only once the holder has been offline for over 2 min.
-  - `roomNameUpdate`.
-
-  **Never hand-assemble seat or room paths elsewhere.** `seats` and `members` must
-  change in the same update.
 - **The rules only allow writes at named child paths.** Never `set`, `update` or
   transact `games/{room}` itself. Game state is transacted at
   `games/{room}/{slug}`.
@@ -84,86 +59,12 @@ users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
   means changing the rules and `tests/rules/` in the same change (`database-rules`
   skill).
 
-### Code map
+Reference: `docs/architecture.md` (room data model tree, environment notes). Nested `CLAUDE.md` files in `lib/session/`, `lib/store/`, `lib/games/` and `components/` hold the code map and area rules; they load when you work there.
 
-- **`lib/session/shared/`** - the room mechanics every game shares:
-  - `auth.ts` - guest identity.
-  - `updates.ts` - the write builders, plus the `RoomMeta`/`PresenceEntry` types.
-  - `roomActions.ts` - `createRoom` (retries code collisions up to 5 times),
-    `readRoomMeta`, `findRoomByName`, `renameRoom`, and the user-facing messages.
-  - `presence.ts` - `.info/connected` + `onDisconnect`, keyed by uid. Cleanup
-    marks a guest offline but never deletes the entry, because takeover is judged
-    on `lastSeen`.
-  - `serverClock.ts` - `useServerClock`, `useTicker`, and `useDeadline`, which
-    fires on every device when a stored server-time deadline passes.
-    `deadline.ts` has the matching pure helpers: a timed step must call
-    `assertDue` so that only the first device's commit moves the game on.
-  - `useRoom.ts` - the core hook:
-    - It waits for auth and a real `#code` before touching the database.
-    - A bare visit creates the room *then* sets the hash.
-    - It listens to `meta`/`seats`/`members`/`players`/`presence`/game separately,
-      never the whole room.
-    - It runs seat actions and presence, and writes `lastActive` at most once a
-      minute while at least `minPlayers` seats are filled.
-- **`lib/session/useSession.ts`** - the session hook for any game size (2–8
-  seats, `maxPlayers` and optional `minPlayers`): seats, presence, room name,
-  `isHost`, `moveToSeat`. Games with more than 2 players call it directly.
-- **`lib/session/useGameSession.ts`** - the 1v1 wrapper over `useSession` that
-  every 2-player game page calls.
-  - **Its public API is stable**: `room, game, gameStore, me, other, names,
-    bothJoined, roomName, setRoomName, online, pickIdentity, releaseAllIdentities,
-    transact, setGame, newRoom`.
-  - **Additive fields**: `uid, connectionError, roomMissing, canRenameRoom,
-    roomNameError, canTakeOver`.
-  - `me` is `members[uid]`.
-  - **Seats survive `setGame()` resets.**
-  - `releaseAllIdentities` means "switch role": a swap, or a move to the empty
-    seat.
-- **`lib/session/types.ts`** - `Role` (`"p1"|"p2"`, never renamed per game),
-  `SeatId`/`seatIds`, and `WithIdentity` (1v1) / `WithMultiplayerIdentity`, which
-  every game state must extend. Their `names` field is always `{}`: names live in
-  `players`.
-- **`lib/store/`** - backend-agnostic:
-  - `createPathStore(path)`, `createGameStore(room, slug)`, `updateRoot`,
-    `serverTimestamp` (required for the rules' `<= now` checks), `watchConnection`,
-    `setOnDisconnect`, `watchServerTimeOffset` (the server's clock, for starting
-    something on two devices at once).
-  - The backend is Firebase when all five `NEXT_PUBLIC_FIREBASE_*` vars are set;
-    otherwise `localDb.ts` (one JSON tree in localStorage, synced across tabs of
-    one browser profile only).
-  - `readOnce()` returns null **only** when the rules deny a read; it rethrows
-    offline errors, so code never acts on "missing" data it didn't actually see.
-  - UI code never knows which backend is active.
-- **`lib/games/<slug>/`** - each game's pure state machine, constants, content and
-  tests. `lib/games/shared/language.ts` - the room content language (`en`/`fr`). **`components/<slug>/`** and **`app/<slug>/page.tsx`** - each game's UI.
-  **`components/`** - shared pieces:
-  - `Header`, `Footer`, `Button`, `RoleStickers`.
-  - `RolePicker` - name entry with takeover, for 2 seats (FTW) or a `seats` list.
-  - `InviteLinkBanner` - the name field shows only for the creator.
-  - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button
-    or floating pill), `GameCard` (Start + Join), `HubOverlay` (one shared
-    popover on desktop / bottom sheet on mobile), `JoinPanel`,
-    `YourRoomsList` (+ `HomeScreenTip`), `useSavedRooms`. Art and list tiles
-    live in `components/gameRoom/`.
-  - Room pages: `InAppBrowserBanner`.
-  - Every page: `LocalModeBanner`, and `ConnectionBanner` ("Reconnecting…" after
-    2 s without the database; skipped on `/solo` pages).
-  - Crashes: `app/error.tsx` and `app/global-error.tsx` show `RecoveryScreen`
-    (Try again, Reload, Back to all games) instead of a blank page.
-- **`lib/games/registry.ts`** - every game (`ALL_GAMES`); the hub shows `GAMES`.
-  Set `hidden: true` to take a game off the hub while keeping it playable and
-  still named correctly in "Your rooms".
+Layout overview: `ARCHITECTURE.md`. Session habits (one todo per session, `/clear`, `/compact`, no CLAUDE.md edits mid-session): `docs/workflow.md`.
 
 ## Conventions
 
-- **Game logic lives in `lib/games/<slug>/`, never in components.**
-  - Transitions are pure: they throw on an invalid move (the store turns that into
-    a no-op) and never mutate.
-  - Every transition has Vitest coverage.
-- **Realtime Database data shapes**, assumed from day one in every game:
-  - Empty arrays and objects are dropped on write, so read them as `value ?? []`.
-  - An explicit `undefined` is rejected on write, so clear a field by building a
-    new object without it.
 - **Navigating into a room** from another page is a hard navigation (`<a>` or
   `window.location`), never `router.push`/`next/link`. Co-Counsel's creator check
   reads the hash on its first render.
@@ -190,25 +91,13 @@ npx tsc --noEmit   # type-check only
 CI (`.github/workflows/ci.yml`) runs lint, `tsc`, `npm test` and
 `npm run test:rules`.
 
+Use `./scripts/check` (typecheck, lint, tests; one line per failure; `--rules`, `--verbose`) instead of raw test/lint commands; `./scripts/build` and `./scripts/test-rules` print one line unless they fail.
+
 Before calling a change done:
 - **Every change**: lint, `tsc`, `npm test`.
 - **Rules or game-state changes**: also `npm run test:rules`.
 - **Anything visible**: also the `ui-review` skill (phone and desktop screenshots).
 - **Anything multiplayer**: also the `live-test` skill.
 
-## Environment notes
-
-- **Local mode is per browser profile.** It never syncs across browsers or
-  devices, and it shows a "Local mode" banner. **Restart `npm run dev` after
-  changing `.env.local`**: a dev server started without the Firebase config
-  silently runs in local mode, which looks exactly like a sync bug.
-- **A Vercel build fails** (`next.config.ts`) if any Firebase var is missing, so a
-  local-only app can never ship. Preview and production share one database unless
-  Preview gets its own project's vars.
-- **Anonymous sign-in needs no Firebase "Authorized domains" entry.** New Vercel
-  preview URLs work as-is. Only an HTTP-referrer restriction on the API key would
-  need `https://*.vercel.app/*`.
-- **A dev server returning 500 with a Turbopack panic** means the dev cache is
-  corrupted: stop dev servers and delete `.next/dev`.
 
 Todos: use `node .claude/skills/todo/scripts/todo.mjs` only (see the todo skill); never read or edit todo.md directly.
