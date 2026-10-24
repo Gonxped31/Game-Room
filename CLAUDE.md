@@ -25,6 +25,7 @@ demand:
 | Testing a change with two players on phone + desktop (emulators + Playwright) | `live-test` skill |
 | Original specs and mockups | `references/` (`ftw/`, `co-counsel/`, `game-room/`, `night-highway/`, `buzzer-quiz/`, `scramble/`) |
 | The work queue, including deferred work waiting on a trigger ("when X ships, do Y") | `todo` skill |
+| Branching, committing, rebasing, pushing, merging into `main` | `git` skill |
 
 **Before finishing any task, check the todos** (`node .claude/skills/todo/scripts/todo.mjs list --all`)
 for items this work triggers. Do them, or tell the user they're now due. When
@@ -65,6 +66,9 @@ Layout overview: `ARCHITECTURE.md`. Session habits (one todo per session, `/clea
 
 ## Conventions
 
+- **Start every task on a new branch from `origin/main`.** `main` is production
+  (every push auto-deploys); merging into it needs the user's approval (`git`
+  skill).
 - **Navigating into a room** from another page is a hard navigation (`<a>` or
   `window.location`), never `router.push`/`next/link`. Co-Counsel's creator check
   reads the hash on its first render.
