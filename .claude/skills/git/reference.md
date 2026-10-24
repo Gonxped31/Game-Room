@@ -35,6 +35,7 @@ Co-Authored-By: <the trailer the session gives>
 
 | Situation | Do |
 | :--- | :--- |
+| Committed on someone else's branch (the checkout was switched under you) | `git branch -f <your-branch> <sha>` (your branch isn't checked out), push it, then ask before removing the commit from theirs. |
 | Committed on `main` by mistake, not pushed | `git switch -c <branch>`, then `git switch main && git reset --keep origin/main` (ask first). |
 | Something reached `main` that shouldn't have | `git revert <sha>` on a branch, then the normal merge with approval. Never rewrite `main`. |
 | Rebase went wrong mid-way | `git rebase --abort`; the branch is back where it was. |

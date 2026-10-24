@@ -13,9 +13,15 @@ description: Use when starting work, committing, rebasing, pushing or merging in
   kebab-case `<area>-<topic>`, todo ID first when there is one
   (`t-054-lockfile`, `nighthighway-fog`, `docs-git-skill`).
 - Follow-ups to the same task stay on its branch. Never commit on `main`.
+- The user may be working in the same checkout. If it's on a branch of theirs
+  (or has their uncommitted changes), don't switch it: work in a worktree,
+  `git worktree add <scratchpad>/<branch> -b <branch> origin/main`, and remove
+  it after the merge.
 
 ## 2. Commit on the branch (no approval needed)
 
+0. `git branch --show-current` must print your branch. If it doesn't, someone
+   switched the checkout: stop, don't commit, and tell the user.
 1. Run the checks CLAUDE.md requires for the change (`./scripts/check` at least).
    While CI only runs on manual dispatch (T-054), these are the only gate.
 2. `git status --short`. Stage the paths you changed **by name**; never
