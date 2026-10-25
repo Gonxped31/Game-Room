@@ -14,6 +14,7 @@ Next.js app (App Router) on Firebase Realtime Database with invisible Anonymous 
 | `lib/session/shared/` | Auth, seat/room write builders (`updates.ts`), presence, server clock |
 | `lib/store/` | Backend-agnostic store: Firebase, or `localDb.ts` when no config |
 | `lib/admin/` | Server only: `firebase-admin` handle, admin password cookie (`session.ts`), route guard |
+| `lib/analytics/` | Dashboard metrics: pure and platform-neutral (`metrics.ts` over a `Snapshot`); `gameRoomAdapter.ts` maps Game Room's database into it |
 | `app/admin/`, `app/api/admin/` | The owner's dashboard and its route handlers (not linked from the hub) |
 | `tests/rules/` | Database rules tests (emulator, needs Java) |
 | `references/` | Original specs and mockups |

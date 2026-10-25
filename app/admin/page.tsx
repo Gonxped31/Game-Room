@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminLogin from "@/components/admin/AdminLogin";
 import Button from "@/components/Button";
 import type { AdminSessionResponse } from "@/lib/admin/types";
@@ -37,39 +38,56 @@ export default function AdminPage() {
     refresh();
   };
 
+  if (view.kind === "session" && view.signedIn) {
+    return (
+      <Shell wide>
+        <header className="flex items-center justify-between gap-3">
+          <h1 className="m-0 text-2xl font-bold text-white">{APP_TITLE} admin</h1>
+          <Button variant="sm" className="mt-0 mr-0" onClick={() => void logOut()}>
+            Log out
+          </Button>
+        </header>
+        {view.database?.ok ? (
+          <AdminDashboard onSignedOut={refresh} />
+        ) : (
+          <Card>
+            <p role="alert" className="m-0 font-bold text-[#B3123F]">
+              {view.database?.error ?? "Database not checked."}
+            </p>
+          </Card>
+        )}
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <h1 className="m-0 text-center text-2xl font-bold text-white">{APP_TITLE} admin</h1>
+      <Card>
+        {view.kind === "loading" ? (
+          <p className="m-0">Loading…</p>
+        ) : view.kind === "error" ? (
+          <p role="alert" className="m-0 font-bold">
+            Couldn&apos;t reach the server. Reload to try again.
+          </p>
+        ) : !view.enabled ? (
+          <p className="m-0">Admin is turned off here. Set ADMIN_PASSWORD to turn it on.</p>
+        ) : (
+          <AdminLogin onSignedIn={refresh} />
+        )}
+      </Card>
+    </Shell>
+  );
+}
+
+function Shell({ wide, children }: { wide?: boolean; children: ReactNode }) {
   return (
     <div className="min-h-screen px-4 py-8 text-black" style={{ backgroundColor: HUB_TABLE }}>
-      <main className="mx-auto flex max-w-[420px] flex-col gap-4">
-        <h1 className="m-0 text-center text-2xl font-bold text-white">{APP_TITLE} admin</h1>
-        <section className="rounded-2xl bg-white p-5 shadow-[0_4px_0_rgba(0,0,0,.25)]">
-          {view.kind === "loading" ? (
-            <p className="m-0">Loading…</p>
-          ) : view.kind === "error" ? (
-            <p role="alert" className="m-0 font-bold">
-              Couldn&apos;t reach the server. Reload to try again.
-            </p>
-          ) : !view.enabled ? (
-            <p className="m-0">Admin is turned off here. Set ADMIN_PASSWORD to turn it on.</p>
-          ) : !view.signedIn ? (
-            <AdminLogin onSignedIn={refresh} />
-          ) : (
-            <div className="flex flex-col gap-2">
-              <p className="m-0 font-bold">Signed in.</p>
-              {view.database?.ok ? (
-                <p className="m-0 text-sm">Database connected.</p>
-              ) : (
-                <p role="alert" className="m-0 text-sm font-bold text-[#B3123F]">
-                  {view.database?.error ?? "Database not checked."}
-                </p>
-              )}
-              <p className="m-0 text-sm text-black/60">The dashboard is coming next.</p>
-              <Button variant="alt" onClick={() => void logOut()}>
-                Log out
-              </Button>
-            </div>
-          )}
-        </section>
-      </main>
+      <main className={`mx-auto flex flex-col gap-4 ${wide ? "max-w-[1040px]" : "max-w-[420px]"}`}>{children}</main>
     </div>
   );
+}
+
+function Card({ children }: { children: ReactNode }) {
+  return <section className="rounded-2xl bg-white p-5 shadow-[0_4px_0_rgba(0,0,0,.25)]">{children}</section>;
 }

@@ -36,3 +36,4 @@ T-008 | 2 | - | S | devops | Audit permanent context load: list configured MCP s
 T-053 | 2 | - | S | devops | Check whether to upgrade Next.js: ./scripts/build currently fails with a SecurityFatalError saying Next 16.4.0 has a known vulnerability. Review the advisory and decide; REPORT ONLY until approved | done 2026-10-24
 T-051 | 3 | - | S | frontend | Hub copy assumes 2 players ("share with your partner", "Send your partner the link"): reword now that Buzzer Quiz takes up to 4 | done 2026-10-25
 T-056 | 1 | - | M | backend,infra,admin | Admin foundation: firebase-admin singleton, service-account + ADMIN_PASSWORD env, password login, signed cookie, guarded /api/admin/* | done 2026-10-25
+T-057 | 1 | T-056 | M | full-stack,admin | Analytics dashboard v1 at /admin: live rooms, players per game, approx. play time, return rate | done 2026-10-25
