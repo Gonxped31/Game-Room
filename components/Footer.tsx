@@ -8,7 +8,7 @@ interface FooterProps {
   identity?: string;
   onReset: () => void;
   onNewRoom: () => void;
-  /** "Leave room" (gives up the seat). Unset where there's no room to leave (an error, an unknown room): a plain link to the hub. */
+  /** "Leave room" (gives up the seat). Unset where there's no room to leave (an error, an unknown room) or the seat isn't known yet (connecting): a plain link to the hub. */
   onLeave?: () => void;
 }
 

@@ -132,7 +132,8 @@ export default function PartScreen({
         theme={theme}
         onToggleTheme={onToggleTheme}
       />
-      <div className="px-4 pb-32 pt-4">
+      {/* The page reserves the bar's height below the Footer (`data-fixed-bar`), so Leave room stays reachable. */}
+      <div className="px-4 pb-4 pt-4">
         <TranscriptSheet text={info} role={role} />
         <p className="mb-3 mt-5 font-[family-name:var(--font-archivo)] text-base font-bold" style={{ color: COLOR.ink }}>
           Say it out loud. Don&apos;t show your screen.
@@ -140,6 +141,7 @@ export default function PartScreen({
         <Hand cards={hand} role={role} selectedId={selectedId} onToggle={(id) => setSelectedId((cur) => (cur === id ? null : id))} />
       </div>
       <div
+        data-fixed-bar
         className={`fixed inset-x-0 bottom-0 z-20 mx-auto border-t px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 ${CONTAINER_MAX_WIDTH_CLASS}`}
         style={{ borderColor: COLOR.disabledBg, backgroundColor: COLOR.paper }}
       >

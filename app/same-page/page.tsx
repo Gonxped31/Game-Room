@@ -77,6 +77,7 @@ export default function SamePagePage() {
 
   const notice = session.connectionError ? CONNECTION_ERROR_MESSAGE : session.roomMissing ? ROOM_MISSING_MESSAGE : !game ? "Connecting to the room…" : null;
   // Asks first once both are playing: leaving ends the game for the partner.
+  // Not offered under a notice: no room, or still connecting (the seat isn't known yet).
   const leave = () => void leaveToHub(session.leave, me && bothJoined ? LEAVE_CONFIRM : undefined);
 
   return (
@@ -147,7 +148,7 @@ export default function SamePagePage() {
           identity={myRole ? (myName ? `${myName} · ${myRole}` : myRole) : undefined}
           onReset={handleResetGame}
           onNewRoom={newRoom}
-          onLeave={session.connectionError || session.roomMissing ? undefined : leave}
+          onLeave={notice ? undefined : leave}
         />
       </main>
     </div>

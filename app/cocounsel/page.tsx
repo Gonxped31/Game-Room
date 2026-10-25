@@ -250,7 +250,8 @@ export default function CoCounselPage() {
           inline in each screen's own header (Wordmark, or a colored band's
           top row), so <main> reserves no top clearance and full-bleed bands
           start flush with the viewport. */}
-      <main className={`mx-auto font-[family-name:var(--font-archivo)] ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
+      {/* A screen with a fixed bottom bar (PartScreen's Lock in) gets its height reserved below everything, the Footer included. */}
+      <main className={`mx-auto font-[family-name:var(--font-archivo)] has-[[data-fixed-bar]]:pb-32 ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
         {session.connectionError || session.roomMissing ? (
           // No room to leave here, so a plain way back to the hub.
           <div className="flex flex-col gap-3 px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>

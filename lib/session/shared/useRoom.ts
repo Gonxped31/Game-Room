@@ -227,9 +227,14 @@ export function useRoom<TState>(opts: {
     }
   };
 
+  // The room this page has left ("Leave room"): it never takes a seat there
+  // again, or an auto-pick (Co-Counsel's joiner) would sit straight back down
+  // before the hub loads. `newRoom` moves to another code, so it can claim.
+  const leftRoom = useRef<string | null>(null);
+
   const claimSeat = async (seat: string, rawName: string): Promise<boolean> => {
     const name = rawName.trim().slice(0, MAX_NAME_LENGTH);
-    if (!uid || !meta || !active || !name) return false;
+    if (!uid || !meta || !active || !name || leftRoom.current === room) return false;
     const current = await freshSeats();
     const holder = current[seat];
     if (holder === uid) {
@@ -254,6 +259,7 @@ export function useRoom<TState>(opts: {
   };
 
   const leave = async () => {
+    leftRoom.current = room;
     if (!uid || !mySeat || !active) return;
     await send(leaveRoomUpdate({ code: room, uid, seat: mySeat }));
   };

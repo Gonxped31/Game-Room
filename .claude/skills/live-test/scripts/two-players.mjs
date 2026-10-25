@@ -173,6 +173,7 @@ try {
   // Leave room: asks first (B still holds a seat), frees A's seat, unlists the room for A.
   const uidA = (await adminRead(`games/${code}/seats`)).p1;
   await A.page.goto(`${BASE}/same-page#${code}`);
+  await A.page.getByText(/Sam · (Ranking|Guessing)/).waitFor(); // seated, not "Connecting…"
   let asked = "";
   A.page.once("dialog", (dialog) => {
     asked = dialog.message();
@@ -187,6 +188,9 @@ try {
   }, "A's seat given up, B's kept");
   if (await adminRead(`users/${uidA}/rooms/${code}`)) throw new Error("the room is still in A's Your rooms");
   log("Leave room asked first, gave up A's seat and dropped the room from A's Your rooms");
+  // Let the hub's database connection settle: one closed before it's up makes Firebase open the next
+  // page on long polling, and WebKit logs that transport's teardown as a console error.
+  await A.page.waitForTimeout(2000);
 
   // Start: "Starting…", then the game's page creates a fresh room.
   await A.page.getByRole("button", { name: "Start a Same Page room" }).filter({ visible: true }).click();
