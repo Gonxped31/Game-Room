@@ -21,6 +21,20 @@ const fieldClass = "w-full rounded-lg border border-black/25 bg-white px-2.5 py-
 const labelClass = "flex min-w-0 flex-col gap-1 text-xs font-semibold text-black/60";
 const checkboxClass = "size-5 shrink-0 cursor-pointer accent-[#0F7983]";
 
+/** The filters in words, for the confirm box ("Live now · Buzzer Quiz · fewer than 2 players"). */
+function describeFilter(filter: RoomFilter): string {
+  const status = STATUS_OPTIONS.find((option) => option.value === filter.status);
+  const players = PLAYERS_OPTIONS.find((option) => option.value === filter.players);
+  return [
+    filter.status !== "all" && status?.label,
+    filter.gameSlug && gameTitle(filter.gameSlug),
+    filter.players !== "any" && players && `${players.label.toLowerCase()} players`,
+    filter.query.trim() && `"${filter.query.trim()}"`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 /** Calls an admin room route; resolves to the error to show, or null when it worked. */
 async function callAdmin(url: string, method: "POST" | "DELETE", body?: unknown): Promise<string | null> {
   try {
@@ -60,6 +74,7 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
   const matches = filterRooms(all, filter);
   const counts = countByStatus(all, filter);
   const filtered = filter.query !== "" || filter.gameSlug != null || filter.players !== DEFAULT_FILTER.players || filter.status !== DEFAULT_FILTER.status;
+  // "Select all" takes exactly the open rooms these filters match, loaded by "Show more" or not.
   // Only open rooms can be selected; a room that closes (here or elsewhere) drops out of the selection on the next refresh.
   const selectable = matches.filter((room) => room.status !== "closed");
   const chosen = selectable.filter((room) => selected.has(room.code));
@@ -77,9 +92,10 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
     const codes = chosen.map((room) => room.code);
     const names = chosen.slice(0, NAMED_IN_CONFIRM).map((room) => room.name ?? room.code);
     const more = codes.length - names.length;
+    const criteria = describeFilter(filter);
     setConfirming({
-      title: `Close ${rooms(codes.length)}?`,
-      message: `${names.join(", ")}${more ? ` and ${more} more` : ""}. Everyone in them sees "This room was closed" and can't play on. This can't be undone.`,
+      title: allChosen && codes.length > 1 ? `Close all ${codes.length} matching rooms?` : `Close ${rooms(codes.length)}?`,
+      message: `${allChosen && criteria ? `Every open room matching ${criteria}: ` : ""}${names.join(", ")}${more ? ` and ${more} more` : ""}. Everyone in them sees "This room was closed" and can't play on. This can't be undone.`,
       confirmLabel: `Close ${rooms(codes.length)}`,
       busyLabel: "Closing…",
       run: async () => {
@@ -178,7 +194,7 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
                   onChange={toggleAll}
                   className={checkboxClass}
                 />
-                Select all {selectable.length} open
+                Select all {selectable.length} matching
               </label>
               {chosen.length > 0 && (
                 <>

@@ -242,8 +242,9 @@ room link works too), and filter by status, game or how many people hold a seat.
 
 Rooms are removed in two steps:
 1. **Close** a live room. Everyone in it sees "This room was closed", and the room
-   refuses any more play. To close several at once, tick them (or "Select all", which
-   takes every open room the filters show) and press "Close N rooms".
+   refuses any more play. To close several at once, tick them, or filter (say, one game
+   with fewer than 2 players) and tick "Select all", which takes exactly the open rooms
+   matching the filters. Then press "Close N rooms".
 2. **Delete** it (set the Rooms status filter to "Closed"). The room and its name are removed, and a small
    summary is kept in `analytics/archive/{code}` so its numbers stay on the dashboard.
    Anyone who opens the old link gets a new, empty room.
