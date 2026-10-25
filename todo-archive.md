@@ -42,3 +42,4 @@ T-059 | 2 | T-057 | S | full-stack,admin | Accurate play time: activeMinutes cou
 T-060 | 2 | T-057 | S | full-stack,admin | Invite-loop metrics on /admin: invite conversion, invites per creator, loop rate | done 2026-10-25
 T-061 | 2 | T-058 | S | backend,admin | Hard delete of closed rooms from /admin (+ roomsByName, optional archive summary) | done 2026-10-25
 T-062 | 3 | T-057 | S | full-stack,admin | Return-rate accuracy: per-guest daily visit marker users/{uid}/visits/{yyyymmdd} | done 2026-10-25
+T-k9n2 | 3 | - | S | frontend,admin | Closed rooms: hide the footer's Reset game link when roomClosed (it silently does nothing) | done 2026-10-25

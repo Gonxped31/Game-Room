@@ -429,7 +429,7 @@ export default function CoCounselPage() {
             room={room}
             roomName={roomName}
             identity={me ? `${caseDef.characters[myRole]} · ${myRole === "investigator" ? "Investigator" : "Defendant"}` : undefined}
-            onReset={handleResetCase}
+            onReset={session.roomClosed ? undefined : handleResetCase}
             onNewRoom={handleNewRoom}
             onLeave={handleLeave}
           />

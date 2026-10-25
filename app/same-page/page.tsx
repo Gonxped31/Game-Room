@@ -146,7 +146,7 @@ export default function SamePagePage() {
           room={room}
           roomName={roomName}
           identity={myRole ? (myName ? `${myName} · ${myRole}` : myRole) : undefined}
-          onReset={handleResetGame}
+          onReset={session.roomClosed ? undefined : handleResetGame}
           onNewRoom={newRoom}
           onLeave={notice ? undefined : leave}
         />

@@ -6,7 +6,8 @@ interface FooterProps {
   roomName?: string;
   /** e.g. "Sam · Master", or undefined before a name/role is picked. */
   identity?: string;
-  onReset: () => void;
+  /** Left out where resetting can't work (a closed room): the link is hidden. */
+  onReset?: () => void;
   onNewRoom: () => void;
   /** "Leave room" (gives up the seat). Unset where there's no room to leave (an error, an unknown room) or the seat isn't known yet (connecting): a plain link to the hub. */
   onLeave?: () => void;
@@ -20,10 +21,14 @@ export default function Footer({ room, roomName, identity, onReset, onNewRoom, o
       Room: {roomName ? `${roomName} (${room})` : room}
       {identity ? ` · ${identity}` : null}
       <br />
-      <button type="button" onClick={() => confirm("Reset the whole game?") && onReset()} className={linkClass}>
-        Reset game
-      </button>{" "}
-      ·{" "}
+      {onReset && (
+        <>
+          <button type="button" onClick={() => confirm("Reset the whole game?") && onReset()} className={linkClass}>
+            Reset game
+          </button>{" "}
+          ·{" "}
+        </>
+      )}
       <button
         type="button"
         onClick={() => confirm("Leave this room and start a brand new one?") && onNewRoom()}

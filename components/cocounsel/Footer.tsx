@@ -5,7 +5,8 @@ interface FooterProps {
   /** User-chosen room name, if any - shown alongside the raw code (still needed to rejoin by code). */
   roomName?: string;
   identity?: string;
-  onReset: () => void;
+  /** Left out where resetting can't work (a closed room): the link is hidden. */
+  onReset?: () => void;
   onNewRoom: () => void;
   /** "Leave room" (gives up the seat). */
   onLeave: () => void;
@@ -20,10 +21,14 @@ export default function Footer({ room, roomName, identity, onReset, onNewRoom, o
       Room: {roomName ? `${roomName} (${room})` : room}
       {identity ? ` · ${identity}` : null}
       <br />
-      <button type="button" onClick={() => confirm("Reset the whole case?") && onReset()} className={linkClass} style={{ color: COLOR.text2 }}>
-        Reset case
-      </button>{" "}
-      ·{" "}
+      {onReset && (
+        <>
+          <button type="button" onClick={() => confirm("Reset the whole case?") && onReset()} className={linkClass} style={{ color: COLOR.text2 }}>
+            Reset case
+          </button>{" "}
+          ·{" "}
+        </>
+      )}
       <button
         type="button"
         onClick={() => confirm("Leave this room and start a brand new one?") && onNewRoom()}
