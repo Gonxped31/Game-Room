@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { formatDuration } from "@/lib/analytics/format";
 import { countByStatus, DEFAULT_FILTER, filterRooms, PLAYERS_OPTIONS, type RoomFilter, STATUS_OPTIONS } from "@/lib/analytics/roomFilter";
 import type { RoomRow, RoomStatus } from "@/lib/analytics/types";
@@ -8,6 +8,8 @@ import { gameBySlug, roomHref } from "@/lib/games/registry";
 
 /** Rows shown at first, and added by each "Show more". */
 const PAGE_SIZE = 50;
+/** The list scrolls inside this height, so the filters and the rest of the page stay in reach however many rooms there are. */
+const LIST_HEIGHT = "max-h-[min(65vh,36rem)]";
 
 const gameTitle = (slug: string) => gameBySlug(slug)?.title ?? slug;
 // text-base on phones: iOS Safari zooms into any field under 16px when it's focused.
@@ -22,10 +24,13 @@ const labelClass = "flex min-w-0 flex-col gap-1 text-xs font-semibold text-black
 export default function RoomList({ rooms, games, onChanged }: { rooms: RoomRow[]; games: string[]; onChanged: () => void }) {
   const [filter, setFilter] = useState<RoomFilter>(DEFAULT_FILTER);
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const update = (change: Partial<RoomFilter>) => {
-    setFilter((current) => ({ ...current, ...change }));
+  const listRef = useRef<HTMLDivElement>(null);
+  const reset = (next: RoomFilter | ((current: RoomFilter) => RoomFilter)) => {
+    setFilter(next);
     setLimit(PAGE_SIZE);
+    listRef.current?.scrollTo({ top: 0 });
   };
+  const update = (change: Partial<RoomFilter>) => reset((current) => ({ ...current, ...change }));
 
   const matches = filterRooms(rooms, filter);
   const counts = countByStatus(rooms, filter);
@@ -86,10 +91,7 @@ export default function RoomList({ rooms, games, onChanged }: { rooms: RoomRow[]
             {" · "}
             <button
               type="button"
-              onClick={() => {
-                setFilter(DEFAULT_FILTER);
-                setLimit(PAGE_SIZE);
-              }}
+              onClick={() => reset(DEFAULT_FILTER)}
               className="cursor-pointer border-0 bg-transparent p-0 text-xs font-semibold text-[#0F7983] underline"
             >
               Reset filters
@@ -101,20 +103,29 @@ export default function RoomList({ rooms, games, onChanged }: { rooms: RoomRow[]
       {matches.length === 0 ? (
         <p className="m-0 text-sm text-black/60">{rooms.length === 0 ? "No rooms yet." : "No rooms match these filters."}</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col p-0">
-          {matches.slice(0, limit).map((room) => (
-            <RoomItem key={room.code} room={room} onChanged={onChanged} />
-          ))}
-        </ul>
-      )}
-      {matches.length > limit && (
-        <button
-          type="button"
-          onClick={() => setLimit((n) => n + PAGE_SIZE)}
-          className="cursor-pointer self-start rounded-lg border-2 border-black/20 bg-white px-3 py-1.5 text-sm font-bold text-black"
+        // Focusable so the keyboard can scroll it too.
+        <div
+          ref={listRef}
+          role="region"
+          aria-label="Rooms"
+          tabIndex={0}
+          className={`${LIST_HEIGHT} overflow-y-auto overscroll-contain rounded-lg border border-black/15 px-3`}
         >
-          Show {Math.min(PAGE_SIZE, matches.length - limit)} more
-        </button>
+          <ul className="m-0 flex list-none flex-col p-0">
+            {matches.slice(0, limit).map((room) => (
+              <RoomItem key={room.code} room={room} onChanged={onChanged} />
+            ))}
+          </ul>
+          {matches.length > limit && (
+            <button
+              type="button"
+              onClick={() => setLimit((n) => n + PAGE_SIZE)}
+              className="my-3 cursor-pointer rounded-lg border-2 border-black/20 bg-white px-3 py-1.5 text-sm font-bold text-black"
+            >
+              Show {Math.min(PAGE_SIZE, matches.length - limit)} more
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
