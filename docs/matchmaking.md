@@ -73,9 +73,16 @@ player who closes the tab hands the job on.
   can each create a room. Every 8 s, a player waiting alone checks the queue. They
   move to a waiting room with company, or to another lone room with a *lower* code
   (so exactly one of the two moves). They join the new room first, then leave the
-  old one and unlist it.
+  old one and unlist it. The move replaces the history entry, so Back never returns
+  to the old room.
 - **Leave room** (lobby button): gives up the seat, unlists the room if it was the
   last player, and goes back to the hub.
+- **Back = Leave room** (2026-10-25, the user's call): otherwise Back only unloads the
+  page, the seat stays taken and the others keep seeing the player. While the
+  lobby shows, the hook adds one history entry (state `publicRoomBack: room`), so
+  Back stays on the page, leaves, then replaces the entry with the hub. Mid-game
+  Back does nothing the first time (it pops that entry). Night Highway also
+  leaves on Back from the results (`leaveOnBack`), where Leave room shows too.
 
 Public lobbies hide the host's settings, Start, room naming and invite card. Buzzer
 Quiz public rooms use every topic and 10 questions (`publicGame`). Word Scramble uses

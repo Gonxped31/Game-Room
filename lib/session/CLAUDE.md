@@ -41,7 +41,8 @@
   - `usePublicRoom.ts` - runs a public room on every seated device: the lowest
     online seat keeps the queue entry and `autoStart`; every device starts the
     game when it passes. Pages start public games with `startingSeats` (the
-    online ones). It takes `useSession`'s session or the 1v1
+    online ones). In the lobby, the browser's Back button is Leave room (an
+    extra history entry; `leaveOnBack` widens it). It takes `useSession`'s session or the 1v1
     `useGameSession`'s (Night Highway), which carries `leave`, `joinedSeats`,
     `onlineSeats` and `publicLang` for it.
 - **`lib/session/useSession.ts`** - the session hook for any game size (2–8

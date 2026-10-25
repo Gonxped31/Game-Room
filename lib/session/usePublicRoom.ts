@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useSyncExternalStore } from "react";
 import { createPathStore, emptyStore, serverTimestamp, updateRoot } from "@/lib/store";
 import { tryJoinRoom, type MatchGame } from "./shared/findMatch";
 import { betterRoom, nextAutoStart, type Queue, QUEUE_REFRESH_MS, queuePath } from "./shared/matchmaking";
@@ -11,6 +11,8 @@ import type { SeatId, WithMultiplayerIdentity } from "./types";
 
 /** How often a player waiting alone looks for another waiting room to join. */
 const MERGE_CHECK_MS = 8_000;
+/** Marks the history entry `usePublicRoom` adds so Back leaves the room; holds the room code. */
+const BACK_ENTRY = "publicRoomBack";
 
 export interface PublicRoom {
   /** This room was made by matchmaking: no host, fixed settings, it starts by itself. */
@@ -48,8 +50,10 @@ export function usePublicRoom(opts: {
   /** Starts the game with `session.onlineSeats`. */
   onStart: () => void;
   serverNow: () => number;
+  /** The browser's Back button leaves the room (default: while `inLobby`). Pass it where "Leave room" shows outside the lobby. */
+  leaveOnBack?: boolean;
 }): PublicRoom {
-  const { session, game, inLobby, ready, onStart, serverNow } = opts;
+  const { session, game, inLobby, ready, onStart, serverNow, leaveOnBack } = opts;
   const { room, me, uid, publicLang: lang, onlineSeats, joinedSeats, names } = session;
   const isPublic = lang != null;
   const active = isPublic && me != null;
@@ -103,7 +107,8 @@ export function usePublicRoom(opts: {
       try {
         if (await tryJoinRoom({ code: target, uid, name, lang, game, now })) {
           await updateRoot({ ...leaveRoomUpdate({ code: room, uid, seat: me }), ...queueRemoveUpdate({ code: room, gameSlug: game.gameSlug, lang }) }).catch(() => {});
-          window.location.hash = target;
+          // Replaces this entry, so Back from the new room doesn't return to the old one.
+          window.location.replace(`#${target}`);
         }
       } finally {
         moving.current = false;
@@ -113,13 +118,36 @@ export function usePublicRoom(opts: {
     return () => clearInterval(id);
   }, [alone, lang, uid, me, name, room, game, serverNow]);
 
-  const leave = useCallback(() => {
-    void (async () => {
-      if (lang && players <= 1) await updateRoot(queueRemoveUpdate({ code: room, gameSlug: game.gameSlug, lang })).catch(() => {});
-      await session.leave();
-      window.location.href = "/";
-    })();
+  const leaveRoom = useCallback(async () => {
+    if (lang && players <= 1) await updateRoot(queueRemoveUpdate({ code: room, gameSlug: game.gameSlug, lang })).catch(() => {});
+    await session.leave();
   }, [lang, players, room, game.gameSlug, session]);
+
+  const leave = useCallback(() => {
+    void leaveRoom().then(() => {
+      window.location.href = "/";
+    });
+  }, [leaveRoom]);
+
+  // Back = "Leave room": one extra history entry keeps Back on this page,
+  // which gives up the seat, then goes to the hub (leaving anyway if the
+  // write fails: Back was pressed).
+  const onBack = useEffectEvent(() => {
+    void leaveRoom()
+      .catch(() => {})
+      .then(() => window.location.replace("/"));
+  });
+  const backLeaves = active && (leaveOnBack ?? inLobby);
+  useEffect(() => {
+    if (!backLeaves) return;
+    if (window.history.state?.[BACK_ENTRY] !== room) window.history.pushState({ [BACK_ENTRY]: room }, "", window.location.href);
+    const onPopState = () => {
+      // Back from our entry lands on the one before it, still in this room. A merge's move to another room isn't Back.
+      if (window.history.state?.[BACK_ENTRY] !== room && window.location.hash.slice(1) === room) onBack();
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [backLeaves, room]);
 
   return { isPublic, autoStartAt: active ? autoStartAt : null, leave };
 }

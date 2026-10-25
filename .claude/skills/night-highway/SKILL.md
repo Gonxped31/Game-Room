@@ -267,6 +267,8 @@ single-file game (visuals, controls, physics, scoring).
 - Screens: `MatchLobby` (waiting for a driver, the countdown, or "the other driver
   left" with Find another driver), and `MatchLinks` (Leave room) under the results
   instead of `RoomLinks`.
+- The browser's Back button is Leave room in the lobby and on the results
+  (`leaveOnBack`), never mid-race.
 
 ## Rules
 

@@ -1,5 +1,5 @@
 // Matchmaking end-to-end ("Matchmaking" button, docs/matchmaking.md), against a dev
-// server on the emulators (see dev-against-emulators.mjs). About two minutes.
+// server on the emulators (see dev-against-emulators.mjs). About four minutes.
 //
 // - Buzzer Quiz: a desktop player searches from the hub and gets a new public
 //   room; an iPhone player's search lands in the same room; an Android player
@@ -9,9 +9,13 @@
 //   (the first room is hidden from the queue for a moment, as when two people
 //   search at the same instant) are brought together by the lone-player
 //   merge, then the game starts by itself, 1v1, with even teams.
-// - Leave room: a waiting player leaves; the seat and the queue entry go.
+// - Back = Leave room: a player who joined a French room presses Back; their
+//   seat goes at once and the countdown stops. Then the French player leaves with
+//   "Leave room"; the seat and the queue entry go.
 // - Night Highway: no language choice (one `any` queue); the second driver
-//   lands in the first's room and the first race starts by itself.
+//   lands in the first's room and the first race starts by itself. After it, the
+//   second driver presses Back on the results: their seat goes, and the first
+//   sees they left.
 //
 //   node .claude/skills/live-test/scripts/matchmaking.mjs [baseUrl] [screenshotDir]
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
@@ -91,6 +95,21 @@ try {
   await until(async () => (await adminRead(`games/${roomA}/autoStart`)) == null, "autoStart to be cleared");
   log("the EN room started by itself with p1 + p2 and left the queue");
 
+  // ---- Back = Leave room -----------------------------------------------------------------------
+  // Presence would only mark H offline; Back must give up the seat at once and stop the countdown.
+  const H = await player("desktop", "H (desktop, FR)");
+  const roomH = await playOnline(H, { title: "Buzzer Quiz", slug: "buzzerquiz", name: "Hugo", lang: "Français" });
+  if (roomH !== roomC) throw new Error(`H landed in ${roomH}, not C's room ${roomC}`);
+  await C.getByText(/^Starting in \d+ s$/).waitFor({ timeout: 15000 });
+  await H.goBack();
+  await H.waitForURL(`${BASE}/`, { timeout: 15000 });
+  await H.getByRole("button", { name: "Matchmaking for Buzzer Quiz: play with other players" }).waitFor({ timeout: 15000 });
+  await until(async () => Object.keys((await adminRead(`games/${roomC}/seats`)) ?? {}).length === 1, "H's seat to be given up");
+  await until(async () => (await adminRead(`games/${roomC}/autoStart`)) == null, "C's countdown to stop");
+  await C.getByText("Waiting for more players…").waitFor({ timeout: 15000 });
+  await until(async () => (await adminRead(`queue/buzzerquiz/fr/${roomC}`))?.players === 1, "C's room listed with 1 player again");
+  log("H pressed Back: back on the hub, seat given up, C waits alone again");
+
   // ---- Leave room ------------------------------------------------------------------------------
   await C.getByRole("button", { name: "Leave room" }).click();
   await C.waitForURL(`${BASE}/`, { timeout: 15000 });
@@ -136,6 +155,16 @@ try {
   if (nh.race !== 1) throw new Error(`started race ${nh.race}`);
   await until(async () => (await adminRead(`queue/nighthighway/any/${roomF}`)) == null && (await adminRead(`games/${roomF}/autoStart`)) == null, "the race room to leave the queue");
   log("Night Highway: matched", roomF, "and the race started by itself");
+
+  // Back on the results screen leaves too (not mid-race).
+  await until(async () => (await adminRead(`games/${roomF}/nighthighway`))?.phase === "DONE", "the race to finish", 120000);
+  await G.getByRole("button", { name: "Leave room" }).waitFor({ timeout: 15000 });
+  await G.goBack();
+  await G.waitForURL(`${BASE}/`, { timeout: 15000 });
+  await until(async () => Object.keys((await adminRead(`games/${roomF}/seats`)) ?? {}).length === 1, "G's seat to be given up");
+  await F.getByText("The other driver left the room.").waitFor({ timeout: 15000 });
+  await shot(F, "nh-other-left-desktop");
+  log("G pressed Back on the results: seat given up, F sees they left");
 
   if (errors.length) throw new Error(`console errors:\n${errors.join("\n")}`);
   console.log("PASS matchmaking");

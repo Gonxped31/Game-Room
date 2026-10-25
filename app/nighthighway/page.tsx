@@ -46,7 +46,16 @@ export default function NightHighwayPage() {
   // once both drivers are online; after that it's Ready as usual.
   const inLobby = game?.phase === "LOBBY";
   const startPublicRace = useCallback(() => transact((current) => startRace(current, serverNow(), Math.floor(Math.random() * 2 ** 31))), [transact, serverNow]);
-  const match = usePublicRoom({ session, game: NIGHTHIGHWAY_MATCH, inLobby, ready: session.onlineSeats.length >= 2, onStart: startPublicRace, serverNow });
+  // Back leaves wherever "Leave room" shows: the lobby and the results, not mid-race.
+  const match = usePublicRoom({
+    session,
+    game: NIGHTHIGHWAY_MATCH,
+    inLobby,
+    ready: session.onlineSeats.length >= 2,
+    onStart: startPublicRace,
+    serverNow,
+    leaveOnBack: game != null && game.phase !== "RACING",
+  });
   const lobbyNow = useTicker(match.isPublic && inLobby, serverNow);
   const [finding, setFinding] = useState<"idle" | "searching" | "offline">("idle");
   const findAnother = async () => {
