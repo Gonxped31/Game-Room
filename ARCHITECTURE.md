@@ -1,6 +1,6 @@
 # Architecture
 
-Next.js app (App Router) on Firebase Realtime Database with invisible Anonymous Auth. No server code: clients talk to the database directly, guarded by `database.rules.json`.
+Next.js app (App Router) on Firebase Realtime Database with invisible Anonymous Auth. Players' clients talk to the database directly, guarded by `database.rules.json`. The only server code is the owner's `/admin` dashboard: `app/api/admin/*` route handlers using `firebase-admin` (which bypasses the rules) behind a password cookie.
 
 ## Directories
 
@@ -13,6 +13,8 @@ Next.js app (App Router) on Firebase Realtime Database with invisible Anonymous 
 | `lib/session/` | Seats, presence, room hooks (`useRoom`, `useSession`, `useGameSession`) |
 | `lib/session/shared/` | Auth, seat/room write builders (`updates.ts`), presence, server clock |
 | `lib/store/` | Backend-agnostic store: Firebase, or `localDb.ts` when no config |
+| `lib/admin/` | Server only: `firebase-admin` handle, admin password cookie (`session.ts`), route guard |
+| `app/admin/`, `app/api/admin/` | The owner's dashboard and its route handlers (not linked from the hub) |
 | `tests/rules/` | Database rules tests (emulator, needs Java) |
 | `references/` | Original specs and mockups |
 | `.claude/skills/` | Per-game and per-task guides |

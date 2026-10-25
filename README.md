@@ -219,6 +219,22 @@ has nowhere else to go but its correct spot too. So you'll only ever see 0, 1, 2
    in that order.
 5. Share `https://<your-app>.vercel.app/<game>#<room-code>` with the other player.
 
+### The admin dashboard (`/admin`)
+
+`/admin` is the owner's dashboard. It isn't linked from the hub, and it stays off
+until you add two variables in Vercel, for **Production only**. Previews share the
+production database, so leave both unset there.
+
+- `ADMIN_PASSWORD`: a long random password. It's the only thing guarding `/admin`.
+  Changing it signs every admin session out.
+- `FIREBASE_SERVICE_ACCOUNT`: the whole JSON key, pasted as one value. Create it in
+  Firebase console > Project settings > Service accounts > Generate new private key.
+  It bypasses the database rules, so it must never be committed or given a
+  `NEXT_PUBLIC_` name.
+
+After redeploying, sign in at `/admin`. "Database connected." confirms that the key
+works.
+
 **Preview URLs need no Firebase setup.** Firebase's *Authorized domains* list only
 applies to OAuth redirect/popup and email-link sign-ins, not anonymous sign-in, so
 each new preview URL works as-is. The one exception: if you restricted the Firebase

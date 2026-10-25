@@ -13,10 +13,12 @@ const AT_START_MS = 8000;
  * "Reconnecting…" at the top of the screen while this device has lost the
  * database. Moves made meanwhile are kept and sent on reconnect (the store
  * queues them), so the message says that rather than "you're offline".
- * Skipped on solo pages, which never touch the database.
+ * Skipped on solo pages and /admin, which never touch the database from the
+ * browser.
  */
 export default function ConnectionBanner() {
-  const solo = usePathname().endsWith("/solo");
+  const pathname = usePathname();
+  const solo = pathname.endsWith("/solo") || pathname.startsWith("/admin");
   const [down, setDown] = useState(false);
 
   useEffect(() => {
