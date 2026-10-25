@@ -1,4 +1,4 @@
-import type { DashboardStats, GameStats, GuestSnap, InviteLoop, LiveRoom, Rate, RoomSnap, Snapshot } from "./types";
+import type { ClosedRoom, DashboardStats, GameStats, GuestSnap, InviteLoop, LiveRoom, Rate, RoomSnap, Snapshot } from "./types";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 const WINDOW_MS = 30 * DAY_MS;
@@ -101,6 +101,7 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
 
   // Rooms: live now, created, and estimated play time.
   const liveRooms: LiveRoom[] = [];
+  const closedRooms: ClosedRoom[] = [];
   const onlineGuests = new Set<string>();
   const playByGame = new Map<string, number[]>();
   const allPlay: number[] = [];
@@ -121,6 +122,9 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
       allPlay.push(play);
       playByGame.set(room.gameSlug, [...(playByGame.get(room.gameSlug) ?? []), play]);
     }
+    if (room.closedAt != null && !room.deleted) {
+      closedRooms.push({ code: room.code, gameSlug: room.gameSlug, name: room.name, closedAgoMs: Math.max(now - room.closedAt, 0) });
+    }
     if (room.onlineUids.length && room.closedAt == null) {
       stats.liveRooms++;
       room.onlineUids.forEach((uid) => onlineGuests.add(uid));
@@ -137,6 +141,7 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
     }
   }
   for (const [slug, plays] of playByGame) statsFor(slug).medianPlayMs30d = median(plays);
+  closedRooms.sort((a, b) => a.closedAgoMs - b.closedAgoMs);
   liveRooms.sort((a, b) => (a.status === b.status ? a.createdAgoMs - b.createdAgoMs : a.status === "playing" ? -1 : 1));
 
   // Guests: players per game, and who came back.
@@ -196,5 +201,6 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
     perGame: slugs.map((slug) => statsBySlug.get(slug)!),
     inviteLoop: computeInviteLoop(rooms, guests, since),
     liveRooms,
+    closedRooms,
   };
 }

@@ -6,8 +6,9 @@ import { computeDashboard } from "@/lib/analytics/metrics";
 import { ALL_GAMES } from "@/lib/games/registry";
 
 /**
- * The dashboard's numbers. Reads every room and every guest's room list with
- * the admin SDK, and returns only the aggregates - never the raw tree.
+ * The dashboard's numbers. Reads every room, every guest's room list and the
+ * summaries of deleted rooms with the admin SDK, and returns only the
+ * aggregates - never the raw tree.
  * Reading all of `games` (game state included) is fine at this scale; if it
  * grows, read shallow keys and only the room-level nodes.
  */
@@ -16,9 +17,9 @@ export async function GET() {
   if (refused) return refused;
   try {
     const db = adminDb();
-    const [games, users] = await Promise.all([db.ref("games").get(), db.ref("users").get()]);
+    const [games, users, archive] = await Promise.all([db.ref("games").get(), db.ref("users").get(), db.ref("analytics/archive").get()]);
     const stats = computeDashboard(
-      toSnapshot(games.val(), users.val(), Date.now()),
+      toSnapshot(games.val(), users.val(), Date.now(), archive.val()),
       ALL_GAMES.map((game) => game.slug),
     );
     return NextResponse.json(stats, { headers: NO_STORE });

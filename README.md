@@ -236,6 +236,13 @@ production database, so leave both unset there.
 After redeploying, sign in at `/admin`. "Database connected." confirms that the key
 works.
 
+Rooms are removed in two steps:
+1. **Close** a live room. Everyone in it sees "This room was closed", and the room
+   refuses any more play.
+2. **Delete** it from "Closed rooms". The room and its name are removed, and a small
+   summary is kept in `analytics/archive/{code}` so its numbers stay on the dashboard.
+   Anyone who opens the old link gets a new, empty room.
+
 **Preview URLs need no Firebase setup.** Firebase's *Authorized domains* list only
 applies to OAuth redirect/popup and email-link sign-ins, not anonymous sign-in, so
 each new preview URL works as-is. The one exception: if you restricted the Firebase

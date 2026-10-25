@@ -22,6 +22,8 @@ export interface RoomSnap {
   closedAt?: number;
   /** Filled by matchmaking with strangers, not by invites: left out of the invite loop. */
   matchmade?: boolean;
+  /** The room itself was deleted; this is the summary kept for history. */
+  deleted?: boolean;
 }
 
 /** One guest's entry for one room: they created it, or joined it from a link. */
@@ -89,6 +91,14 @@ export interface LiveRoom {
   createdAgoMs: number;
 }
 
+/** A closed room that still exists, so it can be deleted. */
+export interface ClosedRoom {
+  code: string;
+  gameSlug: string;
+  name?: string;
+  closedAgoMs: number;
+}
+
 export interface DashboardStats {
   generatedAt: number;
   totals: {
@@ -111,4 +121,6 @@ export interface DashboardStats {
   perGame: GameStats[];
   inviteLoop: InviteLoop;
   liveRooms: LiveRoom[];
+  /** Most recently closed first. */
+  closedRooms: ClosedRoom[];
 }

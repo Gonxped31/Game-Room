@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toSnapshot } from "./gameRoomAdapter";
+import { fromArchivedRoom, toArchivedRoom, toSnapshot } from "./gameRoomAdapter";
 import { computeDashboard, computeInviteLoop, DAY_MS, estimatePlayMs, PLAY_ESTIMATE_CAP_MS, playMs } from "./metrics";
 import type { GuestRoomSnap, RoomSnap, Snapshot } from "./types";
 
@@ -74,6 +74,25 @@ describe("players per game", () => {
 
   it("appends games found in the data but missing from the order", () => {
     expect(stats.perGame.map((g) => g.gameSlug)).toEqual(["ftw", "wordscramble"]);
+  });
+});
+
+describe("closed rooms", () => {
+  it("lists closed rooms that still exist, most recently closed first", () => {
+    const stats = computeDashboard(
+      snapshot({
+        rooms: [
+          room({ code: "older", closedAt: NOW - 60 * MIN, name: "Old" }),
+          room({ code: "newer", closedAt: NOW - 5 * MIN }),
+          room({ code: "gone", closedAt: NOW - MIN, deleted: true }),
+          room({ code: "open" }),
+        ],
+      }),
+    );
+    expect(stats.closedRooms).toEqual([
+      { code: "newer", gameSlug: "ftw", name: undefined, closedAgoMs: 5 * MIN },
+      { code: "older", gameSlug: "ftw", name: "Old", closedAgoMs: 60 * MIN },
+    ]);
   });
 });
 
@@ -218,6 +237,66 @@ describe("gameRoomAdapter", () => {
       { uid: "a", rooms: [{ code: "abc123", gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }] },
       { uid: "b", rooms: [] },
     ]);
+  });
+
+  it("archives a room for deletion without names or game state, and reads it back", () => {
+    const raw = {
+      meta: { gameSlug: "ftw", maxPlayers: 2, createdAt: NOW - DAY_MS, createdBy: "a", name: "Friday", nameKey: "friday" },
+      seats: { p1: "a", p2: "b" },
+      lastActive: NOW - MIN,
+      activeMinutes: { n: 9, at: NOW - MIN },
+      closedAt: NOW - 30 * 1000,
+      ftw: { round: 3 },
+    };
+    const users = {
+      a: { rooms: { abc234: { gameSlug: "ftw", addedAt: NOW - DAY_MS, createdByMe: true }, other1: { gameSlug: "ftw", addedAt: NOW } } },
+      b: { rooms: { abc234: { gameSlug: "ftw", addedAt: NOW - DAY_MS + MIN } } },
+      c: { rooms: { other1: { gameSlug: "ftw", addedAt: NOW } } },
+    };
+    const archived = toArchivedRoom("abc234", raw, users, NOW);
+    expect(archived).toEqual({
+      gameSlug: "ftw",
+      maxPlayers: 2,
+      createdAt: NOW - DAY_MS,
+      seatsFilled: 2,
+      deletedAt: NOW,
+      lastActive: NOW - MIN,
+      activeMinutes: 9,
+      closedAt: NOW - 30 * 1000,
+      guests: { a: { addedAt: NOW - DAY_MS, createdByMe: true }, b: { addedAt: NOW - DAY_MS + MIN } },
+    });
+    expect(JSON.stringify(archived)).not.toContain("undefined");
+    expect(fromArchivedRoom("abc234", archived)).toEqual({
+      code: "abc234",
+      gameSlug: "ftw",
+      createdAt: NOW - DAY_MS,
+      lastActive: NOW - MIN,
+      activeMinutes: 9,
+      seatsFilled: 2,
+      maxPlayers: 2,
+      onlineUids: [],
+      closedAt: NOW - 30 * 1000,
+      deleted: true,
+    });
+    expect(fromArchivedRoom("bad", { gameSlug: "ftw" })).toBeNull();
+  });
+
+  it("counts deleted rooms from the archive, and puts back guest entries the hub dropped", () => {
+    const archive = {
+      abc234: { gameSlug: "ftw", maxPlayers: 2, createdAt: NOW - DAY_MS, seatsFilled: 2, closedAt: NOW - MIN, deletedAt: NOW, guests: { a: { addedAt: NOW - DAY_MS, createdByMe: true }, b: { addedAt: NOW - DAY_MS } } },
+    };
+    // a still has the entry; b's hub dropped it (b has no rooms left at all).
+    const users = { a: { rooms: { abc234: { gameSlug: "ftw", addedAt: NOW - DAY_MS, createdByMe: true } } } };
+    const snap = toSnapshot(null, users, NOW, archive);
+    expect(snap.rooms.map((r) => [r.code, r.deleted])).toEqual([["abc234", true]]);
+    expect(snap.guests).toEqual([
+      { uid: "a", rooms: [{ code: "abc234", gameSlug: "ftw", addedAt: NOW - DAY_MS, createdByMe: true }] },
+      { uid: "b", rooms: [{ code: "abc234", gameSlug: "ftw", addedAt: NOW - DAY_MS, createdByMe: false }] },
+    ]);
+    const stats = computeDashboard(snap);
+    expect(stats.totals.playersAllTime).toBe(2);
+    expect(stats.inviteLoop.converted).toEqual({ count: 1, of: 1, rate: 1 });
+    expect(stats.closedRooms).toEqual([]); // deleted, so nothing left to delete
   });
 
   it("accepts an empty database", () => {

@@ -124,3 +124,13 @@ describe("a closed room", () => {
     await assertSucceeds(dbAs(env, "bob").ref(g("ftw")).get());
   });
 });
+
+describe("analytics/archive (deleted rooms' summaries, T-061)", () => {
+  it("is out of reach for every client", async () => {
+    await seed(env, { [`analytics/archive/${ROOM}`]: { gameSlug: "ftw", createdAt: 1, deletedAt: 2 } });
+    await assertFails(dbAs(env, "alice").ref(`analytics/archive/${ROOM}`).get());
+    await assertFails(dbAs(env, "alice").ref("analytics").get());
+    await assertFails(dbAs(env, "alice").ref(`analytics/archive/${ROOM}`).set({ gameSlug: "ftw", createdAt: 1, deletedAt: 2 }));
+    await assertFails(dbAs(env, "alice").ref(`analytics/archive/${ROOM}`).remove());
+  });
+});

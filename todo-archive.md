@@ -40,3 +40,4 @@ T-057 | 1 | T-056 | M | full-stack,admin | Analytics dashboard v1 at /admin: liv
 T-058 | 1 | T-056 | M | full-stack,admin | Close room from /admin: admin sets closedAt, rules refuse writes, RoomClosed screen, hub hides closed rooms | done 2026-10-25
 T-059 | 2 | T-057 | S | full-stack,admin | Accurate play time: activeMinutes counter beside lastActive, rules-enforced +1/min | done 2026-10-25
 T-060 | 2 | T-057 | S | full-stack,admin | Invite-loop metrics on /admin: invite conversion, invites per creator, loop rate | done 2026-10-25
+T-061 | 2 | T-058 | S | backend,admin | Hard delete of closed rooms from /admin (+ roomsByName, optional archive summary) | done 2026-10-25
