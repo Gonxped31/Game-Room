@@ -519,6 +519,11 @@
             "$other": { ".validate": false }
           }
         },
+        "visits": {
+          "$day": {
+            ".validate": "$day.matches(/^20[0-9][0-9][01][0-9][0-3][0-9]$/) && newData.isNumber() && newData.val() <= now && newData.val() > now - 172800000"
+          }
+        },
         "$other": { ".validate": false }
       }
     }

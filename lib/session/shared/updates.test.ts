@@ -12,6 +12,8 @@ import {
   swapSeatsUpdate,
   switchSeatUpdate,
   takeOverSeatUpdate,
+  visitDay,
+  visitUpdate,
 } from "./updates";
 
 const TS = "<ts>";
@@ -170,5 +172,13 @@ describe("nextActiveMinutes", () => {
 
   it("writes nothing while another device's count for this minute is fresh", () => {
     expect(nextActiveMinutes({ n: 4, at: 1_000_000 }, 1_054_999, TS)).toBeUndefined();
+  });
+});
+
+describe("visitDay and visitUpdate", () => {
+  it("keys a visit by its UTC day", () => {
+    expect(visitDay(Date.UTC(2026, 9, 25, 23, 59))).toBe("20261025");
+    expect(visitDay(Date.UTC(2026, 0, 2, 0, 0))).toBe("20260102");
+    expect(visitUpdate({ uid: "alice", day: "20261025", ts: TS })).toEqual({ "users/alice/visits/20261025": TS });
   });
 });

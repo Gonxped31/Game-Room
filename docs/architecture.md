@@ -19,6 +19,7 @@ games/{roomCode}/
 queue/{slug}/{lang}/{roomCode}: { players, updatedAt }                     // matchmaking: waiting public rooms; listable per slug+lang
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
+users/{uid}/visits/{yyyymmdd}: number                                       // server time of the guest's first room visit that UTC day (return rate)
 analytics/archive/{roomCode}: { gameSlug, createdAt, ..., guests }        // a deleted room's summary for /admin; no client reads or writes it
 ```
 

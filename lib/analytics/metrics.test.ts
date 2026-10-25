@@ -150,6 +150,19 @@ describe("return rate", () => {
     expect(stats.totals.returning).toEqual({ count: 1, of: 3, rate: 1 / 3 });
   });
 
+  it("counts coming back to the same room on another day (daily visits)", () => {
+    const stats = computeDashboard(
+      snapshot({
+        guests: [
+          { uid: "same-room", rooms: [entry("r1", NOW - 3 * DAY_MS)], visits: [NOW - 3 * DAY_MS, NOW - DAY_MS] },
+          { uid: "once", rooms: [entry("r1", NOW - 3 * DAY_MS)], visits: [NOW - 3 * DAY_MS + MIN] },
+        ],
+      }),
+    );
+    expect(stats.totals.returning).toEqual({ count: 1, of: 2, rate: 0.5 });
+    expect(stats.totals.returnedWithin7d.of).toBe(0);
+  });
+
   it("counts a 7-day return only for guests first seen a week ago, within their first week", () => {
     const stats = computeDashboard(
       snapshot({
@@ -224,7 +237,7 @@ describe("gameRoomAdapter", () => {
       badtime: { meta: { gameSlug: "ftw", createdAt: "yesterday" } },
     };
     const users = {
-      a: { rooms: { abc123: { gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }, broken: { addedAt: NOW } } },
+      a: { rooms: { abc123: { gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }, broken: { addedAt: NOW } }, visits: { "20261023": NOW - DAY_MS, bad: "x" } },
       b: {},
     };
     const snap = toSnapshot(games, users, NOW);
@@ -234,7 +247,7 @@ describe("gameRoomAdapter", () => {
       { code: "public1", gameSlug: "buzzerquiz", createdAt: NOW - MIN, lastActive: undefined, name: undefined, seatsFilled: 0, maxPlayers: 4, onlineUids: [], matchmade: true },
     ]);
     expect(snap.guests).toEqual([
-      { uid: "a", rooms: [{ code: "abc123", gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }] },
+      { uid: "a", rooms: [{ code: "abc123", gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }], visits: [NOW - DAY_MS] },
       { uid: "b", rooms: [] },
     ]);
   });

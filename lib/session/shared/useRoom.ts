@@ -16,10 +16,15 @@ import {
   swapSeatsUpdate,
   switchSeatUpdate,
   takeOverSeatUpdate,
+  visitDay,
+  visitUpdate,
 } from "./updates";
 
 /** Placeholder room id while there's no #code yet - never subscribed to or written. */
 export const DEFAULT_ROOM = "our-private-room-id";
+
+/** localStorage: the last `${uid}:${yyyymmdd}` whose visit was marked, so it's written once a day per browser. */
+const VISIT_KEY = "gameRoom.visitMarked";
 
 /** How often `lastActive` is refreshed while a game is in progress - the hub's "Your rooms" sorts by it. */
 const LAST_ACTIVE_INTERVAL_MS = 60_000;
@@ -207,6 +212,26 @@ export function useRoom<TState>(opts: {
     const id = setInterval(touch, LAST_ACTIVE_INTERVAL_MS);
     return () => clearInterval(id);
   }, [inProgress, room, serverNow]);
+
+  // A seated guest's daily visit (`users/{uid}/visits/{day}`), for the
+  // dashboard's return rate: coming back to the same room on another day.
+  useEffect(() => {
+    if (!active || !uid || !seated || closed) return;
+    const day = visitDay(serverNow());
+    const marked = `${uid}:${day}`;
+    try {
+      if (window.localStorage.getItem(VISIT_KEY) === marked) return;
+    } catch {
+      // No storage: mark it anyway; a repeat write the same day is harmless.
+    }
+    updateRoot(visitUpdate({ uid, day, ts: serverTimestamp() }))
+      .then(() => {
+        try {
+          window.localStorage.setItem(VISIT_KEY, marked);
+        } catch {}
+      })
+      .catch(() => {});
+  }, [active, uid, seated, closed, serverNow]);
 
   // The clock is only read inside timer callbacks, never during render
   // (an unstable value a prerender would capture), and starts null.

@@ -38,6 +38,8 @@ export interface GuestRoomSnap {
 export interface GuestSnap {
   uid: string;
   rooms: GuestRoomSnap[];
+  /** Times the guest was in a room, at most one a day; counts toward the days they were active. */
+  visits?: number[];
 }
 
 export interface Snapshot {
@@ -113,7 +115,7 @@ export interface DashboardStats {
     medianPlayMs30d: number | null;
     /** Of `playedRooms30d`, those without counted minutes, whose play time is estimated. */
     estimatedPlayRooms30d: number;
-    /** Guests seen before today who were active on 2+ different days. */
+    /** Guests seen before today who were active (joined a room, or came back to one) on 2+ different days. */
     returning: Rate;
     /** Guests first seen 7+ days ago who came back within 7 days of their first day. */
     returnedWithin7d: Rate;

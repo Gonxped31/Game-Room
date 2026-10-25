@@ -38,6 +38,8 @@
       minute while at least `minPlayers` seats are filled. In the same timer it
       transacts `activeMinutes` (`nextActiveMinutes`): the room's play time, one
       count a minute from whichever seated device gets there first.
+    - A seated guest marks `users/{uid}/visits/{yyyymmdd}` (`visitUpdate`) once
+      a day per browser (a localStorage guard), for the dashboard's return rate.
 - **Matchmaking** ("Matchmaking" button, `docs/matchmaking.md`):
   - `shared/matchmaking.ts` - the pure decisions: `rankRooms`, `staleRooms`,
     `betterRoom` (the lone-player merge), `nextAutoStart`, and the timings.

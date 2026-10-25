@@ -64,6 +64,16 @@ export function nextActiveMinutes(current: ActiveMinutes | null, now: number, ts
   return { n: (current?.n ?? 0) + 1, at: ts as number };
 }
 
+/** A UTC day as `yyyymmdd`: the key of a guest's daily visit marker. */
+export function visitDay(now: number): string {
+  return new Date(now).toISOString().slice(0, 10).replaceAll("-", "");
+}
+
+/** Marks that this guest was in a room today (`users/{uid}/visits/{yyyymmdd}`: the server time), for the dashboard's return rate. */
+export function visitUpdate(opts: { uid: string; day: string; ts: unknown }) {
+  return { [`users/${opts.uid}/visits/${opts.day}`]: opts.ts };
+}
+
 export interface PresenceEntry {
   online: boolean;
   lastSeen: number;

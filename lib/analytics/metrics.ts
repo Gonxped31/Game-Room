@@ -165,7 +165,8 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
         players30d.add(guest.uid);
       }
     }
-    const days = [...new Set(guest.rooms.map((entry) => dayOf(entry.addedAt)))].sort((a, b) => a - b);
+    const activeAt = [...guest.rooms.map((entry) => entry.addedAt), ...(guest.visits ?? [])];
+    const days = [...new Set(activeAt.map(dayOf))].sort((a, b) => a - b);
     const first = days[0];
     if (first < today) {
       seenBeforeToday++;

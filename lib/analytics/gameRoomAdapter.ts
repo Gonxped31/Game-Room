@@ -19,6 +19,7 @@ export interface RawRoom {
 
 interface RawUser {
   rooms?: Record<string, Partial<UserRoomEntry>>;
+  visits?: Record<string, unknown>;
 }
 
 const isTime = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value > 0;
@@ -45,6 +46,7 @@ export function toRoomSnap(code: string, raw: RawRoom): RoomSnap | null {
 }
 
 export function toGuestSnap(uid: string, raw: RawUser): GuestSnap {
+  const visits = entries<unknown>(raw?.visits).flatMap(([, at]) => (isTime(at) ? [at] : []));
   return {
     uid,
     rooms: entries<Partial<UserRoomEntry>>(raw?.rooms).flatMap(([code, entry]) =>
@@ -52,6 +54,7 @@ export function toGuestSnap(uid: string, raw: RawUser): GuestSnap {
         ? [{ code, gameSlug: entry.gameSlug, addedAt: entry.addedAt, createdByMe: entry.createdByMe === true }]
         : [],
     ),
+    ...(visits.length ? { visits } : {}),
   };
 }
 
