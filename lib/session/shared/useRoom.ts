@@ -5,9 +5,12 @@ import { createGameStore, createPathStore, emptyStore, isLocalMode, serverTimest
 import { type GuestAuth, useGuestAuth } from "./auth";
 import { canTakeOver, isSeatOnline, type RoomPresence, startPresence } from "./presence";
 import { createRoom, renameRoom } from "./roomActions";
+import { useServerClock } from "./serverClock";
 import {
+  type ActiveMinutes,
   claimSeatUpdate,
   leaveRoomUpdate,
+  nextActiveMinutes,
   room as roomPath,
   type RoomMeta,
   swapSeatsUpdate,
@@ -186,16 +189,24 @@ export function useRoom<TState>(opts: {
   }, [active, room, uid, seated, closed]);
 
   // `lastActive`, at most once a minute, while a game is in progress (this
-  // guest is seated and at least `minPlayers` seats are filled).
+  // guest is seated and at least `minPlayers` seats are filled), and the
+  // room's play time (`activeMinutes`): one count a minute, from whichever
+  // seated device gets there first. Separate writes, so a refused count
+  // never holds up `lastActive`.
   const seatedCount = Object.values(seats).filter(Boolean).length;
   const inProgress = active && seated && seatedCount >= minPlayers && !closed;
+  const serverNow = useServerClock();
   useEffect(() => {
     if (!inProgress) return;
-    const touch = () => updateRoot({ [roomPath(room, "lastActive")]: serverTimestamp() }).catch(() => {});
-    void touch();
+    const minutes = createPathStore<ActiveMinutes>(roomPath(room, "activeMinutes"));
+    const touch = () => {
+      updateRoot({ [roomPath(room, "lastActive")]: serverTimestamp() }).catch(() => {});
+      void minutes.transaction((current) => nextActiveMinutes(current, serverNow(), serverTimestamp()));
+    };
+    touch();
     const id = setInterval(touch, LAST_ACTIVE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [inProgress, room]);
+  }, [inProgress, room, serverNow]);
 
   // The clock is only read inside timer callbacks, never during render
   // (an unstable value a prerender would capture), and starts null.

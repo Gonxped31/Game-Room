@@ -35,7 +35,9 @@
     - It listens to `meta`/`seats`/`members`/`players`/`presence`/game separately,
       never the whole room.
     - It runs seat actions and presence, and writes `lastActive` at most once a
-      minute while at least `minPlayers` seats are filled.
+      minute while at least `minPlayers` seats are filled. In the same timer it
+      transacts `activeMinutes` (`nextActiveMinutes`): the room's play time, one
+      count a minute from whichever seated device gets there first.
 - **Matchmaking** ("Matchmaking" button, `docs/matchmaking.md`):
   - `shared/matchmaking.ts` - the pure decisions: `rankRooms`, `staleRooms`,
     `betterRoom` (the lone-player merge), `nextAutoStart`, and the timings.

@@ -19,6 +19,7 @@ games/{roomCode}/
   players     { pN: { name } } -- only the seat's holder writes it
   presence    { uid: { online, lastSeen } } -- own entry only, members only
   lastActive  members only
+  activeMinutes { n, at }      -- play time: members only, n +1 with at == now, refused within 50 s of the last count
   ftw | cocounsel | nighthighway -- members of a room of that gameSlug (or the creating write); fully .validate'd
   nighthighwayCars/{pN}        -- Night Highway's live cars: only the uid seated in pN writes it
   buzzerquiz                   -- Buzzer Quiz (maxPlayers must be 4): the whole game, buzzes included

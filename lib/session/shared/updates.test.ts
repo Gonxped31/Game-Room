@@ -4,6 +4,7 @@ import {
   createRoomUpdate,
   leaveRoomUpdate,
   nameKey,
+  nextActiveMinutes,
   queueEntryUpdate,
   queueRemoveUpdate,
   type RoomMeta,
@@ -158,5 +159,16 @@ describe("public rooms (matchmaking)", () => {
   it("queueEntryUpdate and queueRemoveUpdate write one queue entry", () => {
     expect(queueEntryUpdate({ code: "abc234", gameSlug: "wordscramble", lang: "en", players: 3, ts: TS })).toEqual({ "queue/wordscramble/en/abc234": { players: 3, updatedAt: TS } });
     expect(queueRemoveUpdate({ code: "abc234", gameSlug: "wordscramble", lang: "en" })).toEqual({ "queue/wordscramble/en/abc234": null });
+  });
+});
+
+describe("nextActiveMinutes", () => {
+  it("counts the first minute, then one more once the last count is 55 s old", () => {
+    expect(nextActiveMinutes(null, 1_000_000, TS)).toEqual({ n: 1, at: TS });
+    expect(nextActiveMinutes({ n: 4, at: 1_000_000 }, 1_055_000, TS)).toEqual({ n: 5, at: TS });
+  });
+
+  it("writes nothing while another device's count for this minute is fresh", () => {
+    expect(nextActiveMinutes({ n: 4, at: 1_000_000 }, 1_054_999, TS)).toBeUndefined();
   });
 });

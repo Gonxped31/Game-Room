@@ -152,6 +152,7 @@ games/{roomCode}/
   players:    { p1: { name }, ... }          // display names
   presence:   { [uid]: { online, lastSeen } }
   lastActive: number
+  activeMinutes: { n, at }                   // play time: minutes a game was in progress
   ftw | cocounsel | nighthighway: { ...game state... }  // one per room, validated field by field
   nighthighwayCars: { p1: {...}, p2: {...} }  // each racer's live car, 10x a second (own seat only)
 roomsByName/{nameKey}: roomCode              // unique, first come first served

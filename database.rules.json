@@ -72,6 +72,14 @@
           ".validate": "newData.isNumber() && newData.val() <= now && !root.child('games/' + $room + '/closedAt').exists()"
         },
 
+        "activeMinutes": {
+          ".write": "auth != null && newData.exists() && root.child('games/' + $room + '/members/' + auth.uid).exists()",
+          ".validate": "newData.hasChildren(['n', 'at']) && newData.child('at').val() == now && ((!data.exists() && newData.child('n').val() == 1) || (data.exists() && newData.child('n').val() == data.child('n').val() + 1 && data.child('at').val() <= now - 50000)) && !root.child('games/' + $room + '/closedAt').exists()",
+          "n": { ".validate": "newData.isNumber()" },
+          "at": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        },
+
         "closedAt": {
           ".write": false,
           ".validate": "newData.isNumber()"

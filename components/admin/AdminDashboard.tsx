@@ -79,7 +79,11 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         <StatTile
           label="Play time, last 30 days"
           value={formatDuration(totals.playMs30d)}
-          note={totals.medianPlayMs30d == null ? "No games played yet" : `Median ${formatDuration(totals.medianPlayMs30d)} per room (approx.)`}
+          note={
+            totals.medianPlayMs30d == null
+              ? "No games played yet"
+              : `Median ${formatDuration(totals.medianPlayMs30d)} per room${totals.estimatedPlayRooms30d ? ` · ${totals.estimatedPlayRooms30d} estimated` : ""}`
+          }
         />
         <StatTile
           label="Return rate"
@@ -143,7 +147,8 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
       </Panel>
 
       <p className="m-0 text-xs leading-relaxed text-white/85">
-        Play time is estimated from when a room was created to its last activity, at most {formatDuration(PLAY_ESTIMATE_CAP_MS)} per room. A guest is one
+        Play time counts the minutes a game was in progress. Rooms played before that count existed are estimated from when they were created to their last
+        activity, at most {formatDuration(PLAY_ESTIMATE_CAP_MS)} each. A guest is one
         browser: someone who clears their browser data, or switches device, counts as a new guest.
       </p>
     </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toSnapshot } from "./gameRoomAdapter";
-import { computeDashboard, DAY_MS, estimatePlayMs, PLAY_ESTIMATE_CAP_MS } from "./metrics";
+import { computeDashboard, DAY_MS, estimatePlayMs, PLAY_ESTIMATE_CAP_MS, playMs } from "./metrics";
 import type { GuestRoomSnap, RoomSnap, Snapshot } from "./types";
 
 // Noon UTC, so "today" and "yesterday" are unambiguous.
@@ -84,6 +84,12 @@ describe("rooms and play time", () => {
     expect(estimatePlayMs(room({ code: "x", createdAt: NOW - 5 * DAY_MS, lastActive: NOW }))).toBe(PLAY_ESTIMATE_CAP_MS);
   });
 
+  it("prefers the counted minutes over the estimate", () => {
+    expect(playMs(room({ code: "x", createdAt: NOW - 5 * DAY_MS, lastActive: NOW, activeMinutes: 12 }))).toBe(12 * MIN);
+    expect(playMs(room({ code: "x", createdAt: NOW - 20 * MIN, lastActive: NOW - 5 * MIN }))).toBe(15 * MIN);
+    expect(playMs(room({ code: "x" }))).toBeNull();
+  });
+
   it("sums and takes the median over rooms played in the last 30 days", () => {
     const stats = computeDashboard(
       snapshot({
@@ -91,16 +97,18 @@ describe("rooms and play time", () => {
           room({ code: "a", createdAt: NOW - 30 * MIN, lastActive: NOW - 20 * MIN }),
           room({ code: "b", createdAt: NOW - 60 * MIN, lastActive: NOW - 20 * MIN }),
           room({ code: "c", createdAt: NOW - 100 * MIN, lastActive: NOW - 40 * MIN }),
+          room({ code: "counted", createdAt: NOW - 3 * DAY_MS, lastActive: NOW - MIN, activeMinutes: 25 }),
           room({ code: "never-played" }),
           room({ code: "old", createdAt: NOW - 60 * DAY_MS, lastActive: NOW - 59 * DAY_MS }),
         ],
       }),
     );
-    expect(stats.totals.playedRooms30d).toBe(3);
-    expect(stats.totals.playMs30d).toBe((10 + 40 + 60) * MIN);
-    expect(stats.totals.medianPlayMs30d).toBe(40 * MIN);
-    expect(stats.totals.roomsCreated30d).toBe(4);
-    expect(stats.perGame[0]).toMatchObject({ roomsAllTime: 5, roomsCreated30d: 4, playedRooms30d: 3, medianPlayMs30d: 40 * MIN });
+    expect(stats.totals.playedRooms30d).toBe(4);
+    expect(stats.totals.estimatedPlayRooms30d).toBe(3);
+    expect(stats.totals.playMs30d).toBe((10 + 40 + 60 + 25) * MIN);
+    expect(stats.totals.medianPlayMs30d).toBe(32.5 * MIN);
+    expect(stats.totals.roomsCreated30d).toBe(5);
+    expect(stats.perGame[0]).toMatchObject({ roomsAllTime: 6, roomsCreated30d: 5, playedRooms30d: 4, medianPlayMs30d: 32.5 * MIN });
   });
 
   it("has no median when nothing was played", () => {
@@ -150,6 +158,7 @@ describe("gameRoomAdapter", () => {
         members: { a: "p1" },
         presence: { a: { online: true, lastSeen: NOW }, b: { online: false, lastSeen: NOW - MIN } },
         lastActive: NOW,
+        activeMinutes: { n: 7, at: NOW },
         ftw: { round: 3 },
       },
       closed1: { meta: { gameSlug: "ftw", maxPlayers: 2, createdAt: NOW - MIN, createdBy: "a" }, closedAt: NOW },
@@ -162,7 +171,7 @@ describe("gameRoomAdapter", () => {
     };
     const snap = toSnapshot(games, users, NOW);
     expect(snap.rooms).toEqual([
-      { code: "abc123", gameSlug: "ftw", createdAt: NOW - MIN, lastActive: NOW, name: "Friday", seatsFilled: 1, maxPlayers: 2, onlineUids: ["a"] },
+      { code: "abc123", gameSlug: "ftw", createdAt: NOW - MIN, lastActive: NOW, activeMinutes: 7, name: "Friday", seatsFilled: 1, maxPlayers: 2, onlineUids: ["a"] },
       { code: "closed1", gameSlug: "ftw", createdAt: NOW - MIN, lastActive: undefined, name: undefined, seatsFilled: 0, maxPlayers: 2, onlineUids: [], closedAt: NOW },
     ]);
     expect(snap.guests).toEqual([

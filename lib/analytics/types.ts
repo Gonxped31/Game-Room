@@ -11,6 +11,8 @@ export interface RoomSnap {
   createdAt: number;
   /** Refreshed about once a minute while enough players are seated to play; absent if that never happened. */
   lastActive?: number;
+  /** Minutes a game was in progress, counted once a minute; absent for rooms from before the counter existed. */
+  activeMinutes?: number;
   name?: string;
   seatsFilled: number;
   maxPlayers: number;
@@ -56,7 +58,7 @@ export interface GameStats {
   playersAllTime: number;
   /** Rooms that reached a playable game (had `lastActive`) and were active in the last 30 days. */
   playedRooms30d: number;
-  /** Estimated play time summed over those rooms. */
+  /** Play time summed over those rooms (counted minutes, else the estimate). */
   playMs30d: number;
   medianPlayMs30d: number | null;
 }
@@ -85,6 +87,8 @@ export interface DashboardStats {
     playedRooms30d: number;
     playMs30d: number;
     medianPlayMs30d: number | null;
+    /** Of `playedRooms30d`, those without counted minutes, whose play time is estimated. */
+    estimatedPlayRooms30d: number;
     /** Guests seen before today who were active on 2+ different days. */
     returning: Rate;
     /** Guests first seen 7+ days ago who came back within 7 days of their first day. */

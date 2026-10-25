@@ -5,11 +5,12 @@ const WINDOW_MS = 30 * DAY_MS;
 /** `lastActive` is refreshed every minute during a game; older than this, the game has stopped. */
 export const PLAYING_FRESH_MS = 2 * 60 * 1000;
 /**
- * Play time is estimated as created → last active. A room reused days later
- * would count the whole gap, so one room's estimate is capped here. Exact
- * play time needs a per-minute counter (T-059).
+ * A room from before the per-minute counter has its play time estimated as
+ * created → last active. A room reused days later would count the whole
+ * gap, so one room's estimate is capped here.
  */
 export const PLAY_ESTIMATE_CAP_MS = 3 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
 
 const dayOf = (t: number) => Math.floor(t / DAY_MS);
 const rate = (count: number, of: number): Rate => ({ count, of, rate: of > 0 ? count / of : null });
@@ -25,6 +26,11 @@ function median(values: number[]): number | null {
 export function estimatePlayMs(room: RoomSnap): number | null {
   if (room.lastActive == null) return null;
   return Math.min(Math.max(room.lastActive - room.createdAt, 0), PLAY_ESTIMATE_CAP_MS);
+}
+
+/** A room's play time: its counted minutes, else the estimate (null if it never reached a playable game). */
+export function playMs(room: RoomSnap): number | null {
+  return room.activeMinutes != null ? room.activeMinutes * MINUTE_MS : estimatePlayMs(room);
 }
 
 /**
@@ -54,6 +60,7 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
   const playByGame = new Map<string, number[]>();
   const allPlay: number[] = [];
   let roomsCreated30d = 0;
+  let estimatedPlayRooms30d = 0;
   for (const room of rooms) {
     const stats = statsFor(room.gameSlug);
     stats.roomsAllTime++;
@@ -61,8 +68,9 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
       stats.roomsCreated30d++;
       roomsCreated30d++;
     }
-    const play = estimatePlayMs(room);
-    if (play != null && room.lastActive! >= since) {
+    const play = playMs(room);
+    if (play != null && room.lastActive != null && room.lastActive >= since) {
+      if (room.activeMinutes == null) estimatedPlayRooms30d++;
       stats.playedRooms30d++;
       stats.playMs30d += play;
       allPlay.push(play);
@@ -136,6 +144,7 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
       playedRooms30d: allPlay.length,
       playMs30d: allPlay.reduce((sum, ms) => sum + ms, 0),
       medianPlayMs30d: median(allPlay),
+      estimatedPlayRooms30d,
       returning: rate(returning, seenBeforeToday),
       returnedWithin7d: rate(returnedWithin7d, firstSeenWeekAgo),
     },

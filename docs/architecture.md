@@ -14,8 +14,9 @@ games/{roomCode}/
   buzzerquiz: { ...game state, buzzes included... }                         // Buzzer Quiz, maxPlayers 4
   wordscramble: { ...game state... }  wordscrambleTyping: { pN: { at } }     // Word Scramble, maxPlayers 8; each seat its own typing signal
   autoStart: number                                                         // public rooms only: when the game starts by itself (docs/matchmaking.md)
-queue/{slug}/{lang}/{roomCode}: { players, updatedAt }                     // matchmaking: waiting public rooms; listable per slug+lang
+  activeMinutes: { n, at }                                                  // play time: +1 a minute while a game is in progress, at most one count per 50 s
   closedAt?: number                                                         // set only by /admin (firebase-admin); then only presence may change
+queue/{slug}/{lang}/{roomCode}: { players, updatedAt }                     // matchmaking: waiting public rooms; listable per slug+lang
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 ```

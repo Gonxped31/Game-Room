@@ -43,6 +43,27 @@ export interface UserRoomEntry {
   name?: string;
 }
 
+/**
+ * `games/{room}/activeMinutes`: how many minutes a game was in progress
+ * (the dashboard's play time). Every seated device tries to count once a
+ * minute; the rules let one count through per minute, so the total doesn't
+ * grow with the number of players.
+ */
+export interface ActiveMinutes {
+  n: number;
+  /** When the last minute was counted (server ms). */
+  at: number;
+}
+
+/** The rules refuse a count less than 50 s after the last; the client waits a little longer, so clock drift doesn't make it try. */
+export const ACTIVE_MINUTE_GAP_MS = 55_000;
+
+/** The next `activeMinutes`, for a transaction: undefined (no write) while another device's count for this minute is fresh. */
+export function nextActiveMinutes(current: ActiveMinutes | null, now: number, ts: unknown): ActiveMinutes | undefined {
+  if (current && now - current.at < ACTIVE_MINUTE_GAP_MS) return undefined;
+  return { n: (current?.n ?? 0) + 1, at: ts as number };
+}
+
 export interface PresenceEntry {
   online: boolean;
   lastSeen: number;
