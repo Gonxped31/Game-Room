@@ -15,7 +15,8 @@ interface CasePickerProps {
    */
   currentStatus: "fresh" | "inProgress" | "done";
   onChoose: (caseId: string) => void;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }

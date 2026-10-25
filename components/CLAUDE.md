@@ -1,7 +1,15 @@
 # Shared components (loads when working in components)
 
+- **A multiplayer room has no back link to the hub** (the user's call,
+  2026-10-25: you create or join a room, so the other action is to leave it).
+  Every room screen's way out is **Leave room**:
+  - Private rooms use `leaveToHub` (`lib/session/shared/roomActions.ts`); public rooms use `usePublicRoom`'s `leave`.
+  - Either way it gives up the seat, drops the room from "Your rooms" and hard-navigates to `/`.
+  - Private rooms ask first (`LEAVE_CONFIRM`) where leaving ends a game for the others.
+  - Only screens with no room to leave (an error, an unknown room), solo pages and `RecoveryScreen` link back to `/`.
+  - Mid-game screens with no way out stay that way.
 - **`components/`** - shared pieces:
-  - `Footer` (room code, Reset game, New room), `Button`.
+  - `Footer` (room code, Reset game, New room, Leave room), `Button`.
   - `RolePicker` - name entry with takeover, for 2 seats (Same Page) or a `seats` list; `accentColor` themes its buttons.
   - `InviteLinkBanner` - the name field shows only for the creator.
   - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button

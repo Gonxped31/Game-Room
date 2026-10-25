@@ -27,7 +27,8 @@ interface RevealScreenProps {
   myRole: "investigator" | "defendant";
   onPickAgain: () => void;
   onContinue: () => void;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }

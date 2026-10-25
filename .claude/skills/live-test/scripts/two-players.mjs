@@ -15,12 +15,16 @@
 // - Presence: closing one player shows "can play later" on the other.
 // - A third guest can read the room but not take a seat.
 // - "Your rooms" and the Continue chip list the room, also after a reload;
-//   the back gesture closes the sheet; Start opens a fresh room.
+//   the back gesture closes the sheet.
+// - Leave room (no back link in a room): it asks first while both are
+//   seated, gives up the seat and drops the room from "Your rooms"; Start
+//   then opens a fresh room.
 // - Co-Counsel: the creator picks a case and Defendant, the joiner is
 //   auto-assigned, then "Switch role instead" swaps both seats; Part 1 is
 //   solved and "Continue to Part 2" advances. The owner switches case from
 //   the picker mid-game (both devices follow); three misses adjourn it, the
 //   joiner waits while the owner picks the next case from "Start a new case".
+//   The joiner never gets a back link; they leave with the Footer's Leave room.
 // Exits non-zero on the first failure; prints any browser console errors.
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
 
@@ -166,6 +170,24 @@ try {
   }
   log('"Your rooms" and Continue list the room, also after a reload; Back closes the sheet');
 
+  // Leave room: asks first (B still holds a seat), frees A's seat, unlists the room for A.
+  const uidA = (await adminRead(`games/${code}/seats`)).p1;
+  await A.page.goto(`${BASE}/same-page#${code}`);
+  let asked = "";
+  A.page.once("dialog", (dialog) => {
+    asked = dialog.message();
+    void dialog.accept();
+  });
+  await A.page.getByRole("button", { name: "Leave room" }).click();
+  await A.page.waitForURL(`${BASE}/`);
+  if (!asked.startsWith("Leave this room?")) throw new Error(`Leave room didn't ask first (${JSON.stringify(asked)})`);
+  await until(async () => {
+    const seats = await adminRead(`games/${code}/seats`);
+    return seats && !seats.p1 && seats.p2;
+  }, "A's seat given up, B's kept");
+  if (await adminRead(`users/${uidA}/rooms/${code}`)) throw new Error("the room is still in A's Your rooms");
+  log("Leave room asked first, gave up A's seat and dropped the room from A's Your rooms");
+
   // Start: "Starting…", then the game's page creates a fresh room.
   await A.page.getByRole("button", { name: "Start a Same Page room" }).filter({ visible: true }).click();
   await A.page.waitForURL(/\/same-page#[a-z0-9]{6}$/);
@@ -231,6 +253,14 @@ try {
   await E.page.getByRole("radiogroup", { name: "Your cards" }).waitFor();
   await E.page.getByText("The Flag").first().waitFor();
   log("Co-Counsel: adjourned; the joiner waited while the owner picked the next case");
+
+  // The joiner has no back link; Leave room (asks first) gives up their seat.
+  if (await E.page.getByRole("button", { name: "Back to case selection" }).count()) throw new Error("the joiner got a back link");
+  E.page.once("dialog", (dialog) => void dialog.accept());
+  await E.page.getByRole("button", { name: "Leave room" }).click();
+  await E.page.waitForURL(`${BASE}/`);
+  await until(async () => Object.keys((await adminRead(`games/${cc}/seats`)) ?? {}).length === 1, "the joiner's seat given up");
+  log("Co-Counsel: the joiner has no back link and left with Leave room");
 
   console.log(errors.length ? `\nCONSOLE ERRORS:\n  ${errors.join("\n  ")}` : "\nPASS - no console errors");
   process.exitCode = errors.length ? 1 : 0;

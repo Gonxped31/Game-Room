@@ -13,12 +13,15 @@ import type { GameState, RaceOptions, RunResult } from "@/lib/games/nighthighway
 
 const fmt = (n: number) => Math.floor(n).toLocaleString("en-US");
 
-/** A title-card screen, with the back link to the hub in the top corner. */
-export function Card({ children, back = true }: { children: ReactNode; back?: boolean }) {
+/**
+ * A title-card screen. Room screens have no back link: their way out is
+ * "Leave room". Only `back` cards (no room to leave: an error, an unknown room)
+ * get the link to the hub in the top corner.
+ */
+export function Card({ children, back = false }: { children: ReactNode; back?: boolean }) {
   return (
     <section className="layer screen nh-screen">
       {back ? (
-        // Every game keeps a way back to the hub (see components/Header.tsx).
         <Link href="/" className="nh-back" aria-label="Back to all games">
           ←
         </Link>
@@ -40,7 +43,7 @@ function Wordmark() {
 /** A full-screen message (connection trouble, an unknown room). */
 export function Message({ text }: { text: string }) {
   return (
-    <Card>
+    <Card back>
       <Wordmark />
       <p role="alert" className="lede">
         {text}
@@ -54,10 +57,12 @@ export function NameEntry({
   names,
   canTakeOver,
   onPick,
+  onLeave,
 }: {
   names: Partial<Record<Role, string>>;
   canTakeOver: Partial<Record<Role, boolean>>;
   onPick: (role: Role, name: string) => void;
+  onLeave: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
@@ -129,15 +134,18 @@ export function NameEntry({
           </div>
         </>
       )}
-      <p className="note">
-        Or <a href="/nighthighway/solo">drive solo</a>.
+      <p className="note nh-links">
+        Or <a href="/nighthighway/solo">drive solo</a> ·{" "}
+        <button type="button" className="nh-linkbtn" onClick={onLeave}>
+          Leave room
+        </button>
       </p>
     </Card>
   );
 }
 
 /** Seated, waiting for the second driver: the invite link (the shared InviteLinkBanner, passed in). */
-export function WaitingForDriver({ invite }: { invite: ReactNode }) {
+export function WaitingForDriver({ invite, onLeave }: { invite: ReactNode; onLeave: () => void }) {
   return (
     <Card>
       <p className="kicker">Waiting for the other driver</p>
@@ -146,6 +154,11 @@ export function WaitingForDriver({ invite }: { invite: ReactNode }) {
       <div className="nh-invite">{invite}</div>
       <p className="note">
         Waiting for a while? <a href="/nighthighway/solo">Practice solo</a> in the meantime.
+      </p>
+      <p className="note nh-links">
+        <button type="button" className="nh-linkbtn" onClick={onLeave}>
+          Leave room
+        </button>
       </p>
     </Card>
   );
@@ -262,7 +275,7 @@ export function Lobby({
 /** This device finished; the other driver hasn't yet. */
 export function WaitingForResult({ result, otherName }: { result: RunResult; otherName: string }) {
   return (
-    <Card back={false}>
+    <Card>
       <p className="kicker">Run complete</p>
       <p className="results-score">{fmt(result.score)}</p>
       <p className="best" aria-live="polite">
@@ -282,14 +295,17 @@ export function GetReady() {
 }
 
 /** Room line under the lobby: the room's name or code, and the ways out. */
-export function RoomLinks({ room, roomName, onNewRoom }: { room: string; roomName?: string; onNewRoom: () => void }) {
+export function RoomLinks({ room, roomName, onNewRoom, onLeave }: { room: string; roomName?: string; onNewRoom: () => void; onLeave: () => void }) {
   return (
     <p className="note nh-links">
       Room {roomName || room} ·{" "}
       <button type="button" className="nh-linkbtn" onClick={onNewRoom}>
         New room
       </button>{" "}
-      · <a href="/nighthighway/solo">Drive solo</a> · <Link href="/">All games</Link>
+      · <a href="/nighthighway/solo">Drive solo</a> ·{" "}
+      <button type="button" className="nh-linkbtn" onClick={onLeave}>
+        Leave room
+      </button>
     </p>
   );
 }
@@ -306,6 +322,7 @@ export function MatchLobby({
   left = false,
   onFindAnother,
   onLeave,
+  onSolo,
 }: {
   myName: string;
   otherName?: string;
@@ -314,6 +331,8 @@ export function MatchLobby({
   left?: boolean;
   onFindAnother?: () => void;
   onLeave: () => void;
+  /** "Drive solo": leaves the room first, so nobody waits on an empty seat. */
+  onSolo: () => void;
 }) {
   return (
     <Card>
@@ -340,21 +359,27 @@ export function MatchLobby({
         <button type="button" className="nh-linkbtn" onClick={onLeave}>
           Leave room
         </button>{" "}
-        · <a href="/nighthighway/solo">Drive solo</a>
+        ·{" "}
+        <button type="button" className="nh-linkbtn" onClick={onSolo}>
+          Drive solo
+        </button>
       </p>
     </Card>
   );
 }
 
 /** The line under a matchmaking room's results: no room code or New room, just the way out. */
-export function MatchLinks({ onLeave }: { onLeave: () => void }) {
+export function MatchLinks({ onLeave, onSolo }: { onLeave: () => void; onSolo: () => void }) {
   return (
     <p className="note nh-links">
       Matched online ·{" "}
       <button type="button" className="nh-linkbtn" onClick={onLeave}>
         Leave room
       </button>{" "}
-      · <a href="/nighthighway/solo">Drive solo</a>
+      ·{" "}
+      <button type="button" className="nh-linkbtn" onClick={onSolo}>
+        Drive solo
+      </button>
     </p>
   );
 }

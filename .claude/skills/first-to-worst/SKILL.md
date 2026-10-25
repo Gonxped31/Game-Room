@@ -137,6 +137,11 @@ the ranker ranks).
 
 The board is withheld until both players have joined.
 
+**Leaving:** the Footer's "Leave room" is on every screen, and the REVEALED
+dock has one under "Next round". It asks first once both are seated
+(`LEAVE_CONFIRM`), gives up the seat and goes to `/`. Only the error and
+unknown-room notices get the plain "All games" link instead.
+
 ## UI gotchas
 
 - **Layout**: one column under 900px (banner, sheet, the hand + button dock,

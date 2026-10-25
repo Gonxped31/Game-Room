@@ -82,6 +82,11 @@ number (2+) of players is online. `balanceTeams` evens out the teams among them
 first, keeping picks that fit. The lobby hides the settings and the uneven-teams
 warning.
 
+**Leaving** (any room): there's no back link to the hub. Name entry, the team
+lobby and the end screen end with "Leave room" (`LeaveRoom` in `Screens.tsx`; in
+a public lobby, `MatchStatus`'s own). Only `Message` (errors, an unknown room)
+links back to `/`.
+
 ## Gotchas
 
 - Adding words: run `npm test`. It refuses a word that's an anagram of another in

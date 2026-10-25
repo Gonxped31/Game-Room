@@ -21,6 +21,8 @@ export interface PublicRoom {
   autoStartAt: number | null;
   /** Gives up this guest's seat and goes back to the hub. */
   leave: () => void;
+  /** Gives up this guest's seat, then goes to `href` (Night Highway's "Drive solo"). */
+  leaveTo: (href: string) => void;
 }
 
 /** What the hook needs from a session: `useSession`'s, or the 1v1 `useGameSession`'s. */
@@ -118,16 +120,21 @@ export function usePublicRoom(opts: {
     return () => clearInterval(id);
   }, [alone, lang, uid, me, name, room, game, serverNow]);
 
+  // Someone not seated (name entry, watching) has nothing to give up and can't unlist the room.
   const leaveRoom = useCallback(async () => {
-    if (lang && players <= 1) await updateRoot(queueRemoveUpdate({ code: room, gameSlug: game.gameSlug, lang })).catch(() => {});
+    if (active && lang && players <= 1) await updateRoot(queueRemoveUpdate({ code: room, gameSlug: game.gameSlug, lang })).catch(() => {});
     await session.leave();
-  }, [lang, players, room, game.gameSlug, session]);
+  }, [active, lang, players, room, game.gameSlug, session]);
 
-  const leave = useCallback(() => {
-    void leaveRoom().then(() => {
-      window.location.href = "/";
-    });
-  }, [leaveRoom]);
+  const leaveTo = useCallback(
+    (href: string) => {
+      void leaveRoom().then(() => {
+        window.location.href = href;
+      });
+    },
+    [leaveRoom],
+  );
+  const leave = useCallback(() => leaveTo("/"), [leaveTo]);
 
   // Back = "Leave room": one extra history entry keeps Back on this page,
   // which gives up the seat, then goes to the hub (leaving anyway if the
@@ -149,7 +156,7 @@ export function usePublicRoom(opts: {
     return () => window.removeEventListener("popstate", onPopState);
   }, [backLeaves, room]);
 
-  return { isPublic, autoStartAt: active ? autoStartAt : null, leave };
+  return { isPublic, autoStartAt: active ? autoStartAt : null, leave, leaveTo };
 }
 
 /** The seats a public game starts with: the online ones (a stranger who closed the tab doesn't hold the game up). */

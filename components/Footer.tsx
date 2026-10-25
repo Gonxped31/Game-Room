@@ -8,11 +8,13 @@ interface FooterProps {
   identity?: string;
   onReset: () => void;
   onNewRoom: () => void;
+  /** "Leave room" (gives up the seat). Unset where there's no room to leave (an error, an unknown room): a plain link to the hub. */
+  onLeave?: () => void;
 }
 
 const linkClass = "cursor-pointer border-0 bg-transparent text-inherit underline";
 
-export default function Footer({ room, roomName, identity, onReset, onNewRoom }: FooterProps) {
+export default function Footer({ room, roomName, identity, onReset, onNewRoom, onLeave }: FooterProps) {
   return (
     <p className="mt-5.5 text-center text-[13px] opacity-85">
       Room: {roomName ? `${roomName} (${room})` : room}
@@ -30,9 +32,15 @@ export default function Footer({ room, roomName, identity, onReset, onNewRoom }:
         New room
       </button>{" "}
       ·{" "}
-      <Link href="/" className={linkClass}>
-        All games
-      </Link>
+      {onLeave ? (
+        <button type="button" onClick={onLeave} className={linkClass}>
+          Leave room
+        </button>
+      ) : (
+        <Link href="/" className={linkClass}>
+          All games
+        </Link>
+      )}
     </p>
   );
 }

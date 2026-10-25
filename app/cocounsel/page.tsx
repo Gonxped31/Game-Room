@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useGameSession } from "@/lib/session/useGameSession";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
-import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { LEAVE_CONFIRM, leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { caseForState, DEFAULT_CASE_ID } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
@@ -86,21 +86,11 @@ export default function CoCounselPage() {
   // wherever the shared game state actually has them.
   const [forceCasePicker, setForceCasePicker] = useState(false);
   const showCasePicker = isOwner && (forceCasePicker || (isCreator === true && !caseConfirmed));
-  // From CasePicker itself (Co-Counsel's "home"), back goes up a level to
-  // the game picker instead - CasePicker's own back link uses this directly.
-  const router = useRouter();
-  const handleBackToGameRoom = () => router.push("/");
-  // Every other screen's back link uses this: the owner goes back to case
-  // selection, but a joiner has no case-selection "home" to return to at
-  // all (only the owner picks the case), so their back link leaves
-  // Co-Counsel entirely instead.
-  const handleBack = () => {
-    if (isJoiner) {
-      handleBackToGameRoom();
-    } else {
-      setForceCasePicker(true);
-    }
-  };
+  // Every screen's back link takes the owner back to case selection. A
+  // joiner has no case-selection "home" (only the owner picks the case), and
+  // a multiplayer room has no back link to the hub, so they get no ← at
+  // all: the Footer's "Leave room" is the way out, for both.
+  const handleBack = isJoiner ? undefined : () => setForceCasePicker(true);
   const [showRecap, setShowRecap] = useState(false);
 
   const myScreen = me ? screenOfRole(me) : null;
@@ -242,6 +232,9 @@ export default function CoCounselPage() {
     const otherSeat = me === INVESTIGATOR ? DEFENDANT : INVESTIGATOR;
     void pickIdentity(otherSeat, caseDef.characters[screenOfRole(otherSeat)]);
   };
+  // Asks first once both are playing: leaving ends the case for the partner.
+  const handleLeave = () => void leaveToHub(session.leave, me && bothJoined ? LEAVE_CONFIRM : undefined);
+
   const handleNewRoom = () => {
     setIsCreator(true);
     setCaseConfirmed(false);
@@ -259,9 +252,15 @@ export default function CoCounselPage() {
           start flush with the viewport. */}
       <main className={`mx-auto font-[family-name:var(--font-archivo)] ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
         {session.connectionError || session.roomMissing ? (
-          <p role="alert" className="px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>
-            {session.connectionError ? CONNECTION_ERROR_MESSAGE : ROOM_MISSING_MESSAGE}
-          </p>
+          // No room to leave here, so a plain way back to the hub.
+          <div className="flex flex-col gap-3 px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>
+            <p role="alert" className="m-0">
+              {session.connectionError ? CONNECTION_ERROR_MESSAGE : ROOM_MISSING_MESSAGE}
+            </p>
+            <Link href="/" className="self-start font-bold underline" style={{ color: COLOR.text2 }}>
+              Back to all games
+            </Link>
+          </div>
         ) : !game ? (
           // Checked FIRST, unconditionally, before showCasePicker - game is
           // uniformly null here for every environment (static prerender,
@@ -277,7 +276,6 @@ export default function CoCounselPage() {
             currentCaseId={caseDef.id}
             currentStatus={currentCaseStatus}
             onChoose={handleChooseCase}
-            onBack={handleBackToGameRoom}
             theme={theme}
             onToggleTheme={toggleTheme}
           />
@@ -426,13 +424,14 @@ export default function CoCounselPage() {
           })()
         )}
 
-        {!showCasePicker && game ? (
+        {game ? (
           <Footer
             room={room}
             roomName={roomName}
             identity={me ? `${caseDef.characters[myRole]} · ${myRole === "investigator" ? "Investigator" : "Defendant"}` : undefined}
             onReset={handleResetCase}
             onNewRoom={handleNewRoom}
+            onLeave={handleLeave}
           />
         ) : null}
       </main>

@@ -135,13 +135,17 @@ export function swapSeatsUpdate(opts: { code: string; a: { uid: string; seat: st
   };
 }
 
-/** Gives up this guest's seat. Presence goes too - a non-member has none. */
+/**
+ * Gives up this guest's seat ("Leave room"). Presence goes too - a non-member
+ * has none - and so does the room's entry in their "Your rooms": they left it.
+ */
 export function leaveRoomUpdate(opts: { code: string; uid: string; seat: string }) {
   const { code, uid, seat } = opts;
   return {
     [room(code, `seats/${seat}`)]: null,
     [room(code, `members/${uid}`)]: null,
     [room(code, `presence/${uid}`)]: null,
+    [`users/${uid}/rooms/${code}`]: null,
   };
 }
 

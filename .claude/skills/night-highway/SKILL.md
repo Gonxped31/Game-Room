@@ -268,7 +268,11 @@ single-file game (visuals, controls, physics, scoring).
   left" with Find another driver), and `MatchLinks` (Leave room) under the results
   instead of `RoomLinks`.
 - The browser's Back button is Leave room in the lobby and on the results
-  (`leaveOnBack`), never mid-race.
+  (`leaveOnBack`), never mid-race. "Drive solo" leaves the room first
+  (`leaveTo`).
+- **Leaving** (any room): no corner ← on room screens (`Card`'s `back`, set only
+  on `Message`). Name entry, waiting for the driver, `RoomLinks` and the match
+  screens each have a "Leave room" link. The solo page keeps its ←.
 
 ## Rules
 

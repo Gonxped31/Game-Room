@@ -75,8 +75,11 @@ player who closes the tab hands the job on.
   (so exactly one of the two moves). They join the new room first, then leave the
   old one and unlist it. The move replaces the history entry, so Back never returns
   to the old room.
-- **Leave room** (lobby button): gives up the seat, unlists the room if it was the
-  last player, and goes back to the hub.
+- **Leave room** (lobby button): gives up the seat, removes the room from "Your
+  rooms" and from the queue (if it was the last player), and goes back to the
+  hub. Night Highway's "Drive solo" leaves the same way first (`leaveTo`). Every
+  multiplayer room works like this now, private ones too (`components/CLAUDE.md`):
+  there's no back link to the hub in a room.
 - **Back = Leave room** (2026-10-25, the user's call): otherwise Back only unloads the
   page, the seat stays taken and the others keep seeing the player. While the
   lobby shows, the hook adds one history entry (state `publicRoomBack: room`), so

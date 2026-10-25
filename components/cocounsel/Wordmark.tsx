@@ -6,7 +6,8 @@ import ThemeToggle from "./ThemeToggle";
 
 interface WordmarkProps {
   size?: "sm" | "lg";
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }
@@ -20,7 +21,7 @@ export default function Wordmark({ size = "sm", onBack, theme, onToggleTheme }: 
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
-        <BackLink onBack={onBack} />
+        {onBack ? <BackLink onBack={onBack} /> : null}
         <div aria-hidden="true" className="relative shrink-0" style={{ width: mark, height: mark }}>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full" style={{ width: circle, height: circle, backgroundColor: COLOR.investigator }} />
           <div className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full" style={{ width: circle, height: circle, backgroundColor: COLOR.defendant }} />

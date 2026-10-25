@@ -8,7 +8,6 @@ import { LENGTHS, MIN_PLAYERS, TOPIC_LABELS, TOPICS, type TopicId } from "@/lib/
 import type { Settings } from "@/lib/games/buzzerquiz/game";
 import {
   Avatar,
-  BackIcon,
   CrownIcon,
   DISPLAY,
   FOCUS,
@@ -28,11 +27,12 @@ const topicLabel = (topic: TopicId) => TOPIC_LABELS[topic].en;
 const SCREEN = "min-h-screen bg-[var(--stage)] px-4 pb-10 pt-4 text-[var(--text)] min-[900px]:px-8 min-[900px]:pt-8";
 const TITLE = `${DISPLAY} m-0 text-[28px] font-extrabold leading-tight min-[900px]:text-[40px]`;
 
-function BackToHub() {
+/** A room's only way out (no back link): gives up the seat and goes to the hub. */
+function LeaveRoom({ onLeave }: { onLeave: () => void }) {
   return (
-    <Link href="/" aria-label="Back to all games" className={`${FOCUS} flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--text)]`}>
-      <BackIcon size={22} />
-    </Link>
+    <button type="button" onClick={onLeave} className={`${TEXT} ${FOCUS} cursor-pointer self-center border-0 bg-transparent p-0 font-bold text-[var(--text-muted)] underline`}>
+      Leave room
+    </button>
   );
 }
 
@@ -55,13 +55,14 @@ export function Message({ text }: { text: string }) {
  * Taking a seat: a name for the first free seat, or - when every seat is held
  * by someone offline for 2 minutes - taking one of those over.
  */
-export function NameEntry({ seats, names, canTakeOver, onPick, watching }: {
+export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave }: {
   seats: SeatId[];
   names: Partial<Record<SeatId, string>>;
   canTakeOver: Partial<Record<SeatId, boolean>>;
   onPick: (seat: SeatId, name: string) => void;
   /** Watch the game instead (the room is full, or a game is under way). */
   watching?: () => void;
+  onLeave: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
@@ -80,10 +81,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching }: {
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[440px] flex-col gap-5">
-        <div className="flex items-center gap-3">
-          <BackToHub />
-          <h1 className={TITLE}>Buzzer Quiz</h1>
-        </div>
+        <h1 className={TITLE}>Buzzer Quiz</h1>
         {free ? (
           <form
             className="flex flex-col gap-3 rounded-[20px] bg-[var(--surface)] p-5"
@@ -124,6 +122,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching }: {
             {watching ? <SecondaryButton onClick={watching}>Just watch</SecondaryButton> : null}
           </div>
         )}
+        <LeaveRoom onLeave={onLeave} />
       </div>
     </div>
   );
@@ -187,12 +186,13 @@ function settingsFields({ settings, onLang, onTopic, onLength }: {
   };
 }
 
-export function Setup({ settings, onLang, onTopic, onLength, onContinue }: {
+export function Setup({ settings, onLang, onTopic, onLength, onContinue, onLeave }: {
   settings: Settings;
   onLang: (lang: Lang) => void;
   onTopic: (topic: TopicId) => void;
   onLength: (length: number) => void;
   onContinue: () => void;
+  onLeave: () => void;
 }) {
   const fields = settingsFields({ settings, onLang, onTopic, onLength });
   const cta = (
@@ -201,15 +201,13 @@ export function Setup({ settings, onLang, onTopic, onLength, onContinue }: {
         Continue to the waiting room
       </PrimaryButton>
       <p className={`${TEXT} m-0 text-center text-[15px] text-[var(--text-muted)]`}>Next you&apos;ll get a link to send to your friends.</p>
+      <LeaveRoom onLeave={onLeave} />
     </div>
   );
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[1040px] flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <BackToHub />
-          <h1 className={TITLE}>New quiz</h1>
-        </div>
+        <h1 className={TITLE}>New quiz</h1>
         <div className="flex flex-col gap-6 min-[900px]:grid min-[900px]:grid-cols-[minmax(300px,360px)_1fr] min-[900px]:gap-10">
           <div className="flex flex-col gap-6">
             {fields.language}
@@ -332,7 +330,7 @@ function MatchStatus({ status, onLeave }: MatchLobby) {
   );
 }
 
-export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSetup, invite, match, onEdit, onStart }: {
+export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSetup, invite, match, onEdit, onStart, onLeave }: {
   room: string;
   seats: SeatId[];
   names: Partial<Record<SeatId, string>>;
@@ -343,10 +341,11 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
   /** The host is still choosing the topics. */
   inSetup: boolean;
   invite: ReactNode;
-  /** Set in a public room: replaces the host's Start (and the wait for the host). */
+  /** Set in a public room: replaces the host's Start (and the wait for the host), with its own Leave room. */
   match?: MatchLobby;
   onEdit: () => void;
   onStart: () => void;
+  onLeave: () => void;
 }) {
   const joined = seats.filter((seat) => names[seat]);
   const hostName = hostSeat ? names[hostSeat] : undefined;
@@ -417,7 +416,6 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[1040px] flex-col gap-5">
         <div className="flex items-center gap-3">
-          <BackToHub />
           <h1 className={`${TITLE} flex-1`}>Waiting room</h1>
           <span className={`${DISPLAY} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[15px] font-extrabold tracking-[0.06em]`}>{room}</span>
         </div>
@@ -430,6 +428,7 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
             {invite}
             {chips}
             {start}
+            {match ? null : <LeaveRoom onLeave={onLeave} />}
           </div>
         </div>
       </div>
@@ -470,13 +469,14 @@ export function Countdown({ seconds, index, total, topic, scores }: { seconds: n
 
 // ---- Final ranking ----------------------------------------------------------------------
 
-export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics }: {
+export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics, onLeave }: {
   rows: { seat: SeatId; name: string; score: number; rank: number }[];
   me: SeatId | null;
   canRematch: boolean;
   isHost: boolean;
   onRematch: () => void;
   onNewTopics: () => void;
+  onLeave: () => void;
 }) {
   const winners = rows.filter((row) => row.rank === 1);
   const title = winners.length === 1 ? `${winners[0].name} wins!` : `${winners.map((w) => w.name).slice(0, -1).join(", ")} and ${winners.at(-1)?.name} win!`;
@@ -484,10 +484,7 @@ export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics }: 
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[640px] flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <BackToHub />
-          <span className={`${LABEL}`}>Final ranking</span>
-        </div>
+        <span className={`${LABEL}`}>Final ranking</span>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="text-[var(--points)]"><CrownIcon size={44} /></span>
           <div className="flex -space-x-4 min-[900px]:hidden">
@@ -526,9 +523,7 @@ export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics }: 
           {canRematch ? <PrimaryButton onClick={onRematch}>Rematch</PrimaryButton> : null}
           {isHost ? <SecondaryButton onClick={onNewTopics}>New topics</SecondaryButton> : null}
         </div>
-        <Link href="/" className={`${TEXT} ${FOCUS} self-center font-bold text-[var(--text-muted)] underline`}>
-          Back to Game Room
-        </Link>
+        <LeaveRoom onLeave={onLeave} />
       </div>
     </div>
   );

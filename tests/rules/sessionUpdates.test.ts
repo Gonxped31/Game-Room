@@ -92,10 +92,13 @@ describe("a 1v1 room's lifecycle, with the app's own updates", () => {
     await assertSucceeds(send("carol", takeOverSeatUpdate({ code: ROOM, seat: "p1", uid: "carol", oldUid: "alice", mySeat: null, name: "alice", meta, ts: TS })));
   });
 
-  it("leaves the room", async () => {
+  it("leaves the room, which drops it from the leaver's own room list", async () => {
     await createAndSeat("ftw", ["alice", "bob"]);
     await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/presence/alice`).set({ online: true, lastSeen: TS }));
+    expect((await dbAs(env, "alice").ref(`users/alice/rooms/${ROOM}`).get()).exists()).toBe(true);
     await assertSucceeds(send("alice", leaveRoomUpdate({ code: ROOM, uid: "alice", seat: "p1" })));
+    expect((await dbAs(env, "alice").ref(`users/alice/rooms/${ROOM}`).get()).exists()).toBe(false);
+    expect((await dbAs(env, "bob").ref(`games/${ROOM}/seats`).get()).val()).toEqual({ p2: "bob" });
   });
 
   it("names, renames and un-names the room as its creator; a second room can't take the name", async () => {

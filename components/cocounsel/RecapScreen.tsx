@@ -8,7 +8,8 @@ interface RecapScreenProps {
   caseDef: CaseDefinition;
   /** The bottom button - back to the verdict/adjourned screen this Recap was opened from, not Co-Counsel's case-selection "home" (that's onBack, the Wordmark's own back link). */
   onBackToVerdict: () => void;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }

@@ -9,7 +9,8 @@ interface ConfirmRoleScreenProps {
   myRole: "investigator" | "defendant";
   onContinue: () => void;
   onSwitchRole: () => void;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }

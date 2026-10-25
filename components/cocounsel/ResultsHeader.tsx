@@ -6,7 +6,8 @@ import ThemeToggle from "./ThemeToggle";
 interface ResultsHeaderProps {
   investigatorName: string;
   defendantName: string;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }
@@ -17,7 +18,7 @@ export default function ResultsHeader({ investigatorName, defendantName, onBack,
     <div className="relative flex">
       <div className="flex-1 px-4 py-5 text-white" style={{ backgroundColor: COLOR.investigator }}>
         <div className="mb-2">
-          <BackLink onBack={onBack} />
+          {onBack ? <BackLink onBack={onBack} /> : null}
         </div>
         <div className="font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-none">{investigatorName}</div>
         <div className="font-[family-name:var(--font-archivo)] text-sm font-bold opacity-90">Investigator</div>

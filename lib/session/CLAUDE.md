@@ -6,7 +6,9 @@
     else.
   - `claimSeatUpdate`, `switchSeatUpdate`.
   - `swapSeatsUpdate` - two seated members trade seats; it can never kick anyone.
-  - `leaveRoomUpdate`.
+  - `leaveRoomUpdate` - "Leave room": also drops the room from the guest's
+    "Your rooms" (`users/{uid}/rooms/{code}`). Closing the tab never leaves:
+    the seat persists and presence marks the guest offline.
   - `takeOverSeatUpdate` - only once the holder has been offline for over 2 min.
   - `roomNameUpdate`.
 
@@ -17,7 +19,9 @@
   - `auth.ts` - guest identity.
   - `updates.ts` - the write builders, plus the `RoomMeta`/`PresenceEntry` types.
   - `roomActions.ts` - `createRoom` (retries code collisions up to 5 times),
-    `readRoomMeta`, `findRoomByName`, `renameRoom`, and the user-facing messages.
+    `readRoomMeta`, `findRoomByName`, `renameRoom`, `leaveToHub` (a private
+    room's Leave room: optional confirm, leave, hard-navigate to `/`), and the
+    user-facing messages.
   - `presence.ts` - `.info/connected` + `onDisconnect`, keyed by uid. Cleanup
     marks a guest offline but never deletes the entry, because takeover is judged
     on `lastSeen`.

@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
-import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { LEAVE_CONFIRM, leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import type { Role } from "@/lib/session/types";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { GAME_TITLE } from "@/lib/games/ftw/constants";
@@ -76,6 +76,8 @@ export default function SamePagePage() {
   const myRole = me != null ? (isRanker ? "Ranking" : "Guessing") : undefined;
 
   const notice = session.connectionError ? CONNECTION_ERROR_MESSAGE : session.roomMissing ? ROOM_MISSING_MESSAGE : !game ? "Connecting to the room…" : null;
+  // Asks first once both are playing: leaving ends the game for the partner.
+  const leave = () => void leaveToHub(session.leave, me && bothJoined ? LEAVE_CONFIRM : undefined);
 
   return (
     <div style={THEME} className={`${TEXT} min-h-screen bg-[var(--desk)] text-[var(--ink)]`}>
@@ -127,6 +129,7 @@ export default function SamePagePage() {
             onLockIn={handleLockIn}
             onSubmitGuess={handleSubmitGuess}
             onNextRound={handleNextRound}
+            onLeave={leave}
             onChangePrompt={handleChangePrompt}
             scoreCard={players ? <ScoreCard round={game.round} players={players} /> : null}
             extras={
@@ -144,6 +147,7 @@ export default function SamePagePage() {
           identity={myRole ? (myName ? `${myName} · ${myRole}` : myRole) : undefined}
           onReset={handleResetGame}
           onNewRoom={newRoom}
+          onLeave={session.connectionError || session.roomMissing ? undefined : leave}
         />
       </main>
     </div>

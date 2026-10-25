@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
 import type { CurrentRound, RoundItem, RoundStatus } from "@/lib/games/ftw/game";
@@ -47,6 +46,8 @@ interface RoundBoardProps {
   onLockIn: (order: string[]) => void;
   onSubmitGuess: (order: string[]) => void;
   onNextRound: () => void;
+  /** "Leave room": gives up the seat and goes to the hub. */
+  onLeave: () => void;
   /** Swaps the round's prompt/items while still RANKING (shuffle or custom prompt). */
   onChangePrompt: (round: CurrentRound) => void;
   /** The desktop aside's score card (phones show the scores in the header). */
@@ -428,7 +429,7 @@ function Waiting({ status, isRanker, items, prompt, partnerName, partnerOnline, 
 
 // ---- Reveal -----------------------------------------------------------------------------
 
-function Reveal({ isRanker, round, items, prompt, partnerName, masterOrder, guessOrder, score, onNextRound, scoreCard, extras }: RoundBoardProps) {
+function Reveal({ isRanker, round, items, prompt, partnerName, masterOrder, guessOrder, score, onNextRound, onLeave, scoreCard, extras }: RoundBoardProps) {
   const matches = score ?? 0;
   const [counted, setCounted] = useState(0);
 
@@ -526,9 +527,9 @@ function Reveal({ isRanker, round, items, prompt, partnerName, masterOrder, gues
   const dock = (
     <>
       <PrimaryButton onClick={onNextRound}>Next round · {isRanker ? "you guess" : "you rank"}</PrimaryButton>
-      <Link href="/" className={`${TEXT} self-center rounded py-2 text-[15px] font-bold text-[var(--ink)] underline min-[900px]:self-start ${FOCUS}`}>
-        Back to Game Room
-      </Link>
+      <button type="button" onClick={onLeave} className={`${TEXT} cursor-pointer self-center rounded border-0 bg-transparent py-2 text-[15px] font-bold text-[var(--ink)] underline min-[900px]:self-start ${FOCUS}`}>
+        Leave room
+      </button>
     </>
   );
 

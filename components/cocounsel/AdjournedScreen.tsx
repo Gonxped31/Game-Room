@@ -23,7 +23,8 @@ interface AdjournedScreenProps {
   onSeeRecap?: () => void;
   /** Opens the case picker - the room's owner only; absent for the other player, who waits for them instead. */
   onStartNewCase?: () => void;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }

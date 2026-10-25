@@ -6,7 +6,7 @@ import { usePublicRoom } from "@/lib/session/usePublicRoom";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
 import { findMatch } from "@/lib/session/shared/findMatch";
 import { ANY_LANG } from "@/lib/session/shared/matchmaking";
-import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import Stage from "@/components/nighthighway/Stage";
@@ -57,6 +57,9 @@ export default function NightHighwayPage() {
     leaveOnBack: game != null && game.phase !== "RACING",
   });
   const lobbyNow = useTicker(match.isPublic && inLobby, serverNow);
+  // Leave room shows only off the road (never mid-race), so it never asks first.
+  const leave = match.isPublic ? match.leave : () => void leaveToHub(session.leave);
+  const leaveForSolo = () => match.leaveTo("/nighthighway/solo");
   const [finding, setFinding] = useState<"idle" | "searching" | "offline">("idle");
   const findAnother = async () => {
     const name = me ? names[me] : undefined;
@@ -127,11 +130,11 @@ export default function NightHighwayPage() {
   } else if (!game) {
     screen = null; // the stage's own "Warming up the engine…"
   } else if (!me) {
-    screen = <NameEntry names={names} canTakeOver={canTakeOver} onPick={pickIdentity} />;
+    screen = <NameEntry names={names} canTakeOver={canTakeOver} onPick={pickIdentity} onLeave={leave} />;
   } else if (match.isPublic && (!bothJoined || !other)) {
     const myName = names[me] ?? "You";
     screen = inLobby ? (
-      <MatchLobby myName={myName} status="Waiting for a driver…" onLeave={match.leave} />
+      <MatchLobby myName={myName} status="Waiting for a driver…" onLeave={match.leave} onSolo={leaveForSolo} />
     ) : (
       <MatchLobby
         myName={myName}
@@ -139,13 +142,14 @@ export default function NightHighwayPage() {
         status={finding === "searching" ? "Looking for a driver…" : finding === "offline" ? CONNECTION_ERROR_MESSAGE : ""}
         onFindAnother={finding === "searching" ? undefined : () => void findAnother()}
         onLeave={match.leave}
+        onSolo={leaveForSolo}
       />
     );
   } else if (match.isPublic && inLobby && other) {
     const otherName = names[other] ?? "the other driver";
     const secs = match.autoStartAt != null && lobbyNow != null ? Math.max(0, Math.ceil((match.autoStartAt - lobbyNow) / 1000)) : null;
     const status = secs != null ? (secs > 0 ? `Starting in ${secs} s` : "Starting…") : online[other] ? "Getting ready…" : `${otherName} is offline.`;
-    screen = <MatchLobby myName={names[me] ?? "You"} otherName={otherName} status={status} onLeave={match.leave} />;
+    screen = <MatchLobby myName={names[me] ?? "You"} otherName={otherName} status={status} onLeave={match.leave} onSolo={leaveForSolo} />;
   } else if (!bothJoined || !other) {
     screen = (
       <WaitingForDriver
@@ -160,6 +164,7 @@ export default function NightHighwayPage() {
             accentTextColor="#ffffff"
           />
         }
+        onLeave={leave}
       />
     );
   } else if (racing) {
@@ -175,7 +180,7 @@ export default function NightHighwayPage() {
         otherOnline={Boolean(online[other])}
         onReady={handleReady}
         onOptions={(change: Partial<RaceOptions>) => transact((current) => setOptions(current, change))}
-        footer={match.isPublic ? <MatchLinks onLeave={match.leave} /> : <RoomLinks room={room} roomName={roomName} onNewRoom={newRoom} />}
+        footer={match.isPublic ? <MatchLinks onLeave={match.leave} onSolo={leaveForSolo} /> : <RoomLinks room={room} roomName={roomName} onNewRoom={newRoom} onLeave={leave} />}
       />
     );
   }

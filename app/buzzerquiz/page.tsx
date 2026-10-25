@@ -4,7 +4,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState }
 import { useSession } from "@/lib/session/useSession";
 import { startingSeats, usePublicRoom } from "@/lib/session/usePublicRoom";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
-import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { defaultLang } from "@/lib/games/shared/language";
@@ -111,6 +111,8 @@ export default function BuzzerQuizPage() {
   });
   const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
   const hosting = isHost && !publicRoom.isPublic;
+  // Leave room shows only between games (name entry, setup, lobby, final), so it never asks first.
+  const leave = publicRoom.isPublic ? publicRoom.leave : () => void leaveToHub(session.leave);
 
   let screen;
   if (session.connectionError || session.roomMissing) {
@@ -119,7 +121,7 @@ export default function BuzzerQuizPage() {
     screen = <Message text="Connecting to the room…" />;
   } else if (!me && !watching) {
     const underway = !["setup", "lobby", "final"].includes(game.phase);
-    screen = <NameEntry seats={seats} names={names} canTakeOver={session.canTakeOver} onPick={(seat, name) => void pickIdentity(seat, name)} watching={underway || session.allJoined ? () => setWatching(true) : undefined} />;
+    screen = <NameEntry seats={seats} names={names} canTakeOver={session.canTakeOver} onPick={(seat, name) => void pickIdentity(seat, name)} watching={underway || session.allJoined ? () => setWatching(true) : undefined} onLeave={leave} />;
   } else if (game.phase === "setup" && hosting) {
     screen = (
       <Setup
@@ -128,6 +130,7 @@ export default function BuzzerQuizPage() {
         onTopic={(topic) => transact((s) => toggleTopic(s, topic))}
         onLength={(length) => transact((s) => setLength(s, length))}
         onContinue={() => transact(toLobby)}
+        onLeave={leave}
       />
     );
   } else if (game.phase === "setup" || game.phase === "lobby") {
@@ -161,6 +164,7 @@ export default function BuzzerQuizPage() {
         }
         onEdit={() => transact(backToSetup)}
         onStart={() => startGame(false)}
+        onLeave={leave}
       />
     );
   } else {
@@ -186,6 +190,7 @@ export default function BuzzerQuizPage() {
           isHost={hosting}
           onRematch={() => startGame(true)}
           onNewTopics={() => transact(newTopics)}
+          onLeave={leave}
         />
       );
     } else if (game.phase === "countdown" && !revealed) {

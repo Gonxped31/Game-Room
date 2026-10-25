@@ -130,11 +130,15 @@ The page renders the first state that applies:
   except the case already underway, which just resumes ("Resume this case"). The
   picker marks the current case "In progress" or "Just played".
 
-**Back links:**
+**Back links and leaving:**
 - **On the owner's screens**, back returns to `CasePicker` (`forceCasePicker`),
   without touching the room or game state.
-- **A joiner's** back link leaves for `/`.
-- **`CasePicker`'s own** back link also goes to `/`.
+- **A joiner** gets no back link (`onBack` unset), and `CasePicker` has none
+  either: a multiplayer room has no link back to the hub.
+- **The Footer's "Leave room"** is the way out for both, `CasePicker`
+  included. It asks first once both are seated, gives up the seat and goes
+  to `/`.
+- **The error and unknown-room screen** has a plain "Back to all games" link.
 
 **Endings:**
 - `"adjourned"` never offers the recap, because it would spoil the answers.

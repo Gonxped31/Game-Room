@@ -75,6 +75,10 @@ game"); the folder counts and card rows follow the registry on their own.
 - Add `<InAppBrowserBanner />` at the top of the page, as both existing games do.
 - Reuse `Header`, `Footer`, `RoleStickers` and `Button` where the look fits.
   Otherwise give the game its own components; visuals are per game.
+- **No back link to the hub in a room**: each room screen's way out is "Leave
+  room" (`leaveToHub`, or `usePublicRoom`'s `leave` in a public room). Only the
+  error and unknown-room screens, and solo pages, link back to `/`
+  (`components/CLAUDE.md`).
 - **Navigating into a room** from elsewhere must be a hard navigation (a plain
   `<a>` or `window.location`), not `router.push`/`next/link`.
 - **Don't read `window`, `localStorage` or the clock during render.** Use effects,

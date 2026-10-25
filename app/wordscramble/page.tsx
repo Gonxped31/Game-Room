@@ -4,7 +4,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, 
 import { useSession } from "@/lib/session/useSession";
 import { startingSeats, usePublicRoom } from "@/lib/session/usePublicRoom";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
-import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { createPathStore, serverTimestamp } from "@/lib/store";
@@ -141,6 +141,8 @@ export default function WordScramblePage() {
     serverNow,
   });
   const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
+  // Leave room shows only between games (name entry, lobby, end), so it never asks first.
+  const leave = publicRoom.isPublic ? publicRoom.leave : () => void leaveToHub(session.leave);
 
   let screen;
   if (session.connectionError || session.roomMissing) {
@@ -149,7 +151,7 @@ export default function WordScramblePage() {
     screen = <Message text="Connecting to the room…" />;
   } else if (!me && !watching) {
     const underway = game.phase !== "lobby" && game.phase !== "end";
-    screen = <NameEntry seats={seats} names={names} canTakeOver={session.canTakeOver} onPick={(seat, name) => void pickIdentity(seat, name)} watching={underway || session.allJoined ? () => setWatching(true) : undefined} />;
+    screen = <NameEntry seats={seats} names={names} canTakeOver={session.canTakeOver} onPick={(seat, name) => void pickIdentity(seat, name)} watching={underway || session.allJoined ? () => setWatching(true) : undefined} onLeave={leave} />;
   } else {
     const teamNames: Record<Team, string[]> = {
       A: members(game.teams, joinedSeats, "A").map((s) => seatName(names, s)),
@@ -198,6 +200,7 @@ export default function WordScramblePage() {
             target: (n) => transact((s) => setTarget(s, n)),
           }}
           onStart={startGame}
+          onLeave={leave}
         />
       );
     } else if (game.phase === "end") {
@@ -212,6 +215,7 @@ export default function WordScramblePage() {
           canRematch={me != null && session.enoughJoined}
           onRematch={startGame}
           onShuffle={() => transact((s) => shuffle(s, joinedSeats, Math.random))}
+          onLeave={leave}
         />
       );
     } else if (game.phase === "scoreboard") {

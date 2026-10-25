@@ -9,7 +9,6 @@ import type { Played, Settings } from "@/lib/games/wordscramble/game";
 import { members, startProblem, type Team, TEAMS, type Teams } from "@/lib/games/wordscramble/teams";
 import {
   Avatar,
-  BackIcon,
   ChunkyButton,
   CrownIcon,
   DISPLAY,
@@ -30,11 +29,12 @@ import {
 export const SCREEN = "min-h-screen bg-[var(--table)] px-4 pb-10 pt-4 text-[var(--ink)] min-[900px]:px-8 min-[900px]:pt-8";
 export const TITLE = `${DISPLAY} m-0 text-[30px] leading-tight min-[900px]:text-[44px]`;
 
-export function BackToHub() {
+/** A room's only way out (no back link): gives up the seat and goes to the hub. */
+function LeaveRoom({ onLeave }: { onLeave: () => void }) {
   return (
-    <Link href="/" aria-label="Back to all games" className={`${FOCUS} flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-[var(--ink)] bg-white text-[var(--ink)]`}>
-      <BackIcon size={22} />
-    </Link>
+    <button type="button" onClick={onLeave} className={`${TEXT} ${FOCUS} cursor-pointer self-center border-0 bg-transparent p-0 font-bold text-[var(--muted)] underline`}>
+      Leave room
+    </button>
   );
 }
 
@@ -51,12 +51,13 @@ export function Message({ text }: { text: string }) {
 
 // ---- Name entry -------------------------------------------------------------------------
 
-export function NameEntry({ seats, names, canTakeOver, onPick, watching }: {
+export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave }: {
   seats: SeatId[];
   names: Partial<Record<SeatId, string>>;
   canTakeOver: Partial<Record<SeatId, boolean>>;
   onPick: (seat: SeatId, name: string) => void;
   watching?: () => void;
+  onLeave: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
@@ -65,10 +66,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching }: {
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[440px] flex-col gap-5">
-        <div className="flex items-center gap-3">
-          <BackToHub />
-          <h1 className={TITLE}>Word Scramble</h1>
-        </div>
+        <h1 className={TITLE}>Word Scramble</h1>
         {free ? (
           <form
             className="flex flex-col gap-3 rounded-[22px] border-[3px] border-[var(--ink)] bg-white p-5 shadow-[0_6px_0_var(--ink)]"
@@ -115,6 +113,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching }: {
             ) : null}
           </div>
         )}
+        <LeaveRoom onLeave={onLeave} />
       </div>
     </div>
   );
@@ -211,7 +210,7 @@ function MatchStatus({ status, onLeave, settings }: MatchLobby & { settings: Set
   );
 }
 
-export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost, settings, invite, match, onPickTeam, onSettings, onStart }: {
+export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost, settings, invite, match, onPickTeam, onSettings, onStart, onLeave }: {
   room: string;
   seats: SeatId[];
   joined: SeatId[];
@@ -222,11 +221,12 @@ export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost,
   isHost: boolean;
   settings: Settings;
   invite: React.ReactNode;
-  /** Set in a public room: replaces the settings, Start and the even-teams warning. */
+  /** Set in a public room: replaces the settings, Start and the even-teams warning, with its own Leave room. */
   match?: MatchLobby;
   onPickTeam: (team: Team) => void;
   onSettings: { lang: (lang: Lang) => void; mode: (mode: Settings["mode"]) => void; turns: (n: number) => void; target: (n: number) => void };
   onStart: () => void;
+  onLeave: () => void;
 }) {
   const problem = startProblem(teams, joined);
   const half = seats.length / 2;
@@ -304,7 +304,6 @@ export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost,
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[1100px] flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <BackToHub />
           <h1 className={`${TITLE} flex-1`}>Pick a team</h1>
           <span className={`${DISPLAY} rounded-full border-2 border-[var(--ink)] bg-white px-3 py-1 text-[16px] tracking-[0.06em]`}>{room}</span>
         </div>
@@ -320,6 +319,7 @@ export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost,
           </p>
         ) : null}
         {settingsPanel}
+        {match ? null : <LeaveRoom onLeave={onLeave} />}
       </div>
     </div>
   );
@@ -398,7 +398,7 @@ export function GetReady({ team, seconds, mine }: { team: Team; seconds: number;
 
 // ---- End ----------------------------------------------------------------------------------
 
-export function End({ winner, scores, teamNames, found, summary, canRematch, onRematch, onShuffle }: {
+export function End({ winner, scores, teamNames, found, summary, canRematch, onRematch, onShuffle, onLeave }: {
   winner: Team | "draw";
   scores: Record<Team, number>;
   teamNames: Record<Team, string[]>;
@@ -407,13 +407,13 @@ export function End({ winner, scores, teamNames, found, summary, canRematch, onR
   canRematch: boolean;
   onRematch: () => void;
   onShuffle: () => void;
+  onLeave: () => void;
 }) {
   const title = winner === "draw" ? "It's a draw!" : `Team ${winner} wins!`;
   const letters = winner === "draw" ? [..."DRAW"] : [winner, ..."WINS"];
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[900px] flex-col gap-5">
-        <BackToHub />
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="text-[var(--warn-edge)]">
             <CrownIcon size={40} />
@@ -445,9 +445,7 @@ export function End({ winner, scores, teamNames, found, summary, canRematch, onR
             Shuffle teams
           </ChunkyButton>
         </div>
-        <Link href="/" className={`${TEXT} ${FOCUS} self-center font-bold text-[var(--muted)] underline`}>
-          Back to Game Room
-        </Link>
+        <LeaveRoom onLeave={onLeave} />
       </div>
     </div>
   );

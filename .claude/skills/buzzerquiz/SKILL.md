@@ -58,6 +58,11 @@ Public ("Matchmaking") rooms (`meta.publicLang`, `docs/matchmaking.md`) start fr
 `usePublicRoom` starts the game by itself with the online seats (2+), and the lobby
 shows its status and "Leave room" instead of Edit/Start.
 
+**Leaving** (any room): there's no back link to the hub. Name entry, setup, the
+lobby and the final ranking end with "Leave room" (`LeaveRoom` in `Screens.tsx`;
+in a public lobby, `MatchStatus`'s own). Only `Message` (errors, an unknown room)
+links back to `/`.
+
 ## Gotchas
 
 - Choices are **bank indexes** (0 = right) everywhere in the state; only the UI

@@ -5,12 +5,12 @@ interface BackLinkProps {
 
 /**
  * "Back to case selection" - Co-Counsel's own default/home screen (per user
- * request), not the game picker. Unlike the shared 1v1 Header's back-link
- * (a real `<Link href="/">` leaving the game), this is a plain in-page
- * button: `onBack` re-shows CasePicker without touching the room, role
- * claims, or game progress - restarting a case (Rematch/"Start a new case")
- * is the only path that goes to RolePicker instead, and leaving Co-Counsel
- * entirely is still available via the Footer's separate "All games" link.
+ * request), not the game picker, so only the room's owner gets it. A plain
+ * in-page button: `onBack` re-shows CasePicker without touching the room,
+ * role claims, or game progress - restarting a case (Rematch/"Start a new
+ * case") is the only path that goes to RolePicker instead. Nothing here
+ * leaves the room: that's the Footer's "Leave room" (no back link to the hub
+ * in a multiplayer room).
  */
 export default function BackLink({ onBack, className = "" }: BackLinkProps) {
   return (

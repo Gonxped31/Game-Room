@@ -86,11 +86,12 @@ describe("swapSeatsUpdate", () => {
 });
 
 describe("leaveRoomUpdate", () => {
-  it("removes the seat, membership and presence together", () => {
+  it("removes the seat, membership, presence and the guest's own room-list entry together", () => {
     expect(leaveRoomUpdate({ code: "abc234", uid: "alice", seat: "p1" })).toEqual({
       "games/abc234/seats/p1": null,
       "games/abc234/members/alice": null,
       "games/abc234/presence/alice": null,
+      "users/alice/rooms/abc234": null,
     });
   });
 });

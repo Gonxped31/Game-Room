@@ -14,7 +14,8 @@ interface HeaderBandProps {
   partTitle: string;
   attemptsUsed: number;
   maxAttempts: number;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }
@@ -43,7 +44,7 @@ export default function HeaderBand({
           and theme toggle into the same row risked overflow/wrapping on
           narrow viewports. */}
       <div className="mb-2 flex items-center justify-between">
-        <BackLink onBack={onBack} />
+        {onBack ? <BackLink onBack={onBack} /> : null}
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
       <div className="mb-2">

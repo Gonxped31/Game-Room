@@ -25,7 +25,8 @@ interface PartScreenProps {
   /** Set once this device has locked in for the current attempt. */
   myLockedCardId: string | null;
   onLockIn: (cardId: string) => void;
-  onBack: () => void;
+  /** Back to case selection (the owner only): a joiner has no ← at all. */
+  onBack?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }
