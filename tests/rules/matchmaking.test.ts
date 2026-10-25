@@ -7,6 +7,7 @@ import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebas
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import { claimSeatUpdate, createRoomUpdate, queueEntryUpdate, queueRemoveUpdate, type RoomMeta } from "@/lib/session/shared/updates";
 import { publicGame } from "@/lib/games/buzzerquiz/game";
+import { newGame as newRace } from "@/lib/games/nighthighway/game";
 import { newGame as newScramble } from "@/lib/games/wordscramble/game";
 import { dbAs, ROOM, seed, setupEnv, TS } from "./helpers";
 
@@ -27,8 +28,10 @@ const send = (uid: string, update: Record<string, unknown>) => dbAs(env, uid).re
 const entry = (room = ROOM, lang = "en", slug = "buzzerquiz") => `queue/${slug}/${lang}/${room}`;
 
 function createPublic(uid: string, opts: { gameSlug?: string; lang?: string; maxPlayers?: number } = {}) {
-  const { gameSlug = "buzzerquiz", lang = "en", maxPlayers = gameSlug === "wordscramble" ? 8 : 4 } = opts;
-  const initialState = plain(gameSlug === "wordscramble" ? newScramble("en") : gameSlug === "buzzerquiz" ? publicGame("en") : {});
+  const { gameSlug = "buzzerquiz", lang = "en", maxPlayers = gameSlug === "wordscramble" ? 8 : gameSlug === "nighthighway" ? 2 : 4 } = opts;
+  const initialState = plain(
+    gameSlug === "wordscramble" ? newScramble("en") : gameSlug === "buzzerquiz" ? publicGame("en") : gameSlug === "nighthighway" ? newRace() : {},
+  );
   return createRoomUpdate({ code: ROOM, uid, gameSlug, maxPlayers, initialState, ts: TS, publicLang: lang });
 }
 
@@ -57,6 +60,11 @@ describe("creating a public room", () => {
     await assertSucceeds(send("alice", createPublic("alice", { gameSlug: "wordscramble", lang: "fr" })));
   });
 
+  it("lists a new Night Highway room in its one queue, `any`", async () => {
+    await assertSucceeds(send("alice", createPublic("alice", { gameSlug: "nighthighway", lang: "any" })));
+    await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: { ...meta("alice"), gameSlug: "nighthighway", maxPlayers: 2, publicLang: "any" }, ts: TS })));
+  });
+
   it("then seats its creator", async () => {
     await assertSucceeds(send("alice", createPublic("alice")));
     await assertSucceeds(send("alice", claim("alice", "p1")));
@@ -65,6 +73,8 @@ describe("creating a public room", () => {
   it("refuses a public 1v1 game, or a language with no queue", async () => {
     await assertFails(send("alice", createRoomUpdate({ code: ROOM, uid: "alice", gameSlug: "ftw", maxPlayers: 2, initialState: {}, ts: TS, publicLang: "en" })));
     await assertFails(send("alice", createPublic("alice", { lang: "de" })));
+    await assertFails(send("alice", createPublic("alice", { lang: "any" })));
+    await assertFails(send("alice", createPublic("alice", { gameSlug: "nighthighway", lang: "en" })));
   });
 
   it("refuses listing a room in the other language's queue", async () => {

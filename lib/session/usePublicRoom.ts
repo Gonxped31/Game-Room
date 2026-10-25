@@ -21,6 +21,9 @@ export interface PublicRoom {
   leave: () => void;
 }
 
+/** What the hook needs from a session: `useSession`'s, or the 1v1 `useGameSession`'s. */
+export type PublicRoomSession = Pick<Session<WithMultiplayerIdentity>, "room" | "me" | "uid" | "publicLang" | "onlineSeats" | "joinedSeats" | "names" | "leave">;
+
 /**
  * Runs a public room (docs/matchmaking.md) on every seated device; a no-op
  * in a private room. There's no host and no server, so:
@@ -35,8 +38,8 @@ export interface PublicRoom {
  * - A player waiting alone moves to another waiting room (`betterRoom`), so
  *   two people who searched at once end up together.
  */
-export function usePublicRoom<TState extends WithMultiplayerIdentity>(opts: {
-  session: Session<TState>;
+export function usePublicRoom(opts: {
+  session: PublicRoomSession;
   game: MatchGame;
   /** The game is in its lobby (not started, not over). */
   inLobby: boolean;

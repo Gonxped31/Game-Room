@@ -3,6 +3,7 @@
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { CONNECTION_ERROR_MESSAGE, ensureGuestUid } from "@/lib/session/shared/auth";
 import { findMatch, type MatchGame } from "@/lib/session/shared/findMatch";
+import { ANY_LANG } from "@/lib/session/shared/matchmaking";
 import { roomHref } from "@/lib/games/registry";
 import { defaultLang, type Lang, LANG_LABELS, LANGS } from "@/lib/games/shared/language";
 
@@ -67,7 +68,7 @@ function LangSwitch({ lang, onChange, disabled }: { lang: Lang; onChange: (lang:
 
 interface MatchPanelProps {
   game: MatchGame;
-  /** e.g. "Buzzer Quiz" - the panel is titled "Play Buzzer Quiz online". */
+  /** e.g. "Buzzer Quiz" - the panel is titled "Buzzer Quiz matchmaking". */
   gameTitle: string;
   /** id for the heading, so the surrounding dialog can be labelled by it. */
   headingId: string;
@@ -77,8 +78,8 @@ interface MatchPanelProps {
 
 /**
  * "Matchmaking" (docs/matchmaking.md), inside a card's popover (desktop) or
- * sheet (mobile), styled like the Join form: a display name and the content
- * language, then Find players. The search seats this guest in a public room
+ * sheet (mobile), styled like the Join form: a display name and (for a game
+ * with words) the content language, then Find players. The search seats this guest in a public room
  * (someone else's, or a new one) before the page changes, so the game page
  * opens straight on its lobby.
  */
@@ -110,7 +111,7 @@ export default function MatchPanel({ game, gameTitle, headingId, inSheet }: Matc
     saveName(trimmed);
     try {
       const uid = await ensureGuestUid();
-      const code = await findMatch({ uid, name: trimmed, lang, game });
+      const code = await findMatch({ uid, name: trimmed, lang: game.languages ? lang : ANY_LANG, game });
       setDestination(roomHref(game.gameSlug, code));
     } catch {
       setStatus("offline");
@@ -149,10 +150,12 @@ export default function MatchPanel({ game, gameTitle, headingId, inSheet }: Matc
         className={`h-12 w-full rounded-xl border-2 bg-white px-3.5 font-[family-name:var(--font-fredoka)] text-base font-semibold text-black outline-none disabled:bg-[#F1F4F4] disabled:text-black/60 ${busy ? "border-[#C9D1D2]" : "border-[#7C8A8C] focus:border-[#0F7983]"}`}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-black">Questions and words in</span>
-        <LangSwitch lang={lang} onChange={setPickedLang} disabled={busy} />
-      </div>
+      {game.languages ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-black">Questions and words in</span>
+          <LangSwitch lang={lang} onChange={setPickedLang} disabled={busy} />
+        </div>
+      ) : null}
 
       {status === "offline" ? (
         <p id={errorId} role="alert" className="m-0 text-sm font-semibold" style={{ color: "#B3261E" }}>

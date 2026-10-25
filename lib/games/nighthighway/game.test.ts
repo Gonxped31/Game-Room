@@ -12,6 +12,7 @@ import {
   runScore,
   setOptions,
   setReady,
+  startRace,
   submitResult,
 } from "./game";
 
@@ -53,6 +54,23 @@ describe("setReady", () => {
     expect(next.race).toBe(2);
     expect(next.results).toEqual({});
     expect(next.history).toHaveLength(1);
+  });
+});
+
+describe("startRace", () => {
+  it("starts the first race from the lobby with nobody ready", () => {
+    const g = startRace(setReady(newGame(), "p1", true, NOW, 1), NOW, 42);
+    expect(g.phase).toBe("RACING");
+    expect(g.race).toBe(1);
+    expect(g.seed).toBe(42);
+    expect(g.startAt).toBe(NOW + RACE_START_DELAY_MS);
+    expect(g.ready).toEqual({});
+  });
+
+  it("only counts once: refused once the race is running or over", () => {
+    expect(() => startRace(racing(), NOW, 5)).toThrow();
+    const done = submitResult(submitResult(racing(), "p1", result(5)), "p2", result(9));
+    expect(() => startRace(done, NOW, 5)).toThrow();
   });
 });
 

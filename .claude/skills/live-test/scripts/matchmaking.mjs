@@ -10,6 +10,8 @@
 //   search at the same instant) are brought together by the lone-player
 //   merge, then the game starts by itself, 1v1, with even teams.
 // - Leave room: a waiting player leaves; the seat and the queue entry go.
+// - Night Highway: no language choice (one `any` queue); the second driver
+//   lands in the first's room and the first race starts by itself.
 //
 //   node .claude/skills/live-test/scripts/matchmaking.mjs [baseUrl] [screenshotDir]
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
@@ -34,17 +36,26 @@ async function player(profile, label) {
 const shot = async (page, name) => { if (out) await page.screenshot({ path: `${out}/${name}.png`, fullPage: true }); };
 const roomOf = (page) => new URL(page.url()).hash.slice(1);
 
-/** From the hub: open a card's "Matchmaking", fill the name and language, and search. Resolves once in a room. */
+/** From the hub: open a card's "Matchmaking", fill the name and language (`lang: null` for a game without words), and search. Resolves once in a room. */
 async function playOnline(page, { title, slug, name, lang = "English", shotName }) {
-  await page.goto(BASE);
-  await page.getByRole("button", { name: `Matchmaking for ${title}: play with other players` }).click();
-  const dialog = page.getByRole("dialog");
-  // Re-type if a dev-server reload (first compile) wiped the field.
-  const input = dialog.getByLabel("Your name");
-  await until(async () => (await input.inputValue()) === name || (await input.fill(name), false), "the name to stick", 15000);
-  await dialog.getByRole("radio", { name: lang }).click();
-  if (shotName) await shot(page, shotName);
-  await dialog.getByRole("button", { name: "Find players" }).click();
+  // A dev-server recompile can reload the hub under the test (wiping the panel), so open, fill and check it settled, up to 3 times.
+  for (let attempt = 1; ; attempt++) {
+    await page.goto(BASE);
+    await page.getByRole("button", { name: `Matchmaking for ${title}: play with other players` }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Your name").fill(name);
+    if (lang) await dialog.getByRole("radio", { name: lang }).click();
+    else if (await dialog.getByRole("radiogroup").count()) throw new Error(`${title}'s panel shows a language switch`);
+    await page.waitForTimeout(500);
+    const find = dialog.getByRole("button", { name: "Find players" });
+    if ((await find.isEnabled().catch(() => false)) && (await dialog.getByLabel("Your name").inputValue().catch(() => "")) === name) {
+      if (shotName) await shot(page, shotName);
+      await find.click();
+      break;
+    }
+    if (attempt === 3) throw new Error(`${title}: the panel kept losing the name`);
+    log(`${title}: the panel was reset (a reload?), retrying`);
+  }
   await page.waitForURL(new RegExp(`/${slug}#[a-z0-9]{6}$`), { timeout: 30000 });
   return roomOf(page);
 }
@@ -108,6 +119,23 @@ try {
   const teams = Object.values(ws.teams ?? {});
   if (teams.length !== 2 || teams[0] === teams[1]) throw new Error(`uneven teams: ${JSON.stringify(ws.teams)}`);
   log("Word Scramble started by itself, 1v1:", JSON.stringify(ws.teams));
+
+  // ---- Night Highway: one queue, 1v1, the first race starts by itself ---------------------------
+  const F = await player("desktop", "F (desktop)");
+  const G = await player("iphone", "G (iPhone)");
+  const roomF = await playOnline(F, { title: "Night Highway", slug: "nighthighway", name: "Fox", lang: null });
+  if ((await adminRead(`games/${roomF}/meta`)).publicLang !== "any") throw new Error(`room ${roomF} isn't in the 'any' queue`);
+  await F.getByText("Waiting for a driver…").waitFor({ timeout: 30000 });
+  await until(async () => (await adminRead(`queue/nighthighway/any/${roomF}`))?.players === 1, "F's room listed");
+  await shot(F, "nh-waiting-desktop");
+  const roomG = await playOnline(G, { title: "Night Highway", slug: "nighthighway", name: "Gil", lang: null });
+  if (roomG !== roomF) throw new Error(`G landed in ${roomG}, not F's room ${roomF}`);
+  for (const page of [F, G]) await page.getByText(/^Starting in \d+ s$/).waitFor({ timeout: 30000 });
+  await shot(G, "nh-starting-iphone");
+  const nh = await until(async () => { const s = await adminRead(`games/${roomF}/nighthighway`); return s?.phase === "RACING" ? s : null; }, "Night Highway's auto-start", 40000);
+  if (nh.race !== 1) throw new Error(`started race ${nh.race}`);
+  await until(async () => (await adminRead(`queue/nighthighway/any/${roomF}`)) == null && (await adminRead(`games/${roomF}/autoStart`)) == null, "the race room to leave the queue");
+  log("Night Highway: matched", roomF, "and the race started by itself");
 
   if (errors.length) throw new Error(`console errors:\n${errors.join("\n")}`);
   console.log("PASS matchmaking");

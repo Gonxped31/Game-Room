@@ -12,10 +12,14 @@ import { claimSeatUpdate, queueRemoveUpdate, type RoomMeta, takeOverSeatUpdate }
  * someone else got first, and the search simply moves on to the next room.
  */
 
-/** What a matchmaking search needs to know about the game. Public games start in their `"lobby"` phase. */
+/** What a matchmaking search needs to know about the game. Public games start in their lobby phase. */
 export interface MatchGame {
   gameSlug: string;
   maxPlayers: number;
+  /** The game state's `phase` before it starts - the only phase a stranger may join in. */
+  lobbyPhase: string;
+  /** Whether players pick a content language (separate EN/FR queues); without one, everyone waits in the `ANY_LANG` queue. */
+  languages: boolean;
   /** A fresh public room's state: fixed default settings, already in the lobby. */
   publicState: (lang: string) => unknown;
 }
@@ -56,7 +60,7 @@ export async function tryJoinRoom(opts: { code: string; uid: string; name: strin
   const meta = snapshot?.meta;
   if (!snapshot || !meta || meta.gameSlug !== game.gameSlug || meta.publicLang !== lang) return false;
   if (snapshot.members?.[uid]) return true;
-  if ((snapshot[game.gameSlug] as { phase?: string } | undefined)?.phase !== "lobby") return false;
+  if ((snapshot[game.gameSlug] as { phase?: string } | undefined)?.phase !== game.lobbyPhase) return false;
   const seats = snapshot.seats ?? {};
   const all = seatIds(meta.maxPlayers);
   const empty = all.find((seat) => !seats[seat]);

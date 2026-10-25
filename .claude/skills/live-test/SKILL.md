@@ -104,7 +104,7 @@ until the fourth player joins. They play 3 turns per team:
 Then come the end screen and a rematch with the same teams.
 
 **Matchmaking** ("Matchmaking" button, `docs/matchmaking.md`) has its own check too (about
-two minutes):
+three minutes):
 
 ```bash
 node .claude/skills/live-test/scripts/matchmaking.mjs [baseUrl] [screenshotDir]
@@ -114,7 +114,9 @@ A desktop player searches from the hub and waits alone, an iPhone player is matc
 into the same room, and an Android player searching in French gets another room. The
 English room counts down and starts by itself, then leaves the queue. The French
 player leaves with "Leave room". In Word Scramble, two players each waiting alone are
-merged into one room, which starts 1v1 with even teams.
+merged into one room, which starts 1v1 with even teams. In Night Highway (no
+language switch, one `any` queue), the second driver joins the first and the first
+race starts by itself.
 
 ## 3. Writing a check for your own change
 

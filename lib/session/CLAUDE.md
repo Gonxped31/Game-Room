@@ -41,7 +41,9 @@
   - `usePublicRoom.ts` - runs a public room on every seated device: the lowest
     online seat keeps the queue entry and `autoStart`; every device starts the
     game when it passes. Pages start public games with `startingSeats` (the
-    online ones).
+    online ones). It takes `useSession`'s session or the 1v1
+    `useGameSession`'s (Night Highway), which carries `leave`, `joinedSeats`,
+    `onlineSeats` and `publicLang` for it.
 - **`lib/session/useSession.ts`** - the session hook for any game size (2–8
   seats, `maxPlayers` and optional `minPlayers`): seats, presence, room name,
   `isHost`, `moveToSeat`. Games with more than 2 players call it directly.
@@ -51,7 +53,7 @@
     bothJoined, roomName, setRoomName, online, pickIdentity, releaseAllIdentities,
     transact, setGame, newRoom`.
   - **Additive fields**: `uid, connectionError, roomMissing, canRenameRoom,
-    roomNameError, canTakeOver`.
+    roomNameError, canTakeOver, leave, joinedSeats, onlineSeats, publicLang`.
   - `me` is `members[uid]`.
   - **Seats survive `setGame()` resets.**
   - `releaseAllIdentities` means "switch role": a swap, or a move to the empty

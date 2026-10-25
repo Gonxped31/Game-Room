@@ -56,6 +56,13 @@ export interface GameSession<TState extends WithIdentity> {
   setGame: (state: TState) => void;
   /** Leaves this room (giving up this guest's seat) and jumps to a brand new room. */
   newRoom: () => void;
+  /** Gives up this guest's seat and stays put (matchmaking's "Leave room"). */
+  leave: () => Promise<void>;
+  /** The held seats, and those whose holder is online. */
+  joinedSeats: Role[];
+  onlineSeats: Role[];
+  /** Set in a room made by matchmaking (docs/matchmaking.md): its queue's language. */
+  publicLang: string | undefined;
 }
 
 const asRole = (seat: string | null): Role | null => (seat === "p1" || seat === "p2" ? seat : null);
@@ -107,5 +114,9 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     transact: session.transact,
     setGame: session.setGame,
     newRoom: session.newRoom,
+    leave: session.leave,
+    joinedSeats: session.joinedSeats.filter((seat): seat is Role => asRole(seat) != null),
+    onlineSeats: session.onlineSeats.filter((seat): seat is Role => asRole(seat) != null),
+    publicLang: session.publicLang,
   };
 }

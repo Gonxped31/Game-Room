@@ -2,15 +2,20 @@
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
+import { usePublicRoom } from "@/lib/session/usePublicRoom";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
+import { findMatch } from "@/lib/session/shared/findMatch";
+import { ANY_LANG } from "@/lib/session/shared/matchmaking";
 import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import Stage from "@/components/nighthighway/Stage";
 import type { Engine } from "@/components/nighthighway/engine/engine";
-import { GetReady, Lobby, Message, NameEntry, RoomLinks, WaitingForDriver, WaitingForResult } from "@/components/nighthighway/Screens";
+import { GetReady, Lobby, MatchLinks, MatchLobby, Message, NameEntry, RoomLinks, WaitingForDriver, WaitingForResult } from "@/components/nighthighway/Screens";
+import { NIGHTHIGHWAY_MATCH } from "@/lib/games/matchGames";
+import { roomHref } from "@/lib/games/registry";
 import { GAME_TITLE, START_LANE } from "@/lib/games/nighthighway/constants";
-import { type GameState, giveUpOnMissingResults, newGame, normalizeGame, type RaceOptions, resultsOverdue, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
+import { type GameState, giveUpOnMissingResults, newGame, normalizeGame, type RaceOptions, resultsOverdue, setOptions, setReady, startRace, submitResult } from "@/lib/games/nighthighway/game";
 import { useLiveCars, useServerClock, useTicker } from "@/lib/games/nighthighway/useRace";
 
 export default function NightHighwayPage() {
@@ -36,6 +41,26 @@ export default function NightHighwayPage() {
   // Ticks through a race (for "Get ready" before the countdown, and the overdue check after it).
   const now = useTicker(racing, serverNow);
   const beforeStart = racing && startAt !== undefined && now !== null && now < startAt;
+
+  // A matchmaking room (docs/matchmaking.md): the first race starts by itself
+  // once both drivers are online; after that it's Ready as usual.
+  const inLobby = game?.phase === "LOBBY";
+  const startPublicRace = useCallback(() => transact((current) => startRace(current, serverNow(), Math.floor(Math.random() * 2 ** 31))), [transact, serverNow]);
+  const match = usePublicRoom({ session, game: NIGHTHIGHWAY_MATCH, inLobby, ready: session.onlineSeats.length >= 2, onStart: startPublicRace, serverNow });
+  const lobbyNow = useTicker(match.isPublic && inLobby, serverNow);
+  const [finding, setFinding] = useState<"idle" | "searching" | "offline">("idle");
+  const findAnother = async () => {
+    const name = me ? names[me] : undefined;
+    if (!session.uid || !name) return;
+    setFinding("searching");
+    try {
+      await session.leave();
+      const code = await findMatch({ uid: session.uid, name, lang: session.publicLang ?? ANY_LANG, game: NIGHTHIGHWAY_MATCH });
+      window.location.href = roomHref(NIGHTHIGHWAY_MATCH.gameSlug, code);
+    } catch {
+      setFinding("offline");
+    }
+  };
 
   useEffect(() => {
     document.title = GAME_TITLE;
@@ -94,6 +119,24 @@ export default function NightHighwayPage() {
     screen = null; // the stage's own "Warming up the engine…"
   } else if (!me) {
     screen = <NameEntry names={names} canTakeOver={canTakeOver} onPick={pickIdentity} />;
+  } else if (match.isPublic && (!bothJoined || !other)) {
+    const myName = names[me] ?? "You";
+    screen = inLobby ? (
+      <MatchLobby myName={myName} status="Waiting for a driver…" onLeave={match.leave} />
+    ) : (
+      <MatchLobby
+        myName={myName}
+        left
+        status={finding === "searching" ? "Looking for a driver…" : finding === "offline" ? CONNECTION_ERROR_MESSAGE : ""}
+        onFindAnother={finding === "searching" ? undefined : () => void findAnother()}
+        onLeave={match.leave}
+      />
+    );
+  } else if (match.isPublic && inLobby && other) {
+    const otherName = names[other] ?? "the other driver";
+    const secs = match.autoStartAt != null && lobbyNow != null ? Math.max(0, Math.ceil((match.autoStartAt - lobbyNow) / 1000)) : null;
+    const status = secs != null ? (secs > 0 ? `Starting in ${secs} s` : "Starting…") : online[other] ? "Getting ready…" : `${otherName} is offline.`;
+    screen = <MatchLobby myName={names[me] ?? "You"} otherName={otherName} status={status} onLeave={match.leave} />;
   } else if (!bothJoined || !other) {
     screen = (
       <WaitingForDriver
@@ -123,7 +166,7 @@ export default function NightHighwayPage() {
         otherOnline={Boolean(online[other])}
         onReady={handleReady}
         onOptions={(change: Partial<RaceOptions>) => transact((current) => setOptions(current, change))}
-        footer={<RoomLinks room={room} roomName={roomName} onNewRoom={newRoom} />}
+        footer={match.isPublic ? <MatchLinks onLeave={match.leave} /> : <RoomLinks room={room} roomName={roomName} onNewRoom={newRoom} />}
       />
     );
   }

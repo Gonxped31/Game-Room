@@ -1,28 +1,30 @@
 # Matchmaking
 
-Buzzer Quiz and Word Scramble can be played with strangers. On the hub, their cards
-have a third button, **Matchmaking**: the player enters a display name, picks the
-content language (EN/FR), and taps **Find players**. They land in a public room's
-lobby, which starts by itself once enough players are online. First to Worst,
-Co-Counsel and Night Highway stay private, link-shared games.
+Buzzer Quiz, Word Scramble and Night Highway can be played with strangers. On the
+hub, their cards have a third button, **Matchmaking**: the player enters a display
+name, picks the content language (EN/FR; not for Night Highway, which has no words),
+and taps **Find players**. They land in a public room's lobby, which starts by itself
+once enough players are online. Same Page and Co-Counsel stay private, link-shared
+games.
 
 ## Decisions (2026-10-24)
 
 | Question | Decision |
 | :--- | :--- |
 | Who starts a game of strangers? | Nobody: **auto-start**. Fixed default settings, no host. |
-| Language | **Separate EN and FR queues.** The panel defaults to the browser language. |
+| Language | **Separate EN and FR queues.** The panel defaults to the browser language. Night Highway (added the same day) has one queue, `any`. |
 | Entry point | A third card button, "Matchmaking" (renamed from "Play online" the same day), opening a panel like Join. |
 
 ## Data model
 
 ```
-games/{room}/meta/publicLang: "en" | "fr"      // set at creation = a public room; write-once like the rest of meta
+games/{room}/meta/publicLang: "en" | "fr" | "any"   // set at creation = a public room; write-once like the rest of meta
 games/{room}/autoStart: number                 // server ms; public rooms only, members only, at most 60 s ahead
 queue/{slug}/{lang}/{room}: { players, updatedAt }   // the waiting public rooms
 ```
 
-- `publicLang` is only accepted for `buzzerquiz` and `wordscramble`.
+- `publicLang` is only accepted as `en`/`fr` for `buzzerquiz` and `wordscramble`, and
+  as `any` (`ANY_LANG`) for `nighthighway`.
 - `queue/{slug}/{lang}` can be **listed** by any signed-in guest (the whole point).
   `/queue` and `/queue/{slug}` cannot.
 - A queue entry can be written by a member of the room, or by its creator in the
@@ -39,7 +41,7 @@ There is no matchmaking server. The seat write itself is the lock.
 1. Read `queue/{slug}/{lang}` once, with the server's clock.
 2. `rankRooms`: fresh entries with fewer than `maxPlayers` online, fullest first.
 3. For up to 5 of them, `tryJoinRoom`: read the room, check it's a public room of
-   this game and language still in its `"lobby"` phase, then claim the first empty
+   this game and language still in its lobby phase (`MatchGame.lobbyPhase`), then claim the first empty
    seat (or take over one whose holder has been offline for 2+ minutes) with the
    usual `claimSeatUpdate`. If the rules refuse it (someone got there first), try
    the next room.
@@ -62,6 +64,7 @@ player who closes the tab hands the job on.
   deadline is cleared. "Ready" is per game:
   - Buzzer Quiz: 2+ players online.
   - Word Scramble: an **even** number (2+) online.
+  - Night Highway: both drivers online (so always the 5 s countdown).
 - **Starting**: every device runs `useDeadline(autoStart)` and transacts the game's
   own `start`, which throws outside the lobby, so only the first commit counts.
   The game starts with the **online** seats (`startingSeats`). Word Scramble first
@@ -80,6 +83,14 @@ its defaults (5 turns per team). After a game, players can Rematch as usual with
 whoever is online. The room isn't listed again unless it goes back to the lobby
 with seats to fill.
 
+**Night Highway** is a 1v1 series, so a public room is one pairing:
+- Its first race starts by itself (`startRace`, no Ready), with the default switches.
+- After that it's the usual results screen: Race again (both Ready), the switches,
+  and Leave room instead of the room code and New room.
+- It never goes back to `"LOBBY"`, so it's never listed again. If the other driver
+  leaves, the one left gets **Find another driver** (gives up the seat and searches
+  again).
+
 ## Known limits
 
 - A player who drops off just before the countdown ends (presence not yet offline)
@@ -93,4 +104,4 @@ with seats to fill.
   auto-start timing.
 - `tests/rules/matchmaking.test.ts`: `publicLang`, the queue, `autoStart`.
 - `.claude/skills/live-test/scripts/matchmaking.mjs`: the full flow on real device
-  profiles (search, join, languages, auto-start, Leave, merge).
+  profiles (search, join, languages, auto-start, Leave, merge, Night Highway).

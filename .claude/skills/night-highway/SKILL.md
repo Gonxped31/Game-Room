@@ -256,6 +256,18 @@ single-file game (visuals, controls, physics, scoring).
   player's car in their paint with their name above it, and the HUD shows their
   score and the gap.
 
+## Matchmaking (`docs/matchmaking.md`)
+
+- Hub "Matchmaking" pairs two strangers in a public room (`NIGHTHIGHWAY_MATCH` in
+  `lib/games/matchGames.ts`): one queue for everyone (`publicLang: "any"`, no
+  language), default switches.
+- The page runs `usePublicRoom`: once both are online, the first race starts by
+  itself 5 s later (`startRace`, which throws outside `LOBBY`, so only the first
+  device's commit counts). After that it's Ready as usual.
+- Screens: `MatchLobby` (waiting for a driver, the countdown, or "the other driver
+  left" with Find another driver), and `MatchLinks` (Leave room) under the results
+  instead of `RoomLinks`.
+
 ## Rules
 
 `database.rules.json` validates `nighthighway` (state) and `nighthighwayCars/$seat`

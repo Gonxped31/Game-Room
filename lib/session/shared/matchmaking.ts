@@ -6,7 +6,8 @@
  * room side (keeping the queue entry fresh, the auto-start) is
  * `lib/session/usePublicRoom.ts`.
  *
- * A public room is an ordinary room whose `meta.publicLang` is set. While its
+ * A public room is an ordinary room whose `meta.publicLang` is set (`"en"`,
+ * `"fr"`, or `ANY_LANG` for a game without words). While its
  * game sits in the lobby with seats to fill, it's listed at
  * `queue/{slug}/{lang}/{room}`, which any signed-in guest may read.
  */
@@ -29,6 +30,9 @@ export const AUTO_START_MS = 20_000;
 export const AUTO_START_FULL_MS = 5_000;
 /** How many rooms one search tries before creating its own. */
 export const MAX_TRIES = 5;
+
+/** The queue "language" of a game with no content language (Night Highway): everyone waits in one queue. */
+export const ANY_LANG = "any";
 
 export const queuePath = (slug: string, lang: string) => `queue/${slug}/${lang}`;
 

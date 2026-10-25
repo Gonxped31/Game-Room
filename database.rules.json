@@ -22,7 +22,7 @@
             ".write": "auth != null && data.parent().child('createdBy').val() == auth.uid",
             ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9-]+$/) && newData.parent().parent().parent().parent().child('roomsByName/' + newData.val()).val() == $room"
           },
-          "publicLang": { ".validate": "(newData.val() == 'en' || newData.val() == 'fr') && (newData.parent().child('gameSlug').val() == 'buzzerquiz' || newData.parent().child('gameSlug').val() == 'wordscramble')" },
+          "publicLang": { ".validate": "((newData.val() == 'en' || newData.val() == 'fr') && (newData.parent().child('gameSlug').val() == 'buzzerquiz' || newData.parent().child('gameSlug').val() == 'wordscramble')) || (newData.val() == 'any' && newData.parent().child('gameSlug').val() == 'nighthighway')" },
           "$other": { ".validate": false }
         },
 

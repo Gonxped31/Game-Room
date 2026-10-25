@@ -293,3 +293,68 @@ export function RoomLinks({ room, roomName, onNewRoom }: { room: string; roomNam
     </p>
   );
 }
+
+/**
+ * A matchmaking room (docs/matchmaking.md) before its first race: waiting for
+ * a stranger to join (`otherName` unset), or the countdown to the race, which
+ * starts by itself. `left`: the other driver gave up their seat after a race.
+ */
+export function MatchLobby({
+  myName,
+  otherName,
+  status,
+  left = false,
+  onFindAnother,
+  onLeave,
+}: {
+  myName: string;
+  otherName?: string;
+  /** e.g. "Starting in 4 s". */
+  status: string;
+  left?: boolean;
+  onFindAnother?: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <Card>
+      <p className="kicker">{otherName ? `Matchmaking · ${myName} vs ${otherName}` : "Matchmaking"}</p>
+      <Wordmark />
+      <p className="lede">
+        {left
+          ? "The other driver left the room."
+          : otherName
+            ? `Same road, same traffic, same 60 seconds. Weave through it, chain near misses, and outscore ${otherName}.`
+            : "Looking for another driver. You race whoever joins first, on the same road at the same time."}
+      </p>
+      <div className="row">
+        {onFindAnother ? (
+          <button className="cta" type="button" onClick={onFindAnother}>
+            Find another driver
+          </button>
+        ) : null}
+        <span className="note" role="status" aria-live="polite">
+          {status}
+        </span>
+      </div>
+      <p className="note nh-links">
+        <button type="button" className="nh-linkbtn" onClick={onLeave}>
+          Leave room
+        </button>{" "}
+        · <a href="/nighthighway/solo">Drive solo</a>
+      </p>
+    </Card>
+  );
+}
+
+/** The line under a matchmaking room's results: no room code or New room, just the way out. */
+export function MatchLinks({ onLeave }: { onLeave: () => void }) {
+  return (
+    <p className="note nh-links">
+      Matched online ·{" "}
+      <button type="button" className="nh-linkbtn" onClick={onLeave}>
+        Leave room
+      </button>{" "}
+      · <a href="/nighthighway/solo">Drive solo</a>
+    </p>
+  );
+}

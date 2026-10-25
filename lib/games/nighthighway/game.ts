@@ -121,15 +121,22 @@ export function setReady(rawGame: GameState, role: Role, isReady: boolean, now: 
   const ready: Partial<Record<Role, true>> = {};
   for (const r of ROLES) if (r === role ? isReady : game.ready[r]) ready[r] = true;
   if (!(ready.p1 && ready.p2)) return { ...game, ready };
-  return {
-    ...game,
-    phase: "RACING",
-    race: game.race + 1,
-    ready: {},
-    seed,
-    startAt: now + RACE_START_DELAY_MS,
-    results: {},
-  };
+  return beginRace(game, now, seed);
+}
+
+function beginRace(game: GameState, now: number, seed: number): GameState {
+  return { ...game, phase: "RACING", race: game.race + 1, ready: {}, seed, startAt: now + RACE_START_DELAY_MS, results: {} };
+}
+
+/**
+ * A matchmaking room's first race starts by itself, with nobody pressing
+ * Ready (docs/matchmaking.md). Only from the lobby, so when every device
+ * fires it at once, only the first commit counts.
+ */
+export function startRace(rawGame: GameState, now: number, seed: number): GameState {
+  const game = normalizeGame(rawGame);
+  if (game.phase !== "LOBBY") throw new Error("The race has already started.");
+  return beginRace(game, now, seed);
 }
 
 function finish(game: GameState): GameState {
