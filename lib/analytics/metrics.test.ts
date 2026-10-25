@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toSnapshot } from "./gameRoomAdapter";
-import { computeDashboard, DAY_MS, estimatePlayMs, PLAY_ESTIMATE_CAP_MS, playMs } from "./metrics";
+import { computeDashboard, computeInviteLoop, DAY_MS, estimatePlayMs, PLAY_ESTIMATE_CAP_MS, playMs } from "./metrics";
 import type { GuestRoomSnap, RoomSnap, Snapshot } from "./types";
 
 // Noon UTC, so "today" and "yesterday" are unambiguous.
@@ -149,6 +149,44 @@ describe("return rate", () => {
   });
 });
 
+describe("invite loop", () => {
+  const created = (code: string, addedAt: number) => entry(code, addedAt, { createdByMe: true });
+  const guests = [
+    // Ana creates two rooms; Ben joins the first, then creates his own, which nobody joins.
+    { uid: "ana", rooms: [created("r1", NOW - 5 * DAY_MS), created("r2", NOW - 4 * DAY_MS)] },
+    { uid: "ben", rooms: [entry("r1", NOW - 5 * DAY_MS), created("r3", NOW - 2 * DAY_MS)] },
+    // Cy joins Ana's second room and never creates one.
+    { uid: "cy", rooms: [entry("r2", NOW - 4 * DAY_MS)] },
+    // Dee came through matchmaking (pub), then created a room: not an invite.
+    { uid: "dee", rooms: [entry("pub", NOW - 3 * DAY_MS), created("r4", NOW - DAY_MS)] },
+    { uid: "eve", rooms: [created("pub", NOW - 3 * DAY_MS)] },
+    // An old room and an old invitee, outside the 30 days.
+    { uid: "old", rooms: [created("r0", NOW - 60 * DAY_MS)] },
+    { uid: "olda", rooms: [entry("r0", NOW - 60 * DAY_MS), created("r5", NOW - DAY_MS)] },
+  ];
+  const rooms = [room({ code: "pub", matchmade: true })];
+  const loop = computeInviteLoop(rooms, guests, NOW - 30 * DAY_MS);
+
+  it("counts private rooms created in the window that got a second guest", () => {
+    // r1, r2, r3, r4, r5 were created in the window; r1 and r2 got a guest. pub is matchmade.
+    expect(loop.converted).toEqual({ count: 2, of: 5, rate: 0.4 });
+  });
+
+  it("counts invited guests and the creators who brought them", () => {
+    expect(loop.invitedGuests).toBe(2); // ben, cy
+    expect(loop.creators).toBe(4); // ana, ben, dee, olda; eve's matchmade room is left out
+  });
+
+  it("counts invited newcomers who went on to create a room", () => {
+    // Newcomers from a link in the window: ben (created r3) and cy (didn't). Dee came from matchmaking; olda is too old.
+    expect(loop.loop).toEqual({ count: 1, of: 2, rate: 0.5 });
+  });
+
+  it("is part of the dashboard", () => {
+    expect(computeDashboard(snapshot({ rooms, guests })).inviteLoop).toEqual(loop);
+  });
+});
+
 describe("gameRoomAdapter", () => {
   it("maps the games and users trees, skipping malformed entries", () => {
     const games = {
@@ -162,6 +200,7 @@ describe("gameRoomAdapter", () => {
         ftw: { round: 3 },
       },
       closed1: { meta: { gameSlug: "ftw", maxPlayers: 2, createdAt: NOW - MIN, createdBy: "a" }, closedAt: NOW },
+      public1: { meta: { gameSlug: "buzzerquiz", maxPlayers: 4, createdAt: NOW - MIN, createdBy: "a", publicLang: "en" } },
       nometa: { seats: { p1: "a" } },
       badtime: { meta: { gameSlug: "ftw", createdAt: "yesterday" } },
     };
@@ -173,6 +212,7 @@ describe("gameRoomAdapter", () => {
     expect(snap.rooms).toEqual([
       { code: "abc123", gameSlug: "ftw", createdAt: NOW - MIN, lastActive: NOW, activeMinutes: 7, name: "Friday", seatsFilled: 1, maxPlayers: 2, onlineUids: ["a"] },
       { code: "closed1", gameSlug: "ftw", createdAt: NOW - MIN, lastActive: undefined, name: undefined, seatsFilled: 0, maxPlayers: 2, onlineUids: [], closedAt: NOW },
+      { code: "public1", gameSlug: "buzzerquiz", createdAt: NOW - MIN, lastActive: undefined, name: undefined, seatsFilled: 0, maxPlayers: 4, onlineUids: [], matchmade: true },
     ]);
     expect(snap.guests).toEqual([
       { uid: "a", rooms: [{ code: "abc123", gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }] },

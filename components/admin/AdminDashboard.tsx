@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { formatCount, formatDuration, formatRate } from "@/lib/analytics/format";
 import { PLAY_ESTIMATE_CAP_MS } from "@/lib/analytics/metrics";
-import type { DashboardStats, LiveRoom } from "@/lib/analytics/types";
+import type { DashboardStats, InviteLoop, LiveRoom } from "@/lib/analytics/types";
 import { gameBySlug, roomHref } from "@/lib/games/registry";
 
 const REFRESH_MS = 30_000;
@@ -92,6 +92,8 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         />
       </div>
 
+      <InviteLoopTiles loop={stats.inviteLoop} />
+
       <Panel title="By game">
         {/* Phones: one block per game; the table needs more width than they have. */}
         <ul className="m-0 flex list-none flex-col p-0 min-[760px]:hidden">
@@ -148,8 +150,8 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
 
       <p className="m-0 text-xs leading-relaxed text-white/85">
         Play time counts the minutes a game was in progress. Rooms played before that count existed are estimated from when they were created to their last
-        activity, at most {formatDuration(PLAY_ESTIMATE_CAP_MS)} each. A guest is one
-        browser: someone who clears their browser data, or switches device, counts as a new guest.
+        activity, at most {formatDuration(PLAY_ESTIMATE_CAP_MS)} each. The invite loop leaves out matchmade rooms. A guest is one browser: someone who clears
+        their browser data, or switches device, counts as a new guest (and joining their own room from a second device looks like an invite).
       </p>
     </div>
   );
@@ -200,6 +202,22 @@ function LiveRoomRow({ room, onClosed }: { room: LiveRoom; onClosed: () => void 
         {closing ? "Closing…" : "Close"}
       </button>
     </li>
+  );
+}
+
+function InviteLoopTiles({ loop }: { loop: InviteLoop }) {
+  const perCreator = loop.creators ? (loop.invitedGuests / loop.creators).toFixed(1) : "—";
+  return (
+    <section aria-labelledby="invite-loop" className="flex flex-col gap-2">
+      <h2 id="invite-loop" className="m-0 text-sm font-bold text-white/85">
+        Invite loop · last 30 days
+      </h2>
+      <div className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-3">
+        <StatTile label="Invite conversion" value={formatRate(loop.converted)} note={`${loop.converted.count} of ${plural(loop.converted.of, "room")} got a second guest`} />
+        <StatTile label="Invited per creator" value={perCreator} note={`${plural(loop.invitedGuests, "guest")} invited by ${plural(loop.creators, "creator")}`} />
+        <StatTile label="Loop rate" value={formatRate(loop.loop)} note={`${loop.loop.count} of ${plural(loop.loop.of, "invited newcomer")} created a room`} />
+      </div>
+    </section>
   );
 }
 

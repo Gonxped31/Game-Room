@@ -20,6 +20,8 @@ export interface RoomSnap {
   onlineUids: string[];
   /** Set when the owner closed the room: it still counts in history, never as live. */
   closedAt?: number;
+  /** Filled by matchmaking with strangers, not by invites: left out of the invite loop. */
+  matchmade?: boolean;
 }
 
 /** One guest's entry for one room: they created it, or joined it from a link. */
@@ -63,6 +65,18 @@ export interface GameStats {
   medianPlayMs30d: number | null;
 }
 
+/** How invites grow the player base, over private rooms (last 30 days). */
+export interface InviteLoop {
+  /** Rooms created in the window where at least one other guest took a seat. */
+  converted: Rate;
+  /** Distinct guests who joined those rooms from a link. */
+  invitedGuests: number;
+  /** Distinct guests who created those rooms. */
+  creators: number;
+  /** Guests whose first room was one they were invited to (in the window) who later created a room of their own. */
+  loop: Rate;
+}
+
 export interface LiveRoom {
   code: string;
   gameSlug: string;
@@ -95,5 +109,6 @@ export interface DashboardStats {
     returnedWithin7d: Rate;
   };
   perGame: GameStats[];
+  inviteLoop: InviteLoop;
   liveRooms: LiveRoom[];
 }

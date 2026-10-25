@@ -1,4 +1,4 @@
-import type { DashboardStats, GameStats, LiveRoom, Rate, RoomSnap, Snapshot } from "./types";
+import type { DashboardStats, GameStats, GuestSnap, InviteLoop, LiveRoom, Rate, RoomSnap, Snapshot } from "./types";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 const WINDOW_MS = 30 * DAY_MS;
@@ -31,6 +31,51 @@ export function estimatePlayMs(room: RoomSnap): number | null {
 /** A room's play time: its counted minutes, else the estimate (null if it never reached a playable game). */
 export function playMs(room: RoomSnap): number | null {
   return room.activeMinutes != null ? room.activeMinutes * MINUTE_MS : estimatePlayMs(room);
+}
+
+/**
+ * The invite loop since `since`: did created rooms bring in another guest,
+ * how many per creator, and did invited newcomers go on to create rooms of
+ * their own. A guest's entry for a room says whether they created it or came
+ * from a link; matchmade rooms are left out (nobody was invited to them).
+ */
+export function computeInviteLoop(rooms: RoomSnap[], guests: GuestSnap[], since: number): InviteLoop {
+  const matchmade = new Set(rooms.filter((room) => room.matchmade).map((room) => room.code));
+  const byRoom = new Map<string, { creator?: string; createdAt: number; joiners: Set<string> }>();
+  for (const guest of guests) {
+    for (const entry of guest.rooms) {
+      if (matchmade.has(entry.code)) continue;
+      const room = byRoom.get(entry.code) ?? { createdAt: 0, joiners: new Set<string>() };
+      byRoom.set(entry.code, room);
+      if (entry.createdByMe) {
+        room.creator = guest.uid;
+        room.createdAt = entry.addedAt;
+      } else room.joiners.add(guest.uid);
+    }
+  }
+
+  let created = 0;
+  let converted = 0;
+  const creators = new Set<string>();
+  const invited = new Set<string>();
+  for (const room of byRoom.values()) {
+    if (room.creator == null || room.createdAt < since) continue;
+    created++;
+    creators.add(room.creator);
+    if (room.joiners.size) converted++;
+    room.joiners.forEach((uid) => invited.add(uid));
+  }
+
+  let newcomers = 0;
+  let looped = 0;
+  for (const guest of guests) {
+    const [first, ...later] = [...guest.rooms].sort((a, b) => a.addedAt - b.addedAt);
+    if (!first || first.createdByMe || matchmade.has(first.code) || first.addedAt < since) continue;
+    newcomers++;
+    if (later.some((entry) => entry.createdByMe && !matchmade.has(entry.code))) looped++;
+  }
+
+  return { converted: rate(converted, created), invitedGuests: invited.size, creators: creators.size, loop: rate(looped, newcomers) };
 }
 
 /**
@@ -149,6 +194,7 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
       returnedWithin7d: rate(returnedWithin7d, firstSeenWeekAgo),
     },
     perGame: slugs.map((slug) => statsBySlug.get(slug)!),
+    inviteLoop: computeInviteLoop(rooms, guests, since),
     liveRooms,
   };
 }

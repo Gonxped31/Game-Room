@@ -40,6 +40,7 @@ export function toRoomSnap(code: string, raw: RawRoom): RoomSnap | null {
       .map(([uid]) => uid),
     ...(typeof raw.activeMinutes?.n === "number" && raw.activeMinutes.n >= 0 ? { activeMinutes: raw.activeMinutes.n } : {}),
     ...(isTime(raw.closedAt) ? { closedAt: raw.closedAt } : {}),
+    ...(typeof meta.publicLang === "string" ? { matchmade: true } : {}),
   };
 }
 
