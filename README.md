@@ -256,6 +256,11 @@ the history is counted, and erases what only the stats use: deleted rooms' summa
 and guests' visit days. Rooms, live counts, the Rooms list and players' "Your rooms"
 are untouched.
 
+**Download a solo game** gives each solo game (Night Highway) as one HTML file that
+plays offline: the game alone, no rooms or hub. `npm run build` makes the files first
+(`scripts/export-solo.mjs`, into the git-ignored `public/downloads/`); locally, run
+`npm run export:solo` once to get them.
+
 **Preview URLs need no Firebase setup.** Firebase's *Authorized domains* list only
 applies to OAuth redirect/popup and email-link sign-ins, not anonymous sign-in, so
 each new preview URL works as-is. The one exception: if you restricted the Firebase

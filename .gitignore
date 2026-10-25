@@ -20,6 +20,9 @@
 # production
 /build
 
+# solo games as offline HTML files, built before each `next build` (scripts/export-solo.mjs)
+/public/downloads/
+
 # misc
 .DS_Store
 *.pem

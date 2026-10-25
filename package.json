@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/export-solo.mjs && next build",
+    "export:solo": "node scripts/export-solo.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

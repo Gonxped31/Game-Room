@@ -1,0 +1,13 @@
+/* The base the stage gets from app/globals.css on the site: Tailwind's preflight
+   (nighthighway.css was written on it; [hidden] hides through it) and the focus
+   ring. scripts/export-solo.mjs compiles this with Tailwind and inlines it. */
+@import "tailwindcss";
+
+@layer base {
+  button:focus-visible,
+  summary:focus-visible,
+  textarea:focus-visible {
+    outline: 4px solid #ffe14d;
+    outline-offset: 2px;
+  }
+}

@@ -64,6 +64,18 @@ single-file game (visuals, controls, physics, scoring).
   Overpass, Overpass Mono. The engine draws canvas text with the real family
   stacks, which `Stage` reads from the CSS variables.
 
+## The offline download (`exports/nighthighway/`)
+
+- Solo, as one HTML file that plays offline (/admin, "Download a solo game"):
+  `main.tsx` renders this same `Stage` in solo mode; `scripts/export-solo.mjs`
+  bundles it with Vite (React, three.js, the engine, `lib/games/nighthighway`)
+  and inlines the JS, CSS, Tailwind's base (`tailwind.css`: preflight is what
+  hides `[hidden]`) and the fonts. Runs before every `next build`.
+- So **the engine must never fetch anything at play time** (no URLs, workers or
+  files): the file plays from disk, with no network.
+- Check after a change: `npm run export:solo`, then open
+  `public/downloads/nighthighway.html` from disk with the network off.
+
 ## Shared traffic (`traffic.ts`)
 
 - **A race's traffic must be identical on both devices**, so the "fixed" mode is

@@ -5,6 +5,7 @@ import { formatCount, formatDuration, formatRate } from "@/lib/analytics/format"
 import { PLAY_ESTIMATE_CAP_MS } from "@/lib/analytics/metrics";
 import type { DashboardStats, InviteLoop } from "@/lib/analytics/types";
 import { gameBySlug } from "@/lib/games/registry";
+import { SOLO_GAMES, soloDownloadHref, soloDownloadName } from "@/lib/games/soloDownloads";
 import { callAdmin } from "./callAdmin";
 import ConfirmDialog from "./ConfirmDialog";
 import RoomList from "./RoomList";
@@ -148,6 +149,18 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         <RoomList rooms={stats.rooms} games={stats.perGame.map((game) => game.gameSlug)} onChanged={() => setReloads((n) => n + 1)} />
       </Panel>
 
+      <Panel title="Download a solo game">
+        <p className="m-0 text-sm leading-relaxed text-black/75">
+          The game alone, as one HTML file: open it in a browser and play, offline, with nothing else needed. No rooms or hub; the best score is kept in that
+          browser.
+        </p>
+        <ul className="m-0 mt-2 flex list-none flex-col p-0">
+          {SOLO_GAMES.map((game) => (
+            <SoloDownload key={game.slug} slug={game.slug} title={game.title} fileName={soloDownloadName(game)} />
+          ))}
+        </ul>
+      </Panel>
+
       <Panel title="Clear stats">
         <p className="m-0 text-sm leading-relaxed text-black/75">
           Starts every number on this page again from zero: players, play time, return rate and the invite loop only count what happens afterwards. Live rooms
@@ -186,6 +199,41 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         their browser data, or switches device, counts as a new guest (and joining their own room from a second device looks like an invite).
       </p>
     </div>
+  );
+}
+
+/** One solo game's file, if this build made it (scripts/export-solo.mjs only warns when it can't). */
+function SoloDownload({ slug, title, fileName }: { slug: string; title: string; fileName: string }) {
+  const href = soloDownloadHref(slug);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(href, { method: "HEAD", cache: "no-store" })
+      .then((response) => !cancelled && setAvailable(response.ok))
+      .catch(() => !cancelled && setAvailable(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [href]);
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-black/10 py-2.5 text-sm last:border-0">
+      <span className="font-bold">{title}</span>
+      <span className="text-black/60">Solo · one HTML file</span>
+      <span className="ml-auto">
+        {available === false ? (
+          <span className="text-black/60">Not in this build (npm run export:solo)</span>
+        ) : (
+          <a
+            href={href}
+            download={fileName}
+            aria-disabled={available !== true}
+            className={`inline-block rounded-lg border-2 border-[#0F7983] bg-[#0F7983] px-3 py-1.5 font-bold text-white no-underline ${available ? "" : "pointer-events-none opacity-60"}`}
+          >
+            Download
+          </a>
+        )}
+      </span>
+    </li>
   );
 }
 

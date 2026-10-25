@@ -16,10 +16,11 @@ Next.js app (App Router) on Firebase Realtime Database with invisible Anonymous 
 | `lib/admin/` | Server only: `firebase-admin` handle, admin password cookie (`session.ts`), route guard |
 | `lib/analytics/` | Dashboard metrics: pure and platform-neutral (`metrics.ts` over a `Snapshot`); `gameRoomAdapter.ts` maps Game Room's database into it; `roomFilter.ts` filters the room list |
 | `app/admin/`, `app/api/admin/` | The owner's dashboard and its route handlers (not linked from the hub) |
+| `exports/<slug>/` | A solo game as one offline HTML file: page template and entry, built by `scripts/export-solo.mjs` into `public/downloads/` (downloaded from `/admin`) |
 | `tests/rules/` | Database rules tests (emulator, needs Java) |
 | `references/` | Original specs and mockups |
 | `.claude/skills/` | Per-game and per-task guides |
-| `scripts/` | `check`, `build`, `test-rules` wrappers |
+| `scripts/` | `check`, `build`, `test-rules` wrappers; `export-solo.mjs` (runs before `next build`) |
 | `docs/` | Longer reference (`architecture.md`: data model, environment) |
 
 ## Entry points
