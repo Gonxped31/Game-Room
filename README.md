@@ -237,10 +237,13 @@ production database, so leave both unset there.
 After redeploying, sign in at `/admin`. "Database connected." confirms that the key
 works.
 
+The "Rooms" list shows live rooms first. You can search it by name or code (a pasted
+room link works too), and filter by status, game or how many people hold a seat.
+
 Rooms are removed in two steps:
 1. **Close** a live room. Everyone in it sees "This room was closed", and the room
    refuses any more play.
-2. **Delete** it from "Closed rooms". The room and its name are removed, and a small
+2. **Delete** it (set the Rooms status filter to "Closed"). The room and its name are removed, and a small
    summary is kept in `analytics/archive/{code}` so its numbers stay on the dashboard.
    Anyone who opens the old link gets a new, empty room.
 

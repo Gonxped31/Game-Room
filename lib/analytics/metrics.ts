@@ -1,4 +1,4 @@
-import type { ClosedRoom, DashboardStats, GameStats, GuestSnap, InviteLoop, LiveRoom, Rate, RoomSnap, Snapshot } from "./types";
+import type { DashboardStats, GameStats, GuestSnap, InviteLoop, Rate, RoomRow, RoomSnap, RoomStatus, Snapshot } from "./types";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 const WINDOW_MS = 30 * DAY_MS;
@@ -27,6 +27,12 @@ export function estimatePlayMs(room: RoomSnap): number | null {
   if (room.lastActive == null) return null;
   return Math.min(Math.max(room.lastActive - room.createdAt, 0), PLAY_ESTIMATE_CAP_MS);
 }
+
+const STATUS_ORDER: RoomStatus[] = ["playing", "waiting", "idle", "closed"];
+
+/** How long ago a row's status began, for sorting most recent first: opened (live), last played (idle), closed. */
+const sinceMs = (row: RoomRow) =>
+  row.status === "closed" ? (row.closedAgoMs ?? 0) : row.status === "idle" ? (row.lastActiveAgoMs ?? row.createdAgoMs) : row.createdAgoMs;
 
 /** A room's play time: its counted minutes, else the estimate (null if it never reached a playable game). */
 export function playMs(room: RoomSnap): number | null {
@@ -99,9 +105,8 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
   };
   gameOrder.forEach(statsFor);
 
-  // Rooms: live now, created, and estimated play time.
-  const liveRooms: LiveRoom[] = [];
-  const closedRooms: ClosedRoom[] = [];
+  // Rooms: the list, live now, created, and play time.
+  const rows: RoomRow[] = [];
   const onlineGuests = new Set<string>();
   const playByGame = new Map<string, number[]>();
   const allPlay: number[] = [];
@@ -122,27 +127,30 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
       allPlay.push(play);
       playByGame.set(room.gameSlug, [...(playByGame.get(room.gameSlug) ?? []), play]);
     }
-    if (room.closedAt != null && !room.deleted) {
-      closedRooms.push({ code: room.code, gameSlug: room.gameSlug, name: room.name, closedAgoMs: Math.max(now - room.closedAt, 0) });
-    }
-    if (room.onlineUids.length && room.closedAt == null) {
+    const live = room.onlineUids.length > 0 && room.closedAt == null;
+    if (live) {
       stats.liveRooms++;
       room.onlineUids.forEach((uid) => onlineGuests.add(uid));
-      liveRooms.push({
-        code: room.code,
-        gameSlug: room.gameSlug,
-        name: room.name,
-        seatsFilled: room.seatsFilled,
-        maxPlayers: room.maxPlayers,
-        online: room.onlineUids.length,
-        status: room.lastActive != null && now - room.lastActive <= PLAYING_FRESH_MS ? "playing" : "waiting",
-        createdAgoMs: Math.max(now - room.createdAt, 0),
-      });
     }
+    if (room.deleted) continue;
+    const ago = (t: number) => Math.max(now - t, 0);
+    rows.push({
+      code: room.code,
+      gameSlug: room.gameSlug,
+      name: room.name,
+      seatsFilled: room.seatsFilled,
+      maxPlayers: room.maxPlayers,
+      online: room.onlineUids.length,
+      status:
+        room.closedAt != null ? "closed" : !live ? "idle" : room.lastActive != null && now - room.lastActive <= PLAYING_FRESH_MS ? "playing" : "waiting",
+      createdAgoMs: ago(room.createdAt),
+      ...(room.lastActive != null ? { lastActiveAgoMs: ago(room.lastActive) } : {}),
+      ...(room.closedAt != null ? { closedAgoMs: ago(room.closedAt) } : {}),
+    });
   }
   for (const [slug, plays] of playByGame) statsFor(slug).medianPlayMs30d = median(plays);
-  closedRooms.sort((a, b) => a.closedAgoMs - b.closedAgoMs);
-  liveRooms.sort((a, b) => (a.status === b.status ? a.createdAgoMs - b.createdAgoMs : a.status === "playing" ? -1 : 1));
+  rows.sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || sinceMs(a) - sinceMs(b));
+  const liveRows = rows.filter((row) => row.status === "playing" || row.status === "waiting");
 
   // Guests: players per game, and who came back.
   const players30d = new Set<string>();
@@ -186,8 +194,8 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
   return {
     generatedAt: now,
     totals: {
-      liveRooms: liveRooms.length,
-      playingRooms: liveRooms.filter((room) => room.status === "playing").length,
+      liveRooms: liveRows.length,
+      playingRooms: liveRows.filter((row) => row.status === "playing").length,
       onlineGuests: onlineGuests.size,
       players30d: players30d.size,
       playersAllTime: playersAllTime.size,
@@ -201,7 +209,6 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
     },
     perGame: slugs.map((slug) => statsBySlug.get(slug)!),
     inviteLoop: computeInviteLoop(rooms, guests, since),
-    liveRooms,
-    closedRooms,
+    rooms: rows,
   };
 }

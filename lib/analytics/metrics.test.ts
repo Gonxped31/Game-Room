@@ -36,10 +36,12 @@ describe("live rooms", () => {
   it("counts open rooms with someone online, split into playing and waiting", () => {
     expect(stats.totals.liveRooms).toBe(3);
     expect(stats.totals.playingRooms).toBe(1);
-    expect(stats.liveRooms.map((r) => [r.code, r.status])).toEqual([
+    expect(stats.rooms.map((r) => [r.code, r.status])).toEqual([
       ["playing", "playing"],
       ["stalled", "waiting"],
       ["lobby", "waiting"],
+      ["empty", "idle"],
+      ["closed", "closed"],
     ]);
   });
 
@@ -77,8 +79,8 @@ describe("players per game", () => {
   });
 });
 
-describe("closed rooms", () => {
-  it("lists closed rooms that still exist, most recently closed first", () => {
+describe("room list", () => {
+  it("lists idle rooms by last activity, then closed rooms by when they closed, leaving out deleted ones", () => {
     const stats = computeDashboard(
       snapshot({
         rooms: [
@@ -86,13 +88,23 @@ describe("closed rooms", () => {
           room({ code: "newer", closedAt: NOW - 5 * MIN }),
           room({ code: "gone", closedAt: NOW - MIN, deleted: true }),
           room({ code: "open" }),
+          room({ code: "played", lastActive: NOW - 2 * MIN }),
         ],
       }),
     );
-    expect(stats.closedRooms).toEqual([
-      { code: "newer", gameSlug: "ftw", name: undefined, closedAgoMs: 5 * MIN },
-      { code: "older", gameSlug: "ftw", name: "Old", closedAgoMs: 60 * MIN },
-    ]);
+    expect(stats.rooms.map((r) => r.code)).toEqual(["played", "open", "newer", "older"]);
+    expect(stats.rooms[0]).toEqual({
+      code: "played",
+      gameSlug: "ftw",
+      name: undefined,
+      seatsFilled: 2,
+      maxPlayers: 2,
+      online: 0,
+      status: "idle",
+      createdAgoMs: 10 * MIN,
+      lastActiveAgoMs: 2 * MIN,
+    });
+    expect(stats.rooms[3]).toMatchObject({ code: "older", name: "Old", status: "closed", closedAgoMs: 60 * MIN });
   });
 });
 
@@ -309,7 +321,7 @@ describe("gameRoomAdapter", () => {
     const stats = computeDashboard(snap);
     expect(stats.totals.playersAllTime).toBe(2);
     expect(stats.inviteLoop.converted).toEqual({ count: 1, of: 1, rate: 1 });
-    expect(stats.closedRooms).toEqual([]); // deleted, so nothing left to delete
+    expect(stats.rooms).toEqual([]); // deleted, so not listed
   });
 
   it("accepts an empty database", () => {

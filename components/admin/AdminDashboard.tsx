@@ -3,8 +3,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { formatCount, formatDuration, formatRate } from "@/lib/analytics/format";
 import { PLAY_ESTIMATE_CAP_MS } from "@/lib/analytics/metrics";
-import type { ClosedRoom, DashboardStats, InviteLoop, LiveRoom } from "@/lib/analytics/types";
-import { gameBySlug, roomHref } from "@/lib/games/registry";
+import type { DashboardStats, InviteLoop } from "@/lib/analytics/types";
+import { gameBySlug } from "@/lib/games/registry";
+import RoomList from "./RoomList";
 
 const REFRESH_MS = 30_000;
 
@@ -136,28 +137,8 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         </div>
       </Panel>
 
-      <Panel title={`Rooms live now (${stats.liveRooms.length})`}>
-        {stats.liveRooms.length === 0 ? (
-          <p className="m-0 text-sm text-black/60">No rooms live right now.</p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col p-0">
-            {stats.liveRooms.map((room) => (
-              <LiveRoomRow key={room.code} room={room} onClosed={() => setReloads((n) => n + 1)} />
-            ))}
-          </ul>
-        )}
-      </Panel>
-
-      <Panel title={`Closed rooms (${stats.closedRooms.length})`}>
-        {stats.closedRooms.length === 0 ? (
-          <p className="m-0 text-sm text-black/60">No closed rooms waiting to be deleted.</p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col p-0">
-            {stats.closedRooms.map((room) => (
-              <ClosedRoomRow key={room.code} room={room} onDeleted={() => setReloads((n) => n + 1)} />
-            ))}
-          </ul>
-        )}
+      <Panel title="Rooms">
+        <RoomList rooms={stats.rooms} games={stats.perGame.map((game) => game.gameSlug)} onChanged={() => setReloads((n) => n + 1)} />
       </Panel>
 
       <p className="m-0 text-xs leading-relaxed text-white/85">
@@ -166,90 +147,6 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         their browser data, or switches device, counts as a new guest (and joining their own room from a second device looks like an invite).
       </p>
     </div>
-  );
-}
-
-/** A confirm-first button that calls an admin room route, then `onDone`. */
-function RoomActionButton(props: { label: string; busyLabel: string; ariaLabel: string; confirm: string; url: string; method: "POST" | "DELETE"; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const run = async () => {
-    if (!window.confirm(props.confirm)) return;
-    setBusy(true);
-    try {
-      const response = await fetch(props.url, { method: props.method });
-      if (response.ok) return props.onDone();
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      window.alert(body?.error ?? `The server answered ${response.status}.`);
-    } catch {
-      window.alert("Couldn't reach the server.");
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={() => void run()}
-      disabled={busy}
-      aria-label={props.ariaLabel}
-      className="shrink-0 cursor-pointer rounded-lg border-2 border-[#B3123F] bg-white px-3 py-1.5 text-sm font-bold text-[#B3123F] disabled:cursor-wait disabled:opacity-60"
-    >
-      {busy ? props.busyLabel : props.label}
-    </button>
-  );
-}
-
-function LiveRoomRow({ room, onClosed }: { room: LiveRoom; onClosed: () => void }) {
-  const label = room.name ?? room.code;
-  const what = `${gameTitle(room.gameSlug)} room "${label}"`;
-  return (
-    <li className="flex items-center gap-3 border-b border-black/10 py-2.5 text-sm last:border-0">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-bold">{gameTitle(room.gameSlug)}</span>
-        <a href={roomHref(room.gameSlug, room.code)} target="_blank" rel="noreferrer" className="font-semibold text-[#0F7983] underline">
-          {label}
-        </a>
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className={`size-2 rounded-full ${room.status === "playing" ? "bg-[#1F8A4C]" : "bg-black/30"}`} />
-          {room.status === "playing" ? "Playing" : "Waiting"}
-        </span>
-        <span className="text-black/60 tabular-nums">
-          {room.seatsFilled}/{room.maxPlayers} seats · {room.online} online · opened {formatDuration(room.createdAgoMs)} ago
-        </span>
-      </div>
-      <RoomActionButton
-        label="Close"
-        busyLabel="Closing…"
-        ariaLabel={`Close room ${label}`}
-        confirm={`Close the ${what}? Everyone in it sees "This room was closed" and can't play on. This can't be undone.`}
-        url={`/api/admin/rooms/${room.code}/close`}
-        method="POST"
-        onDone={onClosed}
-      />
-    </li>
-  );
-}
-
-function ClosedRoomRow({ room, onDeleted }: { room: ClosedRoom; onDeleted: () => void }) {
-  const label = room.name ?? room.code;
-  const what = `${gameTitle(room.gameSlug)} room "${label}"`;
-  return (
-    <li className="flex items-center gap-3 border-b border-black/10 py-2.5 text-sm last:border-0">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-bold">{gameTitle(room.gameSlug)}</span>
-        <span className="font-semibold">{label}</span>
-        <span className="text-black/60 tabular-nums">closed {formatDuration(room.closedAgoMs)} ago</span>
-      </div>
-      <RoomActionButton
-        label="Delete"
-        busyLabel="Deleting…"
-        ariaLabel={`Delete room ${label}`}
-        confirm={`Delete the ${what}? Its game and its name go; its numbers stay on this dashboard. Anyone who opens its link again gets a new, empty room. This can't be undone.`}
-        url={`/api/admin/rooms/${room.code}`}
-        method="DELETE"
-        onDone={onDeleted}
-      />
-    </li>
   );
 }
 

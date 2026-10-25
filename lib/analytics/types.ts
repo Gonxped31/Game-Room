@@ -81,24 +81,28 @@ export interface InviteLoop {
   loop: Rate;
 }
 
-export interface LiveRoom {
+/**
+ * - playing: someone is online and the game moved in the last 2 minutes;
+ * - waiting: someone is online, but no game is going;
+ * - idle: nobody is online;
+ * - closed: the owner closed it.
+ */
+export type RoomStatus = "playing" | "waiting" | "idle" | "closed";
+
+/** One room in the dashboard's room list. Deleted rooms aren't listed. */
+export interface RoomRow {
   code: string;
   gameSlug: string;
   name?: string;
+  /** Seats taken: the people in the room, online or not. */
   seatsFilled: number;
   maxPlayers: number;
   online: number;
-  /** "playing" when `lastActive` is fresh, else "waiting" (someone is in the room, but no game is going). */
-  status: "playing" | "waiting";
+  status: RoomStatus;
   createdAgoMs: number;
-}
-
-/** A closed room that still exists, so it can be deleted. */
-export interface ClosedRoom {
-  code: string;
-  gameSlug: string;
-  name?: string;
-  closedAgoMs: number;
+  /** Since the game last moved; absent if it never reached a playable game. */
+  lastActiveAgoMs?: number;
+  closedAgoMs?: number;
 }
 
 export interface DashboardStats {
@@ -122,7 +126,6 @@ export interface DashboardStats {
   };
   perGame: GameStats[];
   inviteLoop: InviteLoop;
-  liveRooms: LiveRoom[];
-  /** Most recently closed first. */
-  closedRooms: ClosedRoom[];
+  /** Every room that still exists: live ones first (playing, then waiting), then idle, then closed; most recent first within each. */
+  rooms: RoomRow[];
 }
