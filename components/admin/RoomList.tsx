@@ -70,6 +70,8 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
     listRef.current?.scrollTo({ top: 0 });
   };
   const update = (change: Partial<RoomFilter>) => reset((current) => ({ ...current, ...change }));
+  // After closing (one room or a selection), the filters go back to their defaults; deleting keeps them, for deleting several closed rooms in a row.
+  const afterClose = () => reset(DEFAULT_FILTER);
 
   const matches = filterRooms(all, filter);
   const counts = countByStatus(all, filter);
@@ -100,7 +102,7 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
       busyLabel: "Closing…",
       run: async () => {
         const error = await callAdmin("/api/admin/rooms/close", "POST", { codes });
-        if (!error) setSelected(new Set());
+        if (!error) afterClose();
         return error;
       },
     });
@@ -228,6 +230,7 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
                 selected={selected.has(room.code)}
                 onToggle={() => toggle(room.code)}
                 onConfirm={setConfirming}
+                onClosed={afterClose}
               />
             ))}
           </ul>
@@ -268,7 +271,14 @@ const STATUS_DOT: Record<RoomStatus, string> = {
  * One room. `selectable`: the list has open rooms to select, so every row
  * keeps the checkbox's space (empty on a closed room) and the columns line up.
  */
-function RoomItem(props: { room: RoomRow; selectable: boolean; selected: boolean; onToggle: () => void; onConfirm: (request: ConfirmRequest) => void }) {
+function RoomItem(props: {
+  room: RoomRow;
+  selectable: boolean;
+  selected: boolean;
+  onToggle: () => void;
+  onConfirm: (request: ConfirmRequest) => void;
+  onClosed: () => void;
+}) {
   const { room, onConfirm } = props;
   const label = room.name ?? room.code;
   const what = `${gameTitle(room.gameSlug)} room "${label}"`;
@@ -323,7 +333,11 @@ function RoomItem(props: { room: RoomRow; selectable: boolean; selected: boolean
                   message: `Everyone in the ${what} sees "This room was closed" and can't play on. This can't be undone.`,
                   confirmLabel: "Close room",
                   busyLabel: "Closing…",
-                  run: () => callAdmin(`/api/admin/rooms/${room.code}/close`, "POST"),
+                  run: async () => {
+                    const error = await callAdmin(`/api/admin/rooms/${room.code}/close`, "POST");
+                    if (!error) props.onClosed();
+                    return error;
+                  },
                 },
           )
         }
