@@ -103,7 +103,7 @@ until the fourth player joins. They play 3 turns per team:
 
 Then come the end screen and a rematch with the same teams.
 
-**Matchmaking** ("Play online", `docs/matchmaking.md`) has its own check too (about
+**Matchmaking** ("Matchmaking" button, `docs/matchmaking.md`) has its own check too (about
 two minutes):
 
 ```bash

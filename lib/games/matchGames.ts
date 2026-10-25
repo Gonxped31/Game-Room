@@ -6,7 +6,7 @@ import { newGame as newScramble } from "./wordscramble/game";
 import { GAME_SLUG as WORDSCRAMBLE, MAX_PLAYERS as WORDSCRAMBLE_PLAYERS } from "./wordscramble/constants";
 
 /**
- * The games strangers can be matched into ("Play online" on the hub,
+ * The games strangers can be matched into ("Matchmaking" on the hub,
  * docs/matchmaking.md), with how a fresh public room of each starts. The
  * rules only accept `meta.publicLang` for these slugs.
  */

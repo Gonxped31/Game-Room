@@ -53,7 +53,7 @@ out for everyone and its player is locked out of that question. A right pick sco
 
 ## Public rooms (matchmaking)
 
-"Play online" rooms (`meta.publicLang`, `docs/matchmaking.md`) start from
+Public ("Matchmaking") rooms (`meta.publicLang`, `docs/matchmaking.md`) start from
 `publicGame(lang)`: already in the lobby, every topic, 10 questions. There's no host.
 `usePublicRoom` starts the game by itself with the online seats (2+), and the lobby
 shows its status and "Leave room" instead of Edit/Start.

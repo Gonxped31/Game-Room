@@ -32,7 +32,7 @@
       never the whole room.
     - It runs seat actions and presence, and writes `lastActive` at most once a
       minute while at least `minPlayers` seats are filled.
-- **Matchmaking** ("Play online", `docs/matchmaking.md`):
+- **Matchmaking** ("Matchmaking" button, `docs/matchmaking.md`):
   - `shared/matchmaking.ts` - the pure decisions: `rankRooms`, `staleRooms`,
     `betterRoom` (the lone-player merge), `nextAutoStart`, and the timings.
   - `shared/findMatch.ts` - `findMatch` (search, else create a public room) and

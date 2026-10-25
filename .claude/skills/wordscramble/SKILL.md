@@ -76,7 +76,7 @@ score (20/30/40).
 
 ## Public rooms (matchmaking)
 
-"Play online" rooms (`meta.publicLang`, `docs/matchmaking.md`) use the default
+Public ("Matchmaking") rooms (`meta.publicLang`, `docs/matchmaking.md`) use the default
 settings and have no host. `usePublicRoom` starts the game by itself once an even
 number (2+) of players is online. `balanceTeams` evens out the teams among them
 first, keeping picks that fit. The lobby hides the settings and the uneven-teams

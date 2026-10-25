@@ -1,7 +1,7 @@
-# Matchmaking ("Play online")
+# Matchmaking
 
 Buzzer Quiz and Word Scramble can be played with strangers. On the hub, their cards
-have a third button, **Play online**: the player enters a display name, picks the
+have a third button, **Matchmaking**: the player enters a display name, picks the
 content language (EN/FR), and taps **Find players**. They land in a public room's
 lobby, which starts by itself once enough players are online. First to Worst,
 Co-Counsel and Night Highway stay private, link-shared games.
@@ -12,7 +12,7 @@ Co-Counsel and Night Highway stay private, link-shared games.
 | :--- | :--- |
 | Who starts a game of strangers? | Nobody: **auto-start**. Fixed default settings, no host. |
 | Language | **Separate EN and FR queues.** The panel defaults to the browser language. |
-| Entry point | A third card button, "Play online", opening a panel like Join. |
+| Entry point | A third card button, "Matchmaking" (renamed from "Play online" the same day), opening a panel like Join. |
 
 ## Data model
 

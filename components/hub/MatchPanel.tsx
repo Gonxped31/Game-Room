@@ -76,7 +76,7 @@ interface MatchPanelProps {
 }
 
 /**
- * "Play online" (docs/matchmaking.md), inside a card's popover (desktop) or
+ * "Matchmaking" (docs/matchmaking.md), inside a card's popover (desktop) or
  * sheet (mobile), styled like the Join form: a display name and the content
  * language, then Find players. The search seats this guest in a public room
  * (someone else's, or a new one) before the page changes, so the game page
@@ -121,7 +121,7 @@ export default function MatchPanel({ game, gameTitle, headingId, inSheet }: Matc
     <form onSubmit={search} aria-busy={busy} className="grid gap-2.5">
       {inSheet ? null : (
         <h2 id={headingId} className="m-0 font-[family-name:var(--font-fredoka)] text-[17px] font-bold">
-          Play {gameTitle} online
+          {gameTitle} matchmaking
         </h2>
       )}
 

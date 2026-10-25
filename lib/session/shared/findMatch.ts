@@ -6,7 +6,7 @@ import { createRoom } from "./roomActions";
 import { claimSeatUpdate, queueRemoveUpdate, type RoomMeta, takeOverSeatUpdate } from "./updates";
 
 /**
- * "Play online": finds strangers to play with (docs/matchmaking.md). There's
+ * "Matchmaking": finds strangers to play with (docs/matchmaking.md). There's
  * no matchmaking server - every searching device reads the queue and races
  * for a seat, and the seat write itself is the lock: the rules refuse a seat
  * someone else got first, and the search simply moves on to the next room.

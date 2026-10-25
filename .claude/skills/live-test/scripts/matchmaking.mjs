@@ -1,4 +1,4 @@
-// Matchmaking end-to-end ("Play online", docs/matchmaking.md), against a dev
+// Matchmaking end-to-end ("Matchmaking" button, docs/matchmaking.md), against a dev
 // server on the emulators (see dev-against-emulators.mjs). About two minutes.
 //
 // - Buzzer Quiz: a desktop player searches from the hub and gets a new public
@@ -34,10 +34,10 @@ async function player(profile, label) {
 const shot = async (page, name) => { if (out) await page.screenshot({ path: `${out}/${name}.png`, fullPage: true }); };
 const roomOf = (page) => new URL(page.url()).hash.slice(1);
 
-/** From the hub: open a card's "Play online", fill the name and language, and search. Resolves once in a room. */
+/** From the hub: open a card's "Matchmaking", fill the name and language, and search. Resolves once in a room. */
 async function playOnline(page, { title, slug, name, lang = "English", shotName }) {
   await page.goto(BASE);
-  await page.getByRole("button", { name: `Play ${title} online with other players` }).click();
+  await page.getByRole("button", { name: `Matchmaking for ${title}: play with other players` }).click();
   const dialog = page.getByRole("dialog");
   // Re-type if a dev-server reload (first compile) wiped the field.
   const input = dialog.getByLabel("Your name");
