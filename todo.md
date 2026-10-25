@@ -1,13 +1,3 @@
-# ID | P(1-3) | dep | size(S/M/L/-) | tags(a,b or -) | description
-T-010 | 3 | - | S | full-stack | Find oversized files (over ~800 lines) and dead/stale files likely to attract wasteful reads. REPORT ONLY, no refactoring. For each worthwhile split, add a separate todo with --dep on nothing and -p 3, so it can be scheduled when the other agent isn't editing those files.
-T-016 | 3 | - | S | infra | Preview deployments stop sharing production data: create a second Firebase project, deploy database.rules.json to it, set its five NEXT_PUBLIC_FIREBASE_* vars on Vercel Preview only. No code changes
-T-017 | 3 | - | S | frontend,ftw,nighthighway,buzzerquiz | Real iPhone check (Safari): Same Page note drag and the sticky hand dock under Safari's moving bars; Night Highway smooth road, touch controls, HUD, wordmark not hairline; Buzzer Quiz buzzer feel, notch and home bar. Fixes for each are in the detail
-T-018 | 3 | - | M | devops | Run two-players.mjs in CI against the emulators; deferred (Option A: local live-test only). Triggers: another developer joins, or a multiplayer regression slips past CI. See .github/workflows/ci.yml
-T-021 | - | - | M | Room cleanup function (when Firebase moves to Blaze or storage nears the free tier): scheduled Cloud Function deleting rooms idle 30+ days (lastActive, else meta.createdAt) with their roomsByName entry. New functions/ package, firebase.json
-T-024 | 2 | - | M | backend,infra | Room cleanup function (when Firebase moves to Blaze or storage nears the free tier): scheduled Cloud Function deleting rooms idle 30+ days (lastActive, else meta.createdAt) with their roomsByName entry. New functions/ package, firebase.json
-T-041 | 3 | T-040 | M | full-stack,buzzerquiz | Buzzer Quiz v2 power cards: 3 per player per game, one per question (Freeze, Double, 50/50, Steal, Shield); balance after the base game is proven fun
-T-046 | 3 | - | L | full-stack,wordchain | Later: word-building team game (Ghost-like). Teams add one letter per turn; the app refuses letters that can't lead to a word; completing a 4+ letter word the next team can't extend scores its length. Needs EN+FR dictionaries
-T-049 | 3 | T-040 | L | content,buzzerquiz | Grow the Buzzer Quiz bank from 20 toward ~40 questions per topic per language (~480), fact-checked
-T-050 | 3 | - | S | full-stack | Drop the always-empty names field from WithIdentity/WithMultiplayerIdentity and every game's state (ftw, cocounsel, nighthighway, buzzerquiz, wordscramble: newGame + normalize), checking the rules still accept old states
-T-054 | 1 | - | S | devops | CI npm ci fails: package-lock.json is missing optional @emnapi entries (Windows npm drops them). Fix the lockfile so npm ci passes on Linux, then restore CI
-T-055 | 3 | - | S | frontend,nighthighway | Night Highway hub cards: replace the v2 hub spec's placeholder copy, chips, colors and title font (Fredoka, yellow Start) with its own design once one exists. The art is already the game's own skyline drawing (user's choice, 2026-10-24)
+# The todo queue moved to one file per todo: todos/<ID>.md, managed by
+# node .claude/skills/todo/scripts/todo.mjs (see .claude/skills/todo/SKILL.md).
+# This file stays so old branches conflict here when rebased; `migrate` reads them.

@@ -27,7 +27,7 @@ Co-Authored-By: <the trailer the session gives>
 | `references/` | The user edits it concurrently. Commit only what you changed. |
 | `AGENTS.md` Next.js block | `next dev` re-adds it; commit it with your work (see the file). |
 | `package-lock.json` | Windows npm drops Linux optional entries (T-054). Commit it only when the task changed dependencies, and say so. |
-| `todo.md`, `todos/`, `.todo-last-id` | Changed only by the todo script; commit them with the work they track. |
+| `todos/`, `todo-archive.md` | Changed only by the todo script; commit them with the work they track. One file per todo, so parallel branches merge cleanly (`todo` skill, section 3). |
 | Night Highway's generated engine | Kept in git; commit regenerated output with the change that caused it. |
 | `*-debug.log`, `.next/`, screenshots | Ignored or scratch; never commit them. |
 
@@ -40,6 +40,7 @@ Co-Authored-By: <the trailer the session gives>
 | Something reached `main` that shouldn't have | `git revert <sha>` on a branch, then the normal merge with approval. Never rewrite `main`. |
 | Rebase went wrong mid-way | `git rebase --abort`; the branch is back where it was. |
 | Rebase finished but the result is wrong | `git reflog` to find the pre-rebase commit; ask before `reset` to it. |
+| Rebasing a branch from before the one-file-per-todo queue (`todo.md` conflicts) | At each stop run `migrate`: `todo` skill, section 3. |
 | Autostash didn't apply cleanly | Leave the stash in place (`git stash list`), tell the user. Never `stash drop` someone else's changes. |
 | Push refused after a rebase | `git push --force-with-lease` (your branch only). If that refuses too, someone else pushed: fetch and look before anything else. |
 

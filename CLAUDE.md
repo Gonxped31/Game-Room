@@ -104,4 +104,4 @@ Before calling a change done:
 - **Anything multiplayer**: also the `live-test` skill.
 
 
-Todos: use `node .claude/skills/todo/scripts/todo.mjs` only (see the todo skill); never read or edit todo.md directly.
+Todos: use `node .claude/skills/todo/scripts/todo.mjs` only (see the todo skill); never read or edit `todos/` or `todo-archive.md` directly.
