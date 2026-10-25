@@ -20,8 +20,9 @@
 # production
 /build
 
-# solo games as offline HTML files, built before each `next build` (scripts/export-solo.mjs)
-/public/downloads/
+# solo games as offline HTML files, built before each `next build` (scripts/export-solo.mjs);
+# served only to the admin, by app/api/admin/downloads/[slug]
+/downloads/
 
 # misc
 .DS_Store

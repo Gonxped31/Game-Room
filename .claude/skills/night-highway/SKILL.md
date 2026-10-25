@@ -74,7 +74,7 @@ single-file game (visuals, controls, physics, scoring).
 - So **the engine must never fetch anything at play time** (no URLs, workers or
   files): the file plays from disk, with no network.
 - Check after a change: `npm run export:solo`, then open
-  `public/downloads/nighthighway.html` from disk with the network off.
+  `downloads/nighthighway.html` from disk with the network off.
 
 ## Shared traffic (`traffic.ts`)
 

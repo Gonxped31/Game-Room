@@ -258,7 +258,8 @@ are untouched.
 
 **Download a solo game** gives each solo game (Night Highway) as one HTML file that
 plays offline: the game alone, no rooms or hub. `npm run build` makes the files first
-(`scripts/export-solo.mjs`, into the git-ignored `public/downloads/`); locally, run
+(`scripts/export-solo.mjs`, into the git-ignored `downloads/`, which only the signed-in
+admin can download from); locally, run
 `npm run export:solo` once to get them.
 
 **Preview URLs need no Firebase setup.** Firebase's *Authorized domains* list only

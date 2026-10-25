@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Builds each solo game in exports/<slug>/ into one self-contained HTML file,
-// public/downloads/<slug>.html, which /admin offers for download: the game's
+// downloads/<slug>.html, which only the signed-in admin can download (from
+// app/api/admin/downloads/[slug]; never public/, which serves anyone): the game's
 // code (three.js included), styles (and Tailwind's base, if the export has a
 // tailwind.css) and fonts inlined, nothing fetched while it
 // plays, so the file alone plays offline. No hub, rooms or Firebase.
@@ -17,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const EXPORTS = join(repo, "exports");
-const OUT = join(repo, "public", "downloads");
+const OUT = join(repo, "downloads");
 // Google Fonts answers woff2 only to a browser it knows supports it.
 const FONT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 const INLINE_FONTS = /<meta\s+name="inline-fonts"\s+content="([^"]+)"\s*\/?>/;
@@ -123,7 +124,7 @@ const slugs = (await readdir(EXPORTS, { withFileTypes: true })).filter((entry) =
 for (const slug of slugs) {
   try {
     const bytes = await exportGame(slug);
-    console.log(`export-solo: public/downloads/${slug}.html (${(bytes / 1024 / 1024).toFixed(1)} MB)`);
+    console.log(`export-solo: downloads/${slug}.html (${(bytes / 1024 / 1024).toFixed(1)} MB)`);
   } catch (error) {
     console.warn(`export-solo: ${slug} not exported: ${error.stack ?? error}`);
   }

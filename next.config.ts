@@ -33,6 +33,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/ftw", destination: "/same-page", permanent: false }];
   },
+  // The solo games' offline HTML files (scripts/export-solo.mjs), read from
+  // disk by the admin route that serves them: shipped with it.
+  outputFileTracingIncludes: {
+    "/api/admin/downloads/*": ["./downloads/**/*"],
+  },
   turbopack: {
     rules: {
       "*.css": {
