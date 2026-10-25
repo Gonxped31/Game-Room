@@ -136,7 +136,8 @@ The page renders the first state that applies:
 - **A joiner** gets no back link (`onBack` unset), and `CasePicker` has none
   either: a multiplayer room has no link back to the hub.
 - **The Footer's "Leave room"** is the way out for both, `CasePicker`
-  included. It asks first once both are seated, gives up the seat and goes
+  included. It asks first once both are seated (`LeaveDialog`, the app's own modal,
+  following the light/dark toggle), gives up the seat and goes
   to `/`.
 - **The error and unknown-room screen** has a plain "Back to all games" link.
 

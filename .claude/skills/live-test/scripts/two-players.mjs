@@ -174,20 +174,29 @@ try {
   const uidA = (await adminRead(`games/${code}/seats`)).p1;
   await A.page.goto(`${BASE}/same-page#${code}`);
   await A.page.getByText(/Sam · (Ranking|Guessing)/).waitFor(); // seated, not "Connecting…"
-  let asked = "";
+  // The app's own dialog, never the browser's confirm().
   A.page.once("dialog", (dialog) => {
-    asked = dialog.message();
-    void dialog.accept();
+    errors.push(`A: the browser's own dialog showed (${dialog.message()})`);
+    void dialog.dismiss();
   });
+  const askLeave = A.page.getByRole("dialog", { name: "Leave this room?" });
   await A.page.getByRole("button", { name: "Leave room" }).click();
+  await askLeave.waitFor();
+  await A.page.keyboard.press("Escape"); // Escape stays
+  await askLeave.waitFor({ state: "detached" });
+  await A.page.getByRole("button", { name: "Leave room" }).click();
+  await askLeave.getByRole("button", { name: "Stay" }).click();
+  await askLeave.waitFor({ state: "detached" });
+  if ((await adminRead(`games/${code}/seats`))?.p1 !== uidA) throw new Error("Stay gave up A's seat");
+  await A.page.getByRole("button", { name: "Leave room" }).click();
+  await askLeave.getByRole("button", { name: "Leave room" }).click();
   await A.page.waitForURL(`${BASE}/`);
-  if (!asked.startsWith("Leave this room?")) throw new Error(`Leave room didn't ask first (${JSON.stringify(asked)})`);
   await until(async () => {
     const seats = await adminRead(`games/${code}/seats`);
     return seats && !seats.p1 && seats.p2;
   }, "A's seat given up, B's kept");
   if (await adminRead(`users/${uidA}/rooms/${code}`)) throw new Error("the room is still in A's Your rooms");
-  log("Leave room asked first, gave up A's seat and dropped the room from A's Your rooms");
+  log("Leave room asked first in the app's dialog (Escape and Stay stay), gave up A's seat and dropped the room from A's Your rooms");
   // Let the hub's database connection settle: one closed before it's up makes Firebase open the next
   // page on long polling, and WebKit logs that transport's teardown as a console error.
   await A.page.waitForTimeout(2000);
@@ -260,8 +269,8 @@ try {
 
   // The joiner has no back link; Leave room (asks first) gives up their seat.
   if (await E.page.getByRole("button", { name: "Back to case selection" }).count()) throw new Error("the joiner got a back link");
-  E.page.once("dialog", (dialog) => void dialog.accept());
   await E.page.getByRole("button", { name: "Leave room" }).click();
+  await E.page.getByRole("dialog", { name: "Leave this room?" }).getByRole("button", { name: "Leave room" }).click();
   await E.page.waitForURL(`${BASE}/`);
   await until(async () => Object.keys((await adminRead(`games/${cc}/seats`)) ?? {}).length === 1, "the joiner's seat given up");
   log("Co-Counsel: the joiner has no back link and left with Leave room");

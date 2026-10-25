@@ -57,17 +57,17 @@ export async function findRoomByName(name: string): Promise<{ room: string; meta
 /** Shown on a game page whose #code doesn't lead to a room of that game. */
 export const ROOM_MISSING_MESSAGE = "We can't find that room. Check the link, or go back and start a new one.";
 
-/** Asked before "Leave room" in a private room while a game is under way. */
-export const LEAVE_CONFIRM = "Leave this room? Your seat goes to whoever joins next.";
+/** Asked (`LeaveRoomDialog`) before "Leave room" in a private room while a game is under way. */
+export const LEAVE_CONFIRM = { title: "Leave this room?", message: "Your seat goes to whoever joins next." };
 
 /**
- * "Leave room" in a private room: asks first when `confirmText` is given, gives
- * up the seat (`leave`, which also drops the room from "Your rooms"), then goes
- * to the hub - even if the write failed, since the player asked to go. Public
- * rooms use `usePublicRoom`'s `leave`, which also unlists the room.
+ * "Leave room" in a private room: gives up the seat (`leave`, which also drops
+ * the room from "Your rooms"), then goes to the hub - even if the write
+ * failed, since the player asked to go. Where leaving ends a game, pages ask
+ * first with `LeaveRoomDialog`. Public rooms use `usePublicRoom`'s `leave`,
+ * which also unlists the room.
  */
-export async function leaveToHub(leave: () => Promise<void>, confirmText?: string): Promise<void> {
-  if (confirmText && !window.confirm(confirmText)) return;
+export async function leaveToHub(leave: () => Promise<void>): Promise<void> {
   await leave().catch(() => {});
   window.location.href = "/";
 }

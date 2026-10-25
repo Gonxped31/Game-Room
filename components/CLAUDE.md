@@ -5,11 +5,11 @@
   Every room screen's way out is **Leave room**:
   - Private rooms use `leaveToHub` (`lib/session/shared/roomActions.ts`); public rooms use `usePublicRoom`'s `leave`.
   - Either way it gives up the seat, drops the room from "Your rooms" and hard-navigates to `/`.
-  - Private rooms ask first (`LEAVE_CONFIRM`) where leaving ends a game for the others.
+  - Private rooms ask first where leaving ends a game for the others, in the app's own modal (`LeaveRoomDialog`, styled per game: `ftw/LeaveDialog`, `cocounsel/LeaveDialog`), never the browser's `confirm()`.
   - Only screens with no room to leave (an error, an unknown room), solo pages and `RecoveryScreen` link back to `/`.
   - Mid-game screens with no way out stay that way.
 - **`components/`** - shared pieces:
-  - `Footer` (room code, Reset game, New room, Leave room), `Button`.
+  - `Footer` (room code, Reset game, New room, Leave room), `Button`, `LeaveRoomDialog`.
   - `RolePicker` - name entry with takeover, for 2 seats (Same Page) or a `seats` list; `accentColor` themes its buttons.
   - `InviteLinkBanner` - the name field shows only for the creator.
   - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button

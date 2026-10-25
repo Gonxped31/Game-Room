@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
+import { leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import type { Role } from "@/lib/session/types";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { GAME_TITLE } from "@/lib/games/ftw/constants";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/games/ftw/game";
 import { randomRound, TOPICS } from "@/lib/games/ftw/prompts";
 import Footer from "@/components/Footer";
+import LeaveDialog from "@/components/ftw/LeaveDialog";
 import RolePicker from "@/components/RolePicker";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import RoundBoard from "@/components/ftw/RoundBoard";
@@ -78,7 +79,9 @@ export default function SamePagePage() {
   const notice = problem ?? (!game ? "Connecting to the room…" : null);
   // Asks first once both are playing: leaving ends the game for the partner.
   // Not offered under a notice: no room, or still connecting (the seat isn't known yet).
-  const leave = () => void leaveToHub(session.leave, me && bothJoined ? LEAVE_CONFIRM : undefined);
+  const [askingLeave, setAskingLeave] = useState(false);
+  const leaveNow = () => leaveToHub(session.leave);
+  const leave = () => (me && bothJoined ? setAskingLeave(true) : void leaveNow());
 
   return (
     <div style={THEME} className={`${TEXT} min-h-screen bg-[var(--desk)] text-[var(--ink)]`}>
@@ -150,6 +153,7 @@ export default function SamePagePage() {
           onNewRoom={newRoom}
           onLeave={notice ? undefined : leave}
         />
+        {askingLeave && <LeaveDialog onStay={() => setAskingLeave(false)} onLeave={leaveNow} />}
       </main>
     </div>
   );

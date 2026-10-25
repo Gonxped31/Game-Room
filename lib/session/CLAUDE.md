@@ -20,7 +20,8 @@
   - `updates.ts` - the write builders, plus the `RoomMeta`/`PresenceEntry` types.
   - `roomActions.ts` - `createRoom` (retries code collisions up to 5 times),
     `readRoomMeta`, `findRoomByName`, `renameRoom`, `leaveToHub` (a private
-    room's Leave room: optional confirm, leave, hard-navigate to `/`), and the
+    room's Leave room: leave, hard-navigate to `/`; pages ask first with
+    `components/LeaveRoomDialog`, texts in `LEAVE_CONFIRM`), and the
     user-facing messages.
   - `presence.ts` - `.info/connected` + `onDisconnect`, keyed by uid. Cleanup
     marks a guest offline but never deletes the entry, because takeover is judged
