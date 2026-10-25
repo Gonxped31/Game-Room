@@ -6,13 +6,15 @@ Moved out of CLAUDE.md to keep it short. The code map lives in nested CLAUDE.md 
 
 ```
 games/{roomCode}/
-  meta:       { gameSlug, maxPlayers, createdAt, createdBy, name?, nameKey? }  // write-once except name/nameKey (creator only)
+  meta:       { gameSlug, maxPlayers, createdAt, createdBy, name?, nameKey?, publicLang? }  // write-once except name/nameKey (creator only); publicLang = a public (matchmade) room
   seats:      { p1: uid, ... }        members: { [uid]: "p1" }               // always written together
   players:    { p1: { name }, ... }   presence: { [uid]: { online, lastSeen } }
   lastActive: number                  ftw | cocounsel | nighthighway: { ...game state... }  // validated per game
   nighthighwayCars: { p1: {...}, p2: {...} }                                 // live cars, each seat writes its own
   buzzerquiz: { ...game state, buzzes included... }                         // Buzzer Quiz, maxPlayers 4
   wordscramble: { ...game state... }  wordscrambleTyping: { pN: { at } }     // Word Scramble, maxPlayers 8; each seat its own typing signal
+  autoStart: number                                                         // public rooms only: when the game starts by itself (docs/matchmaking.md)
+queue/{slug}/{lang}/{roomCode}: { players, updatedAt }                     // matchmaking: waiting public rooms; listable per slug+lang
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 ```

@@ -74,6 +74,14 @@ score (20/30/40).
 - **"Is arranging…"**: `wordscrambleTyping/{seat}: { at }`, written at most every 2 s
   while a player moves tiles. Teammates show it for 3 s.
 
+## Public rooms (matchmaking)
+
+"Play online" rooms (`meta.publicLang`, `docs/matchmaking.md`) use the default
+settings and have no host. `usePublicRoom` starts the game by itself once an even
+number (2+) of players is online. `balanceTeams` evens out the teams among them
+first, keeping picks that fit. The lobby hides the settings and the uneven-teams
+warning.
+
 ## Gotchas
 
 - Adding words: run `npm test`. It refuses a word that's an anagram of another in

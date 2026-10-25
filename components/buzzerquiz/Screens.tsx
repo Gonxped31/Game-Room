@@ -312,7 +312,27 @@ export function InviteCard({ room, roomName, onRename, nameError }: { room: stri
 
 // ---- Waiting room -----------------------------------------------------------------------
 
-export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSetup, invite, onEdit, onStart }: {
+/** A public room's lobby (matchmaking, docs/matchmaking.md): no host, so the start block says when the game starts by itself. */
+export interface MatchLobby {
+  /** "Starting in 12 s", "Waiting for more players…" */
+  status: string;
+  onLeave: () => void;
+}
+
+function MatchStatus({ status, onLeave }: MatchLobby) {
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4">
+      <h2 className={LABEL}>Playing online</h2>
+      <p role="status" aria-live="polite" className={`${DISPLAY} m-0 text-[22px] font-extrabold`}>
+        {status}
+      </p>
+      <p className={`${TEXT} m-0 text-[15px] text-[var(--text-muted)]`}>The quiz starts by itself once enough players are here.</p>
+      <SecondaryButton onClick={onLeave}>Leave room</SecondaryButton>
+    </section>
+  );
+}
+
+export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSetup, invite, match, onEdit, onStart }: {
   room: string;
   seats: SeatId[];
   names: Partial<Record<SeatId, string>>;
@@ -323,6 +343,8 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
   /** The host is still choosing the topics. */
   inSetup: boolean;
   invite: ReactNode;
+  /** Set in a public room: replaces the host's Start (and the wait for the host). */
+  match?: MatchLobby;
   onEdit: () => void;
   onStart: () => void;
 }) {
@@ -378,7 +400,9 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
       )}
     </section>
   );
-  const start = isHost ? (
+  const start = match ? (
+    <MatchStatus {...match} />
+  ) : isHost ? (
     <div className="flex flex-col gap-2">
       <PrimaryButton disabled={joined.length < MIN_PLAYERS || inSetup} onClick={onStart}>
         {joined.length < MIN_PLAYERS ? `Needs ${MIN_PLAYERS} players` : `Start with ${joined.length} players`}

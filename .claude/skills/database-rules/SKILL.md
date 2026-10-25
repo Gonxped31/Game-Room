@@ -23,6 +23,8 @@ games/{roomCode}/
   nighthighwayCars/{pN}        -- Night Highway's live cars: only the uid seated in pN writes it
   buzzerquiz                   -- Buzzer Quiz (maxPlayers must be 4): the whole game, buzzes included
   wordscramble, wordscrambleTyping/{pN} -- Word Scramble (maxPlayers must be 8); each seat's own typing signal
+  meta/publicLang, autoStart   -- public (matchmade) rooms: buzzerquiz/wordscramble only; autoStart members only (docs/matchmaking.md)
+queue/{slug}/{lang}/{room}     -- matchmaking queue: listable per slug+lang; members write; anyone deletes a stale (60 s) entry
 roomsByName/{nameKey}: code    -- unique; only the room's creator can claim or delete it
 users/{uid}/rooms/{code}       -- only that uid reads or writes; fixed fields
 ```
@@ -37,7 +39,8 @@ Reads: any signed-in guest can read one room or one name entry. Nobody can read
    - `gameState.test.ts` - per-game state shapes, with valid states built by
      playing the real state machine;
    - `sessionUpdates.test.ts` - the app's own update builders sent through the
-     rules.
+     rules;
+   - `matchmaking.test.ts` - public rooms, the queue and `autoStart`.
 
    Use `assertSucceeds`/`assertFails` from `@firebase/rules-unit-testing`, and the
    fixtures in `tests/rules/helpers.ts` (`seedRoom`, `dbAs`, `TS` for a server

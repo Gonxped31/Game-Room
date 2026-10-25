@@ -8,17 +8,18 @@ const MAX_CREATE_ATTEMPTS = 5;
  * Creates a room and returns its code. With no `code`, generates one and
  * retries up to 5 times if it collides with an existing room (the rules
  * refuse to overwrite an existing `meta`). With a `code` - a link to a room
- * that doesn't exist yet - tries just that one.
+ * that doesn't exist yet - tries just that one. `publicLang` makes it a
+ * public room, listed in that language's matchmaking queue.
  */
-export async function createRoom(opts: { uid: string; gameSlug: string; maxPlayers: number; initialState: unknown; code?: string }): Promise<string> {
-  const { uid, gameSlug, maxPlayers, initialState, code } = opts;
+export async function createRoom(opts: { uid: string; gameSlug: string; maxPlayers: number; initialState: unknown; code?: string; publicLang?: string }): Promise<string> {
+  const { uid, gameSlug, maxPlayers, initialState, code, publicLang } = opts;
   const attempts = code ? 1 : MAX_CREATE_ATTEMPTS;
   for (let i = 0; i < attempts; i++) {
     const candidate = code ?? generateRoomCode();
     // No rules in local mode to refuse an overwrite - check first instead.
     if (isLocalMode && (await readRoomMeta(candidate))) continue;
     try {
-      await updateRoot(createRoomUpdate({ code: candidate, uid, gameSlug, maxPlayers, initialState, ts: serverTimestamp() }));
+      await updateRoot(createRoomUpdate({ code: candidate, uid, gameSlug, maxPlayers, initialState, ts: serverTimestamp(), publicLang }));
       return candidate;
     } catch {
       // taken (or an invalid code) - try another

@@ -27,6 +27,12 @@ export interface RoomMeta {
   name?: string;
   /** `name` normalized - the key of its `roomsByName` entry. Always set together with `name`. */
   nameKey?: string;
+  /**
+   * Set only on a public room (one made by matchmaking, for strangers): the
+   * language of its queue, `queue/{gameSlug}/{publicLang}`. Write-once, with
+   * the rest of meta.
+   */
+  publicLang?: string;
 }
 
 /** One guest's entry in their own room list (`users/{uid}/rooms/{code}`). */
@@ -56,15 +62,29 @@ export function nameKey(name: string): string | null {
  * A brand-new room: meta (write-once), the game's initial state, and the
  * creator's own room-list entry. Nobody is seated yet - the creator claims a
  * seat through the game's picker afterwards, like everyone else (a game like
- * Co-Counsel lets the creator choose p2).
+ * Co-Counsel lets the creator choose p2). A public room (`publicLang`) is
+ * also listed in its matchmaking queue, with nobody in it yet.
  */
-export function createRoomUpdate(opts: { code: string; uid: string; gameSlug: string; maxPlayers: number; initialState: unknown; ts: unknown }) {
-  const { code, uid, gameSlug, maxPlayers, initialState, ts } = opts;
+export function createRoomUpdate(opts: { code: string; uid: string; gameSlug: string; maxPlayers: number; initialState: unknown; ts: unknown; publicLang?: string }) {
+  const { code, uid, gameSlug, maxPlayers, initialState, ts, publicLang } = opts;
   return {
-    [room(code, "meta")]: { gameSlug, maxPlayers, createdAt: ts, createdBy: uid },
+    [room(code, "meta")]: { gameSlug, maxPlayers, createdAt: ts, createdBy: uid, ...(publicLang ? { publicLang } : {}) },
     [room(code, gameSlug)]: initialState,
     [`users/${uid}/rooms/${code}`]: { gameSlug, addedAt: ts, createdByMe: true },
+    ...(publicLang ? queueEntryUpdate({ code, gameSlug, lang: publicLang, players: 0, ts }) : {}),
   };
+}
+
+/** Lists (or refreshes) a public room in its matchmaking queue: `players` is how many seated players are online. */
+export function queueEntryUpdate(opts: { code: string; gameSlug: string; lang: string; players: number; ts: unknown }) {
+  const { code, gameSlug, lang, players, ts } = opts;
+  return { [`queue/${gameSlug}/${lang}/${code}`]: { players, updatedAt: ts } };
+}
+
+/** Takes a room out of its matchmaking queue - it's full, under way, or (anyone may do this) its entry went stale. */
+export function queueRemoveUpdate(opts: { code: string; gameSlug: string; lang: string }) {
+  const { code, gameSlug, lang } = opts;
+  return { [`queue/${gameSlug}/${lang}/${code}`]: null };
 }
 
 function userRoomEntry(meta: Pick<RoomMeta, "gameSlug" | "createdBy" | "name">, uid: string, ts: unknown) {

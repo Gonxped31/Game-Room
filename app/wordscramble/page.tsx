@@ -2,12 +2,14 @@
 
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSession } from "@/lib/session/useSession";
+import { startingSeats, usePublicRoom } from "@/lib/session/usePublicRoom";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
 import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { createPathStore, serverTimestamp } from "@/lib/store";
 import { defaultLang, LANG_LABELS } from "@/lib/games/shared/language";
+import { WORDSCRAMBLE_MATCH } from "@/lib/games/matchGames";
 import { GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, RESULT_MS, SCOREBOARD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import {
   advance,
@@ -35,7 +37,7 @@ import {
   winner,
   worth,
 } from "@/lib/games/wordscramble/game";
-import { members, otherTeam, suggestTeam, type Team } from "@/lib/games/wordscramble/teams";
+import { balanceTeams, members, otherTeam, suggestTeam, type Team } from "@/lib/games/wordscramble/teams";
 import { getWord, WORDS } from "@/lib/games/wordscramble/words";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import TurnScreen, { type TurnView } from "@/components/wordscramble/TurnScreen";
@@ -119,7 +121,26 @@ export default function WordScramblePage() {
     if (me && word) transact((s) => hint(s, me, word.word, serverNow()));
   }, [me, word, transact, serverNow]);
 
-  const startGame = () => transact((s) => start(s, { seated: joinedSeats, next: drawNext(normalize(s)), now: serverNow() }));
+  // A public room starts with whoever is online, the teams evened out among them.
+  const startGame = () =>
+    transact((s) => {
+      const current = normalize(s);
+      const seated = startingSeats(session);
+      const teamed = session.publicLang ? { ...current, teams: balanceTeams(current.teams, seated) } : current;
+      return start(teamed, { seated, next: drawNext(current), now: serverNow() });
+    });
+
+  // A public room (matchmaking): no host; it starts by itself once an even number of players (2+) is online.
+  const online = session.onlineSeats.length;
+  const publicRoom = usePublicRoom({
+    session,
+    game: WORDSCRAMBLE_MATCH,
+    inLobby: game?.phase === "lobby",
+    ready: online >= MIN_PLAYERS && online % 2 === 0,
+    onStart: startGame,
+    serverNow,
+  });
+  const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
 
   let screen;
   if (session.connectionError || session.roomMissing) {
@@ -148,10 +169,27 @@ export default function WordScramblePage() {
           names={names}
           teams={game.teams}
           me={me}
-          hostSeat={hostSeat}
-          isHost={isHost}
+          hostSeat={publicRoom.isPublic ? null : hostSeat}
+          isHost={isHost && !publicRoom.isPublic}
           settings={game.settings}
-          invite={<InviteRow room={room} roomName={session.roomName} onRename={session.canRenameRoom ? session.setRoomName : undefined} nameError={session.roomNameError} />}
+          invite={
+            publicRoom.isPublic ? null : <InviteRow room={room} roomName={session.roomName} onRename={session.canRenameRoom ? session.setRoomName : undefined} nameError={session.roomNameError} />
+          }
+          match={
+            publicRoom.isPublic
+              ? {
+                  status:
+                    publicRoom.autoStartAt != null && lobbyNow != null
+                      ? `Starting in ${Math.max(1, secondsLeft(publicRoom.autoStartAt, lobbyNow))} s`
+                      : online < MIN_PLAYERS
+                        ? "Waiting for more players…"
+                        : online % 2 === 1
+                          ? "Waiting for one more player to even the teams…"
+                          : "Getting ready…",
+                  onLeave: publicRoom.leave,
+                }
+              : undefined
+          }
           onPickTeam={(team) => me && transact((s) => pickTeam(s, me, team))}
           onSettings={{
             lang: (lang) => transact((s) => setLang(s, lang)),

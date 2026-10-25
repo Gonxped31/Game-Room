@@ -4,6 +4,8 @@ import {
   createRoomUpdate,
   leaveRoomUpdate,
   nameKey,
+  queueEntryUpdate,
+  queueRemoveUpdate,
   type RoomMeta,
   roomNameUpdate,
   swapSeatsUpdate,
@@ -142,5 +144,18 @@ describe("roomNameUpdate", () => {
       "games/abc234/meta/nameKey": null,
       "roomsByName/crew": null,
     });
+  });
+});
+
+describe("public rooms (matchmaking)", () => {
+  it("createRoomUpdate with publicLang marks the room public and lists it, empty, in that language's queue", () => {
+    const update = createRoomUpdate({ code: "abc234", uid: "alice", gameSlug: "buzzerquiz", maxPlayers: 4, initialState: { phase: "lobby" }, ts: TS, publicLang: "fr" });
+    expect(update["games/abc234/meta"]).toEqual({ gameSlug: "buzzerquiz", maxPlayers: 4, createdAt: TS, createdBy: "alice", publicLang: "fr" });
+    expect(update["queue/buzzerquiz/fr/abc234"]).toEqual({ players: 0, updatedAt: TS });
+  });
+
+  it("queueEntryUpdate and queueRemoveUpdate write one queue entry", () => {
+    expect(queueEntryUpdate({ code: "abc234", gameSlug: "wordscramble", lang: "en", players: 3, ts: TS })).toEqual({ "queue/wordscramble/en/abc234": { players: 3, updatedAt: TS } });
+    expect(queueRemoveUpdate({ code: "abc234", gameSlug: "wordscramble", lang: "en" })).toEqual({ "queue/wordscramble/en/abc234": null });
   });
 });

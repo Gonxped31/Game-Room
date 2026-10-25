@@ -54,6 +54,22 @@ export function shuffleTeams(seated: readonly SeatId[], random: () => number): T
   return teams;
 }
 
+/**
+ * Evens out the teams for a public room's auto-start (docs/matchmaking.md):
+ * `seated` (an even number) all get a team, keeping everyone's own pick where
+ * it fits; the latest joiners of the bigger team move over.
+ */
+export function balanceTeams(teams: Teams, seated: readonly SeatId[]): Teams {
+  let out: Teams = {};
+  for (const seat of seated) out[seat] = teams[seat] ?? suggestTeam(out, seated);
+  const half = Math.floor(seated.length / 2);
+  for (const team of TEAMS) {
+    const list = members(out, seated, team);
+    for (const seat of list.slice(half)) out = setTeam(out, seat, otherTeam(team));
+  }
+  return out;
+}
+
 /** Drops the seats nobody holds any more. */
 export function onlySeated(teams: Teams, seated: readonly SeatId[]): Teams {
   const out: Teams = {};

@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
+import { MATCH_GAMES } from "@/lib/games/matchGames";
 import { APP_TITLE, type GameEntry, gameBySlug, gamePath, roomHref } from "@/lib/games/registry";
 import GameCard, { SoloCard } from "./GameCard";
 import HubOverlay from "./HubOverlay";
 import JoinPanel from "./JoinPanel";
+import MatchPanel from "./MatchPanel";
 import YourRoomsList from "./YourRoomsList";
 import { useIsDesktop } from "./useIsDesktop";
 import { type SavedRoom, useSavedRooms } from "./useSavedRooms";
@@ -23,7 +25,7 @@ const FOCUS_RING_ON_YELLOW = "focus-visible:outline-[3px] focus-visible:outline-
 
 const SECTION_IDS = { social: "social-games", talk: "talk-it-out", solo: "solo-games" } as const;
 
-type Open = { kind: "join"; slug: string; anchor: HTMLElement } | { kind: "rooms"; anchor: HTMLElement } | null;
+type Open = { kind: "join" | "matchmaking"; slug: string; anchor: HTMLElement } | { kind: "rooms"; anchor: HTMLElement } | null;
 
 function ListIcon() {
   return (
@@ -268,11 +270,15 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   const close = useCallback(() => setOpen(null), []);
   const toggleJoin = (slug: string, anchor: HTMLElement) =>
     setOpen((current) => (current?.kind === "join" && current.slug === slug ? null : { kind: "join", slug, anchor }));
+  const toggleMatchmaking = (slug: string, anchor: HTMLElement) =>
+    setOpen((current) => (current?.kind === "matchmaking" && current.slug === slug ? null : { kind: "matchmaking", slug, anchor }));
   const toggleRooms = (anchor: HTMLElement) => setOpen((current) => (current?.kind === "rooms" ? null : { kind: "rooms", anchor }));
 
   const latest = rooms[0];
   const roomsLabel = `Your rooms, ${rooms.length} saved`;
   const joinGame = open?.kind === "join" ? gameBySlug(open.slug) : undefined;
+  const matchGame = open?.kind === "matchmaking" ? gameBySlug(open.slug) : undefined;
+  const matchConfig = open?.kind === "matchmaking" ? MATCH_GAMES[open.slug] : undefined;
 
   const anywhere = games.filter((game) => game.section === "anywhere");
   const talk = games.filter((game) => game.section === "talk");
@@ -286,6 +292,8 @@ export default function Hub({ games }: { games: GameEntry[] }) {
       joinOpen={open?.kind === "join" && open.slug === game.slug}
       onStart={setStartingSlug}
       onJoin={toggleJoin}
+      onMatchmaking={MATCH_GAMES[game.slug] ? toggleMatchmaking : undefined}
+      matchmakingOpen={open?.kind === "matchmaking" && open.slug === game.slug}
     />
   );
 
@@ -376,6 +384,11 @@ export default function Hub({ games }: { games: GameEntry[] }) {
       {open?.kind === "join" && joinGame ? (
         <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={`Join a ${joinGame.title} room`} labelledBy={titleId} onClose={close}>
           <JoinPanel gameTitle={joinGame.title} headingId={titleId} inSheet={!desktop} />
+        </HubOverlay>
+      ) : null}
+      {open?.kind === "matchmaking" && matchGame && matchConfig ? (
+        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={`${matchGame.title} matchmaking`} labelledBy={titleId} onClose={close}>
+          <MatchPanel game={matchConfig} gameTitle={matchGame.title} headingId={titleId} inSheet={!desktop} />
         </HubOverlay>
       ) : null}
       {open?.kind === "rooms" ? (

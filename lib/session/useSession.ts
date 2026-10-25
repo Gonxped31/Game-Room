@@ -63,6 +63,12 @@ export interface Session<TState extends WithMultiplayerIdentity> {
   setGame: (state: TState) => void;
   /** Leaves this room (giving up this guest's seat) and jumps to a brand new room. */
   newRoom: () => void;
+  /** Gives up this guest's seat and stays on the page (as a spectator) - e.g. before going back to the hub. */
+  leave: () => Promise<void>;
+  /** Held seats whose holder is connected, in seat order. */
+  onlineSeats: SeatId[];
+  /** A public room's queue language (matchmaking, docs/matchmaking.md); undefined for a private room. */
+  publicLang: string | undefined;
 }
 
 /**
@@ -127,5 +133,8 @@ export function useSession<TState extends WithMultiplayerIdentity>(opts: {
     transact: core.transact,
     setGame: core.gameStore.set,
     newRoom: () => void core.newRoom(),
+    leave: core.leave,
+    onlineSeats: joinedSeats.filter((seat) => online[seat]),
+    publicLang: core.meta?.publicLang,
   };
 }

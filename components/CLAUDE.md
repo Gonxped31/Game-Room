@@ -7,9 +7,11 @@
   - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button
     or floating pill, mobile jump buttons, the Social folder with "Play from
     anywhere" and the yellow "Talk it out" panel, the Solo folder),
-    `GameCard` (desktop card + compact mobile card, Start + Join; `SoloCard`
-    with Play solo), `HubOverlay` (one shared popover on desktop / bottom
-    sheet on mobile), `JoinPanel`, `YourRoomsList` (+ `HomeScreenTip`),
+    `GameCard` (desktop card + compact mobile card, Start + Join, plus
+    Matchmaking on matchmaking games; `SoloCard` with Play solo),
+    `HubOverlay` (one shared popover on desktop / bottom sheet on mobile),
+    `JoinPanel`, `MatchPanel` (Matchmaking: name, language, Find players),
+    `YourRoomsList` (+ `HomeScreenTip`),
     `useSavedRooms`. Art (`HubArt`: 168px panel + 92px mini per game) and
     list tiles (`GameTile`) live in `components/gameRoom/`. Room links go
     through the registry's `roomHref`, since a game's route can differ from

@@ -2,11 +2,13 @@
 
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "@/lib/session/useSession";
+import { startingSeats, usePublicRoom } from "@/lib/session/usePublicRoom";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
 import { ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { defaultLang } from "@/lib/games/shared/language";
+import { BUZZERQUIZ_MATCH } from "@/lib/games/matchGames";
 import { ANSWER_MS, COUNTDOWN_MS, GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
 import {
   advance,
@@ -93,10 +95,22 @@ export default function BuzzerQuizPage() {
   const startGame = (fromFinal: boolean) =>
     transact((current) => {
       const g = normalize(current);
-      const players = session.joinedSeats;
+      const players = startingSeats(session);
       const opts = { players, questionIds: pickQuestions(QUESTIONS, g.settings, Math.random), seed: randomSeed(), now: serverNow() };
       return fromFinal ? rematch(g, opts) : start(g, opts);
     });
+
+  // A public room (matchmaking): no host; it starts by itself once enough players are online.
+  const publicRoom = usePublicRoom({
+    session,
+    game: BUZZERQUIZ_MATCH,
+    inLobby: game?.phase === "lobby",
+    ready: session.onlineSeats.length >= MIN_PLAYERS,
+    onStart: () => startGame(false),
+    serverNow,
+  });
+  const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
+  const hosting = isHost && !publicRoom.isPublic;
 
   let screen;
   if (session.connectionError || session.roomMissing) {
@@ -106,7 +120,7 @@ export default function BuzzerQuizPage() {
   } else if (!me && !watching) {
     const underway = !["setup", "lobby", "final"].includes(game.phase);
     screen = <NameEntry seats={seats} names={names} canTakeOver={session.canTakeOver} onPick={(seat, name) => void pickIdentity(seat, name)} watching={underway || session.allJoined ? () => setWatching(true) : undefined} />;
-  } else if (game.phase === "setup" && isHost) {
+  } else if (game.phase === "setup" && hosting) {
     screen = (
       <Setup
         settings={game.settings}
@@ -123,12 +137,27 @@ export default function BuzzerQuizPage() {
         seats={seats}
         names={names}
         me={me}
-        hostSeat={hostSeat}
-        isHost={isHost}
+        hostSeat={publicRoom.isPublic ? null : hostSeat}
+        isHost={hosting}
         settings={game.settings}
         inSetup={game.phase === "setup"}
         invite={
-          <InviteCard room={room} roomName={session.roomName} onRename={session.canRenameRoom ? session.setRoomName : undefined} nameError={session.roomNameError} />
+          publicRoom.isPublic ? null : (
+            <InviteCard room={room} roomName={session.roomName} onRename={session.canRenameRoom ? session.setRoomName : undefined} nameError={session.roomNameError} />
+          )
+        }
+        match={
+          publicRoom.isPublic
+            ? {
+                status:
+                  publicRoom.autoStartAt != null && lobbyNow != null
+                    ? `Starting in ${Math.max(1, secondsLeft(publicRoom.autoStartAt, lobbyNow))} s`
+                    : session.onlineSeats.length < MIN_PLAYERS
+                      ? "Waiting for more players…"
+                      : "Getting ready…",
+                onLeave: publicRoom.leave,
+              }
+            : undefined
         }
         onEdit={() => transact(backToSetup)}
         onStart={() => startGame(false)}
@@ -154,7 +183,7 @@ export default function BuzzerQuizPage() {
           rows={ranking(game).map((row) => ({ ...row, name: nameOf(row.seat) }))}
           me={me}
           canRematch={me != null && session.enoughJoined}
-          isHost={isHost}
+          isHost={hosting}
           onRematch={() => startGame(true)}
           onNewTopics={() => transact(newTopics)}
         />

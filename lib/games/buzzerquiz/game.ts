@@ -123,6 +123,16 @@ export function newGame(lang: Lang): QuizState {
   };
 }
 
+/**
+ * A public room's game (matchmaking, docs/matchmaking.md): strangers don't
+ * pick settings, so it starts in the lobby with every topic and the default
+ * length, and starts by itself.
+ */
+export function publicGame(lang: Lang): QuizState {
+  const game = newGame(lang);
+  return { ...game, phase: "lobby", settings: { ...game.settings, topics: [...TOPICS] } };
+}
+
 // ---- Setup and lobby (host) ---------------------------------------------------------
 
 export function setLang(state: QuizState, lang: Lang): QuizState {

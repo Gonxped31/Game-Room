@@ -51,6 +51,13 @@ out for everyone and its player is locked out of that question. A right pick sco
 - `players` is fixed at Start (the seated guests then). Anyone else watches, and
   joins at the next Rematch.
 
+## Public rooms (matchmaking)
+
+"Play online" rooms (`meta.publicLang`, `docs/matchmaking.md`) start from
+`publicGame(lang)`: already in the lobby, every topic, 10 questions. There's no host.
+`usePublicRoom` starts the game by itself with the online seats (2+), and the lobby
+shows its status and "Leave room" instead of Edit/Start.
+
 ## Gotchas
 
 - Choices are **bank indexes** (0 = right) everywhere in the state; only the UI

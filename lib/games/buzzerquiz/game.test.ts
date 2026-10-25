@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, QUESTION_MS, RESULT_MS } from "./constants";
+import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, DEFAULT_LENGTH, QUESTION_MS, RESULT_MS, TOPICS } from "./constants";
 import {
   advance,
   answerTimeout,
@@ -15,6 +15,7 @@ import {
   pick,
   pickQuestions,
   pointsFor,
+  publicGame,
   type Question,
   questionTimeout,
   type QuizState,
@@ -343,5 +344,13 @@ describe("questions", () => {
     expect([...choiceOrder(7, 0)].sort()).toEqual([0, 1, 2, 3]);
     const orders = new Set(Array.from({ length: 10 }, (_, i) => choiceOrder(7, i).join("")));
     expect(orders.size).toBeGreaterThan(1);
+  });
+});
+
+describe("publicGame", () => {
+  it("is ready to start from the lobby: every topic, the default length, the room's language", () => {
+    const game = publicGame("fr");
+    expect(game.phase).toBe("lobby");
+    expect(game.settings).toEqual({ lang: "fr", topics: [...TOPICS], length: DEFAULT_LENGTH });
   });
 });

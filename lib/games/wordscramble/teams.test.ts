@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { members, onlySeated, otherTeam, setTeam, shuffleTeams, startProblem, suggestTeam } from "./teams";
+import { balanceTeams, members, onlySeated, otherTeam, setTeam, shuffleTeams, startProblem, suggestTeam } from "./teams";
 
 const seated = ["p1", "p2", "p3", "p4"];
 
@@ -62,5 +62,21 @@ describe("onlySeated / otherTeam", () => {
   it("flips the team", () => {
     expect(otherTeam("A")).toBe("B");
     expect(otherTeam("B")).toBe("A");
+  });
+});
+
+describe("balanceTeams", () => {
+  it("keeps picks that fit and moves the latest joiners off the bigger team", () => {
+    expect(balanceTeams({ p1: "A", p2: "A", p3: "A", p4: "B" }, ["p1", "p2", "p3", "p4"])).toEqual({ p1: "A", p2: "A", p3: "B", p4: "B" });
+  });
+
+  it("gives a team to anyone without one, and drops seats that aren't playing", () => {
+    expect(balanceTeams({ p1: "B", p5: "A" }, ["p1", "p2"])).toEqual({ p1: "B", p2: "A" });
+  });
+
+  it("always ends even", () => {
+    const seated = ["p1", "p2", "p3", "p4", "p5", "p6"];
+    const teams = balanceTeams({ p1: "B", p2: "B", p3: "B", p4: "B", p5: "B" }, seated);
+    expect(startProblem(teams, seated)).toBeNull();
   });
 });

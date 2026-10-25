@@ -1,0 +1,141 @@
+/**
+ * Matchmaking (docs/matchmaking.md): public rooms (`meta.publicLang`), their
+ * queue entries (`queue/{slug}/{lang}/{room}`) and the room-level
+ * `autoStart` deadline, written with the app's own update builders.
+ */
+import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
+import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import { claimSeatUpdate, createRoomUpdate, queueEntryUpdate, queueRemoveUpdate, type RoomMeta } from "@/lib/session/shared/updates";
+import { publicGame } from "@/lib/games/buzzerquiz/game";
+import { newGame as newScramble } from "@/lib/games/wordscramble/game";
+import { dbAs, ROOM, seed, setupEnv, TS } from "./helpers";
+
+let env: RulesTestEnvironment;
+
+beforeAll(async () => {
+  env = await setupEnv("demo-rules-matchmaking");
+});
+afterAll(async () => {
+  await env.cleanup();
+});
+beforeEach(async () => {
+  await env.clearDatabase();
+});
+
+const plain = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+const send = (uid: string, update: Record<string, unknown>) => dbAs(env, uid).ref().update(update);
+const entry = (room = ROOM, lang = "en", slug = "buzzerquiz") => `queue/${slug}/${lang}/${room}`;
+
+function createPublic(uid: string, opts: { gameSlug?: string; lang?: string; maxPlayers?: number } = {}) {
+  const { gameSlug = "buzzerquiz", lang = "en", maxPlayers = gameSlug === "wordscramble" ? 8 : 4 } = opts;
+  const initialState = plain(gameSlug === "wordscramble" ? newScramble("en") : gameSlug === "buzzerquiz" ? publicGame("en") : {});
+  return createRoomUpdate({ code: ROOM, uid, gameSlug, maxPlayers, initialState, ts: TS, publicLang: lang });
+}
+
+const meta = (creator: string): RoomMeta => ({ gameSlug: "buzzerquiz", maxPlayers: 4, createdAt: 1, createdBy: creator, publicLang: "en" });
+const claim = (uid: string, seat: string) => claimSeatUpdate({ code: ROOM, seat, uid, name: uid, meta: meta("alice"), ts: TS });
+
+/** A public Buzzer Quiz room by alice, listed in the EN queue, with `seated` in p1, p2, ... */
+async function seedPublic(seated: string[], opts: { updatedAt?: number; publicLang?: string | null } = {}) {
+  const { updatedAt = Date.now() - 1000, publicLang = "en" } = opts;
+  const data: Record<string, unknown> = {
+    [`games/${ROOM}/meta`]: { gameSlug: "buzzerquiz", maxPlayers: 4, createdAt: Date.now() - 5000, createdBy: "alice", ...(publicLang ? { publicLang } : {}) },
+    [`games/${ROOM}/buzzerquiz`]: plain(publicGame("en")),
+    [entry()]: { players: seated.length, updatedAt },
+  };
+  seated.forEach((uid, i) => {
+    data[`games/${ROOM}/seats/p${i + 1}`] = uid;
+    data[`games/${ROOM}/members/${uid}`] = `p${i + 1}`;
+  });
+  await seed(env, data);
+}
+
+describe("creating a public room", () => {
+  it("lists a new Buzzer Quiz or Word Scramble room in its language's queue", async () => {
+    await assertSucceeds(send("alice", createPublic("alice")));
+    await env.clearDatabase();
+    await assertSucceeds(send("alice", createPublic("alice", { gameSlug: "wordscramble", lang: "fr" })));
+  });
+
+  it("then seats its creator", async () => {
+    await assertSucceeds(send("alice", createPublic("alice")));
+    await assertSucceeds(send("alice", claim("alice", "p1")));
+  });
+
+  it("refuses a public 1v1 game, or a language with no queue", async () => {
+    await assertFails(send("alice", createRoomUpdate({ code: ROOM, uid: "alice", gameSlug: "ftw", maxPlayers: 2, initialState: {}, ts: TS, publicLang: "en" })));
+    await assertFails(send("alice", createPublic("alice", { lang: "de" })));
+  });
+
+  it("refuses listing a room in the other language's queue", async () => {
+    const update: Record<string, unknown> = createPublic("alice");
+    delete update[entry()];
+    await assertFails(send("alice", { ...update, [entry(ROOM, "fr")]: { players: 0, updatedAt: TS } }));
+  });
+
+  it("refuses adding publicLang to an existing room", async () => {
+    await seedPublic(["alice"], { publicLang: null });
+    await assertFails(send("alice", { [`games/${ROOM}/meta/publicLang`]: "en" }));
+  });
+});
+
+describe("the queue", () => {
+  it("any signed-in guest can list one game's queue in one language, but not the whole queue", async () => {
+    await seedPublic(["alice"]);
+    await assertSucceeds(dbAs(env, "stranger").ref("queue/buzzerquiz/en").get());
+    await assertFails(dbAs(env, "stranger").ref("queue").get());
+    await assertFails(dbAs(env, "stranger").ref("queue/buzzerquiz").get());
+    await assertFails(dbAs(env, null).ref("queue/buzzerquiz/en").get());
+  });
+
+  it("a member refreshes or removes the room's entry", async () => {
+    await seedPublic(["alice", "bob"]);
+    await assertSucceeds(send("bob", queueEntryUpdate({ code: ROOM, gameSlug: "buzzerquiz", lang: "en", players: 2, ts: TS })));
+    await assertSucceeds(send("bob", queueRemoveUpdate({ code: ROOM, gameSlug: "buzzerquiz", lang: "en" })));
+  });
+
+  it("refuses an entry from a non-member, for a private room, or with bad fields", async () => {
+    await seedPublic(["alice"]);
+    await assertFails(send("stranger", queueEntryUpdate({ code: ROOM, gameSlug: "buzzerquiz", lang: "en", players: 1, ts: TS })));
+    await assertFails(send("alice", { [entry()]: { players: 9, updatedAt: TS } }));
+    await assertFails(send("alice", { [entry()]: { players: 1, updatedAt: TS, extra: true } }));
+    await assertFails(send("alice", { [entry(ROOM, "en", "wordscramble")]: { players: 1, updatedAt: TS } }));
+    await env.clearDatabase();
+    await seedPublic(["alice"], { publicLang: null });
+    await assertFails(send("alice", queueEntryUpdate({ code: ROOM, gameSlug: "buzzerquiz", lang: "en", players: 1, ts: TS })));
+  });
+
+  it("anyone may clear a stale entry, or one whose room is gone - never a fresh one", async () => {
+    await seedPublic(["alice"]);
+    await assertFails(send("stranger", queueRemoveUpdate({ code: ROOM, gameSlug: "buzzerquiz", lang: "en" })));
+    await seedPublic(["alice"], { updatedAt: Date.now() - 120_000 });
+    await assertSucceeds(send("stranger", queueRemoveUpdate({ code: ROOM, gameSlug: "buzzerquiz", lang: "en" })));
+    await env.clearDatabase();
+    await seed(env, { [entry("zzz234")]: { players: 1, updatedAt: Date.now() } });
+    await assertSucceeds(send("stranger", queueRemoveUpdate({ code: "zzz234", gameSlug: "buzzerquiz", lang: "en" })));
+  });
+
+  it("a stranger takes a free seat in a public room like any other", async () => {
+    await seedPublic(["alice"]);
+    await assertSucceeds(send("bob", claim("bob", "p2")));
+    await assertFails(send("carol", claim("carol", "p2")));
+  });
+});
+
+describe("autoStart", () => {
+  it("members of a public room set and clear it", async () => {
+    await seedPublic(["alice", "bob"]);
+    await assertSucceeds(dbAs(env, "bob").ref(`games/${ROOM}/autoStart`).set(Date.now() + 20_000));
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/autoStart`).set(null));
+  });
+
+  it("refuses a non-member, a private room, or a deadline over a minute away", async () => {
+    await seedPublic(["alice", "bob"]);
+    await assertFails(dbAs(env, "stranger").ref(`games/${ROOM}/autoStart`).set(Date.now() + 20_000));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/autoStart`).set(Date.now() + 5 * 60_000));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/autoStart`).set("soon"));
+    await env.clearDatabase();
+    await seedPublic(["alice", "bob"], { publicLang: null });
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/autoStart`).set(Date.now() + 20_000));
+  });
+});

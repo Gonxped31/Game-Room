@@ -32,6 +32,16 @@
       never the whole room.
     - It runs seat actions and presence, and writes `lastActive` at most once a
       minute while at least `minPlayers` seats are filled.
+- **Matchmaking** ("Play online", `docs/matchmaking.md`):
+  - `shared/matchmaking.ts` - the pure decisions: `rankRooms`, `staleRooms`,
+    `betterRoom` (the lone-player merge), `nextAutoStart`, and the timings.
+  - `shared/findMatch.ts` - `findMatch` (search, else create a public room) and
+    `tryJoinRoom`. The seat write is the lock: a lost race is refused by the
+    rules and the search moves on.
+  - `usePublicRoom.ts` - runs a public room on every seated device: the lowest
+    online seat keeps the queue entry and `autoStart`; every device starts the
+    game when it passes. Pages start public games with `startingSeats` (the
+    online ones).
 - **`lib/session/useSession.ts`** - the session hook for any game size (2–8
   seats, `maxPlayers` and optional `minPlayers`): seats, presence, room name,
   `isHost`, `moveToSeat`. Games with more than 2 players call it directly.

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import GameArt from "@/components/gameRoom/HubArt";
 import type { GameEntry } from "@/lib/games/registry";
 
@@ -25,6 +25,10 @@ interface GameCardProps {
   joinOpen: boolean;
   onStart: (slug: string) => void;
   onJoin: (slug: string, button: HTMLButtonElement) => void;
+  /** Games strangers can be matched into get a third button, "Matchmaking" (docs/matchmaking.md). */
+  onMatchmaking?: (slug: string, button: HTMLButtonElement) => void;
+  /** Whether this card's Matchmaking panel is open (for aria-expanded). */
+  matchmakingOpen?: boolean;
 }
 
 function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; className: string }) {
@@ -77,6 +81,36 @@ function StartJoin({ game, startingSlug, joinOpen, onStart, onJoin, size }: Game
   );
 }
 
+function GlobeIcon() {
+  return (
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+      <circle cx="10" cy="10" r="8" />
+      <path d="M2 10h16M10 2c2.5 2.4 3.5 5 3.5 8s-1 5.6-3.5 8c-2.5-2.4-3.5-5-3.5-8s1-5.6 3.5-8Z" />
+    </svg>
+  );
+}
+
+/** "Matchmaking": full width under Start + Join, ink fill with an accent shadow. */
+function Matchmaking({ game, onMatchmaking, matchmakingOpen = false, size }: GameCardProps & { size: "desktop" | "mobile" }) {
+  if (!onMatchmaking) return null;
+  return (
+    <button
+      type="button"
+      aria-label={`Matchmaking for ${game.title}: play with other players`}
+      aria-haspopup="dialog"
+      aria-expanded={matchmakingOpen}
+      onClick={(e) => onMatchmaking(game.slug, e.currentTarget)}
+      className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-[14px] border-2 text-white shadow-[0_4px_0_var(--accent)] ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
+        size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
+      }`}
+      style={{ backgroundColor: game.ink, borderColor: game.ink, "--accent": game.accentColor } as CSSProperties}
+    >
+      <GlobeIcon />
+      Matchmaking
+    </button>
+  );
+}
+
 /** "Play solo": a plain link to the solo page (no room, no invite). */
 function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "desktop" | "mobile" }) {
   return (
@@ -94,7 +128,7 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
 /**
  * One game's card in a Social folder (references/game-room/game-room-ui-spec.md,
  * "Game card"): the 300px desktop card (art panel, title, description, chips,
- * Start + Join) from 760px, the compact card (mini art beside the text) below.
+ * Start + Join, and Matchmaking for games strangers can play) from 760px, the compact card (mini art beside the text) below.
  * Both are in the DOM; CSS shows one.
  */
 export default function GameCard(props: GameCardProps) {
@@ -113,13 +147,15 @@ export default function GameCard(props: GameCardProps) {
             {game.description}
           </p>
           <Chips game={game} tags={game.tags} className="text-[13px]" />
-          <div className="mt-auto pt-1.5">
+          <div className="mt-auto flex flex-col gap-2.5 pt-1.5">
             <StartJoin {...props} size="desktop" />
+            <Matchmaking {...props} size="desktop" />
           </div>
         </div>
       </article>
       <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
         <StartJoin {...props} size="mobile" />
+        <Matchmaking {...props} size="mobile" />
       </CompactCard>
     </>
   );

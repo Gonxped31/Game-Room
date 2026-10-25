@@ -185,7 +185,33 @@ export function InviteRow({ room, roomName, onRename, nameError }: { room: strin
 
 // ---- Team lobby -------------------------------------------------------------------------
 
-export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost, settings, invite, onPickTeam, onSettings, onStart }: {
+/** A public room's lobby (matchmaking, docs/matchmaking.md): no host, no settings; the game starts by itself with even teams. */
+export interface MatchLobby {
+  /** "Starting in 12 s", "Waiting for one more player to even the teams…" */
+  status: string;
+  onLeave: () => void;
+}
+
+function MatchStatus({ status, onLeave, settings }: MatchLobby & { settings: Settings }) {
+  return (
+    <section className="flex flex-col gap-3 rounded-[22px] border-2 border-[var(--line)] bg-[var(--panel)] p-4 min-[900px]:flex-row min-[900px]:items-center min-[900px]:gap-5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h2 className={LABEL}>
+          Playing online · {LANG_LABELS[settings.lang]} · {settings.turnsPerTeam} turns per team
+        </h2>
+        <p role="status" aria-live="polite" className={`${DISPLAY} m-0 text-[24px]`}>
+          {status}
+        </p>
+        <p className={`${TEXT} m-0 text-[15px] font-bold text-[var(--muted)]`}>Teams are evened out when the game starts.</p>
+      </div>
+      <ChunkyButton white className="min-[900px]:w-[220px]" onClick={onLeave}>
+        Leave room
+      </ChunkyButton>
+    </section>
+  );
+}
+
+export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost, settings, invite, match, onPickTeam, onSettings, onStart }: {
   room: string;
   seats: SeatId[];
   joined: SeatId[];
@@ -196,6 +222,8 @@ export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost,
   isHost: boolean;
   settings: Settings;
   invite: React.ReactNode;
+  /** Set in a public room: replaces the settings, Start and the even-teams warning. */
+  match?: MatchLobby;
   onPickTeam: (team: Team) => void;
   onSettings: { lang: (lang: Lang) => void; mode: (mode: Settings["mode"]) => void; turns: (n: number) => void; target: (n: number) => void };
   onStart: () => void;
@@ -240,7 +268,9 @@ export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost,
     );
   };
 
-  const settingsPanel = isHost ? (
+  const settingsPanel = match ? (
+    <MatchStatus {...match} settings={settings} />
+  ) : isHost ? (
     <section className="flex flex-col gap-3 rounded-[22px] border-2 border-[var(--line)] bg-[var(--panel)] p-4 min-[900px]:flex-row min-[900px]:flex-wrap min-[900px]:items-end min-[900px]:gap-5">
       <div className="flex flex-col gap-1.5 min-[900px]:w-[240px]">
         <h3 className={LABEL}>Language</h3>
@@ -280,7 +310,7 @@ export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost,
         </div>
         {invite}
         <div className="grid grid-cols-2 gap-3 min-[900px]:gap-5">{TEAMS.map(column)}</div>
-        {problem && joined.length > 0 ? (
+        {problem && joined.length > 0 && !match ? (
           <p role="status" className={`${TEXT} m-0 rounded-2xl border-2 border-[var(--warn-edge)] bg-[var(--warn)] px-4 py-3 text-[15px] font-bold text-[var(--warn-ink)]`}>
             {problem.short
               ? `Teams must be even: ${problem.a} vs ${problem.b}. One more player for Team ${problem.short}, or someone switches.`

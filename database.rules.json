@@ -22,6 +22,7 @@
             ".write": "auth != null && data.parent().child('createdBy').val() == auth.uid",
             ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9-]+$/) && newData.parent().parent().parent().parent().child('roomsByName/' + newData.val()).val() == $room"
           },
+          "publicLang": { ".validate": "(newData.val() == 'en' || newData.val() == 'fr') && (newData.parent().child('gameSlug').val() == 'buzzerquiz' || newData.parent().child('gameSlug').val() == 'wordscramble')" },
           "$other": { ".validate": false }
         },
 
@@ -56,6 +57,11 @@
             "lastSeen": { ".validate": "newData.isNumber() && newData.val() <= now" },
             "$other": { ".validate": false }
           }
+        },
+
+        "autoStart": {
+          ".write": "auth != null && data.parent().child('meta/publicLang').exists() && root.child('games/' + $room + '/members/' + auth.uid).exists()",
+          ".validate": "newData.isNumber() && newData.val() <= now + 60000"
         },
 
         "lastActive": {
@@ -454,6 +460,21 @@
         },
 
         "$other": { ".validate": false }
+      }
+    },
+
+    "queue": {
+      "$slug": {
+        "$lang": {
+          ".read": "auth != null",
+          "$room": {
+            ".write": "auth != null && ((newData.exists() && newData.parent().parent().parent().parent().child('games/' + $room + '/meta/gameSlug').val() == $slug && newData.parent().parent().parent().parent().child('games/' + $room + '/meta/publicLang').val() == $lang && (root.child('games/' + $room + '/members/' + auth.uid).exists() || (!root.child('games/' + $room + '/meta').exists() && newData.parent().parent().parent().parent().child('games/' + $room + '/meta/createdBy').val() == auth.uid))) || (!newData.exists() && (root.child('games/' + $room + '/members/' + auth.uid).exists() || !root.child('games/' + $room + '/meta').exists() || data.child('updatedAt').val() < now - 60000)))",
+            ".validate": "newData.hasChildren(['players', 'updatedAt'])",
+            "players": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 8" },
+            "updatedAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$other": { ".validate": false }
+          }
+        }
       }
     },
 
