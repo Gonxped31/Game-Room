@@ -350,3 +350,53 @@ describe("gameRoomAdapter", () => {
     expect(toSnapshot(null, null, NOW)).toEqual({ rooms: [], guests: [], now: NOW });
   });
 });
+
+describe("after a stats clear", () => {
+  const CLEARED = NOW - DAY_MS;
+  const stats = computeDashboard(
+    snapshot({
+      statsSince: CLEARED,
+      rooms: [
+        // Opened before the clear, still going: listed and live, but out of the history.
+        room({ code: "before", createdAt: CLEARED - DAY_MS, lastActive: NOW - 30 * 1000, activeMinutes: 90, onlineUids: ["a"] }),
+        room({ code: "after", createdAt: NOW - 20 * MIN, lastActive: NOW - 30 * 1000, activeMinutes: 15, onlineUids: ["b"] }),
+      ],
+      guests: [
+        { uid: "a", rooms: [entry("before", CLEARED - DAY_MS, { createdByMe: true })], visits: [CLEARED - DAY_MS] },
+        { uid: "b", rooms: [entry("after", NOW - 20 * MIN, { createdByMe: true })] },
+        { uid: "c", rooms: [entry("after", NOW - 10 * MIN)] },
+      ],
+    }),
+    ["ftw"],
+  );
+
+  it("counts only rooms and guests from after it", () => {
+    expect(stats.statsSince).toBe(CLEARED);
+    expect(stats.perGame[0]).toMatchObject({ roomsAllTime: 1, roomsCreated30d: 1, playersAllTime: 2, players30d: 2, playedRooms30d: 1 });
+    expect(stats.totals).toMatchObject({ playersAllTime: 2, roomsCreated30d: 1, playMs30d: 15 * MIN });
+    expect(stats.inviteLoop.converted).toEqual({ count: 1, of: 1, rate: 1 });
+  });
+
+  it("still shows every room live and in the list", () => {
+    expect(stats.totals.liveRooms).toBe(2);
+    expect(stats.rooms.map((r) => r.code).sort()).toEqual(["after", "before"]);
+  });
+
+  it("counts a guest from before it from their first visit after it (gameRoomAdapter)", () => {
+    const games = { abc234: { meta: { gameSlug: "ftw", maxPlayers: 2, createdAt: CLEARED - DAY_MS, createdBy: "ana" }, seats: {} } };
+    const users = {
+      ana: {
+        rooms: { abc234: { gameSlug: "ftw", addedAt: CLEARED - DAY_MS, createdByMe: true } },
+        visits: { "20261023": { abc234: { gameSlug: "ftw", at: NOW - MIN } } },
+      },
+      ben: { rooms: { abc234: { gameSlug: "ftw", addedAt: CLEARED - DAY_MS } } },
+    };
+    const snap = toSnapshot(games, users, NOW, null, CLEARED);
+    expect(snap.statsSince).toBe(CLEARED);
+    expect(snap.guests).toEqual([
+      { uid: "ana", rooms: [{ code: "abc234", gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }], visits: [NOW - MIN] },
+      { uid: "ben", rooms: [] },
+    ]);
+    expect(computeDashboard(snap).totals.playersAllTime).toBe(1);
+  });
+});

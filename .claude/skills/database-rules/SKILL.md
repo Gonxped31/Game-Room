@@ -32,6 +32,7 @@ roomsByName/{nameKey}: code    -- unique; only the room's creator can claim or d
 users/{uid}/rooms/{code}       -- only that uid reads or writes; fixed fields
 users/{uid}/visits/{day}/{code} -- own only, while seated in that room: { gameSlug (the room's), at (server time, last 48 h) }
 analytics/archive/{code}       -- deleted rooms' summaries, written by /admin (firebase-admin); no rule, so clients are refused
+analytics/statsSince           -- when /admin last cleared the stats; same: admin only
 ```
 
 Reads: any signed-in guest can read one room or one name entry. Nobody can read

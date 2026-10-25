@@ -1,27 +1,10 @@
 import { type Database, ServerValue } from "firebase-admin/database";
-import { isRoomCode } from "@/lib/session/room";
-
-/** The most rooms one request may close. */
-export const MAX_ROOMS_PER_CLOSE = 500;
 
 export interface CloseResult {
   closed: string[];
   alreadyClosed: string[];
   /** No such room (deleted since the dashboard loaded, or never existed). */
   missing: string[];
-}
-
-/**
- * The room codes in a bulk close request's body (`{codes: [...]}`), without
- * duplicates, or the reason it's refused.
- */
-export function parseRoomCodes(body: unknown): { codes: string[] } | { error: string } {
-  const codes = (body as { codes?: unknown } | null)?.codes;
-  if (!Array.isArray(codes) || codes.length === 0) return { error: "No rooms given." };
-  if (!codes.every((code) => typeof code === "string" && isRoomCode(code))) return { error: "Not a room code." };
-  const unique = [...new Set(codes as string[])];
-  if (unique.length > MAX_ROOMS_PER_CLOSE) return { error: `At most ${MAX_ROOMS_PER_CLOSE} rooms at once.` };
-  return { codes: unique };
 }
 
 /**

@@ -21,6 +21,7 @@ roomsByName/{nameKey}: roomCode                                             // u
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 users/{uid}/visits/{yyyymmdd}/{roomCode}: { gameSlug, at }                 // seated in that room that UTC day; kept after "Leave room": the dashboard's player history
 analytics/archive/{roomCode}: { gameSlug, createdAt, ..., guests }        // a deleted room's summary for /admin; no client reads or writes it
+analytics/statsSince: <ms>                                                 // when /admin last cleared the stats: history before it isn't counted
 ```
 
 ## Environment notes

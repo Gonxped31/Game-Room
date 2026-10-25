@@ -247,7 +247,14 @@ Rooms are removed in two steps:
    matching the filters. Then press "Close N rooms".
 2. **Delete** it (set the Rooms status filter to "Closed"). The room and its name are removed, and a small
    summary is kept in `analytics/archive/{code}` so its numbers stay on the dashboard.
-   Anyone who opens the old link gets a new, empty room.
+   Anyone who opens the old link gets a new, empty room. Closed rooms can be selected
+   and deleted together too ("Delete N rooms").
+
+**Clear all stats** (at the bottom of `/admin`, asks for the admin password again)
+starts every number from zero. It records the time in `analytics/statsSince`, from which
+the history is counted, and erases what only the stats use: deleted rooms' summaries
+and guests' visit days. Rooms, live counts, the Rooms list and players' "Your rooms"
+are untouched.
 
 **Preview URLs need no Firebase setup.** Firebase's *Authorized domains* list only
 applies to OAuth redirect/popup and email-link sign-ins, not anonymous sign-in, so

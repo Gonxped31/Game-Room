@@ -5,13 +5,14 @@ import { formatDuration } from "@/lib/analytics/format";
 import { countByStatus, DEFAULT_FILTER, filterRooms, PLAYERS_OPTIONS, type RoomFilter, STATUS_OPTIONS } from "@/lib/analytics/roomFilter";
 import type { RoomRow, RoomStatus } from "@/lib/analytics/types";
 import { gameBySlug, roomHref } from "@/lib/games/registry";
+import { callAdmin } from "./callAdmin";
 import ConfirmDialog, { type ConfirmRequest } from "./ConfirmDialog";
 
 /** Rows shown at first, and added by each "Show more". */
 const PAGE_SIZE = 50;
 /** The list scrolls inside this height, so the filters and the rest of the page stay in reach however many rooms there are. */
 const LIST_HEIGHT = "max-h-[min(65vh,36rem)]";
-/** Rooms named in a bulk close's confirm box before "and N more". */
+/** Rooms named in a bulk close or delete's confirm box before "and N more". */
 const NAMED_IN_CONFIRM = 5;
 
 const gameTitle = (slug: string) => gameBySlug(slug)?.title ?? slug;
@@ -20,6 +21,7 @@ const rooms = (n: number) => `${n} room${n === 1 ? "" : "s"}`;
 const fieldClass = "w-full rounded-lg border border-black/25 bg-white px-2.5 py-2 text-base font-normal text-black min-[760px]:text-sm";
 const labelClass = "flex min-w-0 flex-col gap-1 text-xs font-semibold text-black/60";
 const checkboxClass = "size-5 shrink-0 cursor-pointer accent-[#0F7983]";
+const bulkButtonClass = "cursor-pointer rounded-lg border-2 border-[#B3123F] bg-[#B3123F] px-3 py-1.5 text-sm font-bold text-white";
 
 /** The filters in words, for the confirm box ("Live now · Buzzer Quiz · fewer than 2 players"). */
 function describeFilter(filter: RoomFilter): string {
@@ -35,26 +37,12 @@ function describeFilter(filter: RoomFilter): string {
     .join(" · ");
 }
 
-/** Calls an admin room route; resolves to the error to show, or null when it worked. */
-async function callAdmin(url: string, method: "POST" | "DELETE", body?: unknown): Promise<string | null> {
-  try {
-    const response = await fetch(url, {
-      method,
-      ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
-    });
-    if (response.ok) return null;
-    const answer = (await response.json().catch(() => null)) as { error?: string } | null;
-    return answer?.error ?? `The server answered ${response.status}.`;
-  } catch {
-    return "Couldn't reach the server.";
-  }
-}
-
 /**
  * Every room, with filters: a search over names and codes (a pasted room
  * link works), status, game, and how many people hold a seat. Opens on the
- * live rooms. Open rooms can be selected and closed together; each row can
- * also close an open room or delete a closed one.
+ * live rooms. Rooms can be selected (or all those the filters match) to close
+ * the open ones or delete the closed ones together; each row can also close
+ * an open room or delete a closed one.
  */
 export default function RoomList({ rooms: all, games, onChanged }: { rooms: RoomRow[]; games: string[]; onChanged: () => void }) {
   const [filter, setFilter] = useState<RoomFilter>(DEFAULT_FILTER);
@@ -76,11 +64,12 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
   const matches = filterRooms(all, filter);
   const counts = countByStatus(all, filter);
   const filtered = filter.query !== "" || filter.gameSlug != null || filter.players !== DEFAULT_FILTER.players || filter.status !== DEFAULT_FILTER.status;
-  // "Select all" takes exactly the open rooms these filters match, loaded by "Show more" or not.
-  // Only open rooms can be selected; a room that closes (here or elsewhere) drops out of the selection on the next refresh.
-  const selectable = matches.filter((room) => room.status !== "closed");
-  const chosen = selectable.filter((room) => selected.has(room.code));
-  const allChosen = selectable.length > 0 && chosen.length === selectable.length;
+  // "Select all" takes exactly the rooms these filters match, loaded by "Show more" or not. The
+  // selection's open rooms can be closed, its closed ones deleted; a deleted room drops out on the next refresh.
+  const chosen = matches.filter((room) => selected.has(room.code));
+  const allChosen = matches.length > 0 && chosen.length === matches.length;
+  const chosenOpen = chosen.filter((room) => room.status !== "closed");
+  const chosenClosed = chosen.filter((room) => room.status === "closed");
 
   const toggle = (code: string) =>
     setSelected((current) => {
@@ -88,25 +77,43 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
       if (!next.delete(code)) next.add(code);
       return next;
     });
-  const toggleAll = () => setSelected(allChosen ? new Set() : new Set(selectable.map((room) => room.code)));
+  const toggleAll = () => setSelected(allChosen ? new Set() : new Set(matches.map((room) => room.code)));
 
-  const closeChosen = () => {
-    const codes = chosen.map((room) => room.code);
-    const names = chosen.slice(0, NAMED_IN_CONFIRM).map((room) => room.name ?? room.code);
+  const confirmBulk = (verb: "Close" | "Delete", picked: RoomRow[], consequence: string, url: string, after: () => void) => {
+    const codes = picked.map((room) => room.code);
+    const names = picked.slice(0, NAMED_IN_CONFIRM).map((room) => room.name ?? room.code);
     const more = codes.length - names.length;
+    // Every room the filters match: say which filters those are.
+    const everyMatch = allChosen && picked.length === matches.length && picked.length > 1;
     const criteria = describeFilter(filter);
     setConfirming({
-      title: allChosen && codes.length > 1 ? `Close all ${codes.length} matching rooms?` : `Close ${rooms(codes.length)}?`,
-      message: `${allChosen && criteria ? `Every open room matching ${criteria}: ` : ""}${names.join(", ")}${more ? ` and ${more} more` : ""}. Everyone in them sees "This room was closed" and can't play on. This can't be undone.`,
-      confirmLabel: `Close ${rooms(codes.length)}`,
-      busyLabel: "Closing…",
+      title: everyMatch ? `${verb} all ${codes.length} matching rooms?` : `${verb} ${rooms(codes.length)}?`,
+      message: `${everyMatch && criteria ? `Every room matching ${criteria}: ` : ""}${names.join(", ")}${more ? ` and ${more} more` : ""}. ${consequence}`,
+      confirmLabel: `${verb} ${rooms(codes.length)}`,
+      busyLabel: verb === "Close" ? "Closing…" : "Deleting…",
       run: async () => {
-        const error = await callAdmin("/api/admin/rooms/close", "POST", { codes });
-        if (!error) afterClose();
+        const error = await callAdmin(url, "POST", { codes });
+        if (!error) after();
         return error;
       },
     });
   };
+  const closeChosen = () =>
+    confirmBulk(
+      "Close",
+      chosenOpen,
+      `Everyone in them sees "This room was closed" and can't play on. This can't be undone.`,
+      "/api/admin/rooms/close",
+      afterClose,
+    );
+  const deleteChosen = () =>
+    confirmBulk(
+      "Delete",
+      chosenClosed,
+      "They and their names go; their numbers stay on this dashboard. Anyone who opens one of their links again gets a new, empty room. This can't be undone.",
+      "/api/admin/rooms/delete",
+      () => setSelected(new Set()),
+    );
 
   return (
     <div className="flex flex-col gap-3">
@@ -183,50 +190,50 @@ export default function RoomList({ rooms: all, games, onChanged }: { rooms: Room
           tabIndex={0}
           className={`${LIST_HEIGHT} overflow-y-auto overscroll-contain rounded-lg border border-black/15 px-3`}
         >
-          {selectable.length > 0 && (
-            // Stays at the top while the list scrolls, so the selection can be closed from anywhere in it.
-            <div className="sticky top-0 z-10 -mx-3 flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 border-b border-black/15 bg-[#F4F8F8] px-3 py-2 text-sm">
-              <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
-                <input
-                  type="checkbox"
-                  checked={allChosen}
-                  ref={(box) => {
-                    if (box) box.indeterminate = chosen.length > 0 && !allChosen;
-                  }}
-                  onChange={toggleAll}
-                  className={checkboxClass}
-                />
-                Select all {selectable.length} matching
-              </label>
-              {chosen.length > 0 && (
-                <>
-                  <span className="text-black/60 tabular-nums">{chosen.length} selected</span>
-                  <span className="ml-auto flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(new Set())}
-                      className="cursor-pointer border-0 bg-transparent p-0 text-sm font-semibold text-[#0F7983] underline"
-                    >
-                      Clear
+          {/* Stays at the top while the list scrolls, so the selection can be acted on from anywhere in it. */}
+          <div className="sticky top-0 z-10 -mx-3 flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 border-b border-black/15 bg-[#F4F8F8] px-3 py-2 text-sm">
+            <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
+              <input
+                type="checkbox"
+                checked={allChosen}
+                ref={(box) => {
+                  if (box) box.indeterminate = chosen.length > 0 && !allChosen;
+                }}
+                onChange={toggleAll}
+                className={checkboxClass}
+              />
+              Select all {matches.length} matching
+            </label>
+            {chosen.length > 0 && (
+              <>
+                <span className="text-black/60 tabular-nums">{chosen.length} selected</span>
+                <span className="ml-auto flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(new Set())}
+                    className="cursor-pointer border-0 bg-transparent p-0 text-sm font-semibold text-[#0F7983] underline"
+                  >
+                    Clear
+                  </button>
+                  {chosenOpen.length > 0 && (
+                    <button type="button" onClick={closeChosen} className={bulkButtonClass}>
+                      Close {rooms(chosenOpen.length)}
                     </button>
-                    <button
-                      type="button"
-                      onClick={closeChosen}
-                      className="cursor-pointer rounded-lg border-2 border-[#B3123F] bg-[#B3123F] px-3 py-1.5 text-sm font-bold text-white"
-                    >
-                      Close {rooms(chosen.length)}
+                  )}
+                  {chosenClosed.length > 0 && (
+                    <button type="button" onClick={deleteChosen} className={bulkButtonClass}>
+                      Delete {rooms(chosenClosed.length)}
                     </button>
-                  </span>
-                </>
-              )}
-            </div>
-          )}
+                  )}
+                </span>
+              </>
+            )}
+          </div>
           <ul className="m-0 flex list-none flex-col p-0">
             {matches.slice(0, limit).map((room) => (
               <RoomItem
                 key={room.code}
                 room={room}
-                selectable={selectable.length > 0}
                 selected={selected.has(room.code)}
                 onToggle={() => toggle(room.code)}
                 onConfirm={setConfirming}
@@ -267,18 +274,7 @@ const STATUS_DOT: Record<RoomStatus, string> = {
   closed: "bg-[#B3123F]",
 };
 
-/**
- * One room. `selectable`: the list has open rooms to select, so every row
- * keeps the checkbox's space (empty on a closed room) and the columns line up.
- */
-function RoomItem(props: {
-  room: RoomRow;
-  selectable: boolean;
-  selected: boolean;
-  onToggle: () => void;
-  onConfirm: (request: ConfirmRequest) => void;
-  onClosed: () => void;
-}) {
+function RoomItem(props: { room: RoomRow; selected: boolean; onToggle: () => void; onConfirm: (request: ConfirmRequest) => void; onClosed: () => void }) {
   const { room, onConfirm } = props;
   const label = room.name ?? room.code;
   const what = `${gameTitle(room.gameSlug)} room "${label}"`;
@@ -295,12 +291,7 @@ function RoomItem(props: {
 
   return (
     <li className="flex items-center gap-3 border-b border-black/10 py-2.5 text-sm last:border-0">
-      {props.selectable &&
-        (closed ? (
-          <span aria-hidden className="size-5 shrink-0" />
-        ) : (
-          <input type="checkbox" checked={props.selected} onChange={props.onToggle} aria-label={`Select room ${label}`} className={checkboxClass} />
-        ))}
+      <input type="checkbox" checked={props.selected} onChange={props.onToggle} aria-label={`Select room ${label}`} className={checkboxClass} />
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
         <span className="font-bold">{gameTitle(room.gameSlug)}</span>
         <a href={roomHref(room.gameSlug, room.code)} target="_blank" rel="noreferrer" className="font-semibold text-[#0F7983] underline">

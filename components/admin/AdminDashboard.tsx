@@ -5,6 +5,8 @@ import { formatCount, formatDuration, formatRate } from "@/lib/analytics/format"
 import { PLAY_ESTIMATE_CAP_MS } from "@/lib/analytics/metrics";
 import type { DashboardStats, InviteLoop } from "@/lib/analytics/types";
 import { gameBySlug } from "@/lib/games/registry";
+import { callAdmin } from "./callAdmin";
+import ConfirmDialog from "./ConfirmDialog";
 import RoomList from "./RoomList";
 
 const REFRESH_MS = 30_000;
@@ -25,6 +27,7 @@ async function fetchStats(): Promise<{ stats: DashboardStats } | { error: string
 
 const gameTitle = (slug: string) => gameBySlug(slug)?.title ?? slug;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const formatWhen = (ms: number) => new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /**
  * Live rooms, players per game, play time and return rate, refreshed every
@@ -35,6 +38,7 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
   const [load, setLoad] = useState<Load>({ kind: "loading" });
   // Bumped after closing or deleting a room, to refetch at once instead of on the next tick.
   const [reloads, setReloads] = useState(0);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,16 +71,19 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
 
   const { stats, stale } = load;
   const { totals } = stats;
+  // After a stats clear, "all time" means since then.
+  const allTime = stats.statsSince != null ? `since ${formatWhen(stats.statsSince)}` : "all time";
   return (
     <div className="flex flex-col gap-4">
       <p className="m-0 text-sm text-white/85">
         Updated {new Date(stats.generatedAt).toLocaleTimeString()} · refreshes every 30 s
+        {stats.statsSince != null && ` · stats counted since ${formatWhen(stats.statsSince)}`}
         {stale && <span className="font-bold text-white"> · last refresh failed: {stale}</span>}
       </p>
 
       <div className="grid grid-cols-2 gap-3 min-[760px]:grid-cols-4">
         <StatTile label="Live now" value={formatCount(totals.liveRooms)} note={`${totals.playingRooms} playing · ${totals.onlineGuests} guests online`} />
-        <StatTile label="Players, last 30 days" value={formatCount(totals.players30d)} note={`${formatCount(totals.playersAllTime)} all time`} />
+        <StatTile label="Players, last 30 days" value={formatCount(totals.players30d)} note={`${formatCount(totals.playersAllTime)} ${allTime}`} />
         <StatTile
           label="Play time, last 30 days"
           value={formatDuration(totals.playMs30d)}
@@ -140,6 +147,38 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
       <Panel title="Rooms">
         <RoomList rooms={stats.rooms} games={stats.perGame.map((game) => game.gameSlug)} onChanged={() => setReloads((n) => n + 1)} />
       </Panel>
+
+      <Panel title="Clear stats">
+        <p className="m-0 text-sm leading-relaxed text-black/75">
+          Starts every number on this page again from zero: players, play time, return rate and the invite loop only count what happens afterwards. Live rooms
+          and the Rooms list stay as they are; no room is closed or deleted, and players keep their rooms.
+          {stats.statsSince != null && ` Last cleared ${formatWhen(stats.statsSince)}.`}
+        </p>
+        <button
+          type="button"
+          onClick={() => setClearing(true)}
+          className="mt-3 cursor-pointer rounded-lg border-2 border-[#B3123F] bg-white px-3 py-1.5 text-sm font-bold text-[#B3123F]"
+        >
+          Clear all stats…
+        </button>
+      </Panel>
+      {clearing && (
+        <ConfirmDialog
+          request={{
+            title: "Clear all stats?",
+            message:
+              "Every number on this dashboard starts again from zero. Deleted rooms' summaries and guests' visit days are erased for good. This can't be undone. Enter the admin password to confirm.",
+            password: true,
+            confirmLabel: "Clear all stats",
+            busyLabel: "Clearing…",
+            run: (password) => callAdmin("/api/admin/stats/clear", "POST", { password }),
+          }}
+          onFinish={(done) => {
+            setClearing(false);
+            if (done) setReloads((n) => n + 1);
+          }}
+        />
+      )}
 
       <p className="m-0 text-xs leading-relaxed text-white/85">
         Play time counts the minutes a game was in progress. Rooms played before that count existed are estimated from when they were created to their last

@@ -53,18 +53,19 @@ export function toRoomSnap(code: string, raw: RawRoom): RoomSnap | null {
  * One guest's rooms, from their room list (`users/{uid}/rooms`, which "Leave
  * room" and the hub clear) and their visits (`users/{uid}/visits`, which
  * stay), so leaving a room never drops it from the numbers. A room's first
- * day is the earliest of the two.
+ * day is the earliest of the two. Anything before `from` (the last stats
+ * clear) is left out, so a room's first day is its first one since then.
  */
-export function toGuestSnap(uid: string, raw: RawUser, creatorOf: CreatorOf = () => undefined): GuestSnap {
+export function toGuestSnap(uid: string, raw: RawUser, creatorOf: CreatorOf = () => undefined, from = 0): GuestSnap {
   const rooms = new Map<string, GuestRoomSnap>();
   for (const [code, entry] of entries<Partial<UserRoomEntry> | null>(raw?.rooms)) {
-    if (!entry || typeof entry.gameSlug !== "string" || !isTime(entry.addedAt)) continue;
+    if (!entry || typeof entry.gameSlug !== "string" || !isTime(entry.addedAt) || entry.addedAt < from) continue;
     rooms.set(code, { code, gameSlug: entry.gameSlug, addedAt: entry.addedAt, createdByMe: entry.createdByMe === true || creatorOf(code) === uid });
   }
   const visits: number[] = [];
   for (const [, day] of entries<unknown>(raw?.visits)) {
     for (const [code, visit] of entries<Partial<VisitEntry> | null>(day)) {
-      if (!visit || typeof visit.gameSlug !== "string" || !isTime(visit.at)) continue;
+      if (!visit || typeof visit.gameSlug !== "string" || !isTime(visit.at) || visit.at < from) continue;
       visits.push(visit.at);
       const known = rooms.get(code);
       if (!known) rooms.set(code, { code, gameSlug: visit.gameSlug, addedAt: visit.at, createdByMe: creatorOf(code) === uid });
@@ -141,19 +142,22 @@ export function fromArchivedRoom(code: string, raw: Partial<ArchivedRoom> | null
 /**
  * `games`, `users` and `analytics/archive` as read from the database root
  * (any may be null when empty). An archived room's guest entries fill in
- * the ones the hub has since dropped from `users`.
+ * the ones the hub has since dropped from `users`. `statsSince`: when the
+ * stats were last cleared (guest activity from before is left out here, old
+ * rooms by the metrics, which still list them).
  */
-export function toSnapshot(games: unknown, users: unknown, now: number, archive: unknown = null): Snapshot {
+export function toSnapshot(games: unknown, users: unknown, now: number, archive: unknown = null, statsSince?: number): Snapshot {
+  const from = statsSince ?? 0;
   const creators = new Map<string, string>();
   for (const [code, raw] of entries<Partial<ArchivedRoom> | null>(archive)) if (typeof raw?.createdBy === "string") creators.set(code, raw.createdBy);
   for (const [code, raw] of entries<RawRoom | null>(games)) if (typeof raw?.meta?.createdBy === "string") creators.set(code, raw.meta.createdBy);
-  const guests = entries<RawUser>(users).map(([uid, raw]) => toGuestSnap(uid, raw, (code) => creators.get(code)));
+  const guests = entries<RawUser>(users).map(([uid, raw]) => toGuestSnap(uid, raw, (code) => creators.get(code), from));
   const byUid = new Map(guests.map((guest) => [guest.uid, guest]));
   const archived = entries<Partial<ArchivedRoom> | null>(archive).flatMap(([code, raw]) => {
     const room = fromArchivedRoom(code, raw);
     if (!room) return [];
     for (const [uid, entry] of entries<{ addedAt?: unknown; createdByMe?: unknown } | null>(raw?.guests)) {
-      if (!entry || !isTime(entry.addedAt)) continue;
+      if (!entry || !isTime(entry.addedAt) || entry.addedAt < from) continue;
       let guest = byUid.get(uid);
       if (!guest) {
         guest = { uid, rooms: [] };
@@ -169,5 +173,6 @@ export function toSnapshot(games: unknown, users: unknown, now: number, archive:
     rooms: [...entries<RawRoom>(games).flatMap(([code, raw]) => toRoomSnap(code, raw) ?? []), ...archived],
     guests,
     now,
+    ...(statsSince != null ? { statsSince } : {}),
   };
 }

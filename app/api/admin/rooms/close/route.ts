@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { closeRooms, parseRoomCodes } from "@/lib/admin/closeRooms";
+import { closeRooms } from "@/lib/admin/closeRooms";
 import { AdminConfigError, adminDb } from "@/lib/admin/firebaseAdmin";
 import { NO_STORE, refuseUnlessAdmin } from "@/lib/admin/guard";
+import { parseRoomCodes } from "@/lib/admin/roomCodes";
 
 /**
  * Closes several rooms at once (the dashboard's selection): body

@@ -90,8 +90,17 @@ export function computeInviteLoop(rooms: RoomSnap[], guests: GuestSnap[], since:
  * is appended, so nothing is silently dropped.
  */
 export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): DashboardStats {
-  const { rooms, guests, now } = snapshot;
-  const since = now - WINDOW_MS;
+  const { rooms, now } = snapshot;
+  // After a stats clear, history starts there; the live rooms and the room list don't.
+  const from = snapshot.statsSince ?? 0;
+  const since = Math.max(now - WINDOW_MS, from);
+  const guests = from
+    ? snapshot.guests.map((guest) => ({
+        ...guest,
+        rooms: guest.rooms.filter((entry) => entry.addedAt >= from),
+        ...(guest.visits ? { visits: guest.visits.filter((at) => at >= from) } : {}),
+      }))
+    : snapshot.guests;
   const slugs = [...gameOrder];
   const statsBySlug = new Map<string, GameStats>();
   const statsFor = (gameSlug: string) => {
@@ -114,13 +123,14 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
   let estimatedPlayRooms30d = 0;
   for (const room of rooms) {
     const stats = statsFor(room.gameSlug);
-    stats.roomsAllTime++;
+    const counted = room.createdAt >= from;
+    if (counted) stats.roomsAllTime++;
     if (room.createdAt >= since) {
       stats.roomsCreated30d++;
       roomsCreated30d++;
     }
     const play = playMs(room);
-    if (play != null && room.lastActive != null && room.lastActive >= since) {
+    if (counted && play != null && room.lastActive != null && room.lastActive >= since) {
       if (room.activeMinutes == null) estimatedPlayRooms30d++;
       stats.playedRooms30d++;
       stats.playMs30d += play;
@@ -193,6 +203,7 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
 
   return {
     generatedAt: now,
+    ...(from ? { statsSince: from } : {}),
     totals: {
       liveRooms: liveRows.length,
       playingRooms: liveRows.filter((row) => row.status === "playing").length,

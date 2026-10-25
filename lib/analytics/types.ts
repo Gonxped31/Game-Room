@@ -46,6 +46,12 @@ export interface Snapshot {
   rooms: RoomSnap[];
   guests: GuestSnap[];
   now: number;
+  /**
+   * The owner cleared the stats at this time: history counts only rooms
+   * created, and guest activity, from then on. Live rooms and the room list
+   * are unaffected.
+   */
+  statsSince?: number;
 }
 
 /** A share, with what it's a share of, so the UI can say "3 of 40". `rate` is null when nobody qualifies yet. */
@@ -107,6 +113,8 @@ export interface RoomRow {
 
 export interface DashboardStats {
   generatedAt: number;
+  /** When the stats were last cleared; "all time" numbers count from here. */
+  statsSince?: number;
   totals: {
     liveRooms: number;
     playingRooms: number;
