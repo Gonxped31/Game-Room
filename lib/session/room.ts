@@ -10,3 +10,8 @@ export function generateRoomCode(): string {
   }
   return code;
 }
+
+/** Whether `code` is a room code the database rules accept (`games/$room`'s pattern, which also allows `1`). */
+export function isRoomCode(code: string): boolean {
+  return /^[a-hjkmnp-z1-9]{6}$/.test(code);
+}

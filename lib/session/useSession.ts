@@ -16,6 +16,8 @@ export interface Session<TState extends WithMultiplayerIdentity> {
   connectionError: boolean;
   /** The #code doesn't lead to a room of this game. */
   roomMissing: boolean;
+  /** The room was closed from /admin; nothing in it can change any more. */
+  roomClosed: boolean;
   /** Every seat this game has, held or not - e.g. ["p1","p2","p3","p4"] for a 4-player game. */
   seats: SeatId[];
   /** The seat this guest holds in this room, or null. */
@@ -108,6 +110,7 @@ export function useSession<TState extends WithMultiplayerIdentity>(opts: {
     uid: core.uid,
     connectionError: core.connectionError,
     roomMissing: core.roomMissing,
+    roomClosed: core.roomClosed,
     seats,
     me,
     otherSeats: seats.filter((seat) => seat !== me),

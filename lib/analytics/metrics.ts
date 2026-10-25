@@ -68,7 +68,7 @@ export function computeDashboard(snapshot: Snapshot, gameOrder: string[] = []): 
       allPlay.push(play);
       playByGame.set(room.gameSlug, [...(playByGame.get(room.gameSlug) ?? []), play]);
     }
-    if (room.onlineUids.length) {
+    if (room.onlineUids.length && room.closedAt == null) {
       stats.liveRooms++;
       room.onlineUids.forEach((uid) => onlineGuests.add(uid));
       liveRooms.push({

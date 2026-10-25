@@ -3,8 +3,7 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "@/lib/session/useSession";
 import { startingSeats, usePublicRoom } from "@/lib/session/usePublicRoom";
-import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
-import { leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { defaultLang } from "@/lib/games/shared/language";
@@ -115,8 +114,9 @@ export default function BuzzerQuizPage() {
   const leave = publicRoom.isPublic ? publicRoom.leave : () => void leaveToHub(session.leave);
 
   let screen;
-  if (session.connectionError || session.roomMissing) {
-    screen = <Message text={session.connectionError ? CONNECTION_ERROR_MESSAGE : ROOM_MISSING_MESSAGE} />;
+  const problem = roomProblemMessage(session);
+  if (problem) {
+    screen = <Message text={problem} />;
   } else if (!game) {
     screen = <Message text="Connecting to the room…" />;
   } else if (!me && !watching) {

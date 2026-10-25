@@ -1,5 +1,6 @@
 import { createPathStore, isLocalMode, serverTimestamp, updateRoot } from "@/lib/store";
 import { generateRoomCode } from "../room";
+import { CONNECTION_ERROR_MESSAGE } from "./auth";
 import { createRoomUpdate, nameKey, room, roomNameUpdate, type RoomMeta } from "./updates";
 
 const MAX_CREATE_ATTEMPTS = 5;
@@ -69,6 +70,17 @@ export async function leaveToHub(leave: () => Promise<void>, confirmText?: strin
   if (confirmText && !window.confirm(confirmText)) return;
   await leave().catch(() => {});
   window.location.href = "/";
+}
+
+/** Shown on a game page whose room was closed from /admin (`closedAt` is set): it can be read, never changed. */
+export const ROOM_CLOSED_MESSAGE = "This room was closed. Go back to start a new one.";
+
+/** The message a game page shows instead of the game, or null when the room is usable. */
+export function roomProblemMessage(session: { connectionError: boolean; roomMissing: boolean; roomClosed: boolean }): string | null {
+  if (session.connectionError) return CONNECTION_ERROR_MESSAGE;
+  if (session.roomClosed) return ROOM_CLOSED_MESSAGE;
+  if (session.roomMissing) return ROOM_MISSING_MESSAGE;
+  return null;
 }
 
 export const NAME_TAKEN_MESSAGE = "That name is taken. Try another.";

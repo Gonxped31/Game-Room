@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
-import { LEAVE_CONFIRM, leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import type { Role } from "@/lib/session/types";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { GAME_TITLE } from "@/lib/games/ftw/constants";
@@ -75,7 +74,8 @@ export default function SamePagePage() {
   const myName = me != null ? names[me] : undefined;
   const myRole = me != null ? (isRanker ? "Ranking" : "Guessing") : undefined;
 
-  const notice = session.connectionError ? CONNECTION_ERROR_MESSAGE : session.roomMissing ? ROOM_MISSING_MESSAGE : !game ? "Connecting to the room…" : null;
+  const problem = roomProblemMessage(session);
+  const notice = problem ?? (!game ? "Connecting to the room…" : null);
   // Asks first once both are playing: leaving ends the game for the partner.
   // Not offered under a notice: no room, or still connecting (the seat isn't known yet).
   const leave = () => void leaveToHub(session.leave, me && bothJoined ? LEAVE_CONFIRM : undefined);
@@ -88,7 +88,7 @@ export default function SamePagePage() {
 
         {notice || !game ? (
           <p
-            role={session.connectionError || session.roomMissing ? "alert" : undefined}
+            role={problem ? "alert" : undefined}
             className="m-0 rounded-2xl border-2 border-[var(--ink)] bg-white px-3.5 py-2.5 font-bold"
           >
             {notice}

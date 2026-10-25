@@ -25,6 +25,8 @@ games/{roomCode}/
   wordscramble, wordscrambleTyping/{pN} -- Word Scramble (maxPlayers must be 8); each seat's own typing signal
   meta/publicLang, autoStart   -- public (matchmade) rooms: buzzerquiz/wordscramble only; autoStart members only (docs/matchmaking.md)
 queue/{slug}/{lang}/{room}     -- matchmaking queue: listable per slug+lang; members write; anyone deletes a stale (60 s) entry
+  closedAt    no client writes it (/admin sets it via firebase-admin); once set, every node's .validate
+              refuses changes except presence, so guests can still go offline
 roomsByName/{nameKey}: code    -- unique; only the room's creator can claim or delete it
 users/{uid}/rooms/{code}       -- only that uid reads or writes; fixed fields
 ```

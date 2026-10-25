@@ -49,6 +49,9 @@
     extra history entry; `leaveOnBack` widens it). It takes `useSession`'s session or the 1v1
     `useGameSession`'s (Night Highway), which carries `leave`, `joinedSeats`,
     `onlineSeats` and `publicLang` for it.
+    - It watches `closedAt` (set from /admin): `roomClosed` stops presence and
+      `lastActive`, and pages show `roomProblemMessage` (`roomActions.ts`)
+      instead of the game.
 - **`lib/session/useSession.ts`** - the session hook for any game size (2–8
   seats, `maxPlayers` and optional `minPlayers`): seats, presence, room name,
   `isHost`, `moveToSeat`. Games with more than 2 players call it directly.

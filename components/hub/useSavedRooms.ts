@@ -23,19 +23,25 @@ export interface SavedRoom {
  * keeping rooms active in the last 30 days. Each room's live meta and
  * `lastActive` are read alongside its entry. A room whose meta is gone
  * (cleaned up) is dropped from the list - and removed from the guest's data -
- * silently. A room that merely couldn't be read right now (offline) is skipped
- * this time, never removed.
+ * silently. A room closed from /admin is hidden, its entry kept until the room
+ * itself is deleted. A room that merely couldn't be read right now (offline)
+ * is skipped this time, never removed.
  */
 async function loadRooms(uid: string, now: number): Promise<SavedRoom[]> {
   const entries = (await createPathStore<Record<string, UserRoomEntry>>(`users/${uid}/rooms`).readOnce()) ?? {};
   const rows = await Promise.all(
     Object.entries(entries).map(async ([code, entry]): Promise<SavedRoom | null> => {
       try {
-        const [meta, lastActive] = await Promise.all([readRoomMeta(code), createPathStore<number>(`games/${code}/lastActive`).readOnce()]);
+        const [meta, lastActive, closedAt] = await Promise.all([
+          readRoomMeta(code),
+          createPathStore<number>(`games/${code}/lastActive`).readOnce(),
+          createPathStore<number>(`games/${code}/closedAt`).readOnce(),
+        ]);
         if (!meta) {
           updateRoot({ [`users/${uid}/rooms/${code}`]: null }).catch(() => {});
           return null;
         }
+        if (closedAt != null) return null;
         return {
           code,
           gameSlug: meta.gameSlug,

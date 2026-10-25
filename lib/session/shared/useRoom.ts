@@ -48,6 +48,8 @@ export interface RoomCore<TState> {
   connectionError: boolean;
   /** The #code doesn't lead to a room of this game (and couldn't be created). */
   roomMissing: boolean;
+  /** The room was closed from /admin: still readable, but the rules refuse every change. */
+  roomClosed: boolean;
   meta: RoomMeta | null;
   seats: SeatMap;
   game: TState | null;
@@ -104,6 +106,7 @@ export function useRoom<TState>(opts: {
             members: createPathStore<SeatMap>(roomPath(room, "members")),
             players: createPathStore<Partial<Record<string, { name: string }>>>(roomPath(room, "players")),
             presence: createPathStore<RoomPresence>(roomPath(room, "presence")),
+            closedAt: createPathStore<number>(roomPath(room, "closedAt")),
             game: createGameStore<TState>(room, gameSlug),
           }
         : {
@@ -112,6 +115,7 @@ export function useRoom<TState>(opts: {
             members: emptyStore<SeatMap>(),
             players: emptyStore<Partial<Record<string, { name: string }>>>(),
             presence: emptyStore<RoomPresence>(),
+            closedAt: emptyStore<number>(),
             game: emptyStore<TState>(),
           },
     [active, room, gameSlug],
@@ -122,6 +126,7 @@ export function useRoom<TState>(opts: {
   const members = useStoreValue(stores.members);
   const players = useStoreValue(stores.players);
   const presence = useStoreValue(stores.presence);
+  const closed = useStoreValue(stores.closedAt) != null;
   const game = useStoreValue(stores.game);
   const seats: SeatMap = useMemo(() => seatsValue ?? {}, [seatsValue]);
 
@@ -172,16 +177,18 @@ export function useRoom<TState>(opts: {
   }, [uid, hash, gameSlug, maxPlayers, createInitialState, stores]);
 
   // Presence, only while holding a seat (the rules only accept a member's).
+  // A closed room stops it: its cleanup marks this guest offline (the one
+  // write a closed room still accepts), so the room stops counting as live.
   const seated = mySeat != null;
   useEffect(() => {
-    if (!active || !uid || !seated) return;
+    if (!active || !uid || !seated || closed) return;
     return startPresence(room, uid);
-  }, [active, room, uid, seated]);
+  }, [active, room, uid, seated, closed]);
 
   // `lastActive`, at most once a minute, while a game is in progress (this
   // guest is seated and at least `minPlayers` seats are filled).
   const seatedCount = Object.values(seats).filter(Boolean).length;
-  const inProgress = active && seated && seatedCount >= minPlayers;
+  const inProgress = active && seated && seatedCount >= minPlayers && !closed;
   useEffect(() => {
     if (!inProgress) return;
     const touch = () => updateRoot({ [roomPath(room, "lastActive")]: serverTimestamp() }).catch(() => {});
@@ -299,6 +306,7 @@ export function useRoom<TState>(opts: {
     room,
     connectionError: auth.status === "error" || connectionFailed,
     roomMissing: missingRoom != null && missingRoom === hash,
+    roomClosed: closed,
     meta,
     seats,
     game,

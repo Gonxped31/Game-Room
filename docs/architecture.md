@@ -15,6 +15,7 @@ games/{roomCode}/
   wordscramble: { ...game state... }  wordscrambleTyping: { pN: { at } }     // Word Scramble, maxPlayers 8; each seat its own typing signal
   autoStart: number                                                         // public rooms only: when the game starts by itself (docs/matchmaking.md)
 queue/{slug}/{lang}/{roomCode}: { players, updatedAt }                     // matchmaking: waiting public rooms; listable per slug+lang
+  closedAt?: number                                                         // set only by /admin (firebase-admin); then only presence may change
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 ```

@@ -32,6 +32,8 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
  */
 export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => void }) {
   const [load, setLoad] = useState<Load>({ kind: "loading" });
+  // Bumped after closing a room, to refetch at once instead of on the next tick.
+  const [reloads, setReloads] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +52,7 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
       cancelled = true;
       clearInterval(id);
     };
-  }, [onSignedOut]);
+  }, [onSignedOut, reloads]);
 
   if (load.kind === "loading") return <Panel>Loading the numbers…</Panel>;
   if (load.kind === "error")
@@ -134,7 +136,7 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         ) : (
           <ul className="m-0 flex list-none flex-col p-0">
             {stats.liveRooms.map((room) => (
-              <LiveRoomRow key={room.code} room={room} />
+              <LiveRoomRow key={room.code} room={room} onClosed={() => setReloads((n) => n + 1)} />
             ))}
           </ul>
         )}
@@ -148,20 +150,50 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
   );
 }
 
-function LiveRoomRow({ room }: { room: LiveRoom }) {
+function LiveRoomRow({ room, onClosed }: { room: LiveRoom; onClosed: () => void }) {
+  const [closing, setClosing] = useState(false);
+  const label = room.name ?? room.code;
+
+  const close = async () => {
+    const what = `${gameTitle(room.gameSlug)} room "${label}"`;
+    if (!window.confirm(`Close the ${what}? Everyone in it sees "This room was closed" and can't play on. This can't be undone.`)) return;
+    setClosing(true);
+    try {
+      const response = await fetch(`/api/admin/rooms/${room.code}/close`, { method: "POST" });
+      if (response.ok) return onClosed();
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      window.alert(body?.error ?? `Couldn't close the room (${response.status}).`);
+    } catch {
+      window.alert("Couldn't reach the server.");
+    } finally {
+      setClosing(false);
+    }
+  };
+
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-black/10 py-2.5 text-sm last:border-0">
-      <span className="font-bold">{gameTitle(room.gameSlug)}</span>
-      <a href={roomHref(room.gameSlug, room.code)} target="_blank" rel="noreferrer" className="font-semibold text-[#0F7983] underline">
-        {room.name ?? room.code}
-      </a>
-      <span className="inline-flex items-center gap-1.5">
-        <span aria-hidden className={`size-2 rounded-full ${room.status === "playing" ? "bg-[#1F8A4C]" : "bg-black/30"}`} />
-        {room.status === "playing" ? "Playing" : "Waiting"}
-      </span>
-      <span className="text-black/60 tabular-nums">
-        {room.seatsFilled}/{room.maxPlayers} seats · {room.online} online · opened {formatDuration(room.createdAgoMs)} ago
-      </span>
+    <li className="flex items-center gap-3 border-b border-black/10 py-2.5 text-sm last:border-0">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-bold">{gameTitle(room.gameSlug)}</span>
+        <a href={roomHref(room.gameSlug, room.code)} target="_blank" rel="noreferrer" className="font-semibold text-[#0F7983] underline">
+          {label}
+        </a>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden className={`size-2 rounded-full ${room.status === "playing" ? "bg-[#1F8A4C]" : "bg-black/30"}`} />
+          {room.status === "playing" ? "Playing" : "Waiting"}
+        </span>
+        <span className="text-black/60 tabular-nums">
+          {room.seatsFilled}/{room.maxPlayers} seats · {room.online} online · opened {formatDuration(room.createdAgoMs)} ago
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={() => void close()}
+        disabled={closing}
+        aria-label={`Close room ${label}`}
+        className="shrink-0 cursor-pointer rounded-lg border-2 border-[#B3123F] bg-white px-3 py-1.5 text-sm font-bold text-[#B3123F] disabled:cursor-wait disabled:opacity-60"
+      >
+        {closing ? "Closing…" : "Close"}
+      </button>
     </li>
   );
 }

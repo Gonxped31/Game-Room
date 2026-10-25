@@ -26,7 +26,10 @@ export interface PublicRoom {
 }
 
 /** What the hook needs from a session: `useSession`'s, or the 1v1 `useGameSession`'s. */
-export type PublicRoomSession = Pick<Session<WithMultiplayerIdentity>, "room" | "me" | "uid" | "publicLang" | "onlineSeats" | "joinedSeats" | "names" | "leave">;
+export type PublicRoomSession = Pick<
+  Session<WithMultiplayerIdentity>,
+  "room" | "me" | "uid" | "publicLang" | "onlineSeats" | "joinedSeats" | "names" | "leave" | "roomClosed"
+>;
 
 /**
  * Runs a public room (docs/matchmaking.md) on every seated device; a no-op
@@ -56,9 +59,10 @@ export function usePublicRoom(opts: {
   leaveOnBack?: boolean;
 }): PublicRoom {
   const { session, game, inLobby, ready, onStart, serverNow, leaveOnBack } = opts;
-  const { room, me, uid, publicLang: lang, onlineSeats, joinedSeats, names } = session;
+  const { room, me, uid, publicLang: lang, onlineSeats, joinedSeats, names, roomClosed } = session;
   const isPublic = lang != null;
-  const active = isPublic && me != null;
+  // A closed room (from /admin) is never kept in the queue or auto-started; the rules refuse both anyway.
+  const active = isPublic && me != null && !roomClosed;
   const keeper = active && onlineSeats[0] === me;
   const players = onlineSeats.length;
   const full = players >= game.maxPlayers;

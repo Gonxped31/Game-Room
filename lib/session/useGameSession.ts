@@ -15,6 +15,8 @@ export interface GameSession<TState extends WithIdentity> {
   connectionError: boolean;
   /** The #code doesn't lead to a room of this game. */
   roomMissing: boolean;
+  /** The room was closed from /admin; nothing in it can change any more. */
+  roomClosed: boolean;
   /** The seat this guest holds in this room, or null. */
   me: Role | null;
   /** The other seat, or null if `me` isn't set yet. */
@@ -96,6 +98,7 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     uid: session.uid,
     connectionError: session.connectionError,
     roomMissing: session.roomMissing,
+    roomClosed: session.roomClosed,
     me,
     other,
     names,

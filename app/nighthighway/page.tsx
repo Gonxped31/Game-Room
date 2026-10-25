@@ -6,7 +6,7 @@ import { usePublicRoom } from "@/lib/session/usePublicRoom";
 import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
 import { findMatch } from "@/lib/session/shared/findMatch";
 import { ANY_LANG } from "@/lib/session/shared/matchmaking";
-import { leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import Stage from "@/components/nighthighway/Stage";
@@ -125,8 +125,9 @@ export default function NightHighwayPage() {
   };
 
   let screen: ReactNode = null;
-  if (session.connectionError || session.roomMissing) {
-    screen = <Message text={session.connectionError ? CONNECTION_ERROR_MESSAGE : ROOM_MISSING_MESSAGE} />;
+  const problem = roomProblemMessage(session);
+  if (problem) {
+    screen = <Message text={problem} />;
   } else if (!game) {
     screen = null; // the stage's own "Warming up the engine…"
   } else if (!me) {

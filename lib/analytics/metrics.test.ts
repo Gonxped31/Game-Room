@@ -26,12 +26,14 @@ describe("live rooms", () => {
         room({ code: "stalled", onlineUids: ["c"], lastActive: NOW - 5 * MIN, gameSlug: "buzzerquiz", maxPlayers: 4 }),
         room({ code: "lobby", onlineUids: ["a"], seatsFilled: 1 }),
         room({ code: "empty", onlineUids: [], lastActive: NOW - 30 * 1000 }),
+        // Closed while someone was still connected: never live.
+        room({ code: "closed", onlineUids: ["d"], lastActive: NOW - 30 * 1000, closedAt: NOW - 10 * 1000 }),
       ],
     }),
     ["ftw", "buzzerquiz"],
   );
 
-  it("counts rooms with someone online, split into playing and waiting", () => {
+  it("counts open rooms with someone online, split into playing and waiting", () => {
     expect(stats.totals.liveRooms).toBe(3);
     expect(stats.totals.playingRooms).toBe(1);
     expect(stats.liveRooms.map((r) => [r.code, r.status])).toEqual([
@@ -150,6 +152,7 @@ describe("gameRoomAdapter", () => {
         lastActive: NOW,
         ftw: { round: 3 },
       },
+      closed1: { meta: { gameSlug: "ftw", maxPlayers: 2, createdAt: NOW - MIN, createdBy: "a" }, closedAt: NOW },
       nometa: { seats: { p1: "a" } },
       badtime: { meta: { gameSlug: "ftw", createdAt: "yesterday" } },
     };
@@ -160,6 +163,7 @@ describe("gameRoomAdapter", () => {
     const snap = toSnapshot(games, users, NOW);
     expect(snap.rooms).toEqual([
       { code: "abc123", gameSlug: "ftw", createdAt: NOW - MIN, lastActive: NOW, name: "Friday", seatsFilled: 1, maxPlayers: 2, onlineUids: ["a"] },
+      { code: "closed1", gameSlug: "ftw", createdAt: NOW - MIN, lastActive: undefined, name: undefined, seatsFilled: 0, maxPlayers: 2, onlineUids: [], closedAt: NOW },
     ]);
     expect(snap.guests).toEqual([
       { uid: "a", rooms: [{ code: "abc123", gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }] },

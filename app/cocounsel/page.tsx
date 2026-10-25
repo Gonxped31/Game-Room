@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
-import { LEAVE_CONFIRM, leaveToHub, ROOM_MISSING_MESSAGE } from "@/lib/session/shared/roomActions";
+import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { caseForState, DEFAULT_CASE_ID } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
@@ -252,11 +251,11 @@ export default function CoCounselPage() {
           start flush with the viewport. */}
       {/* A screen with a fixed bottom bar (PartScreen's Lock in) gets its height reserved below everything, the Footer included. */}
       <main className={`mx-auto font-[family-name:var(--font-archivo)] has-[[data-fixed-bar]]:pb-32 ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
-        {session.connectionError || session.roomMissing ? (
+        {roomProblemMessage(session) ? (
           // No room to leave here, so a plain way back to the hub.
           <div className="flex flex-col gap-3 px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>
             <p role="alert" className="m-0">
-              {session.connectionError ? CONNECTION_ERROR_MESSAGE : ROOM_MISSING_MESSAGE}
+              {roomProblemMessage(session)}
             </p>
             <Link href="/" className="self-start font-bold underline" style={{ color: COLOR.text2 }}>
               Back to all games

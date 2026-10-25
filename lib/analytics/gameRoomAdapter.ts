@@ -13,6 +13,7 @@ interface RawRoom {
   seats?: Record<string, string | null>;
   presence?: Record<string, Partial<PresenceEntry>>;
   lastActive?: unknown;
+  closedAt?: unknown;
 }
 
 interface RawUser {
@@ -36,6 +37,7 @@ export function toRoomSnap(code: string, raw: RawRoom): RoomSnap | null {
     onlineUids: entries<Partial<PresenceEntry>>(raw.presence)
       .filter(([, entry]) => entry?.online === true)
       .map(([uid]) => uid),
+    ...(isTime(raw.closedAt) ? { closedAt: raw.closedAt } : {}),
   };
 }
 

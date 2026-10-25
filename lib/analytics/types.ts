@@ -16,6 +16,8 @@ export interface RoomSnap {
   maxPlayers: number;
   /** Guests with a live connection to the room right now. */
   onlineUids: string[];
+  /** Set when the owner closed the room: it still counts in history, never as live. */
+  closedAt?: number;
 }
 
 /** One guest's entry for one room: they created it, or joined it from a link. */
