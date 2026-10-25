@@ -1,26 +1,21 @@
-import { NUMBER_GRADIENTS } from "@/lib/games/ftw/constants";
 import { COLOR } from "@/lib/games/cocounsel/theme";
 import { gameBySlug } from "@/lib/games/registry";
+import GameArt from "./HubArt";
 
 /**
  * The 40px game tile at the start of each "Your rooms" row
- * (references/game-room/game-room-ui-spec.md, "Your rooms content"): First to
- * Worst is a teal square with a mini "1" number card; Co-Counsel is the
- * blue/red split with the yellow lens; Night Highway is the night road with a
- * pair of taillights. Decorative - the row's text names the game.
+ * (references/game-room/game-room-ui-spec.md, "40 px tiles"): Same Page is the
+ * lilac desk with a "1" sticky note; Co-Counsel is the blue/red split with the
+ * yellow lens; Night Highway is the mini night road. Decorative - the row's
+ * text names the game.
  */
 export default function GameTile({ slug }: { slug: string }) {
   if (slug === "ftw") {
-    const [from, to] = NUMBER_GRADIENTS[0];
+    // Same Page: the lilac desk with a yellow "1" sticky note.
     return (
-      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]" style={{ backgroundColor: "#128A94" }}>
-        <span className="flex h-[26px] w-[19px] items-center justify-center rounded-[4px] border border-[#D6D6D6] bg-white">
-          <span
-            className="font-[family-name:var(--font-fredoka)] text-[15px] font-bold leading-none"
-            style={{ backgroundImage: `linear-gradient(to bottom, ${from}, ${to})`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}
-          >
-            1
-          </span>
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#B9A7FF]">
+        <span className="flex h-[26px] w-[26px] -rotate-3 items-center justify-center rounded-[3px_3px_6px_3px] bg-[#FFE94A] pt-[2px] font-[family-name:var(--font-kalam)] text-[17px] font-bold leading-none text-[#1D2240] shadow-[0_2px_0_rgba(29,34,64,.14),0_3px_6px_rgba(29,34,64,.16)]">
+          1
         </span>
       </span>
     );
@@ -42,10 +37,8 @@ export default function GameTile({ slug }: { slug: string }) {
   }
   if (slug === "nighthighway") {
     return (
-      <span aria-hidden="true" className="relative block h-10 w-10 shrink-0 overflow-hidden rounded-[10px]" style={{ background: "linear-gradient(#0a1633, #04070f)" }}>
-        <span className="absolute inset-x-0 bottom-0 h-[22px]" style={{ background: "#1b2135", clipPath: "polygon(42% 0, 58% 0, 100% 100%, 0 100%)" }} />
-        <span className="absolute bottom-[8px] left-[11px] h-[3px] w-[5px] rounded-[1px] bg-[#ff2b45] shadow-[0_0_6px_2px_rgba(255,43,69,.7)]" />
-        <span className="absolute bottom-[8px] right-[11px] h-[3px] w-[5px] rounded-[1px] bg-[#ff2b45] shadow-[0_0_6px_2px_rgba(255,43,69,.7)]" />
+      <span aria-hidden="true" className="block h-10 w-10 shrink-0 overflow-hidden rounded-[10px]">
+        <GameArt slug="nighthighway" mini />
       </span>
     );
   }

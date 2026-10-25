@@ -4,7 +4,7 @@ A small platform for private 2-player games played through a shared link.
 - `/` is the hub (game picker, join by code or name, "Your rooms").
 - Each game lives at `/<slug>#<roomCode>`.
 - No sign-in: every browser gets an invisible guest ID.
-- Games: **First to Worst** (`/ftw`), **Co-Counsel** (`/cocounsel`), **Night
+- Games: **Same Page** (`/same-page`, slug `ftw`; `/ftw` redirects), **Co-Counsel** (`/cocounsel`), **Night
   Highway** (`/nighthighway`, plus `/nighthighway/solo`), **Buzzer Quiz**
   (`/buzzerquiz`, 2-4 players) and **Word Scramble** (`/wordscramble`, 2 teams,
   2-8 players).
@@ -14,7 +14,7 @@ demand:
 
 | Need | Where |
 | :--- | :--- |
-| Working on First to Worst | `first-to-worst` skill (`.claude/skills/first-to-worst/`) |
+| Working on Same Page (formerly First to Worst) | `first-to-worst` skill (`.claude/skills/first-to-worst/`) |
 | Working on Co-Counsel | `co-counsel` skill |
 | Working on Night Highway (3D race, deterministic traffic, live ghost car) | `night-highway` skill |
 | Working on Buzzer Quiz (2-4 players, buzz in, EN/FR question bank) | `buzzerquiz` skill |

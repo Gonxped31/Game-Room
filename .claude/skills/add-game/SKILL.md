@@ -12,21 +12,26 @@ Firebase.
 
 ## 1. Register it
 
-Add a `GameEntry` to `GAMES` in `lib/games/registry.ts`:
-- `slug` - becomes the route and the database key.
-- `title`, `description`, `tags`.
+Add a `GameEntry` to `ALL_GAMES` in `lib/games/registry.ts`:
+- `slug` - becomes the route and the database key. `path` only if the route
+  must differ (Same Page: `/same-page`, slug `ftw`); links go through
+  `roomHref`/`gamePath`.
+- `section` - the hub folder: `"anywhere"` (the game shows everyone what's
+  happening) or `"talk"` (needs a call or the same room). `solo` too if it
+  has a solo page (adds a Play solo card to the Solo folder).
+- `title`, `description` (3 lines at 300px), `shortDescription` (2 lines on
+  the mobile card), `tags` (the first, the player count, is the mobile chip).
 - `maxPlayers` - only for a game that isn't 1v1.
-- The card colors and fonts: `ink`, `textSecondary`, `accentColor`,
-  `titleClassName`, `buttonTextClassName`.
+- The card colors and fonts: `ink`, `textSecondary`, `accentColor`
+  (`continueColor` if the Continue square differs), `titleClassName`,
+  `bodyClassName`. Check the Start fill against the ink at 4.5:1.
 
-Then draw the game's art panel in code under `components/gameRoom/` (like
-`FtwArt.tsx`) and add it to `ART_BY_SLUG` in `components/hub/GameCard.tsx`. Also
-add a 40px list tile for "Your rooms" and the Continue chip in
-`components/gameRoom/GameTile.tsx` (without one, a game gets a generic tile in
-its accent color).
-The hub layout follows
-`references/game-room/game-room-ui-spec.md`, and its flex-wrap row already handles
-a 3rd+ card.
+Then draw the game's art in code in `components/gameRoom/HubArt.tsx`: a
+280x168 panel and a 92px mini, added to its `ART` lookup. Also add a 40px list
+tile for "Your rooms" in `components/gameRoom/GameTile.tsx` (without one, a
+game gets a generic tile in its accent color).
+The hub layout follows `references/game-room/game-room-ui-spec.md` ("Adding a
+game"); the folder counts and card rows follow the registry on their own.
 
 ## 2. Write the game logic: `lib/games/<slug>/`
 

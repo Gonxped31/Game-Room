@@ -9,11 +9,15 @@ body {
   color: #fff;
 }
 
-button:focus-visible,
-summary:focus-visible,
-textarea:focus-visible {
-  outline: 4px solid #ffe14d;
-  outline-offset: 2px;
+/* The default focus ring. In the base layer, so a component's own
+   focus-visible:outline-* utilities (the hub's, each game's spec) win. */
+@layer base {
+  button:focus-visible,
+  summary:focus-visible,
+  textarea:focus-visible {
+    outline: 4px solid #ffe14d;
+    outline-offset: 2px;
+  }
 }
 
 @keyframes pop {
@@ -25,24 +29,6 @@ textarea:focus-visible {
 
 .pop-in {
   animation: pop 0.4s both;
-}
-
-.big-score {
-  animation: pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
-}
-
-@keyframes presence-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);
-  }
-}
-
-.presence-dot-online {
-  animation: presence-pulse 1.8s ease-out infinite;
 }
 
 /* Co-Counsel: a rubber stamp "lands" ~0.3s after the reveal flip finishes -
@@ -157,11 +143,7 @@ textarea:focus-visible {
   .flip-inner {
     transition: none !important;
   }
-  .pop-in,
-  .big-score {
-    animation: none !important;
-  }
-  .presence-dot-online {
+  .pop-in {
     animation: none !important;
   }
   .stamp-land,
@@ -171,6 +153,64 @@ textarea:focus-visible {
   .hub-popover-in,
   .hub-sheet-up,
   .hub-scrim-in {
+    animation: none !important;
+  }
+}
+
+/* Same Page's reveal (references/ftw/first-to-worst-game-design.md, "Motion"):
+   each row's notes flip in (ranker's, then guesser's), a match's highlighter
+   draws left to right and the mark pops; the headline fades in after the count.
+   Delays are set inline per row. */
+@keyframes sp-flip-in {
+  from {
+    transform: perspective(300px) rotateY(90deg) rotate(var(--tilt, 0deg));
+    opacity: 0;
+  }
+  to {
+    transform: perspective(300px) rotateY(0deg) rotate(var(--tilt, 0deg));
+    opacity: 1;
+  }
+}
+.sp-flip-in {
+  animation: sp-flip-in 200ms ease-out both;
+}
+.sp-highlight {
+  background: linear-gradient(transparent 18%, var(--match) 18% 86%, transparent 86%) no-repeat left / 100% 100%;
+  animation: sp-draw 300ms ease-out both;
+}
+@keyframes sp-draw {
+  from {
+    background-size: 0% 100%;
+  }
+}
+@keyframes sp-pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.sp-pop {
+  animation: sp-pop 250ms ease-out both;
+}
+@keyframes sp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.sp-fade-in {
+  animation: sp-fade-in 250ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-flip-in,
+  .sp-highlight,
+  .sp-pop,
+  .sp-fade-in {
     animation: none !important;
   }
 }

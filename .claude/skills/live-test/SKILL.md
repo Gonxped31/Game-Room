@@ -109,7 +109,7 @@ Copy the patterns from `scripts/two-players.mjs`:
 - `newPlayer(profile, label)` - a fresh context on a device profile (`"iphone"`,
   `"iphone-se"`, `"android"`, `"desktop"`, ...), i.e. a fresh guest ID, that
   collects console errors. Mix phones and desktops.
-- `joinFromHub(page, mode, value)` - opens the First to Worst card's Join panel
+- `joinFromHub(page, mode, value)` - opens the Same Page card's Join panel
   (popover on desktop, sheet on phones), picks `"code"` or `"name"`, types and
   submits. A room of another game opens too: routing follows the room's own game.
 - `adminRead(path)` - reads emulator data while bypassing the rules (`Authorization:

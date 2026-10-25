@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { CONNECTION_ERROR_MESSAGE, ensureGuestUid } from "@/lib/session/shared/auth";
 import { findRoomByName, readRoomMeta } from "@/lib/session/shared/roomActions";
+import { roomHref } from "@/lib/games/registry";
 
 type Mode = "code" | "name";
 type Status = "idle" | "checking" | "notFound" | "offline";
@@ -48,7 +49,7 @@ function JoinModeSwitch({ mode, onChange, disabled }: { mode: Mode; onChange: (m
 }
 
 interface JoinPanelProps {
-  /** e.g. "First to Worst" - the panel is titled "Join a First to Worst room". */
+  /** e.g. "Same Page" - the panel is titled "Join a Same Page room". */
   gameTitle: string;
   /** id for the heading, so the surrounding dialog can be labelled by it. */
   headingId: string;
@@ -107,12 +108,12 @@ export default function JoinPanel({ gameTitle, headingId, inSheet }: JoinPanelPr
     try {
       const meta = await readRoomMeta(asCode);
       if (meta) {
-        setDestination(`/${meta.gameSlug}#${asCode}`);
+        setDestination(roomHref(meta.gameSlug, asCode));
         return;
       }
       const match = await findRoomByName(typed);
       if (match) {
-        setDestination(`/${match.meta.gameSlug}#${match.room}`);
+        setDestination(roomHref(match.meta.gameSlug, match.room));
         return;
       }
       setStatus("notFound");

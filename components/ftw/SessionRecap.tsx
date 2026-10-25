@@ -1,6 +1,7 @@
 import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
 import type { RoundRecord } from "@/lib/games/ftw/game";
 import type { Role } from "@/lib/session/types";
+import { FOCUS } from "./ui";
 
 interface SessionRecapProps {
   history: RoundRecord[];
@@ -11,16 +12,16 @@ export default function SessionRecap({ history, names }: SessionRecapProps) {
   if (history.length === 0) return null;
 
   return (
-    <details className="mt-4">
-      <summary className="cursor-pointer text-center text-[13px] font-semibold opacity-85">
+    <details>
+      <summary className={`cursor-pointer rounded text-center text-sm font-bold text-[var(--ink)] min-[900px]:text-left ${FOCUS}`}>
         Session recap ({history.length} round{history.length === 1 ? "" : "s"})
       </summary>
       <ol className="mt-2 grid list-none gap-1.5 p-0">
         {history.map((r) => (
-          <li key={r.round} className="rounded-lg bg-white px-3 py-1.5 text-black shadow-[0_2px_4px_rgba(0,0,0,.2)]">
-            <div className="text-sm font-semibold">{r.prompt}</div>
-            <div className="text-xs opacity-70">
-              Round {r.round} · {names[r.master] ?? "Master"} was master · {r.score}/{ITEMS_PER_ROUND}
+          <li key={r.round} className="rounded-xl border-2 border-[var(--ink)] bg-[var(--paper)] px-3 py-2 text-[var(--ink)]">
+            <div className="text-sm font-bold">{r.prompt}</div>
+            <div className="text-[13px] font-medium text-[var(--muted)]">
+              Round {r.round} · {names[r.master] ?? "The ranker"} ranked · {r.score}/{ITEMS_PER_ROUND}
             </div>
           </li>
         ))}

@@ -26,6 +26,13 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // First to Worst became Same Page (references/ftw/first-to-worst-game-design.md,
+  // "Migration notes"). Its rooms keep the `ftw` slug; old links and saved rooms
+  // still open, since browsers carry the #code across a redirect. Temporary, so
+  // browsers don't cache it forever.
+  async redirects() {
+    return [{ source: "/ftw", destination: "/same-page", permanent: false }];
+  },
   turbopack: {
     rules: {
       "*.css": {

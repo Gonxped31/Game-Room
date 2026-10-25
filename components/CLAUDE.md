@@ -1,14 +1,19 @@
 # Shared components (loads when working in components)
 
 - **`components/`** - shared pieces:
-  - `Header`, `Footer`, `Button`, `RoleStickers`.
-  - `RolePicker` - name entry with takeover, for 2 seats (FTW) or a `seats` list.
+  - `Footer` (room code, Reset game, New room), `Button`.
+  - `RolePicker` - name entry with takeover, for 2 seats (Same Page) or a `seats` list; `accentColor` themes its buttons.
   - `InviteLinkBanner` - the name field shows only for the creator.
   - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button
-    or floating pill), `GameCard` (Start + Join), `HubOverlay` (one shared
-    popover on desktop / bottom sheet on mobile), `JoinPanel`,
-    `YourRoomsList` (+ `HomeScreenTip`), `useSavedRooms`. Art and list tiles
-    live in `components/gameRoom/`.
+    or floating pill, mobile jump buttons, the Social folder with "Play from
+    anywhere" and the yellow "Talk it out" panel, the Solo folder),
+    `GameCard` (desktop card + compact mobile card, Start + Join; `SoloCard`
+    with Play solo), `HubOverlay` (one shared popover on desktop / bottom
+    sheet on mobile), `JoinPanel`, `YourRoomsList` (+ `HomeScreenTip`),
+    `useSavedRooms`. Art (`HubArt`: 168px panel + 92px mini per game) and
+    list tiles (`GameTile`) live in `components/gameRoom/`. Room links go
+    through the registry's `roomHref`, since a game's route can differ from
+    its slug (Same Page: `/same-page`, slug `ftw`).
   - Room pages: `InAppBrowserBanner`.
   - Every page: `LocalModeBanner`, and `ConnectionBanner` ("Reconnecting…" after
     2 s without the database; skipped on `/solo` pages).

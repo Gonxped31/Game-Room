@@ -8,10 +8,11 @@
 //   node .claude/skills/live-test/scripts/two-players.mjs [baseUrl]
 //
 // Checks, in order:
-// - FTW: create, name the room, join it by name through the hub card's Join
-//   panel, play a full round (each player watching the other's cards appear
-//   face down, live) and start round 2.
-// - Presence: closing one player shows them offline on the other.
+// - Same Page (slug ftw): create, name the room, join it by name through the
+//   hub card's Join panel, play a full round (the guesser watching the
+//   ranker's notes appear face down, the ranker watching the guess count) and
+//   start round 2. The old /ftw route still opens the room.
+// - Presence: closing one player shows "can play later" on the other.
 // - A third guest can read the room but not take a seat.
 // - "Your rooms" and the Continue chip list the room, also after a reload;
 //   the back gesture closes the sheet; Start opens a fresh room.
@@ -54,38 +55,42 @@ async function newPlayer(profile, label) {
 const hashOf = (page) => new URL(page.url()).hash.slice(1);
 
 /**
- * Joins a room from the hub: opens the First to Worst card's Join panel
+ * Joins a room from the hub: opens the Same Page card's Join panel
  * (popover on desktop, sheet on phones), picks Code or Name, types, submits.
  * Joining a room of another game through this card is fine - routing follows
  * the room's own game, so this also covers that spec rule.
  */
 async function joinFromHub(page, mode, value) {
-  await page.getByRole("button", { name: "Join a First to Worst room" }).click();
+  await page.getByRole("button", { name: "Join a Same Page room" }).filter({ visible: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("radio", { name: mode }).click();
   await dialog.getByLabel(mode === "code" ? "Room code" : "Room name").fill(value);
   await dialog.getByRole("button", { name: "Join", exact: true }).click({ timeout: 10000 });
 }
 
-/** Places cards into this player's slots from `from` (0-based) up to (not including) `to`. */
-async function placeCards(page, from, to) {
+/** Places notes on this player's items from `from` (0-based) up to (not including) `to`: tap a hand note, then an item. */
+async function placeNotes(page, from, to) {
+  const items = page.getByRole("list", { name: "Items" }).getByRole("button");
   for (let i = from; i < to; i++) {
-    await page.locator('button[aria-label^="Number"]').first().click();
-    await page.locator("[data-drop-id] button").nth(i).click();
+    await page.getByRole("group", { name: "Your notes" }).getByRole("button").first().click();
+    await items.nth(i).click();
   }
 }
 
 /**
- * Live placement progress: places 2 cards, checks the watcher sees exactly 2
- * face-down cards appear in the placer's column and "2 of 5 placed" (before
- * anything is locked in), then places the rest and submits.
+ * Live placement progress: places 2 notes and checks the watcher sees "2 of 5
+ * placed" (before anything is locked in) - and, while the ranker ranks,
+ * exactly 2 face-down notes on the guesser's sheet - then places the rest and
+ * locks in.
  */
-async function placeWhileWatched(placer, watcher, columnLabel, submitLabel) {
-  await placeCards(placer, 0, 2);
+async function placeWhileWatched(placer, watcher, placerName, submitLabel) {
+  await placeNotes(placer, 0, 2);
   await watcher.getByText("2 of 5 placed").waitFor();
-  const faceDown = await watcher.getByRole("img", { name: new RegExp(`^${columnLabel}, .*: face down$`) }).count();
-  if (faceDown !== 2) throw new Error(`watcher saw ${faceDown} face-down cards in ${columnLabel}'s column, expected 2`);
-  await placeCards(placer, 2, 5);
+  if (submitLabel === "Lock my ranking") {
+    const faceDown = await watcher.getByRole("listitem", { name: new RegExp(`, ${placerName} placed a note$`) }).count();
+    if (faceDown !== 2) throw new Error(`watcher saw ${faceDown} face-down notes, expected 2`);
+  }
+  await placeNotes(placer, 2, 5);
   await watcher.getByText("5 of 5 placed").waitFor();
   await placer.getByRole("button", { name: submitLabel }).click();
 }
@@ -94,11 +99,11 @@ try {
   const A = await newPlayer("iphone", "A (iPhone)");
   const B = await newPlayer("desktop", "B (desktop)");
 
-  // --- First to Worst ---
-  await A.page.goto(`${BASE}/ftw`);
+  // --- Same Page ---
+  await A.page.goto(`${BASE}/same-page`);
   await until(() => hashOf(A.page).length === 6, "room code in the URL");
   const code = hashOf(A.page);
-  log("A created FTW room", code);
+  log("A created a Same Page room", code);
   await A.page.getByLabel("Your name").fill("Sam");
   await A.page.getByRole("button", { name: "Continue" }).click();
   await A.page.getByText("Copy invite link").waitFor();
@@ -111,36 +116,36 @@ try {
 
   await B.page.goto(BASE);
   await joinFromHub(B.page, "name", roomName.toLowerCase());
-  await B.page.waitForURL(`**/ftw#${code}`);
+  await B.page.waitForURL(`**/same-page#${code}`);
   await B.page.getByLabel("Your name").fill("Alex");
   await B.page.getByRole("button", { name: "Continue" }).click();
   log("B joined by name");
 
-  await A.page.getByRole("button", { name: "Lock in my ranking" }).waitFor();
-  await placeWhileWatched(A.page, B.page, "Sam", "Lock in my ranking");
-  log("live progress: B watched A's ranking cards appear face down");
-  await B.page.getByRole("button", { name: "Submit final guess" }).waitFor();
-  await placeWhileWatched(B.page, A.page, "Alex", "Submit final guess");
-  log("live progress: A watched B's guess cards appear face down");
-  await A.page.getByRole("button", { name: "Next round (roles swap)" }).waitFor();
-  await B.page.getByRole("button", { name: "Next round (roles swap)" }).waitFor();
+  await A.page.getByRole("button", { name: "Place 5 more notes" }).waitFor();
+  await placeWhileWatched(A.page, B.page, "Sam", "Lock my ranking");
+  log("live progress: B watched A's notes appear face down");
+  await B.page.getByText("Sam locked in their order").waitFor();
+  await placeWhileWatched(B.page, A.page, "Alex", "Lock my guess");
+  log("live progress: A watched B's guess count go up");
+  await A.page.getByRole("button", { name: "Next round · you guess" }).waitFor();
+  await B.page.getByRole("button", { name: "Next round · you rank" }).waitFor();
   log("full round played and revealed on both sides");
 
   // Click through, and check the database - a refused write leaves the
   // button on screen with nothing happening.
-  await A.page.getByRole("button", { name: "Next round (roles swap)" }).click();
+  await A.page.getByRole("button", { name: "Next round · you guess" }).click();
   await until(async () => (await adminRead(`games/${code}/ftw/round`)) === 2, "round 2 written to the database");
-  await B.page.getByRole("button", { name: "Lock in my ranking" }).waitFor(); // roles swapped: B ranks now
+  await B.page.getByRole("button", { name: "Place 5 more notes" }).waitFor(); // roles swapped: B ranks now
+  await A.page.getByText("Alex is ranking.", { exact: false }).waitFor();
   log("Next round: round 2 started, roles swapped");
 
-  await until(async () => (await A.page.locator('[aria-label="online"]').count()) === 2, "both shown online");
   const closedAt = Date.now();
   await B.ctx.close();
-  await until(async () => (await A.page.locator('[aria-label="offline"]').count()) === 1, "B shown offline on A");
-  log(`B shown offline ${((Date.now() - closedAt) / 1000).toFixed(1)}s after closing`);
+  await A.page.getByText("Alex can play later.").waitFor({ timeout: 30000 });
+  log(`B shown away ${((Date.now() - closedAt) / 1000).toFixed(1)}s after closing`);
 
   const C = await newPlayer("android", "C (Android)");
-  await C.page.goto(`${BASE}/ftw#${code}`);
+  await C.page.goto(`${BASE}/ftw#${code}`); // the old route still opens the room
   await C.page.getByText("Both seats are taken").waitFor();
   const disabled = await C.page.getByRole("button", { name: /is playing/ }).evaluateAll((els) => els.every((e) => e.disabled));
   if (!disabled) throw new Error("third guest could pick a held seat");
@@ -162,9 +167,9 @@ try {
   log('"Your rooms" and Continue list the room, also after a reload; Back closes the sheet');
 
   // Start: "Starting…", then the game's page creates a fresh room.
-  await A.page.getByRole("button", { name: "Start a First to Worst room" }).click();
-  await A.page.waitForURL(/\/ftw#[a-z0-9]{6}$/);
-  log("Start on the hub opens a fresh First to Worst room");
+  await A.page.getByRole("button", { name: "Start a Same Page room" }).filter({ visible: true }).click();
+  await A.page.waitForURL(/\/same-page#[a-z0-9]{6}$/);
+  log("Start on the hub opens a fresh Same Page room");
 
   // --- Co-Counsel ---
   const D = await newPlayer("desktop", "D (desktop)");

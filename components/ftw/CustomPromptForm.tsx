@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ITEMS_PER_ROUND, MAX_ITEM_LENGTH, MAX_PROMPT_LENGTH } from "@/lib/games/ftw/constants";
 import type { CurrentRound } from "@/lib/games/ftw/game";
 import { customRound } from "@/lib/games/ftw/prompts";
-import Button from "@/components/Button";
+import { FOCUS, SmallButton } from "./ui";
 
 interface CustomPromptFormProps {
   onApply: (round: CurrentRound) => void;
@@ -33,23 +33,23 @@ export default function CustomPromptForm({ onApply }: CustomPromptFormProps) {
   };
 
   return (
-    <details className="mt-3">
-      <summary className="cursor-pointer font-semibold">Write my own prompt</summary>
+    <details className="w-full">
+      <summary className={`cursor-pointer rounded py-1 text-sm font-bold text-[var(--ink)] ${FOCUS}`}>Write my own prompt</summary>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={`Line 1: the prompt\nThen exactly ${ITEMS_PER_ROUND} items, one per line`}
         aria-label="Custom prompt: line 1 is the prompt, then one item per line"
-        className="mt-2 min-h-[110px] w-full rounded-[10px] border-0 bg-white p-2.5 font-[inherit] text-black placeholder:text-black/45"
+        className="mt-2 min-h-[130px] w-full rounded-xl border-2 border-[var(--ink)] bg-[var(--paper)] p-2.5 font-[inherit] text-[var(--ink)] placeholder:text-[var(--muted)]"
       />
       {error ? (
-        <p role="alert" className="mt-2 mb-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
+        <p role="alert" className="mt-2 mb-0 rounded-xl border-2 border-[var(--miss)] bg-white px-3.5 py-2.5 text-sm font-bold text-[var(--miss)]">
           {error}
         </p>
       ) : null}
-      <Button variant="sm" onClick={submit}>
+      <SmallButton onClick={submit} className="mt-2">
         Use this prompt
-      </Button>
+      </SmallButton>
     </details>
   );
 }

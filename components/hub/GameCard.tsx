@@ -1,28 +1,24 @@
 "use client";
 
-import type { CSSProperties, JSX } from "react";
-import BuzzerQuizArt from "@/components/gameRoom/BuzzerQuizArt";
-import CoCounselArt from "@/components/gameRoom/CoCounselArt";
-import FtwArt from "@/components/gameRoom/FtwArt";
-import NightHighwayArt from "@/components/gameRoom/NightHighwayArt";
-import WordScrambleArt from "@/components/gameRoom/WordScrambleArt";
+import type { ReactNode } from "react";
+import GameArt from "@/components/gameRoom/HubArt";
 import type { GameEntry } from "@/lib/games/registry";
 
-const ART_BY_SLUG: Record<string, () => JSX.Element> = {
-  ftw: FtwArt,
-  cocounsel: CoCounselArt,
-  nighthighway: NightHighwayArt,
-  buzzerquiz: BuzzerQuizArt,
-  wordscramble: WordScrambleArt,
-};
+/** On white cards: a 3px black focus outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
+const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-black";
 
-/** On the white card: a 3px teal focus outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
-const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0F7983]";
+/** Hover or keyboard focus anywhere in the card lifts it 6px; `motion-reduce:` turns that off. */
+const LIFT = "transition-transform duration-150 ease-out hover:-translate-y-1.5 focus-within:-translate-y-1.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-within:translate-y-0";
+
+/** A hard 4px shadow in the button's border color (the game's ink), so `active:shadow-none` can drop it. */
+const SHADOW = "shadow-[0_4px_0_currentColor]";
+
+/** Buttons press down 4px and lose their shadow. */
+const PRESS = "transition-transform duration-[60ms] enabled:active:translate-y-1 enabled:active:shadow-none motion-reduce:transition-none";
+const PRESS_LINK = "transition-transform duration-[60ms] active:translate-y-1 active:shadow-none motion-reduce:transition-none";
 
 interface GameCardProps {
   game: GameEntry;
-  /** 0-based position among the cards - alternates the desktop-only tilt (-1.5deg, +1.5deg, ...). */
-  index: number;
   /** Which game's Start is in progress, if any - every Start is disabled meanwhile, to prevent double rooms. */
   startingSlug: string | null;
   /** Whether this card's join panel is open (for aria-expanded). */
@@ -31,72 +27,156 @@ interface GameCardProps {
   onJoin: (slug: string, button: HTMLButtonElement) => void;
 }
 
-/**
- * One game's card on the hub, per references/game-room/game-room-ui-spec.md's
- * "Game card" and "Card buttons": art panel, title, description, chips, then
- * Start (the game's accent fill) and Join (white) side by side.
- *
- * The resting tilt is desktop-only ("No rotation" under 760px): a `--tilt`
- * custom property consumed by a class gated behind `min-[760px]:`, so it
- * doesn't exist at all on mobile. Hover or keyboard focus anywhere in the
- * card straightens it and lifts it 6px; `motion-reduce:` turns that off.
- */
-export default function GameCard({ game, index, startingSlug, joinOpen, onStart, onJoin }: GameCardProps) {
-  const Art = ART_BY_SLUG[game.slug];
-  const tilt = index % 2 === 0 ? -1.5 : 1.5;
-  const starting = startingSlug === game.slug;
-  const buttonBase = `flex h-[52px] flex-1 cursor-pointer items-center justify-center rounded-[14px] border-2 transition-transform duration-[60ms] enabled:active:translate-y-1 enabled:active:shadow-none disabled:cursor-not-allowed motion-reduce:transition-none min-[760px]:h-14 ${FOCUS_RING} ${game.buttonTextClassName}`;
-
+function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; className: string }) {
   return (
-    <article
-      style={{ "--tilt": `${tilt}deg` } as CSSProperties}
-      className="rounded-[18px] bg-white p-[10px] pb-4 shadow-[0_6px_0_rgba(0,0,0,.28),0_16px_30px_rgba(0,0,0,.25)] transition-transform duration-150 ease-out motion-reduce:transition-none min-[760px]:rounded-[20px] min-[760px]:p-3 min-[760px]:pb-[22px] min-[760px]:[transform:rotate(var(--tilt))] min-[760px]:focus-within:[transform:rotate(0deg)_translateY(-6px)] min-[760px]:hover:[transform:rotate(0deg)_translateY(-6px)] motion-reduce:min-[760px]:focus-within:[transform:rotate(var(--tilt))] motion-reduce:min-[760px]:hover:[transform:rotate(var(--tilt))]"
+    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+      {tags.map((tag) => (
+        <li key={tag} className={`rounded-full border-2 px-[11px] py-0.5 font-bold ${className}`} style={{ borderColor: game.ink, color: game.ink }}>
+          {tag}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Start (accent fill) and Join (white), side by side. */
+function StartJoin({ game, startingSlug, joinOpen, onStart, onJoin, size }: GameCardProps & { size: "desktop" | "mobile" }) {
+  const starting = startingSlug === game.slug;
+  const base = `flex flex-1 cursor-pointer items-center justify-center rounded-[14px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
+    size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
+  }`;
+  return (
+    <div className="flex gap-2.5">
+      <button
+        type="button"
+        aria-label={`Start a ${game.title} room`}
+        disabled={startingSlug != null}
+        onClick={() => onStart(game.slug)}
+        className={`${base} disabled:opacity-80 ${starting ? "" : SHADOW}`}
+        style={{
+          backgroundColor: game.accentColor,
+          borderColor: game.ink,
+          color: game.ink,
+          cursor: starting ? "progress" : undefined,
+        }}
+      >
+        {starting ? "Starting…" : "Start"}
+      </button>
+      <button
+        type="button"
+        aria-label={`Join a ${game.title} room`}
+        aria-haspopup="dialog"
+        aria-expanded={joinOpen}
+        onClick={(e) => onJoin(game.slug, e.currentTarget)}
+        className={`${base} bg-white ${SHADOW}`}
+        style={{ borderColor: game.ink, color: game.ink }}
+      >
+        Join
+      </button>
+    </div>
+  );
+}
+
+/** "Play solo": a plain link to the solo page (no room, no invite). */
+function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "desktop" | "mobile" }) {
+  return (
+    <a
+      href={path}
+      aria-label={`Play ${game.title} solo`}
+      className={`flex w-full items-center justify-center rounded-[14px] border-2 no-underline ${SHADOW} ${PRESS_LINK} ${FOCUS_RING} ${game.titleClassName} ${size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"}`}
+      style={{ backgroundColor: game.accentColor, borderColor: game.ink, color: game.ink }}
     >
-      <div className="relative h-[104px] overflow-hidden rounded-[10px] min-[760px]:h-[200px] min-[760px]:rounded-xl">{Art ? <Art /> : null}</div>
-      <div className="mt-3.5 flex flex-col gap-2.5 px-1.5 min-[760px]:mt-5 min-[760px]:gap-3 min-[760px]:px-2.5">
-        <h2 className={`m-0 text-[26px] leading-[1.1] min-[760px]:text-[32px] ${game.titleClassName}`} style={{ color: game.ink }}>
-          {game.title}
-        </h2>
-        <p className="m-0 text-[15px] font-medium leading-[1.4] min-[760px]:text-base" style={{ color: game.textSecondary }}>
-          {game.description}
-        </p>
-        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-          {game.tags.map((tag) => (
-            <li key={tag} className="rounded-full border-2 px-3 py-[3px] text-[13px] font-semibold" style={{ borderColor: game.ink, color: game.ink }}>
-              {tag}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-1.5 flex gap-2.5">
-          <button
-            type="button"
-            aria-label={game.startPath ? `Start ${game.title}` : `Start a ${game.title} room`}
-            disabled={startingSlug != null}
-            onClick={() => onStart(game.slug)}
-            className={`${buttonBase} disabled:opacity-80`}
-            style={{
-              backgroundColor: game.accentColor,
-              borderColor: game.ink,
-              color: game.ink,
-              boxShadow: starting ? "none" : `0 4px 0 ${game.ink}`,
-              cursor: starting ? "progress" : undefined,
-            }}
-          >
-            {starting ? "Starting…" : "Start"}
-          </button>
-          <button
-            type="button"
-            aria-label={`Join a ${game.title} room`}
-            aria-haspopup="dialog"
-            aria-expanded={joinOpen}
-            onClick={(e) => onJoin(game.slug, e.currentTarget)}
-            className={`${buttonBase} bg-white`}
-            style={{ borderColor: game.ink, color: game.ink, boxShadow: `0 4px 0 ${game.ink}` }}
-          >
-            Join
-          </button>
+      Play solo
+    </a>
+  );
+}
+
+/**
+ * One game's card in a Social folder (references/game-room/game-room-ui-spec.md,
+ * "Game card"): the 300px desktop card (art panel, title, description, chips,
+ * Start + Join) from 760px, the compact card (mini art beside the text) below.
+ * Both are in the DOM; CSS shows one.
+ */
+export default function GameCard(props: GameCardProps) {
+  const { game } = props;
+  return (
+    <>
+      <article className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT}`}>
+        <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
+          <GameArt slug={game.slug} />
+        </div>
+        <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
+          <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+            {game.title}
+          </h4>
+          <p className="m-0 min-h-[63px] text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
+            {game.description}
+          </p>
+          <Chips game={game} tags={game.tags} className="text-[13px]" />
+          <div className="mt-auto pt-1.5">
+            <StartJoin {...props} size="desktop" />
+          </div>
+        </div>
+      </article>
+      <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
+        <StartJoin {...props} size="mobile" />
+      </CompactCard>
+    </>
+  );
+}
+
+function CompactCard({ game, description, chip, children }: { game: GameEntry; description: string; chip: string; children: ReactNode }) {
+  return (
+    <article className={`flex flex-col gap-3 rounded-[18px] bg-white px-2.5 pt-2.5 pb-3.5 shadow-[0_4px_0_rgba(0,0,0,.22)] min-[760px]:hidden ${LIFT}`}>
+      <div className="flex items-start gap-3">
+        <div aria-hidden="true" className="h-[92px] w-[92px] shrink-0 overflow-hidden rounded-xl">
+          <GameArt slug={game.slug} mini />
+        </div>
+        <div className={`flex min-w-0 flex-col gap-1.5 ${game.bodyClassName}`}>
+          <h4 className={`m-0 text-[22px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+            {game.title}
+          </h4>
+          <p className="m-0 line-clamp-2 text-sm font-medium leading-[1.35]" style={{ color: game.textSecondary }}>
+            {description}
+          </p>
+          <Chips game={game} tags={[chip]} className="text-xs" />
         </div>
       </div>
+      {children}
     </article>
+  );
+}
+
+/**
+ * A game's card in the Solo folder: the wide desktop card (art on the left,
+ * text and one "Play solo" button on the right), or the compact card on
+ * mobile.
+ */
+export function SoloCard({ game }: { game: GameEntry }) {
+  const solo = game.solo;
+  if (!solo) return null;
+  return (
+    <>
+      <article className={`hidden w-[628px] max-w-full gap-5 rounded-[20px] bg-white p-2.5 shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT}`}>
+        <div aria-hidden="true" className="h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl">
+          <GameArt slug={game.slug} />
+        </div>
+        <div className={`flex min-w-0 flex-1 flex-col gap-2.5 py-2 pr-2.5 ${game.bodyClassName}`}>
+          <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+            {game.title}
+          </h4>
+          <p className="m-0 text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
+            {solo.description}
+          </p>
+          <Chips game={game} tags={solo.tags} className="text-[13px]" />
+          <div className="mt-auto pt-1.5">
+            <PlaySolo game={game} path={solo.path} size="desktop" />
+          </div>
+        </div>
+      </article>
+      <CompactCard game={game} description={solo.description} chip={solo.tags[0]}>
+        <PlaySolo game={game} path={solo.path} size="mobile" />
+      </CompactCard>
+    </>
   );
 }

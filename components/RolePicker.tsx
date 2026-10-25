@@ -12,6 +12,9 @@ interface RolePickerProps<S extends SeatId> {
   onPick: (seat: S, name: string) => void;
   /** Every seat of the game, in order. Defaults to the 1v1 pair. */
   seats?: readonly S[];
+  /** The primary buttons' fill and pressed-state shadow - default to the shared pink. */
+  accentColor?: string;
+  accentShadowColor?: string;
 }
 
 const PAIR = ["p1", "p2"] as const;
@@ -21,7 +24,8 @@ const bubble = "m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black s
 /** "Sam", "Sam and Alex", "Sam, Alex and Kim". */
 const listNames = (names: string[]) => (names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
 
-export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPick, seats = PAIR as unknown as readonly S[] }: RolePickerProps<S>) {
+export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPick, seats = PAIR as unknown as readonly S[], accentColor, accentShadowColor }: RolePickerProps<S>) {
+  const accent = accentColor ? { backgroundColor: accentColor, boxShadow: `0 4px 0 ${accentShadowColor ?? accentColor}` } : undefined;
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
 
@@ -62,7 +66,9 @@ export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPic
             {error}
           </p>
         ) : null}
-        <Button onClick={submit}>Continue</Button>
+        <Button onClick={submit} style={accent}>
+          Continue
+        </Button>
       </div>
     );
   }
@@ -85,6 +91,7 @@ export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPic
           disabled={!canTakeOver[seat]}
           className={i % 2 ? "disabled:cursor-not-allowed disabled:opacity-60" : undefined}
           onClick={() => onPick(seat, names[seat]!)}
+          style={i % 2 || !canTakeOver[seat] ? undefined : accent}
         >
           {canTakeOver[seat] ? `I'm ${names[seat]} · Take this seat` : `${names[seat]} is playing`}
         </Button>

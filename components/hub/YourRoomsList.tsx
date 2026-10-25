@@ -1,6 +1,6 @@
 import GameTile from "@/components/gameRoom/GameTile";
 import HomeScreenTip from "@/components/HomeScreenTip";
-import { gameBySlug } from "@/lib/games/registry";
+import { gameBySlug, roomHref } from "@/lib/games/registry";
 import { formatLastActive } from "@/lib/hub/lastActive";
 import type { SavedRoom } from "./useSavedRooms";
 
@@ -37,7 +37,7 @@ export default function YourRoomsList({ rooms, loadedAt, heading }: YourRoomsLis
                   creator check depends on it). */}
               <a
                 data-autofocus={room === rooms[0] ? true : undefined}
-                href={`/${room.gameSlug}#${room.code}`}
+                href={roomHref(room.gameSlug, room.code)}
                 className="flex min-h-16 items-center gap-3 rounded-[14px] border-2 border-[#E1E6E7] px-3 py-2.5 text-black no-underline hover:border-[#0F7983] focus-visible:border-[#0F7983] focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0F7983]"
               >
                 <GameTile slug={room.gameSlug} />

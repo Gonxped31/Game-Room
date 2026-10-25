@@ -13,8 +13,8 @@ it's been seen on both. Game-specific visual rules live in the `first-to-worst` 
 
 | Area | Source of truth |
 | :--- | :--- |
-| Hub (`/`): game cards, join form, "Your rooms" | `references/game-room/game-room-ui-spec.md` + every board in `references/game-room/visual-design/` (desktop **and** mobile, plus the open Join and Your rooms states). Its breakpoint is **760px** (`min-[760px]:`), not Tailwind's `md:`. Background `#0F7983`. |
-| First to Worst | `references/ftw/first-to-worst.html` (the original prototype) + `first-to-worst-game-design.md` |
+| Hub (`/`): folders, game cards, join form, "Your rooms" | `references/game-room/game-room-ui-spec.md` (v2: Social and Solo folders, the yellow Talk it out panel, compact mobile cards). The PNGs in `references/game-room/visual-design/` are the v1 boards: still right for the Join popover, sheets and Your rooms, not for the page layout. Its breakpoint is **760px** (`min-[760px]:`), not Tailwind's `md:`. Background `#0F7983`. |
+| Same Page (formerly First to Worst, `/same-page`) | `references/ftw/first-to-worst-game-design.md` (the Same Page visual spec). Breakpoint **900px**. |
 | Co-Counsel | `references/co-counsel/co-counsel-visual-spec.md` + `Visual Design-png/` |
 | Night Highway | `references/night-highway/Night Highway.html` (the original game; its title card is the style for the race page's own screens) |
 | Buzzer Quiz | `references/buzzer-quiz/buzzer-quiz-visual-spec.md` (look, screens, copy) + `buzzer-quiz-game-design.md` (behavior). Its breakpoint is **900px**. |
@@ -32,7 +32,7 @@ desktop layout entirely.
   `useSyncExternalStore` with a server snapshot. A case picker rendered too early
   caused a hydration error.
 - **Fixed-position elements cover whatever is at the viewport edge.** Reserve
-  clearance on the page's `<main>` (see FTW's `pb-52`). Apply the container width
+  clearance on the page's `<main>`, or use `position: sticky` (Same Page's dock). Apply the container width
   class to the fixed element directly, since it's its own stacking context. A fixed
   top button once left a white gap above Co-Counsel's colored bands.
 - **Co-Counsel colors come only from `COLOR` tokens via inline `style`**, never
@@ -53,7 +53,7 @@ desktop layout entirely.
   - icon-only buttons: an `aria-label`.
 - **Respect reduced motion.** Flips use the global `flip-inner` class, and new
   keyframes need a `prefers-reduced-motion` override in `app/globals.css`.
-- **FTW's 5-card hand must fit one row at 375px** (the `iphone-se` profile).
+- **Same Page's 5-note hand must fit one row at 375px** (the `iphone-se` profile).
 
 ## 3. Screenshot it on real device profiles
 
@@ -69,11 +69,11 @@ real Firebase project, and every game page visit creates a real room.
 Then run:
 
 ```bash
-node .claude/skills/ui-review/scripts/screenshots.mjs hub ftw cocounsel --dark
+node .claude/skills/ui-review/scripts/screenshots.mjs hub same-page cocounsel --dark
 ```
 
-**Pages** are given without a leading slash: `hub`, `ftw`, `cocounsel`, or a full
-URL. Git Bash rewrites `/ftw` into a Windows path.
+**Pages** are given without a leading slash: `hub`, `same-page`, `cocounsel`, or a full
+URL. Git Bash rewrites `/same-page` into a Windows path.
 
 **Profiles** (default: all):
 
@@ -109,12 +109,10 @@ patterns.
   - notch and home-bar safe areas (`env(safe-area-inset-*)`);
   - the browser bars that resize the viewport while scrolling;
   - Home Screen standalone mode;
-  - real touch drag (FTW cards).
+  - real touch drag (Same Page notes).
 - **Fonts can differ:** WebKit renders Fredoka visibly lighter than Chromium.
   Judge font weight on a real device.
 - **Known artifacts of Playwright's WebKit on Windows**, not proven iPhone bugs:
-  - FTW's hand cards show their mirrored "RANK CARD" back instead of the numbers
-    (3D card flips aren't drawn the way a real iPhone draws them).
   - Fredoka's `ffl` ligature renders with a gap ("Shuff le").
 
   Don't "fix" these from emulation alone; todo T-017 (`todo` skill) is the

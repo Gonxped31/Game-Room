@@ -22,6 +22,8 @@ export interface GameSession<TState extends WithIdentity> {
   /** Display names of the held seats. */
   names: Partial<Record<Role, string>>;
   bothJoined: boolean;
+  /** The seat the room's creator holds, or null if they hold none. */
+  hostSeat: Role | null;
   /** User-chosen room name, or undefined if nobody's set one - callers should fall back to showing `room` itself. */
   roomName: string | undefined;
   /** Only the room's creator may name it. */
@@ -91,6 +93,7 @@ export function useGameSession<TState extends WithIdentity>(opts: {
     other,
     names,
     bothJoined: Boolean(names.p1 && names.p2),
+    hostSeat: asRole(session.hostSeat),
     roomName: session.roomName,
     canRenameRoom: session.canRenameRoom,
     setRoomName: session.setRoomName,

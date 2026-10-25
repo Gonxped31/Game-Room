@@ -5,8 +5,8 @@
 //   node .claude/skills/ui-review/scripts/screenshots.mjs [pages...] [options]
 //
 //   pages            page names without a leading slash - "hub" (the home page),
-//                    "ftw", "cocounsel", "ftw#k3m9pq" - or full URLs (default: hub).
-//                    No leading "/": Git Bash rewrites "/ftw" into a Windows path.
+//                    "same-page", "cocounsel", "same-page#k3m9pq" - or full URLs (default: hub).
+//                    No leading "/": Git Bash rewrites "/same-page" into a Windows path.
 //   --base=URL       prefix for paths (default http://localhost:3123, the emulator-backed
 //                    server from the live-test skill - never the real Firebase project)
 //   --profiles=a,b   subset of: iphone-se, iphone, android, edge-760, desktop (default: all)
@@ -68,11 +68,11 @@ function parseArgs(argv) {
   return opts;
 }
 
-/** "hub" -> base + "/", "ftw" (or "/ftw") -> base + "/ftw", full URLs untouched. */
+/** "hub" -> base + "/", "same-page" (or "/same-page") -> base + "/same-page", full URLs untouched. */
 function toUrl(page, base) {
   if (/^https?:/.test(page)) return page;
   if (/^[A-Za-z]:[\\/]/.test(page)) {
-    throw new Error(`"${page}" looks like a path rewritten by Git Bash - pass page names without a leading slash (e.g. "ftw", "hub").`);
+    throw new Error(`"${page}" looks like a path rewritten by Git Bash - pass page names without a leading slash (e.g. "same-page", "hub").`);
   }
   const path = page === "hub" ? "" : page.replace(/^\//, "");
   return `${base}/${path}`;

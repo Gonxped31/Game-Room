@@ -1,18 +1,23 @@
 ---
 name: first-to-worst
-description: Reference for working on First to Worst (FTW), the 2-player ranking game - its rules, state machine, prompt bank, UI structure and gotchas. Use whenever changing or debugging anything under lib/games/ftw/, components/ftw/ or app/ftw/, editing prompts.json, or answering questions about how FTW plays.
+description: Reference for working on Same Page (formerly First to Worst, slug ftw), the 2-player ranking game - its rules, state machine, prompt bank, UI structure and gotchas. Use whenever changing or debugging anything under lib/games/ftw/, components/ftw/ or app/same-page/, editing prompts.json, or answering questions about how Same Page plays.
 ---
 
-# First to Worst
+# Same Page (formerly First to Worst)
 
-A private 2-player ranking game. Each round has a prompt and exactly 5 topic cards.
-The **master** privately ranks them 1 (best) to 5 (worst), the **guesser** tries to
-match that ranking, and both are revealed and scored. Roles swap every round.
+A private 2-player ranking game. Each round has a prompt and exactly 5 items.
+The **ranker** (`master` in the code) privately puts rank notes 1 (best) to 5
+(worst) on them, the **guesser** tries to match that order, and both are revealed
+and scored. Roles swap every round.
 
-- **Source of truth for UI, flow and animations**: `references/ftw/first-to-worst.html`
-  (the original single-file prototype).
-- **Rules and scoring**: `references/ftw/first-to-worst-game-design.md` overrides the
-  prototype wherever they differ.
+- **Source of truth for UI, copy and motion**: `references/ftw/first-to-worst-game-design.md`
+  (the "Same Page: Visual Spec": a notebook on a lilac desk, sticky-note ranks).
+- `references/ftw/first-to-worst.html` is the original First to Worst prototype,
+  superseded wherever the spec differs.
+- **Names**: the UI says Same Page everywhere (`GAME_TITLE`), but the data slug
+  stays `ftw` (`meta.gameSlug`, `games/{room}/ftw`, the rules, saved rooms). The
+  route is `/same-page` (registry `path`); `next.config.ts` redirects `/ftw`, and
+  browsers keep the `#code` across the redirect.
 
 ## Files
 
@@ -29,11 +34,18 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   - `GAME_TITLE` - the only place the title lives.
   - `ITEMS_PER_ROUND` - **the only place "5" is encoded; never hardcode it**.
   - `MAX_PROMPT_LENGTH` (120) / `MAX_ITEM_LENGTH` (60).
-  - `CONTAINER_MAX_WIDTH_CLASS` and `NUMBER_GRADIENTS`.
-- `components/ftw/` - `RoundBoard`, `CardTable`, `CardSlot`, `CardFace`, `Hand`,
-  `CustomPromptForm`, `TopicPicker`, `SessionRecap`.
-- `app/ftw/page.tsx` - wires `useGameSession({ gameSlug: "ftw" })` to all of the
-  above.
+- `lib/games/ftw/placement.ts` - the local note placement while ranking or
+  guessing: `tapItem`, `tapHandNote`, `placeNote` (hand note replaces, sheet note
+  moves or swaps), `rankOrder`, and `resultHeadline` (the reveal's copy). Tested.
+- `components/ftw/`:
+  - `ui.tsx` - `THEME` (the spec's tokens as CSS variables on the page root),
+    `NOTE_COLORS`, player colors, fonts, `StickyNote`, `PrimaryButton`, icons.
+  - `RoundBoard` - `Placing` (sheet rows, hand, lock button), `Waiting`, `Reveal`,
+    laid out by `Frame`; `Sheet` (lined paper); `Scoreboard` (`GameHeader`
+    with score chips, the desktop `ScoreCard`, the `Wordmark`).
+  - `CustomPromptForm`, `TopicPicker`, `SessionRecap`.
+- `app/same-page/page.tsx` - wires `useGameSession({ gameSlug: "ftw" })` to all
+  of the above.
 
 ## State and Firebase
 
@@ -50,8 +62,9 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   (strings ≤ 60, at most 99 entries).
 - **Live placement progress** (`current.placed`, written by `setPlaced`): the IDs
   of the slots the player whose turn it is has filled so far - **never the
-  numbers**, because the other player can read the room. The other player sees
-  face-down cards pop in on those slots and "N of 5 placed". `RoundBoard` reports
+  numbers**, because the other player can read the room. The waiting guesser
+  sees face-down (striped, numberless) notes pop in on those rows; both see "N of
+  5 placed". `RoundBoard` reports
   changes; `setPlaced(game, phase, ids)` refuses a placement from a phase that
   already ended, and `lockIn`/`submitGuess` drop the field.
   It also carries `names: {}`, which `WithIdentity` requires but the session layer
@@ -102,52 +115,61 @@ match that ranking, and both are revealed and scored. Roles swap every round.
   only once that player has been offline for 2 minutes.
 - **"Reset game"** (`setGame(newGame(...))`) restarts the game only; both players
   stay seated.
-- `RoleStickers` shows "👑 Sam · Master" / "🔎 Alex · Guesser" with presence dots.
-  Names replace "Master"/"Guesser" throughout, falling back to the generic words
-  when unset.
+- **Player colors**: the room's creator is yellow, the other player pink
+  (`hostSeat` from `useGameSession`; p1 is yellow if the creator holds no seat).
+  Phones show a score chip per player in the header (viewer first, ringed); from
+  900px the aside shows a `ScoreCard` instead.
+- Presence shows in the waiting line: "{partner} can play later." while the
+  other player is offline.
 
-## Page flow (`app/ftw/page.tsx`)
+## Page flow (`app/same-page/page.tsx`)
 
 The page renders the first state that applies:
 1. `connectionError` or `roomMissing` → message.
 2. `!game` → "Connecting…".
 3. `!me` → `RolePicker`.
 4. `!bothJoined` → `InviteLinkBanner` (name field only when `canRenameRoom`).
-5. Otherwise → `RoleStickers` + `RoundBoard` + `SessionRecap`.
+5. Otherwise → `RoundBoard` (with `TopicPicker` and `SessionRecap` as its `extras`).
+
+`RoundBoard` picks `Reveal` once REVEALED, `Placing` on this player's move,
+`Waiting` otherwise (the ranker after locking, read-only notes; the guesser while
+the ranker ranks).
 
 The board is withheld until both players have joined.
 
 ## UI gotchas
 
-- **The fixed bottom bar**: `RoundBoard`'s hand + submit (while placing) and "Next
-  round" (once revealed) sit in a `position: fixed` bar.
-  - Its bottom clearance lives on the page's `<main>` (`pb-52` when `hasFixedBar`),
-    **not** in `RoundBoard`, because a fixed bar covers whatever is at the bottom
-    of the viewport, including the Footer.
-  - The bar is its own stacking context, so it needs `CONTAINER_MAX_WIDTH_CLASS`
-    applied directly to stay aligned with the page.
-- **Tap targets**: only wire a column's tap handler when that column is
-  interactive for the current viewer right now. A past bug let a tap on the
-  *other* player's empty slot consume your selected card.
-- **Drag and drop**: built on Pointer Events, not the HTML5 drag API (which
-  doesn't fire on touch screens).
-  - It's additive to tap-to-place; a gesture under 8px falls through as a click.
-  - `CardSlot` exposes `data-drop-id` only when interactive, and drops hit-test
-    with `elementFromPoint(...).closest("[data-drop-id]")`.
-  - Hand card onto a filled slot: replaces it, and the displaced card goes back to
-    the hand.
-  - Board card onto an empty slot: moves it. Onto a filled slot: swaps the two.
-  - Onto itself or nothing: no-op, so an aborted drag can't lose a card.
-- **Sizing**: card/slot size is `min(15vw,68px)`, so 5 hand cards fit on one row
-  at 375px.
-- **Reduced motion**: the card flip uses the global `flip-inner` class, which
-  `app/globals.css` disables under `prefers-reduced-motion`.
+- **Layout**: one column under 900px (banner, sheet, the hand + button dock,
+  extras). From 900px `Frame` is a grid: an aside (300-380px: score card, banner,
+  dock, extras) beside the sheet (up to 720px), via `grid-template-areas`, so the
+  DOM order stays the phone order.
+- **The dock is `sticky`, not `fixed`**, on phones while placing: the hand and
+  the lock button stay reachable on short screens without the old fixed bar's
+  clearance padding.
+- **Tap targets**: only the placing player's rows are buttons; the waiting and
+  reveal sheets are plain lists. A past bug let a tap on the *other* player's
+  empty slot consume your selected card.
+- **Tap, keyboard, drag**: tap a hand note then an item; tapping a placed note
+  returns it to the hand, or once the hand is empty picks it up for a swap.
+  Number keys 1-5 place that note on the focused item; Escape drops a pick.
+  Drag is built on Pointer Events (the HTML5 drag API doesn't fire on touch),
+  additive to tapping: a gesture under 8px falls through as a click, drops
+  hit-test the rows' `data-drop-id`, and a drop on nothing changes nothing.
+- **Sizing**: hand notes are `min(60px, (100cqw - 56px) / 5)` in a size
+  container, so five fit at 375px and in the narrow desktop aside. Long single
+  words wrap (`overflow-wrap: anywhere`) instead of running under the notes.
+- **Motion**: a tapped note flies to its slot (Web Animations, skipped under
+  reduced motion). The reveal's `sp-*` classes in `app/globals.css` (flip,
+  highlighter, mark pop, headline fade) are disabled under
+  `prefers-reduced-motion`; the count-up then shows at once.
+- **Copy**: the hand caption says "item" (the bank has no per-prompt noun), and
+  "{partner} locked in their order" (no guessed pronouns).
 
 ## Verifying a change
 
 - `npm test` for logic and the prompt bank, and `npm run test:rules` if the state
   shape changed.
 - For anything visible, use the `ui-review` skill (phone and desktop screenshots;
-  the `iphone-se` profile is the 375px width the 5-card hand must fit).
+  the `iphone-se` profile is the 375px width the 5-note hand must fit).
 - For multi-device flows, use the `live-test` skill: an iPhone against a desktop
   player, in Playwright, against the emulators.

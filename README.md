@@ -17,12 +17,12 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
 
 ## The games
 
-- **First to Worst** (`/ftw`) - a ranking game. Each round has a prompt and exactly
-  5 topic cards (e.g. "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies,
-  Jalapenos).
-  - The **master** privately ranks the topics 1 (best) to 5 (worst).
-  - The **guesser** tries to guess that ranking.
-  - Both rankings are revealed and scored, and roles swap every round.
+- **Same Page** (`/same-page`, formerly First to Worst at `/ftw`, which still
+  redirects) - a ranking game. Each round has a prompt and exactly 5 items (e.g.
+  "Pizza toppings": Pepperoni, Mushrooms, Pineapple, Anchovies, Jalapenos).
+  - The **ranker** privately puts rank notes 1 (best) to 5 (worst) on the items.
+  - The **guesser** tries to guess that order.
+  - Both are revealed and scored, and roles swap every round.
 - **Co-Counsel** (`/cocounsel`) - a cooperative mystery.
   - One player is the Investigator (external evidence), the other the Defendant
     (internal facts).
@@ -58,7 +58,7 @@ gives a visual, layer-by-layer walkthrough of the architecture.
 
 - **Starting a room.** Tap **Start** on a game's card (or open a game with no
   `#code` in the URL) and a room is created for you; its code then appears in the
-  address bar (`/ftw#k3m9pq`). Share the link, or the code.
+  address bar (`/same-page#k3m9pq`). Share the link, or the code.
 - **Joining.** Open the link, or tap **Join** on a game's card and type the room's
   code or name. If it turns out to be a room of another game, it opens anyway.
 - **Naming a room.** Whoever created it can give it a name from the invite screen.
@@ -199,8 +199,8 @@ These apply to every game on the platform:
 - **Previews share production's database** unless you give Vercel's Preview
   environment a different Firebase project.
 
-First to Worst has one additional quirk: a round's score is the count of topic cards
-where the master and guesser assigned the exact same number (1-5) - see
+Same Page has one additional quirk: a round's score is the count of items
+where the ranker and guesser put the exact same note (1-5) - see
 `lib/games/ftw/scoring.ts`. Because of how permutations work, a score of exactly 4 out
 of 5 is mathematically impossible: if four cards land in their correct spot, the fifth
 has nowhere else to go but its correct spot too. So you'll only ever see 0, 1, 2, 3, or
@@ -236,7 +236,7 @@ by. To rename the platform itself, or any individual game:
 export const APP_TITLE = "Game Room"; // the picker's title, the Home Screen app name
 
 // lib/games/ftw/constants.ts
-export const GAME_TITLE = "First to Worst"; // change this
+export const GAME_TITLE = "Same Page"; // the data slug stays "ftw"
 ```
 
 A game's `GAME_TITLE` drives its own page title, header pill, and browser-tab "your

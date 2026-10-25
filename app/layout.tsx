@@ -1,5 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Narrow, Atkinson_Hyperlegible, Big_Shoulders, Bricolage_Grotesque, Courier_Prime, Fredoka, Lilita_One, Nunito, Overpass, Overpass_Mono } from "next/font/google";
+import {
+  Archivo,
+  Archivo_Narrow,
+  Atkinson_Hyperlegible,
+  Bagel_Fat_One,
+  Big_Shoulders,
+  Bricolage_Grotesque,
+  Courier_Prime,
+  DM_Sans,
+  Fredoka,
+  Kalam,
+  Lilita_One,
+  Nunito,
+  Overpass,
+  Overpass_Mono,
+} from "next/font/google";
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
 import LocalModeBanner from "@/components/LocalModeBanner";
@@ -87,6 +102,26 @@ const nunito = Nunito({
   preload: false,
 });
 
+// Same Page's type (references/ftw/first-to-worst-game-design.md, "Type").
+// Bagel Fat One is also its hub card's title face, and DM Sans its card body,
+// so both preload; Kalam (the handwritten items) only appears in the game.
+const bagel = Bagel_Fat_One({
+  variable: "--font-bagel",
+  subsets: ["latin"],
+  weight: "400",
+});
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  axes: ["opsz"],
+});
+const kalam = Kalam({
+  variable: "--font-kalam",
+  subsets: ["latin"],
+  weight: "700",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: APP_TITLE,
   // Opened from the Home Screen, iOS runs it as a standalone app - whose
@@ -103,7 +138,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable}`}>
+    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable} ${bagel.variable} ${dmSans.variable} ${kalam.variable}`}>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />
