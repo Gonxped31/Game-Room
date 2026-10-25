@@ -10,4 +10,4 @@ T-046 | 3 | - | L | full-stack,wordchain | Later: word-building team game (Ghost
 T-049 | 3 | T-040 | L | content,buzzerquiz | Grow the Buzzer Quiz bank from 20 toward ~40 questions per topic per language (~480), fact-checked
 T-050 | 3 | - | S | full-stack | Drop the always-empty names field from WithIdentity/WithMultiplayerIdentity and every game's state (ftw, cocounsel, nighthighway, buzzerquiz, wordscramble: newGame + normalize), checking the rules still accept old states
 T-054 | 1 | - | S | devops | CI npm ci fails: package-lock.json is missing optional @emnapi entries (Windows npm drops them). Fix the lockfile so npm ci passes on Linux, then restore CI
-T-055 | 3 | - | S | frontend,nighthighway | Night Highway hub cards: replace the v2 hub spec's placeholder art, copy, chips and colors (Fredoka, yellow Start, generic night road) with its own design once one exists
+T-055 | 3 | - | S | frontend,nighthighway | Night Highway hub cards: replace the v2 hub spec's placeholder copy, chips, colors and title font (Fredoka, yellow Start) with its own design once one exists. The art is already the game's own skyline drawing (user's choice, 2026-10-24)

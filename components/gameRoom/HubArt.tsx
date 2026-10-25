@@ -122,53 +122,84 @@ function WordScrambleArt({ mini }: { mini?: boolean }) {
   );
 }
 
-// --- Night Highway (placeholder until it has its own hub design) -------------
+// --- Night Highway -----------------------------------------------------------
 
-const STARS: [number, number, number][] = [
-  [22, 18, 1.2], [48, 40, 0.9], [74, 14, 1], [104, 32, 1.3], [132, 12, 0.8], [158, 38, 1],
-  [184, 20, 1.1], [30, 62, 0.8], [90, 58, 1], [150, 64, 0.8], [250, 70, 0.9], [264, 44, 1],
+/** Two taillights, with their glow and their reflection streaking down the wet road. */
+function Taillights({ x, y, w, opacity = 1, glow, streak }: { x: number; y: number; w: number; opacity?: number; glow: string; streak: string }) {
+  const lamp = w * 0.22;
+  return (
+    <g opacity={opacity}>
+      {[x, x + w - lamp].map((lx) => (
+        <g key={lx}>
+          <rect x={lx - lamp * 0.6} y={y + lamp * 0.2} width={lamp * 2.2} height={w * 0.9} fill={`url(#${streak})`} />
+          <circle cx={lx + lamp / 2} cy={y + lamp * 0.2} r={lamp * 1.8} fill={`url(#${glow})`} />
+          <rect x={lx} y={y} width={lamp} height={lamp * 0.45} rx={lamp * 0.12} fill="#ff6b7d" />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+const WINDOWS: [number, number][] = [
+  [18, 92], [26, 86], [44, 98], [58, 80], [64, 94], [88, 90], [104, 84], [118, 96],
+  [222, 88], [236, 94], [252, 82], [270, 92], [286, 86], [300, 98], [318, 90],
 ];
 
-function NightHighwayScene({ w, h, taillights }: { w: number; h: number; taillights: boolean }) {
+/**
+ * The midnight freeway from behind the wheel: skyline, lane lines running to
+ * the horizon, and two cars' taillights glowing on the wet asphalt, the far
+ * pair fainter like the race's ghost car. One 340x200 drawing for every size:
+ * `slice` crops it to the 168px panel, the 92px mini and the 40px list tile.
+ * (The game's own art, kept instead of the v2 spec's placeholder road.)
+ */
+function NightHighwayArt() {
   const sky = useSvgId("nh-sky");
-  const horizon = h * 0.55;
-  const cx = w / 2;
-  const s = w / 280;
-  // Center dashes, growing toward the viewer.
-  const dashes = [0.08, 0.24, 0.48, 0.8].map((t) => {
-    const y = horizon + t * (h - horizon);
-    const len = 4 + t * 22;
-    return { y, len, width: 1.5 + t * 4 };
-  });
+  const road = useSvgId("nh-road");
+  const glow = useSvgId("nh-glow");
+  const streak = useSvgId("nh-streak");
   return (
-    <Svg w={w} h={h}>
+    <Svg w={340} h={200}>
       <defs>
         <linearGradient id={sky} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0B1030" />
-          <stop offset="1" stopColor="#2B2466" />
+          <stop offset="0" stopColor="#03060f" />
+          <stop offset="0.45" stopColor="#0a1633" />
+          <stop offset="0.56" stopColor="#25386a" />
+        </linearGradient>
+        <linearGradient id={road} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#1b2135" />
+          <stop offset="1" stopColor="#0d0f15" />
+        </linearGradient>
+        <radialGradient id={glow}>
+          <stop offset="0" stopColor="#ff2b45" stopOpacity="0.75" />
+          <stop offset="1" stopColor="#ff2b45" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={streak} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ff2b45" stopOpacity="0.5" />
+          <stop offset="1" stopColor="#ff2b45" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <rect width={w} height={h} fill={`url(#${sky})`} />
-      {STARS.filter(([x, y]) => x * s < w && y * s < horizon - 6).map(([x, y, r]) => (
-        <circle key={`${x}-${y}`} cx={x * s} cy={y * s} r={r * Math.max(s, 0.7)} fill="#FFFFFF" opacity="0.8" />
+      <rect width="340" height="200" fill={`url(#${sky})`} />
+      {[[30, 18], [96, 34], [150, 12], [214, 26], [282, 14], [318, 40], [62, 52]].map(([cx, cy]) => (
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="0.9" fill="#cfe0ff" opacity="0.7" />
       ))}
-      <circle cx={w - 44 * s} cy={30 * s} r={15 * s} fill="#FFF3C4" />
-      <path d={`M0 ${horizon - 6 * s} Q ${w * 0.22} ${horizon - 26 * s} ${w * 0.45} ${horizon - 8 * s} T ${w} ${horizon - 14 * s} V ${h} H 0 Z`} fill="#141537" />
-      <path d={`M${cx - 6 * s} ${horizon} L${cx + 6 * s} ${horizon} L${w * 0.92} ${h} L${w * 0.08} ${h} Z`} fill="#2A2C55" />
-      <path d={`M${cx - 6 * s} ${horizon} L${w * 0.08} ${h}`} stroke="#B9A7FF" strokeWidth={2 * s} />
-      <path d={`M${cx + 6 * s} ${horizon} L${w * 0.92} ${h}`} stroke="#B9A7FF" strokeWidth={2 * s} />
-      {dashes.map((d) => (
-        <rect key={d.y} x={cx - (d.width * s) / 2} y={d.y} width={d.width * s} height={d.len * s} rx={1} fill="#FFD34D" />
+      {/* Skyline. */}
+      <path
+        d="M0 112V96h12v-8h16v14h12V84h10v-6h12v34h14V92h18v-6h10v26h20v-8h14v8h46v-6h18v-16h12v10h16V76h14v12h10v-8h16v20h12v-10h18v22h14V94h10v18Z"
+        fill="#060a16"
+      />
+      {WINDOWS.map(([x, y]) => (
+        <rect key={`${x}-${y}`} x={x} y={y} width="2" height="2" fill={x % 3 ? "#ffcf8a" : "#cfe0ff"} opacity="0.75" />
       ))}
-      {taillights ? (
-        <g>
-          <rect x={cx - 34} y={h - 50} width={68} height={22} rx={6} fill="#0B0C22" />
-          <rect x={cx - 30} y={h - 46} width={14} height={6} rx={2} fill="#FF3B4E" />
-          <rect x={cx + 16} y={h - 46} width={14} height={6} rx={2} fill="#FF3B4E" />
-          <circle cx={cx - 23} cy={h - 43} r={12} fill="rgba(255,59,78,.25)" />
-          <circle cx={cx + 23} cy={h - 43} r={12} fill="rgba(255,59,78,.25)" />
-        </g>
-      ) : null}
+      {/* The road, running to a vanishing point on the horizon. */}
+      <polygon points="152,112 188,112 352,200 -12,200" fill={`url(#${road})`} />
+      <line x1="153" y1="112" x2="-6" y2="200" stroke="#cfae45" strokeWidth="1.6" opacity="0.8" />
+      <line x1="187" y1="112" x2="346" y2="200" stroke="#dcd9cf" strokeWidth="1.6" opacity="0.7" />
+      {[161, 170, 179].map((top, i) => (
+        <line key={top} x1={top} y1="112" x2={[78, 170, 262][i]} y2="200" stroke="#d6d3ca" strokeWidth="1.4" strokeDasharray="7 9" opacity="0.5" />
+      ))}
+      {/* The far car (the ghost), then the near one. */}
+      <Taillights x={182} y={128} w={14} opacity={0.6} glow={glow} streak={streak} />
+      <Taillights x={108} y={160} w={34} glow={glow} streak={streak} />
     </Svg>
   );
 }
@@ -274,10 +305,6 @@ function CoCounselArt({ mini }: { mini?: boolean }) {
 }
 
 // --- Lookup ------------------------------------------------------------------
-
-function NightHighwayArt({ mini }: { mini?: boolean }) {
-  return mini ? <NightHighwayScene w={92} h={92} taillights={false} /> : <NightHighwayScene w={280} h={168} taillights />;
-}
 
 const ART: Record<string, (props: { mini?: boolean }) => JSX.Element> = {
   buzzerquiz: BuzzerQuizArt,
