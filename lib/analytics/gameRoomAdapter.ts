@@ -1,4 +1,4 @@
-import type { PresenceEntry, RoomMeta, UserRoomEntry } from "@/lib/session/shared/updates";
+import type { PresenceEntry, RoomMeta, UserRoomEntry, VisitEntry } from "@/lib/session/shared/updates";
 import type { GuestRoomSnap, GuestSnap, RoomSnap, Snapshot } from "./types";
 
 /**
@@ -19,8 +19,12 @@ export interface RawRoom {
 
 interface RawUser {
   rooms?: Record<string, Partial<UserRoomEntry>>;
+  /** `{yyyymmdd: {roomCode: VisitEntry}}` */
   visits?: Record<string, unknown>;
 }
+
+/** A room's creator, by code, for rooms a guest knows only from visits (no `createdByMe` there). */
+type CreatorOf = (code: string) => string | undefined;
 
 const isTime = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value > 0;
 const entries = <T>(tree: unknown) => (tree && typeof tree === "object" ? Object.entries(tree as Record<string, T>) : []);
@@ -45,17 +49,29 @@ export function toRoomSnap(code: string, raw: RawRoom): RoomSnap | null {
   };
 }
 
-export function toGuestSnap(uid: string, raw: RawUser): GuestSnap {
-  const visits = entries<unknown>(raw?.visits).flatMap(([, at]) => (isTime(at) ? [at] : []));
-  return {
-    uid,
-    rooms: entries<Partial<UserRoomEntry>>(raw?.rooms).flatMap(([code, entry]) =>
-      entry && typeof entry.gameSlug === "string" && isTime(entry.addedAt)
-        ? [{ code, gameSlug: entry.gameSlug, addedAt: entry.addedAt, createdByMe: entry.createdByMe === true }]
-        : [],
-    ),
-    ...(visits.length ? { visits } : {}),
-  };
+/**
+ * One guest's rooms, from their room list (`users/{uid}/rooms`, which "Leave
+ * room" and the hub clear) and their visits (`users/{uid}/visits`, which
+ * stay), so leaving a room never drops it from the numbers. A room's first
+ * day is the earliest of the two.
+ */
+export function toGuestSnap(uid: string, raw: RawUser, creatorOf: CreatorOf = () => undefined): GuestSnap {
+  const rooms = new Map<string, GuestRoomSnap>();
+  for (const [code, entry] of entries<Partial<UserRoomEntry> | null>(raw?.rooms)) {
+    if (!entry || typeof entry.gameSlug !== "string" || !isTime(entry.addedAt)) continue;
+    rooms.set(code, { code, gameSlug: entry.gameSlug, addedAt: entry.addedAt, createdByMe: entry.createdByMe === true || creatorOf(code) === uid });
+  }
+  const visits: number[] = [];
+  for (const [, day] of entries<unknown>(raw?.visits)) {
+    for (const [code, visit] of entries<Partial<VisitEntry> | null>(day)) {
+      if (!visit || typeof visit.gameSlug !== "string" || !isTime(visit.at)) continue;
+      visits.push(visit.at);
+      const known = rooms.get(code);
+      if (!known) rooms.set(code, { code, gameSlug: visit.gameSlug, addedAt: visit.at, createdByMe: creatorOf(code) === uid });
+      else if (visit.at < known.addedAt) known.addedAt = visit.at;
+    }
+  }
+  return { uid, rooms: [...rooms.values()], ...(visits.length ? { visits } : {}) };
 }
 
 /**
@@ -71,6 +87,8 @@ export interface ArchivedRoom {
   activeMinutes?: number;
   closedAt?: number;
   matchmade?: true;
+  /** The creating guest's uid (meta.createdBy), for the invite loop. */
+  createdBy?: string;
   deletedAt: number;
   /** Each guest's entry for the room, since the hub drops `users/{uid}/rooms/{code}` once the room is gone. */
   guests?: Record<string, { addedAt: number; createdByMe?: true }>;
@@ -82,7 +100,7 @@ export function toArchivedRoom(code: string, raw: RawRoom, users: unknown, delet
   if (!room) return null;
   const guests: NonNullable<ArchivedRoom["guests"]> = {};
   for (const [uid, user] of entries<RawUser>(users)) {
-    const entry = toGuestSnap(uid, user).rooms.find((r) => r.code === code);
+    const entry = toGuestSnap(uid, user, () => raw.meta?.createdBy).rooms.find((r) => r.code === code);
     if (entry) guests[uid] = { addedAt: entry.addedAt, ...(entry.createdByMe ? { createdByMe: true as const } : {}) };
   }
   return {
@@ -95,6 +113,7 @@ export function toArchivedRoom(code: string, raw: RawRoom, users: unknown, delet
     ...(room.activeMinutes != null ? { activeMinutes: room.activeMinutes } : {}),
     ...(room.closedAt != null ? { closedAt: room.closedAt } : {}),
     ...(room.matchmade ? { matchmade: true as const } : {}),
+    ...(typeof raw.meta?.createdBy === "string" ? { createdBy: raw.meta.createdBy } : {}),
     ...(Object.keys(guests).length ? { guests } : {}),
   };
 }
@@ -125,7 +144,10 @@ export function fromArchivedRoom(code: string, raw: Partial<ArchivedRoom> | null
  * the ones the hub has since dropped from `users`.
  */
 export function toSnapshot(games: unknown, users: unknown, now: number, archive: unknown = null): Snapshot {
-  const guests = entries<RawUser>(users).map(([uid, raw]) => toGuestSnap(uid, raw));
+  const creators = new Map<string, string>();
+  for (const [code, raw] of entries<Partial<ArchivedRoom> | null>(archive)) if (typeof raw?.createdBy === "string") creators.set(code, raw.createdBy);
+  for (const [code, raw] of entries<RawRoom | null>(games)) if (typeof raw?.meta?.createdBy === "string") creators.set(code, raw.meta.createdBy);
+  const guests = entries<RawUser>(users).map(([uid, raw]) => toGuestSnap(uid, raw, (code) => creators.get(code)));
   const byUid = new Map(guests.map((guest) => [guest.uid, guest]));
   const archived = entries<Partial<ArchivedRoom> | null>(archive).flatMap(([code, raw]) => {
     const room = fromArchivedRoom(code, raw);

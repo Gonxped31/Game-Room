@@ -69,9 +69,20 @@ export function visitDay(now: number): string {
   return new Date(now).toISOString().slice(0, 10).replaceAll("-", "");
 }
 
-/** Marks that this guest was in a room today (`users/{uid}/visits/{yyyymmdd}`: the server time), for the dashboard's return rate. */
-export function visitUpdate(opts: { uid: string; day: string; ts: unknown }) {
-  return { [`users/${opts.uid}/visits/${opts.day}`]: opts.ts };
+/**
+ * A guest's visit to a room on a UTC day (`users/{uid}/visits/{yyyymmdd}/{code}`):
+ * the dashboard's record of who played what, and when. Unlike the guest's
+ * room list, which "Leave room" and the hub clear, it stays.
+ */
+export interface VisitEntry {
+  gameSlug: string;
+  /** The first time that day (server ms). */
+  at: number;
+}
+
+/** Marks that this seated guest was in the room today. */
+export function visitUpdate(opts: { uid: string; code: string; gameSlug: string; day: string; ts: unknown }) {
+  return { [`users/${opts.uid}/visits/${opts.day}/${opts.code}`]: { gameSlug: opts.gameSlug, at: opts.ts } };
 }
 
 export interface PresenceEntry {

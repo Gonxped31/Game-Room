@@ -30,7 +30,7 @@ queue/{slug}/{lang}/{room}     -- matchmaking queue: listable per slug+lang; mem
               refuses changes except presence, so guests can still go offline
 roomsByName/{nameKey}: code    -- unique; only the room's creator can claim or delete it
 users/{uid}/rooms/{code}       -- only that uid reads or writes; fixed fields
-users/{uid}/visits/{yyyymmdd}  -- own only: a server time from the last 48 h, keyed by UTC day
+users/{uid}/visits/{day}/{code} -- own only, while seated in that room: { gameSlug (the room's), at (server time, last 48 h) }
 analytics/archive/{code}       -- deleted rooms' summaries, written by /admin (firebase-admin); no rule, so clients are refused
 ```
 

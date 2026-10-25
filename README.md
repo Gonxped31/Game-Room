@@ -157,7 +157,7 @@ games/{roomCode}/
   nighthighwayCars: { p1: {...}, p2: {...} }  // each racer's live car, 10x a second (own seat only)
 roomsByName/{nameKey}: roomCode              // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
-users/{uid}/visits/{yyyymmdd}: number        // first room visit that UTC day (return rate)
+users/{uid}/visits/{yyyymmdd}/{roomCode}: { gameSlug, at }  // in that room that UTC day; kept after "Leave room" (dashboard)
 ```
 
 What the rules enforce:

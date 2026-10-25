@@ -521,7 +521,13 @@
         },
         "visits": {
           "$day": {
-            ".validate": "$day.matches(/^20[0-9][0-9][01][0-9][0-3][0-9]$/) && newData.isNumber() && newData.val() <= now && newData.val() > now - 172800000"
+            ".validate": "$day.matches(/^20[0-9][0-9][01][0-9][0-3][0-9]$/) && newData.hasChildren()",
+            "$room": {
+              ".validate": "newData.hasChildren(['gameSlug', 'at']) && root.child('games/' + $room + '/members/' + $uid).exists() && root.child('games/' + $room + '/meta/gameSlug').val() == newData.child('gameSlug').val()",
+              "gameSlug": { ".validate": "newData.isString()" },
+              "at": { ".validate": "newData.isNumber() && newData.val() <= now && newData.val() > now - 172800000" },
+              "$other": { ".validate": false }
+            }
           }
         },
         "$other": { ".validate": false }

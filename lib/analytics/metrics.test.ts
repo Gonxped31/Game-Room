@@ -249,7 +249,7 @@ describe("gameRoomAdapter", () => {
       badtime: { meta: { gameSlug: "ftw", createdAt: "yesterday" } },
     };
     const users = {
-      a: { rooms: { abc123: { gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }, broken: { addedAt: NOW } }, visits: { "20261023": NOW - DAY_MS, bad: "x" } },
+      a: { rooms: { abc123: { gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }, broken: { addedAt: NOW } }, visits: { "20261023": { abc123: { gameSlug: "ftw", at: NOW - DAY_MS } }, "20261024": "bad" } },
       b: {},
     };
     const snap = toSnapshot(games, users, NOW);
@@ -259,7 +259,8 @@ describe("gameRoomAdapter", () => {
       { code: "public1", gameSlug: "buzzerquiz", createdAt: NOW - MIN, lastActive: undefined, name: undefined, seatsFilled: 0, maxPlayers: 4, onlineUids: [], matchmade: true },
     ]);
     expect(snap.guests).toEqual([
-      { uid: "a", rooms: [{ code: "abc123", gameSlug: "ftw", addedAt: NOW - MIN, createdByMe: true }], visits: [NOW - DAY_MS] },
+      // The visit a day earlier than addedAt becomes the room's first day.
+      { uid: "a", rooms: [{ code: "abc123", gameSlug: "ftw", addedAt: NOW - DAY_MS, createdByMe: true }], visits: [NOW - DAY_MS] },
       { uid: "b", rooms: [] },
     ]);
   });
@@ -288,6 +289,7 @@ describe("gameRoomAdapter", () => {
       lastActive: NOW - MIN,
       activeMinutes: 9,
       closedAt: NOW - 30 * 1000,
+      createdBy: "a",
       guests: { a: { addedAt: NOW - DAY_MS, createdByMe: true }, b: { addedAt: NOW - DAY_MS + MIN } },
     });
     expect(JSON.stringify(archived)).not.toContain("undefined");
@@ -322,6 +324,26 @@ describe("gameRoomAdapter", () => {
     expect(stats.totals.playersAllTime).toBe(2);
     expect(stats.inviteLoop.converted).toEqual({ count: 1, of: 1, rate: 1 });
     expect(stats.rooms).toEqual([]); // deleted, so not listed
+  });
+
+  it("keeps guests who left a room (their room list is cleared, their visits stay)", () => {
+    const games = {
+      abc234: { meta: { gameSlug: "ftw", maxPlayers: 2, createdAt: NOW - 2 * DAY_MS, createdBy: "ana" }, seats: {} },
+    };
+    // Both left with "Leave room": no rooms entries, only visits.
+    const users = {
+      ana: { visits: { "20261022": { abc234: { gameSlug: "ftw", at: NOW - 2 * DAY_MS } } } },
+      ben: { visits: { "20261022": { abc234: { gameSlug: "ftw", at: NOW - 2 * DAY_MS + MIN } }, "20261024": { abc234: { gameSlug: "ftw", at: NOW - MIN } } } },
+    };
+    const snap = toSnapshot(games, users, NOW);
+    expect(snap.guests).toEqual([
+      { uid: "ana", rooms: [{ code: "abc234", gameSlug: "ftw", addedAt: NOW - 2 * DAY_MS, createdByMe: true }], visits: [NOW - 2 * DAY_MS] },
+      { uid: "ben", rooms: [{ code: "abc234", gameSlug: "ftw", addedAt: NOW - 2 * DAY_MS + MIN, createdByMe: false }], visits: [NOW - 2 * DAY_MS + MIN, NOW - MIN] },
+    ]);
+    const stats = computeDashboard(snap);
+    expect(stats.totals.playersAllTime).toBe(2);
+    expect(stats.inviteLoop.converted).toEqual({ count: 1, of: 1, rate: 1 });
+    expect(stats.totals.returning).toEqual({ count: 1, of: 2, rate: 0.5 }); // ben came back today
   });
 
   it("accepts an empty database", () => {

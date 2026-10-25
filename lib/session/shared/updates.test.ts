@@ -179,6 +179,8 @@ describe("visitDay and visitUpdate", () => {
   it("keys a visit by its UTC day", () => {
     expect(visitDay(Date.UTC(2026, 9, 25, 23, 59))).toBe("20261025");
     expect(visitDay(Date.UTC(2026, 0, 2, 0, 0))).toBe("20260102");
-    expect(visitUpdate({ uid: "alice", day: "20261025", ts: TS })).toEqual({ "users/alice/visits/20261025": TS });
+    expect(visitUpdate({ uid: "alice", code: "abc234", gameSlug: "ftw", day: "20261025", ts: TS })).toEqual({
+      "users/alice/visits/20261025/abc234": { gameSlug: "ftw", at: TS },
+    });
   });
 });
