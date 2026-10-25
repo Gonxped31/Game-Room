@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
+import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import type { Role } from "@/lib/session/types";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { GAME_TITLE } from "@/lib/games/ftw/constants";
@@ -19,7 +19,7 @@ import {
 } from "@/lib/games/ftw/game";
 import { randomRound, TOPICS } from "@/lib/games/ftw/prompts";
 import Footer from "@/components/Footer";
-import LeaveDialog from "@/components/ftw/LeaveDialog";
+import AskDialog from "@/components/ftw/AskDialog";
 import RolePicker from "@/components/RolePicker";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import RoundBoard from "@/components/ftw/RoundBoard";
@@ -153,7 +153,7 @@ export default function SamePagePage() {
           onNewRoom={newRoom}
           onLeave={notice ? undefined : leave}
         />
-        {askingLeave && <LeaveDialog onStay={() => setAskingLeave(false)} onLeave={leaveNow} />}
+        {askingLeave && <AskDialog question={LEAVE_CONFIRM} onCancel={() => setAskingLeave(false)} onConfirm={leaveNow} />}
       </main>
     </div>
   );

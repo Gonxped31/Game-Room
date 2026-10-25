@@ -1,8 +1,8 @@
 import type { ButtonHTMLAttributes } from "react";
-import LeaveRoomDialog from "@/components/LeaveRoomDialog";
+import RoomDialog, { type RoomDialogProps } from "@/components/RoomDialog";
 import { DISPLAY, FOCUS, PrimaryButton, TEXT } from "./ui";
 
-function StayButton({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
+function CancelButton({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
@@ -12,16 +12,15 @@ function StayButton({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButton
   );
 }
 
-/** Same Page's "Leave room" question: an ink-edged paper card, like the game's notices. */
-export default function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => Promise<void> }) {
+/** Same Page's questions (Leave room, New room, Reset game): an ink-edged paper card, like the game's notices. */
+export default function AskDialog(props: RoomDialogProps) {
   return (
-    <LeaveRoomDialog
-      onStay={onStay}
-      onLeave={onLeave}
+    <RoomDialog
+      {...props}
       className={`${TEXT} rounded-2xl border-2 border-[var(--ink)] bg-[var(--paper)] p-5 text-[16px] text-[var(--ink)] shadow-[0_6px_0_var(--ink-shadow)]`}
       titleClassName={`${DISPLAY} text-[24px] leading-tight`}
-      StayButton={StayButton}
-      LeaveButton={PrimaryButton}
+      CancelButton={CancelButton}
+      ConfirmButton={PrimaryButton}
     />
   );
 }

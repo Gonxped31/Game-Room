@@ -16,6 +16,8 @@
 // - A third guest can read the room but not take a seat.
 // - "Your rooms" and the Continue chip list the room, also after a reload;
 //   the back gesture closes the sheet.
+// - Reset game and New room ask first in the app's own dialog (Cancel and
+//   Stay keep things; Reset game resets). Any browser dialog fails the run.
 // - Leave room (no back link in a room): it asks first while both are
 //   seated, gives up the seat and drops the room from "Your rooms"; Start
 //   then opens a fresh room.
@@ -54,6 +56,11 @@ async function newPlayer(profile, label) {
   const page = await ctx.newPage();
   page.on("console", (m) => m.type() === "error" && errors.push(`[${label}] ${m.text()}`));
   page.on("pageerror", (e) => errors.push(`[${label}] ${e.message}`));
+  // The app asks in its own dialogs, never the browser's confirm()/alert().
+  page.on("dialog", (dialog) => {
+    errors.push(`[${label}] the browser's own dialog showed (${dialog.message()})`);
+    void dialog.dismiss();
+  });
   return { ctx, page };
 }
 const hashOf = (page) => new URL(page.url()).hash.slice(1);
@@ -174,11 +181,23 @@ try {
   const uidA = (await adminRead(`games/${code}/seats`)).p1;
   await A.page.goto(`${BASE}/same-page#${code}`);
   await A.page.getByText(/Sam · (Ranking|Guessing)/).waitFor(); // seated, not "Connecting…"
-  // The app's own dialog, never the browser's confirm().
-  A.page.once("dialog", (dialog) => {
-    errors.push(`A: the browser's own dialog showed (${dialog.message()})`);
-    void dialog.dismiss();
-  });
+  // Reset game and New room ask first too: Cancel and Stay keep things as they are; Reset game resets.
+  const askReset = A.page.getByRole("dialog", { name: "Reset the whole game?" });
+  await A.page.getByRole("button", { name: "Reset game" }).click();
+  await askReset.getByRole("button", { name: "Cancel" }).click();
+  await askReset.waitFor({ state: "detached" });
+  if ((await adminRead(`games/${code}/ftw/round`)) !== 2) throw new Error("Cancel reset the game");
+  await A.page.getByRole("button", { name: "Reset game" }).click();
+  await askReset.getByRole("button", { name: "Reset game" }).click();
+  await askReset.waitFor({ state: "detached" });
+  await until(async () => (await adminRead(`games/${code}/ftw/round`)) === 1, "the game reset to round 1");
+  const askNewRoom = A.page.getByRole("dialog", { name: "Start a new room?" });
+  await A.page.getByRole("button", { name: "New room" }).click();
+  await askNewRoom.getByRole("button", { name: "Stay" }).click();
+  await askNewRoom.waitFor({ state: "detached" });
+  if (hashOf(A.page) !== code) throw new Error("Stay on New room left the room");
+  log("Reset game and New room asked first in the app's dialog (Cancel and Stay keep things; Reset game reset)");
+
   const askLeave = A.page.getByRole("dialog", { name: "Leave this room?" });
   await A.page.getByRole("button", { name: "Leave room" }).click();
   await askLeave.waitFor();

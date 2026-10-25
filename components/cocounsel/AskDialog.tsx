@@ -1,25 +1,24 @@
 import type { ButtonHTMLAttributes } from "react";
-import LeaveRoomDialog from "@/components/LeaveRoomDialog";
+import RoomDialog, { type RoomDialogProps } from "@/components/RoomDialog";
 import { COLOR, RADIUS } from "@/lib/games/cocounsel/theme";
 import Button from "./Button";
 
 // The secondary button is 52px and plain-hex ink: matched to the primary (56px), in the light/dark theme's ink.
-const StayButton = (props: ButtonHTMLAttributes<HTMLButtonElement>) => (
+const CancelButton = (props: ButtonHTMLAttributes<HTMLButtonElement>) => (
   <Button variant="secondary" className="disabled:opacity-60" style={{ height: 56, color: COLOR.ink, borderColor: COLOR.ink }} {...props} />
 );
-const LeaveButton = (props: ButtonHTMLAttributes<HTMLButtonElement>) => <Button className="disabled:opacity-60" {...props} />;
+const ConfirmButton = (props: ButtonHTMLAttributes<HTMLButtonElement>) => <Button className="disabled:opacity-60" {...props} />;
 
-/** Co-Counsel's "Leave room" question, on the page's paper with an ink edge. */
-export default function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => Promise<void> }) {
+/** Co-Counsel's questions (Leave room, New room, Reset case), on the page's paper with an ink edge. Render it inside the [data-theme] root so it follows the light/dark toggle. */
+export default function AskDialog(props: RoomDialogProps) {
   return (
-    <LeaveRoomDialog
-      onStay={onStay}
-      onLeave={onLeave}
+    <RoomDialog
+      {...props}
       className="border-2 p-5 font-[family-name:var(--font-archivo)] text-base"
       style={{ backgroundColor: COLOR.white, color: COLOR.ink, borderColor: COLOR.ink, borderRadius: RADIUS.card }}
       titleClassName="text-xl font-extrabold"
-      StayButton={StayButton}
-      LeaveButton={LeaveButton}
+      CancelButton={CancelButton}
+      ConfirmButton={ConfirmButton}
     />
   );
 }

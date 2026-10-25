@@ -57,14 +57,40 @@ export async function findRoomByName(name: string): Promise<{ room: string; meta
 /** Shown on a game page whose #code doesn't lead to a room of that game. */
 export const ROOM_MISSING_MESSAGE = "We can't find that room. Check the link, or go back and start a new one.";
 
-/** Asked (`LeaveRoomDialog`) before "Leave room" in a private room while a game is under way. */
-export const LEAVE_CONFIRM = { title: "Leave this room?", message: "Your seat goes to whoever joins next." };
+/** A question a room asks before an action, in the app's own dialog (`components/RoomDialog`), never the browser's confirm(). */
+export interface RoomQuestion {
+  title: string;
+  message: string;
+  /** The safe choice; the dialog opens on it. */
+  cancelLabel: string;
+  confirmLabel: string;
+  /** Shown on the confirm button while the action runs. */
+  busyLabel: string;
+}
+
+/** Asked before "Leave room" in a private room while a game is under way. */
+export const LEAVE_CONFIRM: RoomQuestion = {
+  title: "Leave this room?",
+  message: "Your seat goes to whoever joins next.",
+  cancelLabel: "Stay",
+  confirmLabel: "Leave room",
+  busyLabel: "Leaving…",
+};
+
+/** Asked before "New room": it leaves this room (`newRoom` gives up the seat first). */
+export const NEW_ROOM_CONFIRM: RoomQuestion = {
+  title: "Start a new room?",
+  message: "You'll leave this one: your seat goes to whoever joins next.",
+  cancelLabel: "Stay",
+  confirmLabel: "New room",
+  busyLabel: "Starting…",
+};
 
 /**
  * "Leave room" in a private room: gives up the seat (`leave`, which also drops
  * the room from "Your rooms"), then goes to the hub - even if the write
  * failed, since the player asked to go. Where leaving ends a game, pages ask
- * first with `LeaveRoomDialog`. Public rooms use `usePublicRoom`'s `leave`,
+ * first (`LEAVE_CONFIRM`). Public rooms use `usePublicRoom`'s `leave`,
  * which also unlists the room.
  */
 export async function leaveToHub(leave: () => Promise<void>): Promise<void> {

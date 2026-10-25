@@ -139,7 +139,7 @@ The board is withheld until both players have joined.
 
 **Leaving:** the Footer's "Leave room" is on every screen, and the REVEALED
 dock has one under "Next round". It asks first once both are seated
-(`LeaveDialog`, the app's own modal), gives up the seat and goes to `/`. Only the error and
+(`AskDialog`, the app's own modal, like Reset game and New room), gives up the seat and goes to `/`. Only the error and
 unknown-room notices get the plain "All games" link instead.
 
 ## UI gotchas

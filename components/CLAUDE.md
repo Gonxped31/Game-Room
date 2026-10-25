@@ -5,11 +5,19 @@
   Every room screen's way out is **Leave room**:
   - Private rooms use `leaveToHub` (`lib/session/shared/roomActions.ts`); public rooms use `usePublicRoom`'s `leave`.
   - Either way it gives up the seat, drops the room from "Your rooms" and hard-navigates to `/`.
-  - Private rooms ask first where leaving ends a game for the others, in the app's own modal (`LeaveRoomDialog`, styled per game: `ftw/LeaveDialog`, `cocounsel/LeaveDialog`), never the browser's `confirm()`.
+  - Private rooms ask first where leaving ends a game for the others (`LEAVE_CONFIRM`).
   - Only screens with no room to leave (an error, an unknown room), solo pages and `RecoveryScreen` link back to `/`.
   - Mid-game screens with no way out stay that way.
 - **`components/`** - shared pieces:
-  - `Footer` (room code, Reset game, New room, Leave room), `Button`, `LeaveRoomDialog`.
+  - `Footer` (room code, Reset game, New room, Leave room; Same Page's), `Button`.
+  - `RoomDialog` - a room's question before an action (Leave room, New room,
+    Reset), a modal `<dialog>` that opens on the safe choice. Each game wraps it
+    in its own look: `ftw/AskDialog`, `cocounsel/AskDialog`. The texts are
+    `RoomQuestion`s (`lib/session/shared/roomActions.ts`).
+- **No browser dialogs** (`confirm`, `alert`, `prompt`; the user's call,
+  2026-10-25): they show the site's address and read as browser warnings. Ask
+  in the app's own dialog (`RoomDialog`, or `admin/ConfirmDialog` on `/admin`).
+  ESLint's `no-alert` enforces it.
   - `RolePicker` - name entry with takeover, for 2 seats (Same Page) or a `seats` list; `accentColor` themes its buttons.
   - `InviteLinkBanner` - the name field shows only for the creator.
   - Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button

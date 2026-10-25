@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
+import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { caseForState, DEFAULT_CASE_ID } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
@@ -15,7 +15,7 @@ import AdjournedScreen from "@/components/cocounsel/AdjournedScreen";
 import CasePicker from "@/components/cocounsel/CasePicker";
 import ConfirmRoleScreen from "@/components/cocounsel/ConfirmRoleScreen";
 import Footer from "@/components/cocounsel/Footer";
-import LeaveDialog from "@/components/cocounsel/LeaveDialog";
+import AskDialog from "@/components/cocounsel/AskDialog";
 import PartScreen from "@/components/cocounsel/PartScreen";
 import RecapScreen from "@/components/cocounsel/RecapScreen";
 import RevealScreen from "@/components/cocounsel/RevealScreen";
@@ -242,7 +242,7 @@ export default function CoCounselPage() {
     setCaseConfirmed(false);
     setForceCasePicker(false);
     setPendingCaseId(null);
-    newRoom();
+    return newRoom();
   };
 
   return (
@@ -439,7 +439,7 @@ export default function CoCounselPage() {
         ) : null}
       </main>
       {/* Inside the [data-theme] root, so it follows the light/dark toggle. */}
-      {askingLeave && <LeaveDialog onStay={() => setAskingLeave(false)} onLeave={leaveNow} />}
+      {askingLeave && <AskDialog question={LEAVE_CONFIRM} onCancel={() => setAskingLeave(false)} onConfirm={leaveNow} />}
     </div>
   );
 }
