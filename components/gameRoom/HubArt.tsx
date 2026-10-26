@@ -368,14 +368,25 @@ function CheckmateGridArt({ mini }: { mini?: boolean }) {
 
 const BR_INK = "#1D2733";
 const BR_SIGN = "#176B4B";
-/** Five made-up countries in a row, as polygons in a 280x168 panel, each in its guess's tone (start, best, close, best, end). */
+const BR_OFF = "#D4574B";
+/**
+ * Five made-up countries in a row, as polygons in a 280x168 panel, as on a
+ * finished map: the start and end in ink, the route between them in green.
+ * The border straight through (the second and fourth countries') is closed,
+ * so the route goes round by the north.
+ */
 const BR_LANDS: [string, string][] = [
   ["M22 70 L58 52 L86 64 L80 104 L44 118 L18 98 Z", BR_INK],
   ["M86 64 L120 46 L138 72 L126 108 L80 104 Z", "#2E9C5E"],
-  ["M120 46 L158 30 L176 58 L138 72 Z", "#E3A12F"],
+  ["M120 46 L158 30 L176 58 L138 72 Z", "#2E9C5E"],
   ["M138 72 L176 58 L204 82 L190 120 L126 108 Z", "#2E9C5E"],
   ["M204 82 L238 66 L262 94 L246 130 L190 120 Z", BR_INK],
 ];
+/** The closed border, drawn along its length, and the ✕ at its middle. */
+const BR_CLOSED = "M138 72 L126 108";
+const BR_CROSS = "M128 86 L136 94 M136 86 L128 94";
+/** The route: from the start, across each open border, to the end. */
+const BR_ROUTE = "M50 88 C64 87 74 86 83 84 C100 80 116 66 129 59 C140 53 148 62 157 65 C172 70 188 88 197 101 C206 110 218 104 228 98";
 
 function BorderRunArt({ mini }: { mini?: boolean }) {
   const w = mini ? 92 : 280;
@@ -383,10 +394,21 @@ function BorderRunArt({ mini }: { mini?: boolean }) {
   return (
     <Svg w={w} h={h}>
       <rect width={w} height={h} fill="#E4EEF0" />
-      <g transform={mini ? "translate(-4 2) scale(0.36)" : undefined} stroke="#fff" strokeWidth={mini ? 5 : 2} strokeLinejoin="round">
+      <g transform={mini ? "translate(-4 2) scale(0.36)" : undefined} strokeLinejoin="round" strokeLinecap="round" fill="none">
         {BR_LANDS.map(([d, fill], i) => (
-          <path key={i} d={d} fill={fill} />
+          <path key={i} d={d} fill={fill} stroke="#fff" strokeWidth={mini ? 5 : 2} />
         ))}
+        <path d={BR_CLOSED} stroke={BR_OFF} strokeWidth={mini ? 9 : 4} />
+        {mini ? null : (
+          <>
+            <path d={BR_ROUTE} stroke="#fff" strokeWidth={6.5} strokeDasharray="0 8" />
+            <path d={BR_ROUTE} stroke={BR_INK} strokeWidth={3.5} strokeDasharray="0 8" />
+            <circle cx={50} cy={88} r={4} fill="#fff" stroke={BR_INK} strokeWidth={2} />
+            <circle cx={228} cy={98} r={4} fill="#fff" stroke={BR_INK} strokeWidth={2} />
+          </>
+        )}
+        <path d={BR_CROSS} stroke="#fff" strokeWidth={mini ? 14 : 6} />
+        <path d={BR_CROSS} stroke={BR_OFF} strokeWidth={mini ? 7 : 3} />
       </g>
       {mini ? (
         <>
@@ -395,11 +417,6 @@ function BorderRunArt({ mini }: { mini?: boolean }) {
         </>
       ) : (
         <>
-          {/* A closed border: the red ✕ between two countries. */}
-          <g transform="translate(140 40)">
-            <circle r={9} fill="#D4574B" stroke="#fff" strokeWidth={2} />
-            <path d="M-4 -4 L4 4 M4 -4 L-4 4" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" />
-          </g>
           <rect x={70} y={134} width={140} height={26} rx={6} fill={BR_SIGN} stroke="#fff" strokeWidth={2} />
           <path d="M90 147 H190 M180 140 L190 147 L180 154" stroke="#fff" strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </>
