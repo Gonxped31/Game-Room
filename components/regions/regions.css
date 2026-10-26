@@ -182,7 +182,10 @@
 /* The board: one CSS grid of N×N cell buttons; rows and cell wrappers only carry the ARIA grid roles. */
 .cg-board {
   display: grid;
-  grid-template-columns: repeat(var(--n), 1fr);
+  /* minmax(0, 1fr), not 1fr: a plain 1fr track grows to fit its content, so a piece or ✕ widened its column.
+     Every square stays exactly board / n whatever it holds. */
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--n), minmax(0, 1fr));
   width: var(--cg-board);
   height: var(--cg-board);
   border: 3px solid var(--cg-ink);
@@ -208,6 +211,10 @@
 
 .cg-cell {
   position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
