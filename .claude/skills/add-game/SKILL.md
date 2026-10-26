@@ -21,6 +21,9 @@ Add a `GameEntry` to `ALL_GAMES` in `lib/games/registry.ts`:
   has a solo page (adds a Play solo card to the Solo folder). A solo game also
   needs `exports/<slug>/` (`index.html` + `main.tsx`, like Night Highway's): the
   offline HTML file /admin offers for download. A test fails without it.
+  A **solo-only** game (no rooms, like Checkmate Grid) uses `section: "solo"`
+  plus `solo`, and skips steps 2's state machine rules, 3's session hook and
+  4 entirely. A daily puzzle: `docs/daily.md`.
 - `title`, `description` (3 lines at 300px), `shortDescription` (2 lines on
   the mobile card), `tags` (the first, the player count, is the mobile chip).
 - `maxPlayers` - only for a game that isn't 1v1.
