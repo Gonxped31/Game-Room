@@ -94,6 +94,23 @@ the whole map it zooms in on what's drawn, not the map's middle), − and
 - Live test B12 covers the buttons, drag, double tap or click and ctrl +
   wheel; pinch is only testable on a real phone.
 
+**As you play**, the run grows on the map: `links(play)` (play.ts) gives the
+links between neighbours, grown from the start and from the end one guess at
+a time (a guess links to the first country of the run it borders; one that
+borders none waits). A new guess only adds links, so the drawing never
+jumps; tests pin that. `RunLink` draws each as dots across the border.
+- **Landing**: a country or link added after the map appeared pops in, a
+  ring in its tone spreads from it, a link draws itself in (600 ms). What was
+  there when the map mounted (a reload, a new route) stays still: `first` in
+  `RouteMap`. All off with reduced motion.
+- **Glides**: the buttons, double taps and a guess out of view (zoomed in)
+  glide for 300 ms. `settled()` is where the view is heading, so a quick
+  second press or a guess mid-glide builds on it instead of cutting it short.
+  A finger, the mouse or ctrl + wheel stops a glide. Live test B12 waits
+  450 ms after each.
+- Once the route is complete (or shown), the links fade and the full route
+  line draws in.
+
 **Names** (`placeLabels`) never hide a small country: inside a country only
 when the name fits there, otherwise above or below it (beside it only for a
 tall one like Chile, since beside drifts onto neighbours), clear of the
@@ -126,7 +143,7 @@ route to `RouteMap`, which draws a dotted line through it (drawn in over
 | `lib/games/borderrun/countries.ts` | `COUNTRIES`, `findCountry` (EN/FR/aliases, accents and articles ignored), `suggest`, `capitalDistanceKm` |
 | `lib/games/borderrun/areas.ts` | Each map's countries (Russia and Turkey on Europe and Asia; Oceania only on the world map), its view box, its name |
 | `lib/games/borderrun/route.ts` | `Route`, `neighboursOf` (map + closed borders), `distances`, `shortestPath`, `closenessOf`, `generateRoute`, the seeded RNG |
-| `lib/games/borderrun/play.ts` | The guess log: `refusalOf`, `addGuess`, `replay`, `status` (complete, path, extra, penalty) |
+| `lib/games/borderrun/play.ts` | The guess log: `refusalOf`, `addGuess`, `replay`, `status` (complete, path, extra, penalty), `links` (the run so far, for the map) |
 | `lib/games/borderrun/daily.ts` | The `DailyGame`: `SCHEDULE`, `verify` replays the guesses and returns `penaltyMs` |
 | `lib/games/borderrun/theme.ts` | Colours (match `borderrun.css`), share squares |
 | `components/borderrun/Stage.tsx` | The page shell: title sign, EN/FR switch, mode tabs; `online` adds Daily |

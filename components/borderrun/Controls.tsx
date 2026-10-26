@@ -4,7 +4,7 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } 
 import { AREA_COUNTRIES, AREA_NAME } from "@/lib/games/borderrun/areas";
 import { PENALTY_MS } from "@/lib/games/borderrun/constants";
 import { capitalDistanceKm, COUNTRIES, findCountry, nameOf, suggest } from "@/lib/games/borderrun/countries";
-import { refusalOf, status, type Play, type Refusal } from "@/lib/games/borderrun/play";
+import { links, refusalOf, status, type Play, type Refusal } from "@/lib/games/borderrun/play";
 import { closenessOf, type Closeness } from "@/lib/games/borderrun/route";
 import type { Lang } from "@/lib/games/shared/language";
 import RouteMap, { type Shown } from "./RouteMap";
@@ -270,13 +270,14 @@ export function shownOf(play: Play, reveal?: string[] | null): Shown[] {
   return shown;
 }
 
-/** The map for a game in progress, or finished: then the route (yours, or the one shown on giving up) is drawn and named. */
+/** The map for a game in progress (with the run's links as it grows), or finished: then the route (yours, or the one shown on giving up) is drawn and named. */
 export function PlayMap({ play, lang, reveal }: { play: Play; lang: Lang; reveal?: string[] | null }) {
   const shown = useMemo(() => shownOf(play, reveal), [play, reveal]);
+  const run = useMemo(() => links(play), [play]);
   const route = reveal ?? status(play).path;
   // Keyed by the route, so a new one starts with the whole map in view (the zoom stays on finishing).
   const key = `${play.route.area}:${play.route.start}:${play.route.end}:${play.route.closed.join(";")}`;
-  return <RouteMap key={key} area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} route={route} />;
+  return <RouteMap key={key} area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} route={route} links={run} />;
 }
 
 /** "Lisbon → Warsaw · 2,760 km as the crow flies": the capitals, once the route is over. */

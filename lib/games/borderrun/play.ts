@@ -1,7 +1,7 @@
 import { AREA_COUNTRIES } from "./areas";
 import { PENALTY_MS } from "./constants";
 import { isCountry } from "./countries";
-import { shortestPath, type Route } from "./route";
+import { neighboursOf, shortestPath, type Route } from "./route";
 
 /** One guess: a country code, `t` ms after the start by the player's clock. */
 export interface Guess {
@@ -51,6 +51,39 @@ export interface Status {
   /** Guesses beyond the par. */
   extra: number;
   penaltyMs: number;
+}
+
+/**
+ * The run so far, as links between neighbours (each [from, to]), for the map
+ * to draw as you play: grown from the start and from the end, one guess at a
+ * time. A guess links to the first country of the run it borders (by when
+ * that one joined); a guess that borders none waits, and links as soon as a
+ * neighbour joins. A new guess only ever adds links, so the drawing never
+ * jumps.
+ */
+export function links(play: Play): [string, string][] {
+  const neighbours = neighboursOf(play.route);
+  const joined = [play.route.start, play.route.end];
+  const result: [string, string][] = [];
+  let waiting: string[] = [];
+  for (const { code } of play.guesses) {
+    waiting.push(code);
+    // Link whatever now can, until nothing more does: one guess can bring in others waiting on it.
+    for (let more = true; more; ) {
+      more = false;
+      for (const candidate of waiting) {
+        const borders = new Set(neighbours(candidate));
+        const to = joined.find((code) => borders.has(code));
+        if (to === undefined) continue;
+        result.push([to, candidate]);
+        joined.push(candidate);
+        waiting = waiting.filter((code) => code !== candidate);
+        more = true;
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 export function status(play: Play): Status {

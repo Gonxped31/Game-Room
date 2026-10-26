@@ -266,7 +266,9 @@ const MIN_SPAN = 4;
  * double-tap or double-click, pinching on a touch screen, ctrl + wheel (a
  * trackpad's pinch) on a computer, and dragging once zoomed in. One finger
  * scrolls the page while the whole map is in view. From the whole map, the
- * + button zooms in on `focus` (what's drawn), not the map's middle.
+ * + button zooms in on `focus` (what's drawn), not the map's middle. The
+ * buttons, double taps and `show` glide (300 ms, none with reduced motion);
+ * a finger or the mouse stops a glide.
  */
 function useZoom(svg: RefObject<SVGSVGElement | null>, map: Box, focus: Point) {
   const width = map.right - map.left;
@@ -277,16 +279,58 @@ function useZoom(svg: RefObject<SVGSVGElement | null>, map: Box, focus: Point) {
   // Gestures read the latest view between renders.
   const current = useRef(view);
 
-  const apply = useCallback(
-    (next: View) => {
+  /** A view kept on the map: zoomed between 1 and the most, never past an edge. */
+  const clamp = useCallback(
+    (next: View): View => {
       const scale = Math.min(Math.max(next.scale, 1), maxScale);
       const w = width / scale / 2;
       const h = height / scale / 2;
-      const clamped = { scale, cx: Math.min(Math.max(next.cx, map.left + w), map.right - w), cy: Math.min(Math.max(next.cy, map.top + h), map.bottom - h) };
+      return { scale, cx: Math.min(Math.max(next.cx, map.left + w), map.right - w), cy: Math.min(Math.max(next.cy, map.top + h), map.bottom - h) };
+    },
+    [map, width, height, maxScale],
+  );
+
+  const apply = useCallback(
+    (next: View) => {
+      const clamped = clamp(next);
       current.current = clamped;
       setView(clamped);
     },
-    [map, width, height, maxScale],
+    [clamp],
+  );
+
+  // The glide running, if any, and where it's going.
+  const glide = useRef<{ frame: number; target: View | null }>({ frame: 0, target: null });
+  const stopGlide = () => {
+    cancelAnimationFrame(glide.current.frame);
+    glide.current.target = null;
+  };
+  /** Where the view is, or is gliding to: the + button and `show` start from there, so a quick second press or a guess mid-glide doesn't cut it short. */
+  const settled = useCallback(() => glide.current.target ?? current.current, []);
+  useEffect(() => {
+    const running = glide.current;
+    return () => cancelAnimationFrame(running.frame);
+  }, []);
+
+  /** Glide to a view: eased, zooming evenly (in log scale). */
+  const animateTo = useCallback(
+    (next: View) => {
+      stopGlide();
+      const target = clamp(next);
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return apply(target);
+      glide.current.target = target;
+      const from = current.current;
+      const started = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - started) / 300);
+        const eased = 1 - (1 - t) ** 3;
+        apply({ scale: from.scale * (target.scale / from.scale) ** eased, cx: from.cx + (target.cx - from.cx) * eased, cy: from.cy + (target.cy - from.cy) * eased });
+        if (t < 1) glide.current.frame = requestAnimationFrame(step);
+        else glide.current.target = null;
+      };
+      glide.current.frame = requestAnimationFrame(step);
+    },
+    [clamp, apply],
   );
 
   /** A screen point, as a fraction of the map's box on screen (`rect`) and as map units in the current view. */
@@ -300,24 +344,35 @@ function useZoom(svg: RefObject<SVGSVGElement | null>, map: Box, focus: Point) {
     [width, height],
   );
 
-  /** Zoom by `factor`, keeping the map point under the screen fraction (fx, fy) where it is. */
-  const zoomAround = useCallback(
-    (factor: number, at: Point, fx: number, fy: number) => {
-      const scale = Math.min(Math.max(current.current.scale * factor, 1), maxScale);
-      apply({ scale, cx: at[0] - (fx - 0.5) * (width / scale), cy: at[1] - (fy - 0.5) * (height / scale) });
+  /** The view zoomed by `factor`, keeping the map point `at` under the screen fraction (fx, fy). */
+  const around = useCallback(
+    (factor: number, at: Point, fx: number, fy: number, from: View = current.current): View => {
+      const scale = Math.min(Math.max(from.scale * factor, 1), maxScale);
+      return { scale, cx: at[0] - (fx - 0.5) * (width / scale), cy: at[1] - (fy - 0.5) * (height / scale) };
     },
-    [apply, width, height, maxScale],
+    [width, height, maxScale],
   );
+  const zoomAround = useCallback((factor: number, at: Point, fx: number, fy: number) => apply(around(factor, at, fx, fy)), [apply, around]);
 
   const zoomBy = useCallback(
     (factor: number) => {
-      const { cx, cy, scale } = current.current;
-      if (scale > 1) zoomAround(factor, [cx, cy], 0.5, 0.5);
-      else apply({ scale: scale * factor, cx: focus[0], cy: focus[1] });
+      const from = settled();
+      animateTo(from.scale > 1 ? around(factor, [from.cx, from.cy], 0.5, 0.5, from) : { scale: from.scale * factor, cx: focus[0], cy: focus[1] });
     },
-    [zoomAround, apply, focus],
+    [animateTo, around, focus, settled],
   );
-  const reset = useCallback(() => apply(whole), [apply, whole]);
+  const reset = useCallback(() => animateTo(whole), [animateTo, whole]);
+
+  /** Bring a point into view, if zoomed in and it's out of view (or at the very edge), keeping the zoom. */
+  const show = useCallback(
+    ([x, y]: Point) => {
+      const { cx, cy, scale } = settled();
+      if (scale === 1) return;
+      if (Math.abs(x - cx) < (width / scale / 2) * 0.85 && Math.abs(y - cy) < (height / scale / 2) * 0.85) return;
+      animateTo({ scale, cx: x, cy: y });
+    },
+    [animateTo, settled, width, height],
+  );
 
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const tap = useRef<{ x: number; y: number; t: number; moved: boolean } | null>(null);
@@ -325,6 +380,7 @@ function useZoom(svg: RefObject<SVGSVGElement | null>, map: Box, focus: Point) {
 
   const onPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    stopGlide();
     e.currentTarget.setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     tap.current = pointers.current.size === 1 ? { x: e.clientX, y: e.clientY, t: e.timeStamp, moved: false } : null;
@@ -365,7 +421,7 @@ function useZoom(svg: RefObject<SVGSVGElement | null>, map: Box, focus: Point) {
     if (last && e.timeStamp - last.t < 350 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 30) {
       lastTap.current = null;
       const { fx, fy, at } = locate(e.currentTarget.getBoundingClientRect(), e.clientX, e.clientY);
-      zoomAround(2, at, fx, fy);
+      animateTo(around(2, at, fx, fy));
     } else lastTap.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
   };
 
@@ -376,6 +432,8 @@ function useZoom(svg: RefObject<SVGSVGElement | null>, map: Box, focus: Point) {
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
+      cancelAnimationFrame(glide.current.frame);
+      glide.current.target = null;
       const { fx, fy, at } = locate(element.getBoundingClientRect(), e.clientX, e.clientY);
       zoomAround(Math.exp(-e.deltaY * 0.01), at, fx, fy);
     };
@@ -395,22 +453,71 @@ function useZoom(svg: RefObject<SVGSVGElement | null>, map: Box, focus: Point) {
     maxScale,
     zoomBy,
     reset,
+    show,
     handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp },
   };
+}
+
+/**
+ * One link of the run: a dotted line from one country's anchor, across their
+ * border, to the other's. A `fresh` one (added since the map appeared) draws
+ * itself in from `from`.
+ */
+function RunLink({ from, to, map, fresh }: { from: string; to: string; map: Box; fresh: boolean }) {
+  const d = useMemo(() => {
+    const a = anchorOf(from, map);
+    const b = anchorOf(to, map);
+    return smoothPath([a, crossingPoint(from, to, a, b), b]);
+  }, [from, to, map]);
+  const maskId = `br-link-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const dots = (
+    <>
+      <path d={d} className="br-map-route-halo" />
+      <path d={d} className="br-map-route-dots" />
+    </>
+  );
+  if (!fresh) return dots;
+  const width = map.right - map.left;
+  return (
+    <>
+      <mask id={maskId} maskUnits="userSpaceOnUse" x={map.left} y={map.top} width={width} height={map.bottom - map.top}>
+        <path d={d} className="br-map-route-reveal" pathLength={1} strokeWidth={width * 0.04} />
+      </mask>
+      <g mask={`url(#${maskId})`}>{dots}</g>
+    </>
+  );
 }
 
 /**
  * The map: blank but for a light graticule, with only the start, the end and
  * the guesses drawn, each in its tone, and the start's and end's names.
  * Countries too small to see (Andorra, the Vatican) get a dot too. A closed
- * border is drawn in red along its length, with a small ✕ on it. Given a
- * `route` (complete, or shown on giving up), a dotted line draws itself
- * through it, crossing each border where the two countries meet, and its
- * countries are named. It zooms and pans (`useZoom`); names, dots and marks
+ * border is drawn in red along its length, with a small ✕ on it. As you
+ * play, the run's `links` are drawn between the countries they join. A
+ * country or link added after the map appeared lands with a little motion
+ * (a pop, a ripple in its tone, a link drawing in; not on a reload), and,
+ * zoomed in, the map glides to a guess out of view. Given a `route`
+ * (complete, or shown on giving up), the links fade and a dotted line draws
+ * itself through it, crossing each border where the two countries meet, and
+ * its countries are named. It zooms and pans (`useZoom`); names, dots and marks
  * keep their size on screen. The map's size is fixed by its area, so
  * nothing moves as countries appear.
  */
-function RouteMap({ area, shown, closed, lang, route }: { area: Area; shown: Shown[]; closed: [string, string][]; lang: Lang; route?: string[] | null }) {
+function RouteMap({
+  area,
+  shown,
+  closed,
+  lang,
+  route,
+  links = NO_LINKS,
+}: {
+  area: Area;
+  shown: Shown[];
+  closed: [string, string][];
+  lang: Lang;
+  route?: string[] | null;
+  links?: [string, string][];
+}) {
   const bounds = AREA_VIEW[area];
   const map = useMemo(() => {
     const [left, top] = project(bounds.west, bounds.north);
@@ -434,7 +541,20 @@ function RouteMap({ area, shown, closed, lang, route }: { area: Area; shown: Sho
     return [(x0 + x1) / 2, (y0 + y1) / 2];
   }, [shown, closed, map, left, top, width, height]);
   const svg = useRef<SVGSVGElement>(null);
-  const { view, maxScale, zoomBy, reset, handlers } = useZoom(svg, map, focus);
+  const { view, maxScale, zoomBy, reset, show, handlers } = useZoom(svg, map, focus);
+
+  // What was there when the map appeared (a reload, or a new route) stays still; what comes after lands.
+  const [first] = useState(() => ({ codes: new Set(shown.map((s) => s.code)), links: new Set(links.map(([a, b]) => `${a}-${b}`)) }));
+  const isFresh = (code: string) => !first.codes.has(code);
+  // A single new guess out of view, zoomed in: glide to it.
+  const seen = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const codes = shown.map((s) => s.code);
+    const before = seen.current;
+    seen.current = new Set(codes);
+    const added = before ? codes.filter((code) => !before.has(code)) : [];
+    if (added.length === 1) show(anchorOf(added[0], map));
+  }, [shown, show, map]);
   // The map's width on screen, once measured: to keep names out from under the zoom buttons.
   const [screenWidth, setScreenWidth] = useState<number | null>(null);
   useEffect(() => {
@@ -521,9 +641,14 @@ function RouteMap({ area, shown, closed, lang, route }: { area: Area; shown: Sho
         <path d={graticule} className="br-map-grid" />
         {shown.map(({ code, tone, faded }) => {
           const { d } = outlineOf(code);
-          return d ? <path key={code} d={d} className="br-map-country" data-faded={faded ? "" : undefined} fill={TONE[tone]} /> : null;
+          return d ? <path key={code} d={d} className="br-map-country" data-faded={faded ? "" : undefined} data-fresh={isFresh(code) ? "" : undefined} fill={TONE[tone]} /> : null;
         })}
         {marks.map(({ key, d }) => (d ? <path key={key} d={d} className="br-map-closed-line" /> : null))}
+        <g className="br-map-links" data-done={line ? "" : undefined}>
+          {links.map(([from, to]) => (
+            <RunLink key={`${from}-${to}`} from={from} to={to} map={map} fresh={!first.links.has(`${from}-${to}`)} />
+          ))}
+        </g>
         {line ? (
           <g className="br-map-route">
             {/* In the map's own units: a mask sized to the line's box would clip a flat line's dots. */}
@@ -546,7 +671,13 @@ function RouteMap({ area, shown, closed, lang, route }: { area: Area; shown: Sho
         {shown.map(({ code, tone, faded }) => {
           if (!isSpeck(code)) return null;
           const { centre } = outlineOf(code);
-          return <circle key={code} cx={centre[0]} cy={centre[1]} r={dot} className="br-map-country br-map-dot" data-faded={faded ? "" : undefined} fill={TONE[tone]} />;
+          return <circle key={code} cx={centre[0]} cy={centre[1]} r={dot} className="br-map-country br-map-dot" data-faded={faded ? "" : undefined} data-fresh={isFresh(code) ? "" : undefined} fill={TONE[tone]} />;
+        })}
+        {/* Where a guess landed: a ring in its tone, spreading and fading once. */}
+        {shown.map(({ code, tone }) => {
+          if (!isFresh(code)) return null;
+          const [x, y] = anchorOf(code, map);
+          return <circle key={`ripple-${code}`} cx={x} cy={y} r={dot * 3.5} className="br-map-ripple" stroke={TONE[tone]} />;
         })}
         {ends.map((code) => {
           const [x, y] = anchorOf(code, map);
@@ -582,6 +713,8 @@ function RouteMap({ area, shown, closed, lang, route }: { area: Area; shown: Sho
     </div>
   );
 }
+
+const NO_LINKS: [string, string][] = [];
 
 const TONE_LABEL: Record<Tone, string> = { endpoint: "start or end", best: "on a shortest route", close: "close", off: "off the route", reveal: "a route" };
 

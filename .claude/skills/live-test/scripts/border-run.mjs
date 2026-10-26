@@ -204,11 +204,18 @@ await page.getByRole("radiogroup", { name: "Country names" }).getByRole("radio",
 
 // B12: the map zooms (buttons, double tap or click, ctrl + wheel), drags once zoomed, and a new route starts zoomed out.
 const viewBox = async () => (await page.locator(".br-map").getAttribute("viewBox")).split(" ").map(Number);
+// Buttons and double taps glide for 300 ms.
+const glided = () => page.waitForTimeout(450);
 const [, , wholeWidth] = await viewBox();
 check("B12 whole map: only Zoom in", (await button("Zoom out").count()) === 0 && (await button("Show the whole map").count()) === 0);
 await button("Zoom in").click();
+await button("Zoom in").click();
+await glided();
+check("B12 two quick presses zoom in twice (the second doesn't cut the first short)", Math.abs((await viewBox())[2] - wholeWidth / 4) < 0.01, `${wholeWidth} → ${(await viewBox())[2]}`);
+await button("Zoom out").click();
+await glided();
 let [x0, , w0] = await viewBox();
-check("B12 Zoom in halves the view", Math.abs(w0 - wholeWidth / 2) < 0.01, `${wholeWidth} → ${w0}`);
+check("B12 Zoom out doubles it back", Math.abs(w0 - wholeWidth / 2) < 0.01, `${wholeWidth} → ${w0}`);
 check("B12 zoomed: Zoom out and Show the whole map appear", (await button("Zoom out").count()) === 1 && (await button("Show the whole map").count()) === 1);
 const mapBox = await page.locator(".br-map").boundingBox();
 const middle = { x: mapBox.x + mapBox.width / 2, y: mapBox.y + mapBox.height / 2 };
@@ -233,6 +240,7 @@ if (profile === "desktop") {
   await page.touchscreen.tap(middle.x, middle.y);
   await page.touchscreen.tap(middle.x, middle.y);
 }
+await glided();
 [, , w1] = await viewBox();
 check(`B12 a double ${profile === "desktop" ? "click" : "tap"} zooms in`, Math.abs(w1 - w0 / 2) < 0.01, `${w0} → ${w1}`);
 if (profile === "desktop") {
@@ -244,6 +252,7 @@ if (profile === "desktop") {
   check("B12 ctrl + wheel zooms in", w2 < w1, `${w1} → ${w2}`);
 }
 await button("Show the whole map").click();
+await glided();
 check("B12 Show the whole map", (await viewBox())[2] === wholeWidth && (await button("Zoom out").count()) === 0);
 await button("Zoom in").click();
 await button("New route").click();

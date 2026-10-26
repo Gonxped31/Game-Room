@@ -3,7 +3,7 @@ import { AREA_COUNTRIES, AREA_VIEW } from "./areas";
 import { AREAS, MAX_PAR, PENALTY_MS } from "./constants";
 import { capitalDistanceKm, CODES, COUNTRIES, findCountry, fold, suggest } from "./countries";
 import { borderrunDaily, SCHEDULE } from "./daily";
-import { addGuess, newPlay, refusalOf, replay, status } from "./play";
+import { addGuess, links, newPlay, refusalOf, replay, status } from "./play";
 import { closenessOf, distances, generateRoute, neighboursOf, shortestPath, type Route } from "./route";
 import shapes from "./shapes.json";
 
@@ -220,6 +220,47 @@ describe("play", () => {
     ]);
     expect(status(done)).toMatchObject({ complete: true, extra: 0, penaltyMs: 0 });
     expect(refusalOf(done, "IT")).toBe("done");
+  });
+
+  it("links the run as it grows, from both ends, and a guess waits until a neighbour joins", () => {
+    let play = newPlay(portugalToPoland);
+    play = addGuess(play, "DE", 1); // borders Poland, the end
+    expect(links(play)).toEqual([["PL", "DE"]]);
+    play = addGuess(play, "FR", 2); // borders Germany, which joined from the end
+    play = addGuess(play, "IS", 3); // an island: never links
+    expect(links(play)).toEqual([
+      ["PL", "DE"],
+      ["DE", "FR"],
+    ]);
+    play = addGuess(play, "ES", 4); // borders Portugal (the start) and France: the start joined first
+    expect(links(play)).toEqual([
+      ["PL", "DE"],
+      ["DE", "FR"],
+      ["PT", "ES"],
+    ]);
+    // Austria borders nothing in the run, so it waits; Czechia links to Poland, and Austria to Czechia.
+    const waits = replay(portugalToPoland, [
+      { code: "AT", t: 1 },
+      { code: "CZ", t: 2 },
+    ]);
+    expect(links(waits)).toEqual([
+      ["PL", "CZ"],
+      ["CZ", "AT"],
+    ]);
+  });
+
+  it("keeps every link when a guess is added", () => {
+    const guesses = ["IT", "CH", "AT", "FR", "DE", "ES"].map((code, i) => ({ code, t: i }));
+    for (let n = 1; n < guesses.length; n++) {
+      const before = links(replay(portugalToPoland, guesses.slice(0, n)));
+      const after = links(replay(portugalToPoland, guesses.slice(0, n + 1)));
+      expect(after.slice(0, before.length)).toEqual(before);
+    }
+  });
+
+  it("respects closed borders", () => {
+    const closedRoute: Route = { ...portugalToPoland, closed: [["DE", "PL"]] };
+    expect(links(replay(closedRoute, [{ code: "DE", t: 1 }]))).toEqual([]);
   });
 });
 
