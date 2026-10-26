@@ -47,3 +47,5 @@ T-mnnv | 1 | - | S | infra,admin | Deploy database.rules.json for the admin anal
 T-wxxd | 2 | - | S | devops,admin,nighthighway | Check the solo download on production: /admin "Download a solo game" gives Night Highway.html (build log shows export-solo: downloads/nighthighway.html); fix if it says "Not in this build" | done 2026-10-26
 T-tv2g | 1 | - | S | devops,regions | Checkmate Grid daily goes live: set DAILY_SECRET on Vercel Production, then deploy the rules (daily board index) | done 2026-10-26
 T-uz4b | 2 | T-g9zw | M | full-stack,borderrun | Border Run multiplayer: Challenge (2-4) and Survival (up to 8) on the race layer | done 2026-10-26
+T-g9zw | 2 | - | L | full-stack,borderrun,regions | Race layer for solo games: extract Border Run's race (lib/games/borderrun/race.ts, app/borderrun/page.tsx, components/borderrun/race/) into a game-agnostic layer with a per-game adapter, so Checkmate Grid's race can share it | done 2026-10-26
+T-hg4z | 3 | T-g9zw | M | full-stack,regions | Checkmate Grid multiplayer: Challenge (2-4) and Survival (up to 8) on the race layer | done 2026-10-26

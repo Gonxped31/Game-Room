@@ -1,14 +1,19 @@
 ---
 name: checkmate-grid
-description: Reference for working on Checkmate Grid (slug regions), the solo Queens-style region-logic puzzle with chess pieces - its rules and pieces, the solver and seeded generator, endless and daily modes, the board UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/regions/, components/regions/ or app/regions/, or answering questions about how Checkmate Grid plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
+description: Reference for working on Checkmate Grid (slug regions), the Queens-style region-logic puzzle with chess pieces - solo (endless and daily) and as a race with others (Challenge, Survival, matchmaking by mode) - its rules and pieces, the solver and seeded generator, the board UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/regions/, components/regions/ or app/regions/, or answering questions about how Checkmate Grid plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
 ---
 
 # Checkmate Grid
 
-A solo puzzle at `/regions` (the title is a working name; the slug stays
-`regions`). An N×N grid (5–9) is split into N coloured regions. Place N chess
-pieces, **one per row, per column and per region**, with **no piece attacking
-another by its own moves**. No rooms, no rules node for game state.
+A puzzle (the title is a working name; the slug stays `regions`). An N×N
+grid (5–9) is split into N coloured regions. Place N chess pieces, **one per
+row, per column and per region**, with **no piece attacking another by its
+own moves**. Played two ways:
+- **Solo** at `/regions`: the daily puzzle and Endless (below). No room.
+- **With others** at `/regions/race#room`, in the hub's "Play from
+  anywhere": Challenge or Survival, private or matchmade ("Racing others",
+  below). The rooms live under `/regions/race` so `/regions` stays the solo
+  page its daily players have bookmarked.
 
 | Variant | Extra rule (rows/columns are already covered) |
 | :--- | :--- |
@@ -64,6 +69,36 @@ State: plain React state per component, plus the localStorage helpers in
 doesn't use it, and it isn't needed at this size (the user offered it,
 2026-10-26); worth revisiting if several games share a lot of saved state.
 
+## Racing others (`lib/games/regions/race.ts`, `app/regions/race/page.tsx`)
+
+Challenge and Survival run on the shared race layer (`docs/race.md`: modes,
+timing, scoring, how a round ends, the screens). Checkmate Grid's own parts:
+- **Rounds are puzzles**: one piece for every round, or "mixed" (rook, king,
+  knight, queen, mix in turn); the grid grows from 6×6 by one every two
+  rounds, up to 9×9, and from the third round the logic must reach level 2
+  (not for rooks) (`roundSpec`).
+- **The state holds only the seed**: every device builds the puzzle with
+  `generate` (`puzzleOf`, cached per device; the generator is the same in
+  every engine). If no puzzle that hard comes from a seed, any level will do,
+  the same on every device.
+- **Score**: the time of the solving move, no penalty; `found` is the pieces
+  that clash with none, which the player's own board already shows, so the
+  others' counts ("3 of 7 pieces") say how far, never where.
+- **Runs**: `regionsRuns/{seat}` (`moves`: every tap, ✕ included). The page
+  keeps its own moves in state (a drag sets several cells before React
+  re-renders) and **appends each move on its own** (`updateRoot` at
+  `moves/{n}`; the first move of a round writes the whole run). A reload
+  takes the moves back from the database. Undo and Clear are new moves
+  (the cell back to what it was), so the run only grows; Undo's list is
+  this device's, and a reload empties it.
+- **Auto ✕** works as in solo, locked per round (`room:startsAt`).
+- **Results**: the picked player's board; an unsolved one shows the answer's
+  pieces faintly (`Board`'s `answer`).
+- **Rules**: `regions` (`pieces`, `seed`, `extra` always 0) and
+  `regionsRuns/$seat` (`moves`, 1000 at most, `cell` 0–80, `to` 0–2).
+- **Live test**: `.claude/skills/live-test/scripts/checkmate-grid-race.mjs`
+  (it reads each board from the page and solves it).
+
 ## Files
 
 | Path | What |
@@ -74,6 +109,9 @@ doesn't use it, and it isn't needed at this size (the user offered it,
 | `lib/games/regions/play.ts` | A game in progress: `marks` (empty / ✕ / piece), the `moves` log `{cell, to, t}`, `setMark`, `undo`, `clearAll`, `replay`, `ruledOut` (auto-✕) |
 | `lib/games/regions/daily.ts` | The `DailyGame` for docs/daily.md: weekly `SCHEDULE` (Mon rook 6 … Sun mix 9), `verify` replays the moves |
 | `lib/games/regions/theme.ts` | Colors (match `regions.css`), region pastels, chess glyphs, rule lines |
+| `lib/games/regions/race.ts` | Racing others, on `lib/games/race/`: `GridRaceState`, `Run`, `roundSpec`, `puzzleOf`, `playOf`, `scoreOf`, `race` |
+| `app/regions/race/page.tsx` | The race room page |
+| `components/regions/race/Screens.tsx` | The race room's shell and lobby settings; the rest is `components/race/` |
 | `components/regions/Stage.tsx` | The page shell, mode tabs; `online` adds Daily (the site), off for the export |
 | `components/regions/Board.tsx` | The grid: tap cycles, drag from an empty cell paints ✕, arrow keys + Enter/Space |
 | `components/regions/EndlessGame.tsx`, `DailyGame.tsx` | The two modes |

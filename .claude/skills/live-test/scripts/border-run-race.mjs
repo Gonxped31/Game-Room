@@ -141,7 +141,7 @@ try {
   await H.getByRole("button", { name: "Start the race" }).click();
 
   // Round 1: the countdown, then Hana solves and Pia gives up: the round ends early.
-  await P.locator(".br-countdown").waitFor({ timeout: 15000 });
+  await P.locator(".race-countdown").waitFor({ timeout: 15000 });
   check("countdown: the guess box waits", await box(P).isDisabled());
   await shot(P, "countdown-iphone");
   let s = await roundStarted(room, 0);
@@ -258,7 +258,7 @@ try {
   await shot(M1, "public-countdown-desktop");
   await until(async () => (await state(c1))?.phase === "round", "the public Challenge starting by itself", 40000);
   check("the public Challenge starts by itself with both", JSON.stringify((await state(c1)).players) === JSON.stringify(["p1", "p2"]));
-  await M3.locator(".br-board-row").nth(1).waitFor();
+  await M3.locator(".race-board-row").nth(1).waitFor();
   log("Matchmaking done");
 } catch (e) {
   failures++;

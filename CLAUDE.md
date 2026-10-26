@@ -7,9 +7,10 @@ A small platform for private 2-player games played through a shared link.
 - Games: **Same Page** (`/same-page`, slug `ftw`; `/ftw` redirects), **Co-Counsel** (`/cocounsel`), **Night
   Highway** (`/nighthighway`, plus `/nighthighway/solo`), **Buzzer Quiz**
   (`/buzzerquiz`, 2-4 players), **Word Scramble** (`/wordscramble`, 2 teams,
-  2-8 players), **Checkmate Grid** (`/regions`, solo, with a daily puzzle) and
-  **Border Run** (`/borderrun`, a geography race: Challenge for 2-4 players or
-  Survival for 4-8; plus `/borderrun/solo` with a daily route).
+  2-8 players), **Checkmate Grid** (`/regions`, solo, with a daily puzzle; races
+  at `/regions/race`) and **Border Run** (`/borderrun`, a geography race; plus
+  `/borderrun/solo` with a daily route). The two races (Challenge for 2-4
+  players, Survival for 4-8) share one layer: `docs/race.md`.
 
 This file holds what must stay true on **every** change. Everything else loads on
 demand:
@@ -21,7 +22,8 @@ demand:
 | Working on Night Highway (3D race, deterministic traffic, live ghost car) | `night-highway` skill |
 | Working on Buzzer Quiz (2-4 players, buzz in, EN/FR question bank) | `buzzerquiz` skill |
 | Working on Word Scramble (2 teams, unscramble against the clock, EN/FR words) | `wordscramble` skill |
-| Working on Checkmate Grid (solo chess-piece region puzzle), or the shared daily puzzles and their leaderboard | `checkmate-grid` skill; `docs/daily.md` |
+| Working on Checkmate Grid (chess-piece region puzzle: solo and daily, Challenge and Survival races), or the shared daily puzzles and their leaderboard | `checkmate-grid` skill; `docs/daily.md` |
+| The shared race layer (Challenge and Survival for solo games) | `docs/race.md` |
 | Working on Border Run (link two countries by land: solo and daily, Challenge and Survival races; map data, routes, EN/FR names) | `borderrun` skill; `docs/daily.md` |
 | Adding (or removing) a game | `add-game` skill |
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |

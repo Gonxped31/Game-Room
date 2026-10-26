@@ -15,9 +15,11 @@ import * as quiz from "@/lib/games/buzzerquiz/game";
 import * as ws from "@/lib/games/wordscramble/game";
 import * as race from "@/lib/games/borderrun/race";
 import { shortestPath } from "@/lib/games/borderrun/route";
+import * as grid from "@/lib/games/regions/race";
+import { MARK, PIECE, type Move } from "@/lib/games/regions/play";
 import { RESULT_MS as WS_RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
-import { borderrunState, buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
+import { borderrunState, regionsState, buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -449,5 +451,70 @@ describe("Border Run", () => {
     await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ gaveUp: false, guesses: [{ code: "ES", t: 1 }] })); // no round
     const many = Object.fromEntries(Array.from({ length: 201 }, (_, i) => [String(i), { code: "ES", t: i }]));
     await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, guesses: many }));
+  });
+});
+
+describe("Checkmate Grid's race", () => {
+  const path = `games/${ROOM}/regions`;
+  const runPath = (seat: string) => `games/${ROOM}/regionsRuns/${seat}`;
+  const UIDS = ["alice", "bob", "carol", "dave", "erin"];
+  const SEATED = ["p1", "p2", "p3", "p4", "p5"];
+  beforeEach(async () => {
+    await seedRoom(env, { creator: "alice", seated: UIDS, gameSlug: "regions", maxPlayers: 8 });
+  });
+
+  it("accepts every state of a real survival game, and each player's own moves, one at a time", async () => {
+    const db = dbAs(env, "bob");
+    const write = (state: grid.GridRaceState) => writeAndReadBack(db, path, state);
+    let game = await write(grid.newRace("challenge"));
+    game = await write(grid.race.setRounds(grid.setPieces(grid.race.setMode(game, "survival"), "mixed"), 5));
+    game = await write(grid.race.start(game, { seated: SEATED, seed: "r0", now: 1_000_000 }));
+    while (game.phase !== "over") {
+      if (game.phase === "round") {
+        const current = grid.normalize(game);
+        const { solution } = grid.puzzleOf(current);
+        // Everyone solves it; the slower seats are a second apart. Each move is appended on its own, as the page does.
+        const runs: grid.Runs = {};
+        for (const [i, seat] of current.alive.entries()) {
+          const moves: Move[] = [{ cell: (solution[0] + 1) % (current.round + 36), to: MARK, t: 500 }, ...solution.map((cell, j): Move => ({ cell, to: PIECE, t: 1000 * (i + 1) + j }))];
+          const seatDb = dbAs(env, UIDS[SEATED.indexOf(seat)]);
+          await assertSucceeds(seatDb.ref(runPath(seat)).set({ at: current.startsAt, gaveUp: false, moves: [moves[0]] }));
+          for (const [j, move] of moves.entries()) if (j > 0) await assertSucceeds(seatDb.ref(`${runPath(seat)}/moves/${j}`).set(move));
+          runs[seat] = { at: current.startsAt, gaveUp: false, moves };
+        }
+        game = await write(grid.race.endRound(current, runs, current.startsAt + 60_000));
+      } else game = await write(grid.race.next(game, `r${game.round + 1}`, grid.normalize(game).nextAt));
+    }
+    expect(grid.normalize(game).alive).toEqual(["p1"]);
+    game = await write(grid.race.backToLobby(game));
+    expect(grid.normalize(game)).toMatchObject({ phase: "lobby", pieces: "mixed", seed: "" });
+  });
+
+  it.each([
+    ["a bad phase", regionsState({ phase: "paused" })],
+    ["an unknown mode", regionsState({ mode: "teams" })],
+    ["an unknown piece", regionsState({ pieces: "pawn" })],
+    ["no seed", { ...regionsState(), seed: null }],
+    ["a long seed", regionsState({ seed: "x".repeat(65) })],
+    ["an eleventh round", regionsState({ round: 10 })],
+    ["a penalty", regionsState({ results: [{ scores: { p1: { ms: 1000, extra: 1, found: 6, done: true } } }] })],
+    ["a time past the limit", regionsState({ results: [{ scores: { p1: { ms: 180_001, extra: 0, found: 6, done: true } } }] })],
+    ["an unknown key", regionsState({ puzzle: [0, 1] })],
+  ])("rejects %s", async (_, state) => {
+    await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+
+  it("lets each player write only their own moves", async () => {
+    const run = { at: 5, gaveUp: false, moves: [{ cell: 3, to: 2, t: 1200 }] };
+    await assertSucceeds(dbAs(env, "carol").ref(runPath("p3")).set(run));
+    await assertFails(dbAs(env, "carol").ref(runPath("p2")).set(run));
+    await assertFails(dbAs(env, "zed").ref(runPath("p6")).set(run));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, moves: [{ cell: 81, to: 2, t: 1 }] }));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, moves: [{ cell: 3, to: 3, t: 1 }] }));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, moves: [{ cell: 3, to: 2, t: -1 }] }));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, solved: true }));
+    await assertFails(dbAs(env, "carol").ref(`${runPath("p3")}/moves/1000`).set({ cell: 3, to: 1, t: 2000 }));
+    await assertSucceeds(dbAs(env, "carol").ref(`${runPath("p3")}/moves/999`).set({ cell: 3, to: 1, t: 2000 }));
+    await assertFails(dbAs(env, "dave").ref(`${runPath("p3")}/moves/1`).set({ cell: 3, to: 1, t: 2000 }));
   });
 });

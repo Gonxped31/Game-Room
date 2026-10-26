@@ -103,6 +103,20 @@ until the fourth player joins. They play 3 turns per team:
 
 Then come the end screen and a rematch with the same teams.
 
+**Checkmate Grid's races** (`/regions/race`) have their own check (about four minutes):
+
+```bash
+node .claude/skills/live-test/scripts/checkmate-grid-race.mjs [baseUrl] [screenshotDir]
+```
+
+It solves each puzzle from the board on screen. A private Challenge (desktop
+host + iPhone): the host picks the piece, Survival refuses 2 players; a tap
+during the countdown does nothing; a reload mid-round keeps the pieces; Auto ✕
+locks; one solves and one gives up, so the round ends early; the results show
+anyone's board and the faint answer; Undo; 3 puzzles, the standings, back to
+the lobby, Leave room. Then a 4-player Survival down to a winner, and
+matchmaking by mode.
+
 **Checkmate Grid** (solo, `/regions`) has an edge-case check (about two minutes per
 profile; run it on `iphone-se` and `desktop` at least):
 

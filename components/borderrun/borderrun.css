@@ -23,6 +23,23 @@
   font-family: var(--font-overpass), system-ui, sans-serif;
 }
 
+/* A race room's look (components/race/race.css). */
+.br-race {
+  --race-ink: var(--br-ink);
+  --race-ink-soft: var(--br-ink-soft);
+  --race-card: var(--br-card);
+  --race-accent: var(--br-accent);
+  --race-kicker: var(--br-sign);
+  --race-focus: var(--br-sign);
+  --race-best: var(--br-best);
+  --race-off: var(--br-off);
+  --race-track: var(--br-sea);
+  --race-pill: var(--br-paper);
+  --race-mine: #fff6db;
+  --race-scrim: rgba(244, 240, 230, 0.55);
+  --race-title-font: inherit;
+}
+
 .br-page .br-main {
   width: var(--br-width);
   margin: 0 auto;

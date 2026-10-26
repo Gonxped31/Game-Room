@@ -18,6 +18,44 @@
   font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
+/* A race room's look (components/race/race.css); its page is wider than the board alone. */
+.cg-race {
+  --race-ink: var(--cg-ink);
+  --race-ink-soft: var(--cg-ink-soft);
+  --race-card: var(--cg-card);
+  --race-accent: var(--cg-accent);
+  --race-kicker: var(--cg-ink-soft);
+  --race-focus: #000;
+  --race-best: #2f8a5b;
+  --race-off: var(--cg-clash);
+  --race-track: #e6dcc8;
+  --race-pill: var(--cg-paper);
+  --race-mine: #fff3cf;
+  --race-scrim: rgba(243, 235, 221, 0.6);
+  --race-title-font: var(--font-fraunces), Georgia, serif;
+}
+
+.cg-race .cg-main {
+  width: max(var(--cg-board), min(calc(100vw - 32px), 560px));
+}
+
+.cg-race .cg-board {
+  margin: 0 auto;
+}
+
+.cg-race-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cg-race-tools .cg-rule {
+  flex: 1 1 200px;
+  min-height: 0;
+}
+
 .cg-main {
   width: var(--cg-board);
   margin: 0 auto;
@@ -272,6 +310,10 @@
 
 .cg-cell[data-shown="piece"] .cg-glyph {
   animation: cg-pop 140ms ease-out;
+}
+
+.cg-cell[data-shown="answer"] .cg-glyph {
+  opacity: 0.35;
 }
 
 .cg-cell[data-bad] {

@@ -23,6 +23,8 @@ interface BoardProps {
   /** Taps stop once solved. */
   locked: boolean;
   onSet: (cell: number, to: Mark) => void;
+  /** The solution, drawn faintly where no piece stands (a race's results, for a player who didn't solve it). */
+  answer?: readonly number[];
 }
 
 /**
@@ -30,7 +32,7 @@ interface BoardProps {
  * cell paints ✕ on every empty cell it crosses, as in Queens. Arrow keys move
  * between cells, Enter or Space cycles one.
  */
-export default function Board({ play, hint, locked, onSet }: BoardProps) {
+export default function Board({ play, hint, locked, onSet, answer }: BoardProps) {
   const { puzzle, marks } = play;
   const { size } = puzzle;
   const [focus, setFocus] = useState(0);
@@ -39,6 +41,7 @@ export default function Board({ play, hint, locked, onSet }: BoardProps) {
 
   const bad = useMemo(() => new Set(status(play).bad), [play]);
   const out = useMemo(() => (hint !== "off" ? ruledOut(play) : new Set<number>()), [hint, play]);
+  const solution = useMemo(() => new Set(answer ?? []), [answer]);
   /** In mix, each region's piece is drawn small in its first cell. */
   const labelCells = useMemo(() => {
     const firsts = new Map<number, number>();
@@ -133,9 +136,9 @@ export default function Board({ play, hint, locked, onSet }: BoardProps) {
             const region = puzzle.regions[cell];
             const piece = puzzle.pieces[region];
             const mark = marks[cell];
-            const shown = mark === EMPTY && out.has(cell) ? "auto" : mark === MARK ? "mark" : mark === PIECE ? "piece" : "empty";
+            const shown = mark !== PIECE && solution.has(cell) ? "answer" : mark === EMPTY && out.has(cell) ? "auto" : mark === MARK ? "mark" : mark === PIECE ? "piece" : "empty";
             const label = `Row ${r + 1}, column ${c + 1}: ${
-              mark === PIECE ? PIECE_NAME[piece] + (bad.has(cell) ? ", clashes" : "") : mark === MARK ? "crossed out" : "empty"
+              mark === PIECE ? PIECE_NAME[piece] + (bad.has(cell) ? ", clashes" : "") : shown === "answer" ? `the answer's ${PIECE_NAME[piece]}` : mark === MARK ? "crossed out" : "empty"
             }`;
             return (
               <div role="gridcell" key={c} className="cg-cell-wrap">
@@ -166,7 +169,7 @@ export default function Board({ play, hint, locked, onSet }: BoardProps) {
                     </span>
                   ) : null}
                   <span aria-hidden="true" className="cg-glyph">
-                    {mark === PIECE ? GLYPH[piece] : shown === "mark" || shown === "auto" ? "✕" : ""}
+                    {mark === PIECE || shown === "answer" ? GLYPH[piece] : shown === "mark" || shown === "auto" ? "✕" : ""}
                   </span>
                 </button>
               </div>

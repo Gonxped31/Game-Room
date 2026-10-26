@@ -148,11 +148,18 @@ export const ALL_GAMES: GameEntry[] = [
   {
     // Solo only: no rooms, so no rules node. The title is a working name.
     slug: "regions",
+    // Rooms (races) live under the solo page, which keeps /regions for its daily players' bookmarks.
+    path: "/regions/race",
     title: "Checkmate Grid",
-    section: "solo",
-    description: "Place one chess piece in every row, column and colour, with none attacking another.",
-    shortDescription: "One piece per row, column and colour.",
-    tags: ["Just you"],
+    section: "anywhere",
+    description: "Race to place a chess piece in every row, column and colour. Fastest wins, or the slowest go home.",
+    shortDescription: "Race to solve the same chess grid.",
+    tags: ["2–8 players", "Challenge or Survival"],
+    maxPlayers: 8,
+    modes: [
+      { key: "challenge", label: "Challenge", detail: "2–4 players. A few puzzles, the same for everyone: the lowest total time wins." },
+      { key: "survival", label: "Survival", detail: "4–8 players. The slowest are out after each puzzle, until one is left." },
+    ],
     ink: "#16261D",
     textSecondary: "#4B5A50",
     accentColor: "#7FD1A6",

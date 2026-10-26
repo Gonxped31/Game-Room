@@ -1,5 +1,6 @@
 import { COLOR } from "@/lib/games/cocounsel/theme";
 import { gameBySlug } from "@/lib/games/registry";
+import { GLYPH, REGION_COLORS } from "@/lib/games/regions/theme";
 
 /**
  * The 40px game tile at the start of each "Your rooms" row
@@ -67,6 +68,18 @@ export default function GameTile({ slug }: { slug: string }) {
           <rect x="1" y="1" width="28" height="16" rx="4" fill="#176B4B" stroke="#fff" strokeWidth="1.5" />
           <path d="M7 9H22M18 5.5L22 9L18 12.5" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
+      </span>
+    );
+  }
+  if (slug === "regions") {
+    // The card's board: four region pastels, a king in one.
+    return (
+      <span aria-hidden="true" className="grid h-10 w-10 shrink-0 grid-cols-2 overflow-hidden rounded-[10px] border-2 border-[#16261D]">
+        {REGION_COLORS.slice(0, 4).map((color, i) => (
+          <span key={color} className="flex items-center justify-center text-[14px] leading-none text-[#16261D]" style={{ backgroundColor: color }}>
+            {i === 3 ? GLYPH.king : null}
+          </span>
+        ))}
       </span>
     );
   }

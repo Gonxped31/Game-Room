@@ -48,7 +48,7 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
   unscrambling a word against a 30-second clock, in English or French.
   - Anyone on the playing team can guess; the other team watches.
   - A word is worth its letters; each hint places a letter but costs a point.
-- **Checkmate Grid** (`/regions`, solo) - place one chess piece in every row,
+- **Checkmate Grid** (`/regions`, solo; races for 2-8 players at `/regions/race`) - place one chess piece in every row,
   column and coloured region, with none attacking another.
   - Pieces: rooks, kings, knights, queens, or a mix where each region shows its
     own piece.

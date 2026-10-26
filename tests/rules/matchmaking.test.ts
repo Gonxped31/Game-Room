@@ -10,6 +10,7 @@ import { publicGame } from "@/lib/games/buzzerquiz/game";
 import { newGame as newRace } from "@/lib/games/nighthighway/game";
 import { newGame as newScramble } from "@/lib/games/wordscramble/game";
 import { newRace as newBorderRun } from "@/lib/games/borderrun/race";
+import { newRace as newGridRace } from "@/lib/games/regions/race";
 import { dbAs, ROOM, seed, setupEnv, TS } from "./helpers";
 
 let env: RulesTestEnvironment;
@@ -151,40 +152,43 @@ describe("autoStart", () => {
   });
 });
 
-describe("Border Run's public rooms", () => {
-  const borderrun = (mode: string, opts: { maxPlayers?: number; stateMode?: "challenge" | "survival" } = {}) =>
+describe.each([
+  ["Border Run", "borderrun", newBorderRun],
+  ["Checkmate Grid", "regions", newGridRace],
+] as const)("%s's public rooms", (_, slug, newRace) => {
+  const publicRoom = (mode: string, opts: { maxPlayers?: number; stateMode?: "challenge" | "survival" } = {}) =>
     createRoomUpdate({
       code: ROOM,
       uid: "alice",
-      gameSlug: "borderrun",
+      gameSlug: slug,
       maxPlayers: opts.maxPlayers ?? (mode === "challenge" ? 4 : 8),
-      initialState: plain(newBorderRun(opts.stateMode ?? (mode as "challenge" | "survival"))),
+      initialState: plain(newRace(opts.stateMode ?? (mode as "challenge" | "survival"))),
       ts: TS,
       publicLang: mode,
     });
 
   it("queues by mode: a challenge room has 4 seats, a survival room 8", async () => {
-    await assertSucceeds(send("alice", borderrun("challenge")));
+    await assertSucceeds(send("alice", publicRoom("challenge")));
     await env.clearDatabase();
-    await assertSucceeds(send("alice", borderrun("survival")));
+    await assertSucceeds(send("alice", publicRoom("survival")));
   });
 
   it("refuses the wrong seat count, a language queue, or a game in another mode than its queue", async () => {
-    await assertFails(send("alice", borderrun("challenge", { maxPlayers: 8 })));
-    await assertFails(send("alice", borderrun("survival", { maxPlayers: 4 })));
-    await assertFails(send("alice", borderrun("en", { maxPlayers: 8, stateMode: "challenge" })));
-    await assertFails(send("alice", borderrun("challenge", { stateMode: "survival" })));
+    await assertFails(send("alice", publicRoom("challenge", { maxPlayers: 8 })));
+    await assertFails(send("alice", publicRoom("survival", { maxPlayers: 4 })));
+    await assertFails(send("alice", publicRoom("en", { maxPlayers: 8, stateMode: "challenge" })));
+    await assertFails(send("alice", publicRoom("challenge", { stateMode: "survival" })));
   });
 
   it("keeps a public room in its mode; a private room changes it freely", async () => {
-    await assertSucceeds(send("alice", borderrun("challenge")));
-    const publicMeta = { ...meta("alice"), gameSlug: "borderrun", maxPlayers: 4, publicLang: "challenge" };
+    await assertSucceeds(send("alice", publicRoom("challenge")));
+    const publicMeta = { ...meta("alice"), gameSlug: slug, maxPlayers: 4, publicLang: "challenge" };
     await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: publicMeta, ts: TS })));
-    await assertFails(send("alice", { [`games/${ROOM}/borderrun/mode`]: "survival" }));
+    await assertFails(send("alice", { [`games/${ROOM}/${slug}/mode`]: "survival" }));
     await env.clearDatabase();
-    await assertSucceeds(send("alice", createRoomUpdate({ code: ROOM, uid: "alice", gameSlug: "borderrun", maxPlayers: 8, initialState: plain(newBorderRun("challenge")), ts: TS })));
-    const privateMeta = { gameSlug: "borderrun", maxPlayers: 8, createdAt: 1, createdBy: "alice" };
+    await assertSucceeds(send("alice", createRoomUpdate({ code: ROOM, uid: "alice", gameSlug: slug, maxPlayers: 8, initialState: plain(newRace("challenge")), ts: TS })));
+    const privateMeta = { gameSlug: slug, maxPlayers: 8, createdAt: 1, createdBy: "alice" };
     await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: privateMeta, ts: TS })));
-    await assertSucceeds(send("alice", { [`games/${ROOM}/borderrun/mode`]: "survival" }));
+    await assertSucceeds(send("alice", { [`games/${ROOM}/${slug}/mode`]: "survival" }));
   });
 });

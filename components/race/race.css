@@ -1,0 +1,470 @@
+/* Race rooms (components/race/Screens.tsx): join, lobby, a round's frame, results, standings.
+   Each game gives the look by setting these on its page's root element (there are no defaults):
+     --race-ink, --race-ink-soft   text and borders; quieter text
+     --race-card                   card and button fill
+     --race-accent                 primary buttons, the winner's row, the countdown
+     --race-kicker                 small uppercase labels
+     --race-focus                  focus outlines
+     --race-best, --race-off       done / online; out / errors / low time
+     --race-track                  progress bars' empty part
+     --race-pill                   the Host / You tags
+     --race-mine                   my own rows
+     --race-scrim                  the countdown's veil over the stage
+     --race-title-font             card titles and times */
+
+.race-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 2px solid var(--race-ink);
+  border-radius: 18px;
+  background: var(--race-card);
+  box-shadow: 0 4px 0 var(--race-ink);
+}
+
+.race-card-title {
+  margin: 0;
+  font-family: var(--race-title-font);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.race-kicker {
+  margin: 0;
+  color: var(--race-kicker);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.race-note {
+  margin: 0;
+  color: var(--race-ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.race-note:empty {
+  display: none;
+}
+
+.race-status {
+  margin: 24px 0;
+  color: var(--race-ink-soft);
+  font-weight: 600;
+  text-align: center;
+}
+
+.race-button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 2px solid var(--race-ink);
+  border-radius: 12px;
+  background: var(--race-card);
+  color: var(--race-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--race-ink);
+  transition: transform 80ms ease;
+}
+
+.race-button:enabled:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--race-ink);
+}
+
+.race-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.race-button:focus-visible,
+.race-result:focus-visible,
+.race-input:focus-visible {
+  outline: 3px solid var(--race-focus);
+  outline-offset: 2px;
+}
+
+.race-button-primary {
+  background: var(--race-accent);
+}
+
+.race-button-wide {
+  width: 100%;
+}
+
+.race-button-danger {
+  background: var(--race-off);
+  color: #fff;
+}
+
+.race-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--race-ink);
+  text-decoration: none;
+}
+
+.race-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 2px solid var(--race-ink);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--race-ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.race-field-label {
+  margin: 4px 0 0;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.race-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.race-time {
+  font-family: var(--race-title-font);
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.race-done-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.race-join {
+  display: grid;
+  gap: 10px;
+}
+
+.race-error,
+.race-problem {
+  color: var(--race-off);
+  font-weight: 700;
+}
+
+.race-rules {
+  font-size: 14px;
+}
+
+/* The invite: a dashed "ticket" under the players. */
+.race-invite {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px dashed var(--race-ink-soft);
+  border-radius: 16px;
+}
+
+.race-invite-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Players, as chips with an online dot. */
+.race-players {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.race-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 2px solid var(--race-ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 700;
+}
+
+.race-player[data-me] {
+  background: var(--race-mine);
+}
+
+.race-player-name {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.race-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #b8c0c9;
+}
+
+.race-dot[data-online] {
+  background: var(--race-best);
+}
+
+.race-pill {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--race-pill);
+  color: var(--race-ink-soft);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.race-pill-out {
+  margin-left: 6px;
+  background: var(--race-off);
+  color: #fff;
+}
+
+/* The round: its label and the clock above the stage. */
+.race-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.race-clock[data-low] {
+  color: var(--race-off);
+}
+
+.race-stage {
+  position: relative;
+}
+
+/* "3, 2, 1" over the stage: what's coming is already there to read. */
+.race-countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--race-scrim);
+  pointer-events: none;
+}
+
+.race-countdown span {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border: 3px solid var(--race-ink);
+  border-radius: 50%;
+  background: var(--race-accent);
+  box-shadow: 0 5px 0 var(--race-ink);
+  font-family: var(--race-title-font);
+  font-size: 52px;
+  font-weight: 800;
+  animation: race-tick 900ms ease-out;
+}
+
+@keyframes race-tick {
+  from {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.race-me {
+  margin: 0;
+  text-align: left;
+}
+
+/* Everyone's progress: a bar each. */
+.race-board {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.race-board-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(60px, 1.2fr);
+  grid-template-areas:
+    "dot name status"
+    "bar bar bar";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  padding: 8px 12px;
+  border: 2px solid var(--race-ink);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.race-board-row[data-me] {
+  background: var(--race-mine);
+}
+
+.race-board-row .race-dot {
+  grid-area: dot;
+}
+
+.race-board-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.race-board-status {
+  grid-area: status;
+  justify-self: end;
+  color: var(--race-ink-soft);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.race-board-row[data-done] .race-board-status {
+  color: var(--race-best);
+}
+
+.race-board-bar {
+  grid-area: bar;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--race-track);
+  overflow: hidden;
+}
+
+.race-board-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--race-best);
+  transition: width 400ms ease;
+}
+
+/* Results and standings: a row per player; a round's rows pick whose round the stage shows. */
+.race-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.race-result {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "rank name time"
+    "rank detail detail";
+  align-items: center;
+  column-gap: 10px;
+  padding: 8px 12px;
+  border: 2px solid var(--race-ink);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--race-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.race-result-static {
+  cursor: default;
+}
+
+.race-result[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--race-ink);
+  background: var(--race-mine);
+}
+
+.race-result[data-out] {
+  border-color: var(--race-off);
+}
+
+.race-result[data-winner] {
+  background: var(--race-accent);
+}
+
+.race-rank {
+  grid-area: rank;
+  font-family: var(--race-title-font);
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.race-result-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.race-result-time {
+  grid-area: time;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.race-result-detail {
+  grid-area: detail;
+  color: var(--race-ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.race-you {
+  color: var(--race-ink-soft);
+  font-weight: 600;
+}
+
+.race-final-title {
+  font-size: 30px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .race-countdown span {
+    animation: none;
+  }
+  .race-board-bar span,
+  .race-button {
+    transition: none;
+  }
+}
