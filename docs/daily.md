@@ -2,7 +2,8 @@
 
 One puzzle a day per game, the same for everyone, with a global leaderboard.
 Built once in `lib/daily/` and `app/api/daily/[slug]/`; a game plugs in with
-one `DailyGame`. First user: Checkmate Grid (`checkmate-grid` skill).
+one `DailyGame`. Users: Checkmate Grid (`checkmate-grid` skill) and Border Run
+(`borderrun` skill).
 
 ## Decisions (2026-10-25)
 
@@ -63,6 +64,11 @@ To reproduce that class of failure locally: run a standalone build with
    their `daily-*` classes).
 4. Tests: the game's `verify` and generation; `lib/daily/daily.test.ts` runs
    the service on an in-memory store.
+
+A game whose score isn't just time can return `penaltyMs` from `verify`
+(Border Run: 15 s per guess past the par). The service adds it to the time on
+the board (`ms`) and keeps it apart on the attempt (`penaltyMs`), so the page
+can show both; the too-fast check looks at the real time only.
 
 ## Deploy
 

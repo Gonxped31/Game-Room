@@ -120,6 +120,24 @@ It goes past the basic path:
 
 It exits 1 on any failure. Add a case here for every new interaction.
 
+**Border Run** (solo, `/borderrun`) has one too (about a minute per profile; run it on
+`iphone-se` and `desktop` at least):
+
+```bash
+node .claude/skills/live-test/scripts/border-run.mjs [baseUrl] [profile]
+```
+
+It reads each route's answer from the saved game and the map data, then covers:
+- refused guesses (unknown, off this map, the start, a repeat) cost nothing and say why;
+- French names without accents, arrow keys + Enter on the suggestions, a double Enter;
+- a reload or a Daily ↔ Endless round trip keeps the route, the guesses and the clock;
+- finishing (with a penalty), New route, Show a route, Change, the best per map;
+- the EN/FR switch, kept across a reload;
+- the daily: a reload resumes it on the server's clock, the penalty is on the result,
+  and a reload after finishing shows the finished page with its map.
+
+It exits 1 on any failure or console error. Add a case here for every new interaction.
+
 **Matchmaking** ("Matchmaking" button, `docs/matchmaking.md`) has its own check too (about
 four minutes):
 
