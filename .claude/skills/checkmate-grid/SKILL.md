@@ -47,11 +47,17 @@ the clock), and a solve that never reached the server is sent on resume.
 **shows** a faint ✕ on every square the placed pieces rule out - it never
 places marks - for 3 s, then they fade out, and the button stays locked until
 30 s after the press. It can't be pressed with no piece on the board or once
-solved. Each mode saves its last press time (wall clock, `AUTO_MARK_KEY` in
-`storage.ts`), so a reload can't reset the lock: it carries on, and counts
-while the page is closed. Locked means `aria-disabled` (still focusable), so in
-Playwright a tap during the lock needs `click({ force: true })`; a plain click
-waits it out.
+solved. **The lock belongs to the puzzle it was used on** (`puzzleId`: the
+Endless puzzle's fingerprint, the Daily day): New puzzle, Next puzzle and
+Change → Start all give an unlocked button. Each mode saves its last press
+with its puzzle (wall clock, `AUTO_MARK_KEY` in `storage.ts`), so a reload or
+a tab switch on the same puzzle keeps the lock, counting while the page is
+closed. Locked means `aria-disabled` (still focusable), so in Playwright a tap
+during the lock needs `click({ force: true })`; a plain click waits it out.
+
+**A puzzle being built** (the 30 ms timeout after Start / New puzzle, so
+"Shuffling…" paints) is cancelled by a newer deal, Change or leaving the tab:
+a late one must never land, or it would be saved and resume on reload.
 
 State: plain React state per component, plus the localStorage helpers in
 `storage.ts` for whatever must survive a reload. No Zustand: the project
@@ -101,6 +107,10 @@ doesn't use it, and it isn't needed at this size (the user offered it,
   `lib/daily/daily.test.ts`.
 - `ui-review` for `regions` and `hub`; drive the board with a scratch script
   (scroll the board into view first on phone profiles).
+- **Every change**: `node .claude/skills/live-test/scripts/checkmate-grid.mjs
+  [baseUrl] [profile]` on `iphone-se` and `desktop` - the edge cases (Auto ✕
+  per puzzle, reloads, tab switches, build races), not just the basic path
+  (the user's ask, 2026-10-26). Add a case to it for every new interaction.
 - The daily end to end needs the emulator dev server (it sets the admin SDK's
   emulator hosts) and separate browser contexts; give each its own
   `x-forwarded-for` header, or every guest after the first is unranked by the

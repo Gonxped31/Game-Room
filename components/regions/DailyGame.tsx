@@ -72,7 +72,8 @@ export default function DailyGame() {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [now, setNow] = useState(0);
   const [shared, setShared] = useState<string | null>(null);
-  const auto = useAutoMark(AUTO_MARK_KEY.daily);
+  // Auto ✕'s lock belongs to the day's puzzle (one a day): a reload or a tab switch keeps it.
+  const auto = useAutoMark(AUTO_MARK_KEY.daily, phase.kind === "playing" ? phase.info.day : null);
   // The latest game, for a drag that paints several cells before React re-renders.
   const latest = useRef<Play | null>(null);
 

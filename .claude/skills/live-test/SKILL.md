@@ -103,6 +103,23 @@ until the fourth player joins. They play 3 turns per team:
 
 Then come the end screen and a rematch with the same teams.
 
+**Checkmate Grid** (solo, `/regions`) has an edge-case check (about two minutes per
+profile; run it on `iphone-se` and `desktop` at least):
+
+```bash
+node .claude/skills/live-test/scripts/checkmate-grid.mjs [baseUrl] [profile]
+```
+
+It goes past the basic path:
+- the Auto ✕ lock belongs to its puzzle: New puzzle, Next puzzle (after a solve)
+  and Change → Start all unlock it, with no faint ✕ carried over;
+- a reload or a Daily ↔ Endless round trip keeps the same puzzle and its lock;
+- Change while a puzzle is being built: nothing lands, and a reload shows the setup card;
+- two quick New puzzle presses: the board saved is the one shown;
+- the Daily lock is separate from Endless's, and survives a reload.
+
+It exits 1 on any failure. Add a case here for every new interaction.
+
 **Matchmaking** ("Matchmaking" button, `docs/matchmaking.md`) has its own check too (about
 four minutes):
 

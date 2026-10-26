@@ -66,54 +66,73 @@ export const AUTO_MARK_LOCK_MS = 30_000;
 /** What the board draws for Auto ✕: nothing, the faint ✕s, or the ✕s fading out. */
 export type AutoMarkHint = "off" | "on" | "fading";
 
+/** A press as saved: which puzzle it was used on, and when (ms, wall clock). */
+interface AutoMarkPress {
+  puzzle: string;
+  at: number;
+}
+
+const isPress = (value: unknown): value is AutoMarkPress =>
+  !!value && typeof (value as AutoMarkPress).puzzle === "string" && typeof (value as AutoMarkPress).at === "number";
+
 /**
  * Auto ✕'s timing, shared by Daily and Endless: the hint to draw, the lock's
- * seconds left, and `use` for a press. The press time (wall clock) is saved
- * under `storageKey`, so a reload doesn't reset the lock: it carries on with
- * the time it has left, and keeps counting while the page is closed.
+ * seconds left, and `use` for a press.
+ * - The lock belongs to the puzzle it was used on (`puzzleId`: Endless's
+ *   puzzle fingerprint, Daily's day): another puzzle - New puzzle, Next
+ *   puzzle, Change then Start - is unlocked straight away, and shows no hint.
+ * - The press is saved under `storageKey`, so a reload of the same puzzle
+ *   doesn't reset the lock: it carries on with the time it has left, and
+ *   keeps counting while the page is closed.
+ * - With no puzzle (`null`: the setup card, a puzzle being built) nothing is locked.
  */
-export function useAutoMark(storageKey: string) {
-  const [pressedAt, setPressedAt] = useState<number | null>(null);
+export function useAutoMark(storageKey: string, puzzleId: string | null) {
+  const [press, setPress] = useState<AutoMarkPress | null>(null);
   const [now, setNow] = useState(0);
 
-  // A press from before a reload, if its lock hasn't run out (storage is read after mount, never during render).
+  // A saved press for this puzzle whose lock hasn't run out (read after mount and on each new puzzle, never during render).
   useEffect(() => {
+    if (puzzleId === null) return;
     const timer = setTimeout(() => {
       const saved = readJson(storageKey);
       const t = Date.now();
-      if (typeof saved === "number" && saved <= t && t - saved < AUTO_MARK_LOCK_MS) {
+      if (isPress(saved) && saved.puzzle === puzzleId && saved.at <= t && t - saved.at < AUTO_MARK_LOCK_MS) {
         setNow(t);
-        setPressedAt(saved);
-      } else if (saved !== null) {
+        setPress(saved);
+      } else if (saved !== null && (!isPress(saved) || t - saved.at >= AUTO_MARK_LOCK_MS)) {
         removeKey(storageKey);
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, [storageKey]);
+  }, [storageKey, puzzleId]);
+
+  // Only a press on this very puzzle counts.
+  const active = press !== null && press.puzzle === puzzleId ? press : null;
 
   useEffect(() => {
-    if (pressedAt === null) return;
+    if (active === null) return;
     const timer = setInterval(() => {
       const t = Date.now();
       setNow(t);
-      if (t - pressedAt >= AUTO_MARK_LOCK_MS) {
-        setPressedAt(null);
+      if (t - active.at >= AUTO_MARK_LOCK_MS) {
+        setPress(null);
         removeKey(storageKey);
       }
     }, 100);
     return () => clearInterval(timer);
-  }, [pressedAt, storageKey]);
+  }, [active, storageKey]);
 
-  const since = pressedAt === null ? Infinity : now - pressedAt;
+  const since = active === null ? Infinity : now - active.at;
   const hint: AutoMarkHint = since < AUTO_MARK_SHOW_MS ? "on" : since < AUTO_MARK_SHOW_MS + AUTO_MARK_FADE_MS ? "fading" : "off";
-  const lockLeft = pressedAt === null ? 0 : Math.max(1, Math.ceil((AUTO_MARK_LOCK_MS - since) / 1000));
+  const lockLeft = active === null ? 0 : Math.max(1, Math.ceil((AUTO_MARK_LOCK_MS - since) / 1000));
   const use = () => {
-    const t = Date.now();
-    setNow(t);
-    setPressedAt(t);
-    writeJson(storageKey, t);
+    if (puzzleId === null) return;
+    const next = { puzzle: puzzleId, at: Date.now() };
+    setNow(next.at);
+    setPress(next);
+    writeJson(storageKey, next);
   };
-  return { hint, locked: pressedAt !== null, lockLeft, use };
+  return { hint, locked: active !== null, lockLeft, use };
 }
 
 /**

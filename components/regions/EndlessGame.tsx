@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { MAX_SIZE, MIN_SIZE, VARIANTS, type Variant } from "@/lib/games/regions/constants";
-import { generate } from "@/lib/games/regions/generate";
+import { generate, hashSeed } from "@/lib/games/regions/generate";
 import { clearAll, newPlay, PIECE, replay, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
 import { GLYPH, VARIANT_NAME, VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
@@ -57,7 +57,10 @@ export default function EndlessGame() {
   const [play, setPlay] = useState<Play | null>(null);
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
-  const auto = useAutoMark(AUTO_MARK_KEY.endless);
+  // Auto ✕'s lock belongs to the puzzle it was used on: a new puzzle (New, Next, Change then Start) starts unlocked.
+  const puzzle = play?.puzzle ?? null;
+  const puzzleId = useMemo(() => (puzzle ? String(hashSeed(JSON.stringify(puzzle))) : null), [puzzle]);
+  const auto = useAutoMark(AUTO_MARK_KEY.endless, puzzleId);
 
   const update = (change: Partial<Saved>) =>
     setSaved((current) => {
@@ -73,12 +76,22 @@ export default function EndlessGame() {
     setPlay(next);
   }, []);
 
+  // The puzzle being built, if any: a newer deal, Change or leaving the tab cancels it, so a late one never lands.
+  const pendingDeal = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelDeal = useCallback(() => {
+    if (pendingDeal.current !== null) clearTimeout(pendingDeal.current);
+    pendingDeal.current = null;
+  }, []);
+  useEffect(() => cancelDeal, [cancelDeal]);
+
   const deal = useCallback(
     (variant: Variant, size: number) => {
+      cancelDeal();
       setStarted(true);
       commit(null);
       // After a paint, so "Shuffling…" shows while a big grid is built.
-      setTimeout(() => {
+      pendingDeal.current = setTimeout(() => {
+        pendingDeal.current = null;
         const { puzzle } = generate(crypto.randomUUID(), { variant, size });
         const start = performance.now();
         commit(newPlay(puzzle));
@@ -86,7 +99,7 @@ export default function EndlessGame() {
         setNow(start);
       }, 30);
     },
-    [commit],
+    [commit, cancelDeal],
   );
 
   // This device's last piece, size and best times, and the puzzle in progress if the page was reloaded mid-game;
@@ -120,8 +133,9 @@ export default function EndlessGame() {
     return () => clearTimeout(timer);
   }, [commit]);
 
-  /** Back to the pickers; the puzzle in progress is dropped. */
+  /** Back to the pickers; the puzzle in progress (or being built) is dropped. */
   const change = () => {
+    cancelDeal();
     commit(null);
     setStarted(false);
     removeKey(ENDLESS_GAME_KEY);
