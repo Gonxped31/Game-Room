@@ -1,4 +1,0 @@
-T-wxxd | 2 | - | S | devops,admin,nighthighway | Check the solo download on production: /admin "Download a solo game" gives Night Highway.html (build log shows export-solo: downloads/nighthighway.html); fix if it says "Not in this build"
-created: 2026-10-26T01:19:47.197Z
-
-Trigger: the first production deploy of c11611c (or later). What: the Vercel build log should show 'export-solo: downloads/nighthighway.html (1.1 MB)'; then in /admin, 'Download a solo game' should offer Download and save Night Highway.html, which plays offline from disk. If /admin says 'Not in this build': either the export failed on Linux (Vite/rolldown's native binding vs the Windows-made lockfile, see T-054; the log has the warning) or next.config.ts's outputFileTracingIncludes didn't ship downloads/ with app/api/admin/downloads/[slug]. Why: neither could be checked locally (no Linux build; .next is off-limits).
