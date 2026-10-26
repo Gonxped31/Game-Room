@@ -59,6 +59,17 @@ export default function GameTile({ slug }: { slug: string }) {
       </span>
     );
   }
+  if (slug === "borderrun") {
+    // The card's highway sign: a green panel with a white arrow, on the map's sea.
+    return (
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#E4EEF0]">
+        <svg width="30" height="18" viewBox="0 0 30 18">
+          <rect x="1" y="1" width="28" height="16" rx="4" fill="#176B4B" stroke="#fff" strokeWidth="1.5" />
+          <path d="M7 9H22M18 5.5L22 9L18 12.5" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    );
+  }
   // A game without its own tile yet: its accent color with the first letter.
   const game = gameBySlug(slug);
   return (

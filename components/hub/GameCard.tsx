@@ -23,7 +23,9 @@ interface GameCardProps {
   startingSlug: string | null;
   /** Whether this card's join panel is open (for aria-expanded). */
   joinOpen: boolean;
-  onStart: (slug: string) => void;
+  /** Whether this card's Start panel is open (a game with modes asks which first). */
+  startOpen?: boolean;
+  onStart: (slug: string, button: HTMLButtonElement) => void;
   onJoin: (slug: string, button: HTMLButtonElement) => void;
   /** Games strangers can be matched into get a third button, "Matchmaking" (docs/matchmaking.md). */
   onMatchmaking?: (slug: string, button: HTMLButtonElement) => void;
@@ -44,7 +46,7 @@ function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; cla
 }
 
 /** Start (accent fill) and Join (white), side by side. */
-function StartJoin({ game, startingSlug, joinOpen, onStart, onJoin, size }: GameCardProps & { size: "desktop" | "mobile" }) {
+function StartJoin({ game, startingSlug, joinOpen, startOpen = false, onStart, onJoin, size }: GameCardProps & { size: "desktop" | "mobile" }) {
   const starting = startingSlug === game.slug;
   const base = `flex flex-1 cursor-pointer items-center justify-center rounded-[14px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
     size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
@@ -54,8 +56,10 @@ function StartJoin({ game, startingSlug, joinOpen, onStart, onJoin, size }: Game
       <button
         type="button"
         aria-label={`Start a ${game.title} room`}
+        aria-haspopup={game.modes ? "dialog" : undefined}
+        aria-expanded={game.modes ? startOpen : undefined}
         disabled={startingSlug != null}
-        onClick={() => onStart(game.slug)}
+        onClick={(e) => onStart(game.slug, e.currentTarget)}
         className={`${base} disabled:opacity-80 ${starting ? "" : SHADOW}`}
         style={{
           backgroundColor: game.accentColor,

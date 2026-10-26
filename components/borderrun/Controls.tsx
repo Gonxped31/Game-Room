@@ -280,7 +280,7 @@ export function PlayMap({ play, lang, reveal }: { play: Play; lang: Lang; reveal
   return <RouteMap key={key} area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} route={route} links={run} />;
 }
 
-/** "Lisbon → Warsaw · 2,760 km as the crow flies": the capitals, once the route is over. */
+/** "Lisbon → Warsaw: 2,760 km as the crow flies": the capitals, once the route is over. */
 export function CapitalLine({ play, lang }: { play: Play; lang: Lang }) {
   const { start, end } = play.route;
   const km = capitalDistanceKm(start, end);
@@ -290,9 +290,9 @@ export function CapitalLine({ play, lang }: { play: Play; lang: Lang }) {
   return (
     <p className="br-capitals">
       <span className="br-capitals-names">
-        {from[lang]} → {to[lang]}
+        {from[lang]} → {to[lang]}:
       </span>{" "}
-      · {km.toLocaleString("en-US")} km as the crow flies, capital to capital
+      {km.toLocaleString("en-US")} km as the crow flies, capital to capital
     </p>
   );
 }

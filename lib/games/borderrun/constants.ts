@@ -14,3 +14,13 @@ export type Area = (typeof AREAS)[number];
 /** How long a route can be, in countries between the start and the end. */
 export const MIN_PAR = 2;
 export const MAX_PAR = 8;
+
+/** How long routes are on each map, in countries between start and end: Endless, and the race's (which climbs through it round by round). The daily's weekday ranges. */
+export const PAR_RANGE: Record<Area, { minPar: number; maxPar: number }> = {
+  europe: { minPar: 3, maxPar: 5 },
+  americas: { minPar: 3, maxPar: 5 },
+  africa: { minPar: 3, maxPar: 5 },
+  asia: { minPar: 3, maxPar: 5 },
+  eurasia: { minPar: 4, maxPar: 6 },
+  world: { minPar: 5, maxPar: 7 },
+};

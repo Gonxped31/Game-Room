@@ -1,9 +1,10 @@
 # Matchmaking
 
-Buzzer Quiz, Word Scramble and Night Highway can be played with strangers. On the
-hub, their cards have a third button, **Matchmaking**: the player enters a display
-name, picks the content language (EN/FR; not for Night Highway, which has no words),
-and taps **Find players**. They land in a public room's lobby, which starts by itself
+Buzzer Quiz, Word Scramble, Night Highway and Border Run can be played with
+strangers. On the hub, their cards have a third button, **Matchmaking**: the player
+enters a display name, picks the content language (EN/FR; not for Night Highway,
+which has no words) or, for Border Run, the mode (Challenge or Survival; nothing
+picked by default), and taps **Find players**. They land in a public room's lobby, which starts by itself
 once enough players are online. Same Page and Co-Counsel stay private, link-shared
 games.
 
@@ -14,6 +15,13 @@ games.
 | Who starts a game of strangers? | Nobody: **auto-start**. Fixed default settings, no host. |
 | Language | **Separate EN and FR queues.** The panel defaults to the browser language. Night Highway (added the same day) has one queue, `any`. |
 | Entry point | A third card button, "Matchmaking" (renamed from "Play online" the same day), opening a panel like Join. |
+
+**Border Run queues by mode** (2026-10-26, the user's call): its names show in
+each player's own language, so its queues are `challenge` (rooms of 4 seats) and
+`survival` (8), stored in `meta.publicLang` like a language (`BORDERRUN_MATCH`,
+`MatchGame.queue`). The rules tie the seats to the queue and keep a public room's
+`borderrun/mode` equal to it: to switch modes, a player leaves and searches the
+other queue. It starts by itself once 2 (Challenge) or 4 (Survival) are online.
 
 ## Data model
 

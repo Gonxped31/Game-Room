@@ -6,6 +6,7 @@ import { findMatch, type MatchGame } from "@/lib/session/shared/findMatch";
 import { ANY_LANG } from "@/lib/session/shared/matchmaking";
 import { roomHref } from "@/lib/games/registry";
 import { defaultLang, type Lang, LANG_LABELS, LANGS } from "@/lib/games/shared/language";
+import ModeChoice, { type GameMode } from "./ModeChoice";
 
 /** Visible focus on the white panel: a 3px teal outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
 const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0F7983]";
@@ -67,7 +68,10 @@ function LangSwitch({ lang, onChange, disabled }: { lang: Lang; onChange: (lang:
 }
 
 interface MatchPanelProps {
-  game: MatchGame;
+  /** The game's one matchmaking setup, or... */
+  game?: MatchGame;
+  /** ...its modes, one queue each (Border Run): the player picks one first, nothing picked by default. */
+  modes?: (GameMode & { game: MatchGame })[];
   /** e.g. "Buzzer Quiz" - the panel is titled "Buzzer Quiz matchmaking". */
   gameTitle: string;
   /** id for the heading, so the surrounding dialog can be labelled by it. */
@@ -83,11 +87,12 @@ interface MatchPanelProps {
  * (someone else's, or a new one) before the page changes, so the game page
  * opens straight on its lobby.
  */
-export default function MatchPanel({ game, gameTitle, headingId, inSheet }: MatchPanelProps) {
+export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet }: MatchPanelProps) {
   const savedName = useSyncExternalStore(noSubscribe, readSavedName, () => "");
   const suggestedLang = useSyncExternalStore(noSubscribe, browserLang, (): Lang => "en");
   const [typedName, setTypedName] = useState<string | null>(null);
   const [pickedLang, setPickedLang] = useState<Lang | null>(null);
+  const [pickedMode, setPickedMode] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "searching" | "offline">("idle");
   const [destination, setDestination] = useState<string | null>(null);
   const errorId = useId();
@@ -96,7 +101,8 @@ export default function MatchPanel({ game, gameTitle, headingId, inSheet }: Matc
   const name = typedName ?? savedName;
   const lang = pickedLang ?? suggestedLang;
   const busy = status === "searching" || destination != null;
-  const canSubmit = !busy && name.trim().length > 0;
+  const chosen = modes ? (modes.find((mode) => mode.key === pickedMode)?.game ?? null) : (game ?? null);
+  const canSubmit = !busy && name.trim().length > 0 && chosen !== null;
 
   // A hard navigation into the room, set from an effect (react-hooks/immutability).
   useEffect(() => {
@@ -106,13 +112,13 @@ export default function MatchPanel({ game, gameTitle, headingId, inSheet }: Matc
   const search = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim().slice(0, MAX_NAME);
-    if (!trimmed) return;
+    if (!trimmed || !chosen) return;
     setStatus("searching");
     saveName(trimmed);
     try {
       const uid = await ensureGuestUid();
-      const code = await findMatch({ uid, name: trimmed, lang: game.languages ? lang : ANY_LANG, game });
-      setDestination(roomHref(game.gameSlug, code));
+      const code = await findMatch({ uid, name: trimmed, lang: chosen.queue ?? (chosen.languages ? lang : ANY_LANG), game: chosen });
+      setDestination(roomHref(chosen.gameSlug, code));
     } catch {
       setStatus("offline");
     }
@@ -129,6 +135,8 @@ export default function MatchPanel({ game, gameTitle, headingId, inSheet }: Matc
       <p className="m-0 text-sm font-medium" style={{ color: "#444444" }}>
         We&apos;ll match you with other players. The game starts by itself once enough of you are in.
       </p>
+
+      {modes ? <ModeChoice modes={modes} value={pickedMode} onChange={setPickedMode} disabled={busy} /> : null}
 
       <label htmlFor={nameId} className="text-sm font-semibold text-black">
         Your name
@@ -150,7 +158,7 @@ export default function MatchPanel({ game, gameTitle, headingId, inSheet }: Matc
         className={`h-12 w-full rounded-xl border-2 bg-white px-3.5 font-[family-name:var(--font-fredoka)] text-base font-semibold text-black outline-none disabled:bg-[#F1F4F4] disabled:text-black/60 ${busy ? "border-[#C9D1D2]" : "border-[#7C8A8C] focus:border-[#0F7983]"}`}
       />
 
-      {game.languages ? (
+      {chosen?.languages ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-semibold text-black">Questions and words in</span>
           <LangSwitch lang={lang} onChange={setPickedLang} disabled={busy} />

@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
-import { MATCH_GAMES } from "@/lib/games/matchGames";
+import { MATCH_GAMES, MATCH_MODES } from "@/lib/games/matchGames";
 import { APP_TITLE, type GameEntry, gameBySlug, gamePath, roomHref } from "@/lib/games/registry";
 import GameCard, { SoloCard } from "./GameCard";
 import HubOverlay from "./HubOverlay";
 import JoinPanel from "./JoinPanel";
 import MatchPanel from "./MatchPanel";
+import StartPanel from "./StartPanel";
 import YourRoomsList from "./YourRoomsList";
 import { useIsDesktop } from "./useIsDesktop";
 import { type SavedRoom, useSavedRooms } from "./useSavedRooms";
@@ -25,7 +26,7 @@ const FOCUS_RING_ON_YELLOW = "focus-visible:outline-[3px] focus-visible:outline-
 
 const SECTION_IDS = { social: "social-games", talk: "talk-it-out", solo: "solo-games" } as const;
 
-type Open = { kind: "join" | "matchmaking"; slug: string; anchor: HTMLElement } | { kind: "rooms"; anchor: HTMLElement } | null;
+type Open = { kind: "start" | "join" | "matchmaking"; slug: string; anchor: HTMLElement } | { kind: "rooms"; anchor: HTMLElement } | null;
 
 function ListIcon() {
   return (
@@ -257,17 +258,26 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   const { rooms, loadedAt } = useSavedRooms();
   const [open, setOpen] = useState<Open>(null);
   const [startingSlug, setStartingSlug] = useState<string | null>(null);
+  const [startingMode, setStartingMode] = useState<string | null>(null);
   const titleId = useId();
 
   // Start opens the game's page with no #code - a full page load, so the game
   // creates the room itself (Co-Counsel recognizes its creator by arriving
-  // with an empty hash). Set from an effect, per this repo's
-  // react-hooks/immutability lint rule.
+  // with an empty hash), in the mode picked if it has modes (`?mode=`). Set
+  // from an effect, per this repo's react-hooks/immutability lint rule.
   useEffect(() => {
-    if (startingSlug) window.location.href = new URL(gamePath(startingSlug), window.location.origin).href;
-  }, [startingSlug]);
+    if (!startingSlug) return;
+    const url = new URL(gamePath(startingSlug), window.location.origin);
+    if (startingMode) url.searchParams.set("mode", startingMode);
+    window.location.href = url.href;
+  }, [startingSlug, startingMode]);
 
   const close = useCallback(() => setOpen(null), []);
+  // A game with modes asks which one first.
+  const start = (slug: string, anchor: HTMLElement) => {
+    if (gameBySlug(slug)?.modes) setOpen((current) => (current?.kind === "start" && current.slug === slug ? null : { kind: "start", slug, anchor }));
+    else setStartingSlug(slug);
+  };
   const toggleJoin = (slug: string, anchor: HTMLElement) =>
     setOpen((current) => (current?.kind === "join" && current.slug === slug ? null : { kind: "join", slug, anchor }));
   const toggleMatchmaking = (slug: string, anchor: HTMLElement) =>
@@ -277,8 +287,17 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   const latest = rooms[0];
   const roomsLabel = `Your rooms, ${rooms.length} saved`;
   const joinGame = open?.kind === "join" ? gameBySlug(open.slug) : undefined;
+  const startGame = open?.kind === "start" ? gameBySlug(open.slug) : undefined;
   const matchGame = open?.kind === "matchmaking" ? gameBySlug(open.slug) : undefined;
   const matchConfig = open?.kind === "matchmaking" ? MATCH_GAMES[open.slug] : undefined;
+  const matchModes =
+    open?.kind === "matchmaking" && matchGame?.modes
+      ? matchGame.modes.flatMap((mode) => {
+          const config = MATCH_MODES[open.slug]?.[mode.key];
+          return config ? [{ ...mode, game: config }] : [];
+        })
+      : undefined;
+  const canMatch = (slug: string) => MATCH_GAMES[slug] != null || MATCH_MODES[slug] != null;
 
   const anywhere = games.filter((game) => game.section === "anywhere");
   const talk = games.filter((game) => game.section === "talk");
@@ -290,9 +309,10 @@ export default function Hub({ games }: { games: GameEntry[] }) {
       game={game}
       startingSlug={startingSlug}
       joinOpen={open?.kind === "join" && open.slug === game.slug}
-      onStart={setStartingSlug}
+      startOpen={open?.kind === "start" && open.slug === game.slug}
+      onStart={start}
       onJoin={toggleJoin}
-      onMatchmaking={MATCH_GAMES[game.slug] ? toggleMatchmaking : undefined}
+      onMatchmaking={canMatch(game.slug) ? toggleMatchmaking : undefined}
       matchmakingOpen={open?.kind === "matchmaking" && open.slug === game.slug}
     />
   );
@@ -386,9 +406,23 @@ export default function Hub({ games }: { games: GameEntry[] }) {
           <JoinPanel gameTitle={joinGame.title} headingId={titleId} inSheet={!desktop} />
         </HubOverlay>
       ) : null}
-      {open?.kind === "matchmaking" && matchGame && matchConfig ? (
+      {open?.kind === "start" && startGame?.modes ? (
+        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={`Start a ${startGame.title} room`} labelledBy={titleId} onClose={close}>
+          <StartPanel
+            modes={startGame.modes}
+            gameTitle={startGame.title}
+            headingId={titleId}
+            inSheet={!desktop}
+            onStart={(mode) => {
+              setStartingMode(mode);
+              setStartingSlug(startGame.slug);
+            }}
+          />
+        </HubOverlay>
+      ) : null}
+      {open?.kind === "matchmaking" && matchGame && (matchConfig || matchModes?.length) ? (
         <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={`${matchGame.title} matchmaking`} labelledBy={titleId} onClose={close}>
-          <MatchPanel game={matchConfig} gameTitle={matchGame.title} headingId={titleId} inSheet={!desktop} />
+          <MatchPanel game={matchConfig} modes={matchModes} gameTitle={matchGame.title} headingId={titleId} inSheet={!desktop} />
         </HubOverlay>
       ) : null}
       {open?.kind === "rooms" ? (

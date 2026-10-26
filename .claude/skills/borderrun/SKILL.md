@@ -1,13 +1,16 @@
 ---
 name: borderrun
-description: Reference for working on Border Run (slug borderrun), the solo geography game - link two countries by land around closed borders - its map data and how it's built, the route generator, guess grading and penalty, the EN/FR names, endless and daily modes, the map UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/borderrun/, components/borderrun/ or app/borderrun/, rebuilding the map data (scripts/borderrun-data.mjs), or answering questions about how Border Run plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
+description: Reference for working on Border Run (slug borderrun), the geography game - link two countries by land around closed borders - solo (daily and endless) and as a race with others (Challenge, Survival, matchmaking by mode); its map data and how it's built, the route generator, guess grading and penalty, the EN/FR names, endless and daily modes, the map UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/borderrun/, components/borderrun/ or app/borderrun/, rebuilding the map data (scripts/borderrun-data.mjs), or answering questions about how Border Run plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
 ---
 
 # Border Run
 
-A solo game at `/borderrun` (the title is a working name; the slug stays
-`borderrun`). Based on Travle, with closed borders as the twist (the user's
-picks, 2026-10-26).
+A geography game (the title is a working name; the slug stays `borderrun`).
+Based on Travle, with closed borders as the twist (the user's picks,
+2026-10-26). Played two ways:
+- **Solo** at `/borderrun/solo`: the daily route and Endless (below).
+- **With others** at `/borderrun#room`, in the hub's "Play from anywhere":
+  Challenge or Survival, private or matchmade ("Racing others", below).
 
 - **A route**: a start and an end country on one map (`Area`), one or two
   **closed borders**, and a **par**: how many countries the shortest open
@@ -36,6 +39,54 @@ language, the Endless route in progress (route, guesses, time spent; dropped
 once complete, given up or on Change) and today's Daily guesses with the
 route (kept after finishing, for the map and the share squares; a completed
 route that never reached the server is sent on resume).
+
+## Racing others (`lib/games/borderrun/race.ts`, `app/borderrun/page.tsx`)
+
+Everyone plays the same route at the same moment, round after round (the
+user's design, 2026-10-26):
+- **Challenge**, 2-4 players: 3 or 5 routes (matchmade: 3); the lowest total
+  wins. A round's score is the finish time plus 15 s per guess past the par;
+  not finishing counts as the slowest finish (at least the 3-minute limit)
+  plus 30 s, so it never beats a finish (`roundPoints`).
+- **Survival**, 4-8 players: after each round the slowest go out, **two
+  while more than 4 are left, then one** (`knockouts`), until one is left.
+  Unfinished ranks below every finish, by countries found, then fewer extra
+  guesses. A tie at the cut knocks out nobody in the tie.
+- **Rounds**: a 4 s countdown (the route shows, the box waits), then 3
+  minutes. The map is one area or "mixed" (Europe, the Americas, Africa,
+  Asia, Europe and Asia, the world in turn), and the par climbs through the
+  area's range as rounds go on (`routeFor`). 12 s of results between rounds.
+- **Choosing the mode**: the hub's Start asks first (registry `modes`, the
+  page reads `?mode=` on creating the room, then drops it from the link). A
+  private room's host can change the mode, map and length in the lobby, and
+  after a game ("Change mode or settings"). A private room has 8 seats; in
+  Challenge only 4 can sit (`PLAYERS`), and Start says why it can't start.
+  A matchmade room stays in its mode (the rules check it), with 4 seats for
+  Challenge and 8 for Survival.
+
+How it runs (no server):
+- **State**: `games/{room}/borderrun` (`RaceState`: phase, settings,
+  players, alive, the round's route and `startsAt`/`endsAt`/`nextAt`,
+  results). **Guesses**: `borderrunRuns/{seat}`, each seat writing only its
+  own (`Run`: `at` = the round's `startsAt`, guesses with `t` ms after it on
+  the server clock, `gaveUp`). Keying by `startsAt`, not the round number,
+  keeps a rematch from counting last game's guesses.
+- **Ending a round**: at `endsAt` (`useDeadline`), or as soon as everyone
+  still in **and online** is done (`roundOver` with `present`), so a player
+  who left doesn't hold it up. Any seated device transacts `endRound`, which
+  replays everyone's guesses itself (`playOf`: late, repeated or
+  after-the-finish guesses don't count). `next` after `nextAt`, its route
+  drawn from a fresh seed inside the transaction.
+- **During a round** the board shows everyone's progress as counts only
+  ("2 of 4 found"), never which countries; results show any player's guesses
+  on the map (tap a row). A player out (or watching) sees "Leave room".
+- **Public rooms**: `usePublicRoom` with `BORDERRUN_MATCH[mode]`; ready at 2
+  (Challenge) or 4 (Survival) online. See `docs/matchmaking.md`.
+- **Rules**: `borderrun` (shape, `mode` equal to `meta.publicLang` when
+  public) and `borderrunRuns/$seat`; `meta.maxPlayers` is 4 for a public
+  Challenge, else 8. Tests: `tests/rules/gameState.test.ts` (a real
+  Survival game), `tests/rules/matchmaking.test.ts`.
+- **Live test**: `.claude/skills/live-test/scripts/border-run-race.mjs`.
 
 ## The map data
 
@@ -139,12 +190,16 @@ route to `RouteMap`, which draws a dotted line through it (drawn in over
 
 | Path | What |
 | :--- | :--- |
-| `lib/games/borderrun/constants.ts` | `GAME_TITLE`, `PENALTY_MS`, `AREAS`, par limits |
+| `lib/games/borderrun/constants.ts` | `GAME_TITLE`, `PENALTY_MS`, `AREAS`, par limits, `PAR_RANGE` per map |
 | `lib/games/borderrun/countries.ts` | `COUNTRIES`, `findCountry` (EN/FR/aliases, accents and articles ignored), `suggest`, `capitalDistanceKm` |
 | `lib/games/borderrun/areas.ts` | Each map's countries (Russia and Turkey on Europe and Asia; Oceania only on the world map), its view box, its name |
 | `lib/games/borderrun/route.ts` | `Route`, `neighboursOf` (map + closed borders), `distances`, `shortestPath`, `closenessOf`, `generateRoute`, the seeded RNG |
 | `lib/games/borderrun/play.ts` | The guess log: `refusalOf`, `addGuess`, `replay`, `status` (complete, path, extra, penalty), `links` (the run so far, for the map) |
 | `lib/games/borderrun/daily.ts` | The `DailyGame`: `SCHEDULE`, `verify` replays the guesses and returns `penaltyMs` |
+| `lib/games/borderrun/race.ts` | Racing others: `RaceState`, `start`, `endRound`, `next`, `knockedOut`, `standings`, `routeFor` |
+| `app/borderrun/page.tsx` | The room page: session, runs, deadlines, matchmaking |
+| `app/borderrun/solo/page.tsx` | The solo page (`Stage`) |
+| `components/borderrun/race/` | `Screens.tsx` (join, lobby, round, results, standings), `race.css` |
 | `lib/games/borderrun/theme.ts` | Colours (match `borderrun.css`), share squares |
 | `components/borderrun/Stage.tsx` | The page shell: title sign, EN/FR switch, mode tabs; `online` adds Daily |
 | `components/borderrun/RouteMap.tsx` | The SVG map (Miller projection, fixed size per map), its zoom (`useZoom`) and names (`placeLabels`) |

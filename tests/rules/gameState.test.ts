@@ -13,9 +13,11 @@ import { CASES, getCase } from "@/lib/games/cocounsel/cases";
 import { giveUpOnMissingResults, newGame as newNhGame, type RunResult, setOptions, setReady, submitResult } from "@/lib/games/nighthighway/game";
 import * as quiz from "@/lib/games/buzzerquiz/game";
 import * as ws from "@/lib/games/wordscramble/game";
+import * as race from "@/lib/games/borderrun/race";
+import { shortestPath } from "@/lib/games/borderrun/route";
 import { RESULT_MS as WS_RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
-import { buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
+import { borderrunState, buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -383,5 +385,69 @@ describe("Word Scramble", () => {
     await assertFails(dbAs(env, "eve").ref(`games/${ROOM}/wordscrambleTyping/p1`).set(at));
     await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/wordscrambleTyping/p1`).set({ at: Date.now() + 60_000 }));
     await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/wordscrambleTyping/p1`).set({ at: 1, text: "TIG" }));
+  });
+});
+
+describe("Border Run", () => {
+  const path = `games/${ROOM}/borderrun`;
+  const runPath = (seat: string) => `games/${ROOM}/borderrunRuns/${seat}`;
+  const UIDS = ["alice", "bob", "carol", "dave", "erin"];
+  const SEATED = ["p1", "p2", "p3", "p4", "p5"];
+  beforeEach(async () => {
+    await seedRoom(env, { creator: "alice", seated: UIDS, gameSlug: "borderrun", maxPlayers: 8 });
+  });
+
+  it("accepts every state of a real survival game, and each player's own guesses", async () => {
+    const db = dbAs(env, "bob");
+    const write = (state: race.RaceState) => writeAndReadBack(db, path, state);
+    let game = await write(race.newRace("challenge"));
+    game = await write(race.setRounds(race.setMap(race.setMode(game, "survival"), "mixed"), 5));
+    game = await write(race.start(game, { seated: SEATED, seed: "r0", now: 1_000_000 }));
+    while (game.phase !== "over") {
+      if (game.phase === "round") {
+        const current = race.normalize(game);
+        const answer = shortestPath(current.route!)!.slice(1, -1);
+        // Everyone sends their guesses; the slower seats are a second apart.
+        const runs: race.Runs = {};
+        for (const [i, seat] of current.alive.entries()) {
+          const run: race.Run = { at: current.startsAt, guesses: answer.map((code, j) => ({ code, t: 1000 * (i + 1) + j })), gaveUp: false };
+          runs[seat] = run;
+          await assertSucceeds(dbAs(env, UIDS[SEATED.indexOf(seat)]).ref(runPath(seat)).set(run));
+        }
+        game = await write(race.endRound(current, runs, current.startsAt + 60_000));
+      } else game = await write(race.next(game, `r${game.round + 1}`, race.normalize(game).nextAt));
+    }
+    expect(race.normalize(game).alive).toEqual(["p1"]);
+    game = await write(race.backToLobby(game));
+    expect(game.phase).toBe("lobby");
+  });
+
+  it.each([
+    ["a bad phase", borderrunState({ phase: "paused" })],
+    ["an unknown mode", borderrunState({ mode: "teams" })],
+    ["an unknown map", borderrunState({ map: "oceania" })],
+    ["a 4-round challenge", borderrunState({ rounds: 4 })],
+    ["a ninth seat", borderrunState({ players: ["p9"] })],
+    ["a route on the mixed map", borderrunState({ route: { area: "mixed", start: "PT", end: "PL", par: 3 } })],
+    ["a route's bad country", borderrunState({ route: { area: "europe", start: "Portugal", end: "PL", par: 3 } })],
+    ["a fifth closed border", borderrunState({ route: { area: "europe", start: "PT", end: "PL", par: 3, closed: [0, 1, 2, 3, 4].map(() => ["DE", "PL"]) } })],
+    ["a score without its time", borderrunState({ results: [{ scores: { p1: { extra: 0, found: 1, done: false } } }] })],
+    ["a time past the limit", borderrunState({ results: [{ scores: { p1: { ms: 180_001, extra: 0, found: 1, done: true } } }] })],
+    ["an unknown key", borderrunState({ secret: "PL" })],
+  ])("rejects %s", async (_, state) => {
+    await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+
+  it("lets each player write only their own guesses", async () => {
+    const run = { at: 5, gaveUp: false, guesses: [{ code: "ES", t: 1200 }] };
+    await assertSucceeds(dbAs(env, "carol").ref(runPath("p3")).set(run));
+    await assertFails(dbAs(env, "carol").ref(runPath("p2")).set(run));
+    await assertFails(dbAs(env, "zed").ref(runPath("p6")).set(run));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, guesses: [{ code: "Spain", t: 1 }] }));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, guesses: [{ code: "ES", t: -1 }] }));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, score: 1 }));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ gaveUp: false, guesses: [{ code: "ES", t: 1 }] })); // no round
+    const many = Object.fromEntries(Array.from({ length: 201 }, (_, i) => [String(i), { code: "ES", t: i }]));
+    await assertFails(dbAs(env, "carol").ref(runPath("p3")).set({ ...run, guesses: many }));
   });
 });

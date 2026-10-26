@@ -55,7 +55,7 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
   - **Daily puzzle**: the same grid for everyone, timed by the server, with a
     global leaderboard (see `docs/daily.md`). **Endless**: as many as you like,
     any piece and size.
-- **Border Run** (`/borderrun`, solo) - link two countries by land, naming the
+- **Border Run** (`/borderrun`, 2-8 players; solo at `/borderrun/solo`) - link two countries by land, naming the
   countries in between (in English or French), around a closed border or two.
   - Each guess is graded: on a shortest route, close, or off; every guess past
     the par adds 15 seconds.

@@ -18,8 +18,8 @@
         "meta": {
           ".write": "auth != null && !data.exists() && $room.matches(/^[a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9][a-hjkmnp-z1-9]$/)",
           ".validate": "newData.hasChildren(['gameSlug', 'maxPlayers', 'createdAt', 'createdBy']) && !root.child('games/' + $room + '/closedAt').exists()",
-          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel' || newData.val() == 'nighthighway' || newData.val() == 'buzzerquiz' || newData.val() == 'wordscramble'" },
-          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel' && newData.parent().child('gameSlug').val() != 'nighthighway') || newData.val() == 2) && (newData.parent().child('gameSlug').val() != 'buzzerquiz' || newData.val() == 4) && (newData.parent().child('gameSlug').val() != 'wordscramble' || newData.val() == 8)" },
+          "gameSlug": { ".validate": "newData.val() == 'ftw' || newData.val() == 'cocounsel' || newData.val() == 'nighthighway' || newData.val() == 'buzzerquiz' || newData.val() == 'wordscramble' || newData.val() == 'borderrun'" },
+          "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8 && ((newData.parent().child('gameSlug').val() != 'ftw' && newData.parent().child('gameSlug').val() != 'cocounsel' && newData.parent().child('gameSlug').val() != 'nighthighway') || newData.val() == 2) && (newData.parent().child('gameSlug').val() != 'buzzerquiz' || newData.val() == 4) && (newData.parent().child('gameSlug').val() != 'wordscramble' || newData.val() == 8) && (newData.parent().child('gameSlug').val() != 'borderrun' || (newData.parent().child('publicLang').val() == 'challenge' && newData.val() == 4) || (newData.parent().child('publicLang').val() != 'challenge' && newData.val() == 8))" },
           "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
           "createdBy": { ".validate": "newData.val() == auth.uid" },
           "name": {
@@ -30,7 +30,7 @@
             ".write": "auth != null && data.parent().child('createdBy').val() == auth.uid",
             ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9-]+$/) && newData.parent().parent().parent().parent().child('roomsByName/' + newData.val()).val() == $room"
           },
-          "publicLang": { ".validate": "((newData.val() == 'en' || newData.val() == 'fr') && (newData.parent().child('gameSlug').val() == 'buzzerquiz' || newData.parent().child('gameSlug').val() == 'wordscramble')) || (newData.val() == 'any' && newData.parent().child('gameSlug').val() == 'nighthighway')" },
+          "publicLang": { ".validate": "((newData.val() == 'en' || newData.val() == 'fr') && (newData.parent().child('gameSlug').val() == 'buzzerquiz' || newData.parent().child('gameSlug').val() == 'wordscramble')) || (newData.val() == 'any' && newData.parent().child('gameSlug').val() == 'nighthighway') || ((newData.val() == 'challenge' || newData.val() == 'survival') && newData.parent().child('gameSlug').val() == 'borderrun')" },
           "$other": { ".validate": false }
         },
 
@@ -481,6 +481,74 @@
             ".write": "auth != null && root.child('games/' + $room + '/meta/gameSlug').val() == 'wordscramble' && root.child('games/' + $room + '/members/' + auth.uid).val() == $seat",
             ".validate": "newData.hasChildren(['at'])",
             "at": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "borderrun": {
+          ".write": "auth != null && newData.parent().child('meta/gameSlug').val() == 'borderrun' && (newData.parent().child('members/' + auth.uid).exists() || (!data.parent().child('meta').exists() && newData.parent().child('meta/createdBy').val() == auth.uid))",
+          ".validate": "newData.hasChildren(['phase', 'mode', 'map', 'rounds', 'round', 'startsAt', 'endsAt', 'nextAt']) && !root.child('games/' + $room + '/closedAt').exists()",
+          "phase": { ".validate": "newData.val() == 'lobby' || newData.val() == 'round' || newData.val() == 'results' || newData.val() == 'over'" },
+          "mode": { ".validate": "(newData.val() == 'challenge' || newData.val() == 'survival') && (!newData.parent().parent().child('meta/publicLang').exists() || newData.parent().parent().child('meta/publicLang').val() == newData.val())" },
+          "map": { ".validate": "newData.val() == 'mixed' || newData.val() == 'europe' || newData.val() == 'americas' || newData.val() == 'africa' || newData.val() == 'asia' || newData.val() == 'eurasia' || newData.val() == 'world'" },
+          "rounds": { ".validate": "newData.val() == 3 || newData.val() == 5" },
+          "round": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9" },
+          "players": { "$i": { ".validate": "$i.matches(/^[0-7]$/) && newData.isString() && newData.val().matches(/^p[1-8]$/)" } },
+          "alive": { "$i": { ".validate": "$i.matches(/^[0-7]$/) && newData.isString() && newData.val().matches(/^p[1-8]$/)" } },
+          "route": {
+            ".validate": "newData.hasChildren(['area', 'start', 'end', 'par'])",
+            "area": { ".validate": "newData.val() == 'europe' || newData.val() == 'americas' || newData.val() == 'africa' || newData.val() == 'asia' || newData.val() == 'eurasia' || newData.val() == 'world'" },
+            "start": { ".validate": "newData.isString() && newData.val().matches(/^[A-Z][A-Z]$/)" },
+            "end": { ".validate": "newData.isString() && newData.val().matches(/^[A-Z][A-Z]$/)" },
+            "par": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 8" },
+            "closed": {
+              "$i": {
+                ".validate": "$i.matches(/^[0-3]$/) && newData.hasChildren(['0', '1'])",
+                "0": { ".validate": "newData.isString() && newData.val().matches(/^[A-Z][A-Z]$/)" },
+                "1": { ".validate": "newData.isString() && newData.val().matches(/^[A-Z][A-Z]$/)" },
+                "$other": { ".validate": false }
+              }
+            },
+            "$other": { ".validate": false }
+          },
+          "startsAt": { ".validate": "newData.isNumber()" },
+          "endsAt": { ".validate": "newData.isNumber()" },
+          "nextAt": { ".validate": "newData.isNumber()" },
+          "results": {
+            "$i": {
+              ".validate": "$i.matches(/^[0-9]$/)",
+              "scores": {
+                "$seat": {
+                  ".validate": "$seat.matches(/^p[1-8]$/) && newData.hasChildren(['ms', 'extra', 'found', 'done'])",
+                  "ms": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 180000" },
+                  "extra": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 200" },
+                  "found": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 8" },
+                  "done": { ".validate": "newData.isBoolean()" },
+                  "$other": { ".validate": false }
+                }
+              },
+              "out": { "$j": { ".validate": "$j.matches(/^[0-7]$/) && newData.isString() && newData.val().matches(/^p[1-8]$/)" } },
+              "$other": { ".validate": false }
+            }
+          },
+          "$other": { ".validate": false }
+        },
+
+        "borderrunRuns": {
+          ".validate": "!root.child('games/' + $room + '/closedAt').exists()",
+          "$seat": {
+            ".write": "auth != null && root.child('games/' + $room + '/meta/gameSlug').val() == 'borderrun' && root.child('games/' + $room + '/members/' + auth.uid).val() == $seat",
+            ".validate": "newData.hasChildren(['at', 'gaveUp'])",
+            "at": { ".validate": "newData.isNumber()" },
+            "gaveUp": { ".validate": "newData.isBoolean()" },
+            "guesses": {
+              "$i": {
+                ".validate": "$i.matches(/^1?[0-9]?[0-9]$/) && newData.hasChildren(['code', 't'])",
+                "code": { ".validate": "newData.isString() && newData.val().matches(/^[A-Z][A-Z]$/)" },
+                "t": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 600000" },
+                "$other": { ".validate": false }
+              }
+            },
             "$other": { ".validate": false }
           }
         },

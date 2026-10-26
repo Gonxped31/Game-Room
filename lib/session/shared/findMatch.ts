@@ -20,6 +20,8 @@ export interface MatchGame {
   lobbyPhase: string;
   /** Whether players pick a content language (separate EN/FR queues); without one, everyone waits in the `ANY_LANG` queue. */
   languages: boolean;
+  /** The queue, for a game whose queues aren't languages (Border Run's modes): stored as `meta.publicLang` like a language. */
+  queue?: string;
   /** A fresh public room's state: fixed default settings, already in the lobby. */
   publicState: (lang: string) => unknown;
 }

@@ -120,7 +120,21 @@ It goes past the basic path:
 
 It exits 1 on any failure. Add a case here for every new interaction.
 
-**Border Run** (solo, `/borderrun`) has one too (about a minute per profile; run it on
+**Border Run's races** (`/borderrun`) have their own check (about four minutes):
+
+```bash
+node .claude/skills/live-test/scripts/border-run-race.mjs [baseUrl] [screenshotDir]
+```
+
+A private Challenge (desktop host + iPhone): Start asks for a mode; the host
+changes the map and the mode (Survival refuses 2 players); the countdown holds
+the guess box; one solves and one gives up, so the round ends early; a reload
+mid-round keeps the guesses; 3 routes, the standings, back to the lobby, Leave
+room. Then a private Survival with 4 players down to a winner, and matchmaking:
+Challenge and Survival are separate queues (4 and 8 seats), and two Challenge
+searchers meet and start by themselves.
+
+**Border Run solo** (`/borderrun/solo`) has an edge-case check (about a minute per profile; run it on
 `iphone-se` and `desktop` at least):
 
 ```bash

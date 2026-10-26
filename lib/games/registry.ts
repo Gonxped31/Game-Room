@@ -40,6 +40,12 @@ export interface GameEntry {
   titleClassName: string;
   /** Tailwind class for the card's body font (description, chips). */
   bodyClassName: string;
+  /**
+   * A game played in modes the player picks up front (Border Run: Challenge or
+   * Survival): Start asks which one first and opens the page with `?mode=`,
+   * and Matchmaking asks too (each mode has its own queue, `matchGames.ts`).
+   */
+  modes?: { key: string; label: string; detail: string }[];
   /** Also listed in the Solo folder, with a "Play solo" button that opens this page (no room). */
   solo?: { path: string; description: string; tags: string[] };
   /**
@@ -161,17 +167,22 @@ export const ALL_GAMES: GameEntry[] = [
   {
     slug: "borderrun",
     title: "Border Run",
-    section: "solo",
-    description: "Two countries, a border or two closed. Link them by land in as few guesses as you can.",
-    shortDescription: "Link two countries by land.",
-    tags: ["Just you"],
+    section: "anywhere",
+    description: "Race to link two countries by land, around the closed borders. Fastest wins, or the slowest go home.",
+    shortDescription: "Race to link two countries by land.",
+    tags: ["2–8 players", "Challenge or Survival"],
+    maxPlayers: 8,
+    modes: [
+      { key: "challenge", label: "Challenge", detail: "2–4 players. A few routes, the same for everyone: the lowest total time wins." },
+      { key: "survival", label: "Survival", detail: "4–8 players. The slowest are out after each route, until one is left." },
+    ],
     ink: "#1D2733",
     textSecondary: "#566273",
     accentColor: "#F5C04A",
     titleClassName: "font-[family-name:var(--font-overpass)] font-extrabold tracking-[0.01em]",
     bodyClassName: "font-[family-name:var(--font-overpass)]",
     solo: {
-      path: "/borderrun",
+      path: "/borderrun/solo",
       description: "Link two countries by land, around the closed borders. A new route every day.",
       tags: ["Just you", "Daily route"],
     },

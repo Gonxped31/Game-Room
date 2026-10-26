@@ -1,0 +1,344 @@
+/* Border Run with others (/borderrun#room): the lobby, the race, the results.
+   Same atlas look and tokens as borderrun.css; every rule sits under .br-page. */
+
+.br-page .br-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--br-ink);
+  text-decoration: none;
+}
+
+.br-page .br-field-label {
+  margin: 4px 0 0;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.br-page .br-join {
+  display: grid;
+  gap: 10px;
+}
+
+.br-page .br-error,
+.br-page .br-problem {
+  color: var(--br-off);
+  font-weight: 700;
+}
+
+.br-page .br-rules {
+  font-size: 14px;
+}
+
+.br-page .br-button-danger {
+  background: var(--br-off);
+  color: #fff;
+}
+
+.br-page .br-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* The invite: a dashed "ticket" under the players. */
+.br-page .br-invite {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px dashed var(--br-ink-soft);
+  border-radius: 16px;
+}
+
+.br-page .br-invite-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Players, as chips with an online dot. */
+.br-page .br-players {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.br-page .br-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 2px solid var(--br-ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 700;
+}
+
+.br-page .br-player[data-me] {
+  background: #fff6db;
+}
+
+.br-page .br-player-name {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.br-page .br-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #b8c0c9;
+}
+
+.br-page .br-dot[data-online] {
+  background: var(--br-best);
+}
+
+.br-page .br-pill {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--br-paper);
+  color: var(--br-ink-soft);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.br-page .br-pill-out {
+  margin-left: 6px;
+  background: var(--br-off);
+  color: #fff;
+}
+
+/* The race: the round and the clock above the route. */
+.br-page .br-race-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.br-page .br-race-clock[data-low] {
+  color: var(--br-off);
+}
+
+.br-page .br-race-map {
+  position: relative;
+}
+
+/* "3, 2, 1" over the map: the route is already there to read. */
+.br-page .br-countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(244, 240, 230, 0.55);
+  pointer-events: none;
+}
+
+.br-page .br-countdown span {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border: 3px solid var(--br-ink);
+  border-radius: 50%;
+  background: var(--br-accent);
+  box-shadow: 0 5px 0 var(--br-ink);
+  font-size: 52px;
+  font-weight: 800;
+  animation: br-tick 900ms ease-out;
+}
+
+@keyframes br-tick {
+  from {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.br-page .br-race-me {
+  margin: 0;
+  text-align: left;
+}
+
+/* Everyone's progress: a bar each, filled by the route countries found. */
+.br-page .br-board {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.br-page .br-board-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(60px, 1.2fr);
+  grid-template-areas:
+    "dot name status"
+    "bar bar bar";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  padding: 8px 12px;
+  border: 2px solid var(--br-ink);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.br-page .br-board-row[data-me] {
+  background: #fff6db;
+}
+
+.br-page .br-board-row .br-dot {
+  grid-area: dot;
+}
+
+.br-page .br-board-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.br-page .br-board-status {
+  grid-area: status;
+  justify-self: end;
+  color: var(--br-ink-soft);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.br-page .br-board-row[data-done] .br-board-status {
+  color: var(--br-best);
+}
+
+.br-page .br-board-bar {
+  grid-area: bar;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--br-sea);
+  overflow: hidden;
+}
+
+.br-page .br-board-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--br-best);
+  transition: width 400ms ease;
+}
+
+/* Results and standings: a row per player; a round's rows pick whose guesses the map shows. */
+.br-page .br-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.br-page .br-result {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "rank name time"
+    "rank detail detail";
+  align-items: center;
+  column-gap: 10px;
+  padding: 8px 12px;
+  border: 2px solid var(--br-ink);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--br-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.br-page .br-result-static {
+  cursor: default;
+}
+
+.br-page .br-result[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--br-ink);
+  background: #fff6db;
+}
+
+.br-page .br-result[data-out] {
+  border-color: var(--br-off);
+}
+
+.br-page .br-result[data-winner] {
+  background: var(--br-accent);
+}
+
+.br-page .br-result:focus-visible {
+  outline: 3px solid var(--br-sign);
+  outline-offset: 2px;
+}
+
+.br-page .br-rank {
+  grid-area: rank;
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.br-page .br-result-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.br-page .br-result-time {
+  grid-area: time;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.br-page .br-result-detail {
+  grid-area: detail;
+  color: var(--br-ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.br-page .br-you {
+  color: var(--br-ink-soft);
+  font-weight: 600;
+}
+
+.br-page .br-final-title {
+  font-size: 30px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .br-page .br-countdown span {
+    animation: none;
+  }
+  .br-page .br-board-bar span {
+    transition: none;
+  }
+}

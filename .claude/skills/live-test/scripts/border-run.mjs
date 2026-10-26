@@ -71,7 +71,7 @@ const routeTitle = async () => (await page.locator(".br-route-title").textConten
 const endless = () => page.evaluate(() => JSON.parse(localStorage.getItem("border-run:endless-game:v1")));
 const name = (code, lang = "en") => COUNTRIES[code][lang];
 
-await page.goto(`${base}/borderrun`);
+await page.goto(`${base}/borderrun/solo`);
 await tab("Endless");
 await page.getByRole("radio", { name: "Europe", exact: true }).click();
 await button("Start").click();

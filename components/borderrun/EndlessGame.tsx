@@ -2,22 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AREA_NAME } from "@/lib/games/borderrun/areas";
-import { AREAS, PENALTY_MS, type Area } from "@/lib/games/borderrun/constants";
+import { AREAS, PAR_RANGE, PENALTY_MS, type Area } from "@/lib/games/borderrun/constants";
 import { addGuess, newPlay, replay, status, type Play } from "@/lib/games/borderrun/play";
 import { generateRoute, shortestPath } from "@/lib/games/borderrun/route";
 import type { Lang } from "@/lib/games/shared/language";
 import { CapitalLine, formatTime, GuessInput, GuessList, PathLine, PlayMap, RouteHeader, Segmented, Toolbar } from "./Controls";
 import { ENDLESS_GAME_KEY, ENDLESS_KEY, isArea, isRoute, readJson, removeKey, writeJson, type SavedEndlessGame } from "./storage";
-
-/** How long Endless routes are on each map, in countries between start and end (the daily's weekday ranges). */
-const PAR_RANGE: Record<Area, { minPar: number; maxPar: number }> = {
-  europe: { minPar: 3, maxPar: 5 },
-  americas: { minPar: 3, maxPar: 5 },
-  africa: { minPar: 3, maxPar: 5 },
-  asia: { minPar: 3, maxPar: 5 },
-  eurasia: { minPar: 4, maxPar: 6 },
-  world: { minPar: 5, maxPar: 7 },
-};
 
 /** This device's map and best scores (time plus penalty) per map. */
 interface Saved {
