@@ -206,7 +206,7 @@ const TALK_STEPS = ["Start a call, or sit side by side.", "Each of you opens the
 function TalkPanel({ children }: { children: ReactNode }) {
   return (
     <div className="mt-1.5 flex flex-wrap gap-3 rounded-[18px] px-2.5 pt-3.5 pb-3 shadow-[0_6px_0_rgba(0,0,0,.25)] min-[760px]:mt-2 min-[760px]:rounded-[26px] min-[760px]:px-[26px] min-[760px]:pt-[26px] min-[760px]:gap-[28px] min-[760px]:pb-[30px]" style={{ backgroundColor: TALK }}>
-      <div className="flex min-w-0 flex-[1_1_100%] flex-col gap-3 text-black min-[760px]:flex-[1_1_260px] min-[760px]:gap-4">
+      <div className="flex min-w-0 flex-[1_1_100%] flex-col gap-3 text-black min-[760px]:flex-[1_1_240px] min-[760px]:gap-4">
         <div className="flex items-center gap-2.5">
           <span aria-hidden="true" className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-black min-[760px]:h-[38px] min-[760px]:w-[38px]" style={{ color: TALK }}>
             <SpeechIcon className="h-4 w-4 min-[760px]:h-5 min-[760px]:w-5" />
@@ -250,6 +250,8 @@ function CardRow({ children }: { children: ReactNode }) {
  * - The Social folder: "Play from anywhere" cards, then the yellow "Talk it
  *   out" panel. Then the Solo folder.
  * - On mobile, Your rooms is a floating pill instead.
+ * From 760px the page is at most three cards wide (3 x 300 + 2 x 28, plus
+ * the folder and page padding), so no folder has an empty band beside its cards.
  * Join and Your rooms open one shared overlay: a popover anchored to the
  * button on desktop, a bottom sheet on mobile. Only one is open at a time.
  */
@@ -318,7 +320,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   );
 
   return (
-    <main className="flex flex-col gap-[22px] px-4 pt-[22px] pb-[110px] font-[family-name:var(--font-fredoka)] min-[760px]:gap-12 min-[760px]:px-14 min-[760px]:pt-10 min-[760px]:pb-9">
+    <main className="mx-auto flex w-full max-w-[1132px] flex-col gap-[22px] px-4 pt-[22px] pb-[110px] font-[family-name:var(--font-fredoka)] min-[760px]:gap-12 min-[760px]:px-14 min-[760px]:pt-10 min-[760px]:pb-9">
       <header className="flex items-start justify-between gap-6">
         <div className="flex min-w-0 flex-col gap-4">
           <h1 className="m-0 -rotate-2 self-start rounded-[9px] bg-white px-3.5 py-2 text-[26px] font-bold leading-none text-black shadow-[0_3px_8px_rgba(0,0,0,.3)] min-[760px]:px-4 min-[760px]:py-2.5 min-[760px]:text-[30px]">
