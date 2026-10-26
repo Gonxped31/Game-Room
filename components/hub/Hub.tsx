@@ -377,9 +377,6 @@ export default function Hub({ games }: { games: GameEntry[] }) {
             {solo.map((game) => (
               <SoloCard key={game.slug} game={game} />
             ))}
-            <div className="hidden min-h-[120px] min-w-[220px] flex-1 items-center justify-center rounded-[20px] border-[2.5px] border-dashed border-white/35 p-4 text-center text-base font-semibold text-white/75 min-[760px]:flex">
-              More solo games coming
-            </div>
           </CardRow>
         </Folder>
       ) : null}
