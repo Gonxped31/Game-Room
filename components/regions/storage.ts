@@ -12,6 +12,8 @@ import type { Move } from "@/lib/games/regions/play";
 export const MODE_KEY = "checkmate-grid:mode";
 export const ENDLESS_GAME_KEY = "checkmate-grid:endless-game:v1";
 export const DAILY_MOVES_KEY = "checkmate-grid:daily-moves:v1";
+/** When Auto ✕ was last pressed in each mode (ms, wall clock), so a reload doesn't reset its lock. */
+export const AUTO_MARK_KEY = { daily: "checkmate-grid:auto-mark:daily", endless: "checkmate-grid:auto-mark:endless" } as const;
 
 export function readJson(key: string): unknown {
   try {

@@ -47,8 +47,16 @@ the clock), and a solve that never reached the server is sent on resume.
 **shows** a faint ✕ on every square the placed pieces rule out - it never
 places marks - for 3 s, then they fade out, and the button stays locked until
 30 s after the press. It can't be pressed with no piece on the board or once
-solved. Locked means `aria-disabled` (still focusable), so in Playwright a tap
-during the lock needs `click({ force: true })`; a plain click waits it out.
+solved. Each mode saves its last press time (wall clock, `AUTO_MARK_KEY` in
+`storage.ts`), so a reload can't reset the lock: it carries on, and counts
+while the page is closed. Locked means `aria-disabled` (still focusable), so in
+Playwright a tap during the lock needs `click({ force: true })`; a plain click
+waits it out.
+
+State: plain React state per component, plus the localStorage helpers in
+`storage.ts` for whatever must survive a reload. No Zustand: the project
+doesn't use it, and it isn't needed at this size (the user offered it,
+2026-10-26); worth revisiting if several games share a lot of saved state.
 
 ## Files
 

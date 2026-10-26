@@ -12,7 +12,7 @@ import { clearAll, newPlay, PIECE, replay, setMark, status, undo, type Mark, typ
 import { VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
 import { AutoMarkButton, formatTime, Toolbar, useAutoMark } from "./Controls";
-import { DAILY_MOVES_KEY, readJson, removeKey, writeJson, type SavedDailyMoves } from "./storage";
+import { AUTO_MARK_KEY, DAILY_MOVES_KEY, readJson, removeKey, writeJson, type SavedDailyMoves } from "./storage";
 
 const SLUG = "regions";
 /** The name typed last time, on this device (try/catch: storage can be blocked). */
@@ -72,7 +72,7 @@ export default function DailyGame() {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [now, setNow] = useState(0);
   const [shared, setShared] = useState<string | null>(null);
-  const auto = useAutoMark();
+  const auto = useAutoMark(AUTO_MARK_KEY.daily);
   // The latest game, for a drag that paints several cells before React re-renders.
   const latest = useRef<Play | null>(null);
 

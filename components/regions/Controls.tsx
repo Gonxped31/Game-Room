@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { readJson, removeKey, writeJson } from "./storage";
 
 /**
  * A segmented switch: role="radiogroup", arrow keys move the choice
@@ -65,19 +66,44 @@ export const AUTO_MARK_LOCK_MS = 30_000;
 /** What the board draws for Auto ✕: nothing, the faint ✕s, or the ✕s fading out. */
 export type AutoMarkHint = "off" | "on" | "fading";
 
-/** Auto ✕'s timing, shared by Daily and Endless: the hint to draw, the lock's seconds left, and `use` for a press. */
-export function useAutoMark() {
+/**
+ * Auto ✕'s timing, shared by Daily and Endless: the hint to draw, the lock's
+ * seconds left, and `use` for a press. The press time (wall clock) is saved
+ * under `storageKey`, so a reload doesn't reset the lock: it carries on with
+ * the time it has left, and keeps counting while the page is closed.
+ */
+export function useAutoMark(storageKey: string) {
   const [pressedAt, setPressedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
+
+  // A press from before a reload, if its lock hasn't run out (storage is read after mount, never during render).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const saved = readJson(storageKey);
+      const t = Date.now();
+      if (typeof saved === "number" && saved <= t && t - saved < AUTO_MARK_LOCK_MS) {
+        setNow(t);
+        setPressedAt(saved);
+      } else if (saved !== null) {
+        removeKey(storageKey);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [storageKey]);
+
   useEffect(() => {
     if (pressedAt === null) return;
     const timer = setInterval(() => {
       const t = Date.now();
       setNow(t);
-      if (t - pressedAt >= AUTO_MARK_LOCK_MS) setPressedAt(null);
+      if (t - pressedAt >= AUTO_MARK_LOCK_MS) {
+        setPressedAt(null);
+        removeKey(storageKey);
+      }
     }, 100);
     return () => clearInterval(timer);
-  }, [pressedAt]);
+  }, [pressedAt, storageKey]);
+
   const since = pressedAt === null ? Infinity : now - pressedAt;
   const hint: AutoMarkHint = since < AUTO_MARK_SHOW_MS ? "on" : since < AUTO_MARK_SHOW_MS + AUTO_MARK_FADE_MS ? "fading" : "off";
   const lockLeft = pressedAt === null ? 0 : Math.max(1, Math.ceil((AUTO_MARK_LOCK_MS - since) / 1000));
@@ -85,6 +111,7 @@ export function useAutoMark() {
     const t = Date.now();
     setNow(t);
     setPressedAt(t);
+    writeJson(storageKey, t);
   };
   return { hint, locked: pressedAt !== null, lockLeft, use };
 }

@@ -7,7 +7,7 @@ import { clearAll, newPlay, PIECE, replay, setMark, status, undo, type Mark, typ
 import { GLYPH, VARIANT_NAME, VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
 import { AutoMarkButton, formatTime, Segmented, Toolbar, useAutoMark } from "./Controls";
-import { ENDLESS_GAME_KEY, isPuzzle, readJson, removeKey, writeJson, type SavedEndlessGame } from "./storage";
+import { AUTO_MARK_KEY, ENDLESS_GAME_KEY, isPuzzle, readJson, removeKey, writeJson, type SavedEndlessGame } from "./storage";
 
 const SIZES = Array.from({ length: MAX_SIZE - MIN_SIZE + 1 }, (_, i) => MIN_SIZE + i);
 const VARIANT_ICON: Record<Variant, string> = { rook: GLYPH.rook, king: GLYPH.king, knight: GLYPH.knight, queen: GLYPH.queen, mix: "✦" };
@@ -57,7 +57,7 @@ export default function EndlessGame() {
   const [play, setPlay] = useState<Play | null>(null);
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
-  const auto = useAutoMark();
+  const auto = useAutoMark(AUTO_MARK_KEY.endless);
 
   const update = (change: Partial<Saved>) =>
     setSaved((current) => {
