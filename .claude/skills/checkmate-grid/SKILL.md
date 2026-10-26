@@ -30,7 +30,10 @@ Queens); the pieces' chess moves add to it.
 
 Two modes, as tabs on the page: **Daily puzzle** (one grid for everyone, global
 board; docs/daily.md) and **Endless** (generated on the device, best time per
-piece and size kept in localStorage). The offline download (/admin) is Endless only.
+piece and size kept in localStorage). Endless opens on a setup card - piece,
+size, Start - and generates nothing before Start (the user's call, 2026-10-26);
+while playing, Change goes back to it, New/Next puzzle keep the piece and size.
+The offline download (/admin) is Endless only.
 
 ## Files
 

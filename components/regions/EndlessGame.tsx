@@ -45,11 +45,16 @@ function save(saved: Saved) {
 }
 
 /**
- * Endless mode: a fresh puzzle whenever you like, of the piece and size you
- * pick, timed, with your best time per piece and size kept on this device.
+ * Endless mode: pick a piece and a size, press Start, and get a fresh puzzle,
+ * timed from Start, with your best time per piece and size kept on this
+ * device. Nothing is generated before Start (the user's call, 2026-10-26);
+ * New puzzle and Next puzzle keep the piece and size, Change goes back to the
+ * pickers.
  */
 export default function EndlessGame() {
   const [saved, setSaved] = useState<Saved | null>(null);
+  /** False on the setup screen; true from Start until Change. */
+  const [started, setStarted] = useState(false);
   const [play, setPlay] = useState<Play | null>(null);
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
@@ -70,6 +75,7 @@ export default function EndlessGame() {
 
   const deal = useCallback(
     (variant: Variant, size: number) => {
+      setStarted(true);
       commit(null);
       // After a paint, so "Shuffling…" shows while a big grid is built.
       setTimeout(() => {
@@ -83,14 +89,17 @@ export default function EndlessGame() {
     [commit],
   );
 
+  // This device's last piece, size and best times; storage is read after mount, never during render.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const first = load();
-      setSaved(first);
-      deal(first.variant, first.size);
-    }, 0);
+    const timer = setTimeout(() => setSaved(load()), 0);
     return () => clearTimeout(timer);
-  }, [deal]);
+  }, []);
+
+  /** Back to the pickers; the puzzle in progress is dropped. */
+  const change = () => {
+    commit(null);
+    setStarted(false);
+  };
 
   const solved = play ? status(play).solved : false;
   useEffect(() => {
@@ -113,43 +122,67 @@ export default function EndlessGame() {
     if (status(next).solved && saved && !(saved.best[bestKey] <= t)) update({ best: { ...saved.best, [bestKey]: t } });
   };
 
-  if (!saved) return <p className="cg-status">Shuffling…</p>;
+  if (!saved) return <p className="cg-status">Loading…</p>;
+
+  if (!started) {
+    const setupBest = saved.best[`${saved.variant}-${saved.size}`];
+    return (
+      <section className="cg-daily-card" aria-labelledby="endless-title">
+        <h2 id="endless-title" className="cg-daily-title">
+          Endless
+        </h2>
+        <p className="cg-daily-note">Pick a piece and a grid size, then start. The clock starts with the puzzle.</p>
+        <div className="cg-settings">
+          <Segmented
+            label="Piece"
+            options={VARIANTS}
+            value={saved.variant}
+            onChange={(variant) => update({ variant })}
+            render={(variant) => (
+              <>
+                <span aria-hidden="true" className="cg-seg-icon">
+                  {VARIANT_ICON[variant]}
+                </span>
+                {VARIANT_NAME[variant]}
+              </>
+            )}
+          />
+          <Segmented
+            label="Grid size"
+            options={SIZES}
+            value={saved.size}
+            onChange={(size) => update({ size })}
+            render={(size) => (
+              <>
+                {size}
+                <span className="cg-sr">{` by ${size}`}</span>
+              </>
+            )}
+          />
+        </div>
+        <p className="cg-rule">{VARIANT_RULE[saved.variant]}</p>
+        <p className="cg-daily-note">
+          {setupBest !== undefined ? `Your best at ${VARIANT_NAME[saved.variant]} ${saved.size}×${saved.size}: ${formatTime(setupBest)}` : "No best time yet at this piece and size."}
+        </p>
+        <button type="button" className="cg-button cg-button-primary cg-button-wide" onClick={() => deal(saved.variant, saved.size)}>
+          Start
+        </button>
+      </section>
+    );
+  }
 
   return (
     <>
-      <div className="cg-settings">
-        <Segmented
-          label="Piece"
-          options={VARIANTS}
-          value={saved.variant}
-          onChange={(variant) => {
-            update({ variant });
-            deal(variant, saved.size);
-          }}
-          render={(variant) => (
-            <>
-              <span aria-hidden="true" className="cg-seg-icon">
-                {VARIANT_ICON[variant]}
-              </span>
-              {VARIANT_NAME[variant]}
-            </>
-          )}
-        />
-        <Segmented
-          label="Grid size"
-          options={SIZES}
-          value={saved.size}
-          onChange={(size) => {
-            update({ size });
-            deal(saved.variant, size);
-          }}
-          render={(size) => (
-            <>
-              {size}
-              <span className="cg-sr">{` by ${size}`}</span>
-            </>
-          )}
-        />
+      <div className="cg-current">
+        <p className="cg-current-label">
+          <span aria-hidden="true" className="cg-seg-icon">
+            {VARIANT_ICON[saved.variant]}
+          </span>{" "}
+          {VARIANT_NAME[saved.variant]} · {saved.size}×{saved.size}
+        </p>
+        <button type="button" className="cg-button" onClick={change}>
+          Change
+        </button>
       </div>
 
       <p className="cg-rule">{VARIANT_RULE[saved.variant]}</p>

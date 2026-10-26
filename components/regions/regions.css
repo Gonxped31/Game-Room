@@ -103,11 +103,30 @@
   line-height: 1;
 }
 
-@media (max-width: 400px) {
-  /* Five piece names don't fit at 375px: icons carry them, names go to screen readers only. */
+@media (max-width: 440px) {
+  /* Five icons and names side by side don't fit a phone (in the Endless card least of all): stack each icon over its name. */
   .cg-seg-option {
-    font-size: 13px;
+    flex-direction: column;
+    gap: 1px;
+    min-height: 48px;
+    padding: 2px 0;
+    font-size: 12px;
   }
+}
+
+/* Endless while playing: the piece and size, with Change back to the pickers. */
+.cg-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cg-current-label {
+  margin: 0;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .cg-rule {
