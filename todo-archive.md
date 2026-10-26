@@ -45,3 +45,4 @@ T-062 | 3 | T-057 | S | full-stack,admin | Return-rate accuracy: per-guest daily
 T-k9n2 | 3 | - | S | frontend,admin | Closed rooms: hide the footer's Reset game link when roomClosed (it silently does nothing) | done 2026-10-25
 T-mnnv | 1 | - | S | infra,admin | Deploy database.rules.json for the admin analytics (activeMinutes, visits, closedAt) once Vercel production runs main c11611c or later; ask the user first | done 2026-10-26
 T-wxxd | 2 | - | S | devops,admin,nighthighway | Check the solo download on production: /admin "Download a solo game" gives Night Highway.html (build log shows export-solo: downloads/nighthighway.html); fix if it says "Not in this build" | done 2026-10-26
+T-tv2g | 1 | - | S | devops,regions | Checkmate Grid daily goes live: set DAILY_SECRET on Vercel Production, then deploy the rules (daily board index) | done 2026-10-26
