@@ -5,8 +5,10 @@ export const APP_TITLE = "Game Room";
  * Where a game sits in the hub's Social folder
  * (references/game-room/game-room-ui-spec.md): "anywhere" games show
  * everyone what's happening; "talk" games need a call or the same room.
+ * "solo" games have no rooms at all: they appear only in the Solo folder
+ * (through `solo`, which they must set).
  */
-export type HubSection = "anywhere" | "talk";
+export type HubSection = "anywhere" | "talk" | "solo";
 
 export interface GameEntry {
   /** The data slug: `meta.gameSlug`, the state node `games/{room}/{slug}` and its rules. Never changes once rooms exist. */
@@ -136,6 +138,25 @@ export const ALL_GAMES: GameEntry[] = [
     accentColor: "#FFD23A",
     titleClassName: "font-[family-name:var(--font-archivo)] font-extrabold tracking-[-0.02em]",
     bodyClassName: "font-[family-name:var(--font-archivo)]",
+  },
+  {
+    // Solo only: no rooms, so no rules node. The title is a working name.
+    slug: "regions",
+    title: "Checkmate Grid",
+    section: "solo",
+    description: "Place one chess piece in every row, column and colour, with none attacking another.",
+    shortDescription: "One piece per row, column and colour.",
+    tags: ["Just you"],
+    ink: "#16261D",
+    textSecondary: "#4B5A50",
+    accentColor: "#7FD1A6",
+    titleClassName: "font-[family-name:var(--font-fraunces)] font-extrabold tracking-[-0.01em]",
+    bodyClassName: "font-[family-name:var(--font-dm-sans)]",
+    solo: {
+      path: "/regions",
+      description: "A chess piece in every row, column and colour. None may attack another.",
+      tags: ["Just you", "Endless puzzles"],
+    },
   },
 ];
 

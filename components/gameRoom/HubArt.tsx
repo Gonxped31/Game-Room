@@ -304,6 +304,66 @@ function CoCounselArt({ mini }: { mini?: boolean }) {
   );
 }
 
+// --- Checkmate Grid ----------------------------------------------------------
+
+/** A solved 5x5 board: each cell's region, and the pieces (cell → glyph) - one per row, column and region. */
+const CG_REGIONS = [0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 2, 2, 4, 3, 3, 2, 4, 4, 3, 3, 2, 4, 4, 4, 3];
+const CG_PIECES: Record<number, string> = { 1: "♞", 8: "♛", 10: "♚", 19: "♞", 22: "♜" };
+const CG_COLORS = ["#F6C6B4", "#F9E0A0", "#C5E5B0", "#A9DCE3", "#C6C1F2"];
+const CG_INK = "#16261D";
+
+/** The board, `cell` px per square, top-left at (x, y): region fills, thick lines between regions, the pieces. */
+function CheckmateBoard({ x, y, cell }: { x: number; y: number; cell: number }) {
+  const at = (i: number) => ({ cx: x + (i % 5) * cell, cy: y + Math.floor(i / 5) * cell });
+  return (
+    <g>
+      <rect x={x - 3} y={y - 3} width={cell * 5 + 6} height={cell * 5 + 6} rx={6} fill={CG_INK} />
+      {CG_REGIONS.map((region, i) => {
+        const { cx, cy } = at(i);
+        return <rect key={i} x={cx} y={cy} width={cell} height={cell} fill={CG_COLORS[region]} />;
+      })}
+      {CG_REGIONS.map((region, i) => {
+        const { cx, cy } = at(i);
+        const right = i % 5 < 4 && CG_REGIONS[i + 1] !== region;
+        const below = i < 20 && CG_REGIONS[i + 5] !== region;
+        return (
+          <g key={`l${i}`} stroke={CG_INK} strokeWidth={2.5}>
+            {right ? <line x1={cx + cell} y1={cy} x2={cx + cell} y2={cy + cell} /> : null}
+            {below ? <line x1={cx} y1={cy + cell} x2={cx + cell} y2={cy + cell} /> : null}
+          </g>
+        );
+      })}
+      {Object.entries(CG_PIECES).map(([i, glyph]) => {
+        const { cx, cy } = at(Number(i));
+        return (
+          <text key={i} x={cx + cell / 2} y={cy + cell * 0.78} textAnchor="middle" fontSize={cell * 0.72} fill={CG_INK} fontFamily="'Segoe UI Symbol','Apple Symbols','Noto Sans Symbols 2','DejaVu Sans',serif">
+            {`${glyph}︎`}
+          </text>
+        );
+      })}
+    </g>
+  );
+}
+
+function CheckmateGridArt({ mini }: { mini?: boolean }) {
+  const w = mini ? 92 : 280;
+  const h = mini ? 92 : 168;
+  return (
+    <Svg w={w} h={h}>
+      <rect width={w} height={h} fill="#F3EBDD" />
+      {mini ? (
+        <CheckmateBoard x={11} y={11} cell={14} />
+      ) : (
+        <>
+          <circle cx={226} cy={42} r={22} fill="#7FD1A6" />
+          <circle cx={46} cy={132} r={16} fill="#F3BCD9" />
+          <CheckmateBoard x={80} y={19} cell={26} />
+        </>
+      )}
+    </Svg>
+  );
+}
+
 // --- Lookup ------------------------------------------------------------------
 
 const ART: Record<string, (props: { mini?: boolean }) => JSX.Element> = {
@@ -312,6 +372,7 @@ const ART: Record<string, (props: { mini?: boolean }) => JSX.Element> = {
   nighthighway: NightHighwayArt,
   ftw: SamePageArt,
   cocounsel: CoCounselArt,
+  regions: CheckmateGridArt,
 };
 
 /** A game's art panel (`mini`: the compact card's 92px square), or nothing for a game without art yet. */

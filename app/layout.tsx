@@ -8,6 +8,7 @@ import {
   Bricolage_Grotesque,
   Courier_Prime,
   DM_Sans,
+  Fraunces,
   Fredoka,
   Kalam,
   Lilita_One,
@@ -122,6 +123,13 @@ const kalam = Kalam({
   preload: false,
 });
 
+// Checkmate Grid's title face (components/regions/regions.css), also its hub card's title.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["700", "800"],
+});
+
 export const metadata: Metadata = {
   title: APP_TITLE,
   // Opened from the Home Screen, iOS runs it as a standalone app - whose
@@ -138,7 +146,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable} ${bagel.variable} ${dmSans.variable} ${kalam.variable}`}>
+    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable} ${bagel.variable} ${dmSans.variable} ${kalam.variable} ${fraunces.variable}`}>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />

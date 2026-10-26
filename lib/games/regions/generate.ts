@@ -103,19 +103,30 @@ function placePieces(size: number, pieces: Piece[], random: () => number): numbe
   return place(0) ? cells : null;
 }
 
-/** Grows region r from `seeds[r]`, one random neighbouring cell at a time, until the grid is covered. */
+/**
+ * Grows region r from `seeds[r]` until the grid is covered: each step, a
+ * region that can still grow takes one random free neighbouring cell. Smaller
+ * regions are picked more often (weight 1/size²), so sizes stay mixed without
+ * one region swallowing the board.
+ */
 function growRegions(size: number, seeds: number[], random: () => number): number[] {
   const regions = new Array<number>(size * size).fill(-1);
+  const sizes = seeds.map(() => 1);
   seeds.forEach((cell, r) => (regions[cell] = r));
   let left = size * size - seeds.length;
   while (left > 0) {
-    const frontier: number[] = [];
+    const frontier: number[][] = seeds.map(() => []);
     for (let cell = 0; cell < regions.length; cell++) {
-      if (regions[cell] === -1 && neighbours(size, cell).some((n) => regions[n] !== -1)) frontier.push(cell);
+      if (regions[cell] !== -1) continue;
+      for (const r of new Set(neighbours(size, cell).map((n) => regions[n]))) if (r !== -1) frontier[r].push(cell);
     }
-    const cell = frontier[Math.floor(random() * frontier.length)];
-    const around = neighbours(size, cell).filter((n) => regions[n] !== -1);
-    regions[cell] = regions[around[Math.floor(random() * around.length)]];
+    const weights = frontier.map((cells, r) => (cells.length ? 1 / (sizes[r] * sizes[r]) : 0));
+    let pick = random() * weights.reduce((a, b) => a + b, 0);
+    let region = weights.findIndex((w) => (pick -= w) < 0);
+    if (region === -1) region = weights.findLastIndex((w) => w > 0);
+    const cells = frontier[region];
+    regions[cells[Math.floor(random() * cells.length)]] = region;
+    sizes[region]++;
     left--;
   }
   return regions;

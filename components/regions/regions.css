@@ -1,0 +1,385 @@
+/* Checkmate Grid: a chess-club look, cream paper and dark green ink.
+   Plain CSS (not Tailwind utilities) so the offline export (exports/regions/) gets it too.
+   Colors match lib/games/regions/theme.ts. */
+
+.cg-page {
+  --cg-ink: #16261d;
+  --cg-ink-soft: #4b5a50;
+  --cg-paper: #f3ebdd;
+  --cg-card: #fffaf0;
+  --cg-accent: #7fd1a6;
+  --cg-clash: #c62828;
+  /* The board's side: the screen width less the gutters, at most 520px, and short enough to fit under the controls. */
+  --cg-board: max(280px, min(calc(100vw - 32px), 520px, calc(100vh - 330px)));
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--cg-paper);
+  color: var(--cg-ink);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+.cg-main {
+  width: var(--cg-board);
+  margin: 0 auto;
+  padding: 16px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cg-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cg-back {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--cg-ink);
+  border-radius: 12px;
+  background: var(--cg-card);
+  color: var(--cg-ink);
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 3px 0 var(--cg-ink);
+}
+
+.cg-title {
+  margin: 0;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 800;
+  font-size: clamp(26px, 7vw, 34px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+/* Settings: piece and size switches. */
+.cg-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cg-seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid var(--cg-ink);
+  border-radius: 14px;
+  background: var(--cg-card);
+}
+
+.cg-seg-option {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cg-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cg-seg-option[aria-checked="true"] {
+  background: var(--cg-accent);
+  box-shadow: inset 0 0 0 2px var(--cg-ink);
+}
+
+.cg-seg-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+@media (max-width: 400px) {
+  /* Five piece names don't fit at 375px: icons carry them, names go to screen readers only. */
+  .cg-seg-option {
+    font-size: 13px;
+  }
+}
+
+.cg-rule {
+  margin: 0;
+  color: var(--cg-ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  min-height: 2.8em;
+}
+
+.cg-toolbar,
+.cg-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cg-time {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 700;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cg-best {
+  color: var(--cg-ink-soft);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cg-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cg-button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 2px solid var(--cg-ink);
+  border-radius: 12px;
+  background: var(--cg-card);
+  color: var(--cg-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--cg-ink);
+  transition: transform 60ms;
+}
+
+.cg-button:enabled:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.cg-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cg-button-primary {
+  background: var(--cg-accent);
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 17px;
+}
+
+/* The board: one CSS grid of N×N cell buttons; rows and cell wrappers only carry the ARIA grid roles. */
+.cg-board {
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+  width: var(--cg-board);
+  height: var(--cg-board);
+  border: 3px solid var(--cg-ink);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--cg-ink);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cg-board-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cg-card);
+}
+
+.cg-row,
+.cg-cell-wrap {
+  display: contents;
+}
+
+.cg-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0 solid var(--cg-ink);
+  border-right-style: solid;
+  border-bottom-style: solid;
+  color: var(--cg-ink);
+  font-size: calc(var(--cg-board) / var(--n) * 0.62);
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cg-cell:focus-visible {
+  outline: 3px solid #000;
+  outline-offset: -5px;
+  z-index: 1;
+}
+
+.cg-glyph {
+  font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", "DejaVu Sans", serif;
+}
+
+.cg-cell[data-shown="mark"] .cg-glyph,
+.cg-cell[data-shown="auto"] .cg-glyph {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 0.5em;
+  font-weight: 700;
+  color: rgba(22, 38, 29, 0.6);
+}
+
+.cg-cell[data-shown="auto"] .cg-glyph {
+  color: rgba(22, 38, 29, 0.28);
+}
+
+.cg-cell[data-shown="piece"] .cg-glyph {
+  animation: cg-pop 140ms ease-out;
+}
+
+.cg-cell[data-bad] {
+  background-image: repeating-linear-gradient(45deg, rgba(198, 40, 40, 0.28) 0 6px, transparent 6px 12px);
+}
+
+.cg-cell[data-bad] .cg-glyph {
+  color: var(--cg-clash);
+}
+
+/* Mix: the region's piece, small, in its first cell. */
+.cg-label {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", "DejaVu Sans", serif;
+  font-size: 0.5em;
+  opacity: 0.8;
+}
+
+.cg-status {
+  margin: 0;
+  color: var(--cg-ink-soft);
+  font-weight: 600;
+}
+
+.cg-solved {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  border: 2px solid var(--cg-ink);
+  border-radius: 16px;
+  background: var(--cg-accent);
+  box-shadow: 0 4px 0 var(--cg-ink);
+}
+
+.cg-solved-title {
+  margin: 0;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.cg-solved-note {
+  margin: 2px 0 0;
+  min-height: 1.3em;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cg-solved .cg-button-primary {
+  flex-shrink: 0;
+  background: var(--cg-card);
+}
+
+/* Auto ✕ switch. */
+.cg-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cg-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cg-toggle-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border: 2px solid var(--cg-ink);
+  border-radius: 999px;
+  background: var(--cg-card);
+}
+
+.cg-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--cg-ink);
+  transition: transform 120ms;
+}
+
+.cg-toggle[aria-checked="true"] .cg-toggle-track {
+  background: var(--cg-accent);
+}
+
+.cg-toggle[aria-checked="true"] .cg-toggle-thumb {
+  transform: translateX(18px);
+}
+
+.cg-seg-option:focus-visible,
+.cg-button:focus-visible,
+.cg-toggle:focus-visible,
+.cg-back:focus-visible {
+  outline: 3px solid #000;
+  outline-offset: 2px;
+}
+
+.cg-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@keyframes cg-pop {
+  from {
+    transform: scale(0.6);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cg-cell[data-shown="piece"] .cg-glyph {
+    animation: none;
+  }
+  .cg-button,
+  .cg-toggle-thumb {
+    transition: none;
+  }
+}

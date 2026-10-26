@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#F3EBDD" />
+    <title>Checkmate Grid</title>
+    <!-- Checkmate Grid, endless puzzles: a copy of the game downloaded from Game Room. Everything is in this file; it plays offline. -->
+    <!-- scripts/export-solo.mjs swaps this for the fonts, inlined. -->
+    <meta
+      name="inline-fonts"
+      content="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap"
+    />
+    <style>
+      /* The names next/font gives these variables on the site (app/layout.tsx); regions.css builds its stacks from them. */
+      :root {
+        --font-fraunces: "Fraunces";
+        --font-dm-sans: "DM Sans";
+      }
+      html,
+      body {
+        margin: 0;
+        background: #f3ebdd;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
