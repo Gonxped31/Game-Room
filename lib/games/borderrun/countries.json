@@ -1,0 +1,2143 @@
+{
+ "AD": {
+  "en": "Andorra",
+  "fr": "Andorre",
+  "aliases": [],
+  "borders": [
+   "ES",
+   "FR"
+  ]
+ },
+ "AE": {
+  "en": "United Arab Emirates",
+  "fr": "Émirats arabes unis",
+  "aliases": [
+   "UAE",
+   "Émirats Arabes Unis",
+   "EAU",
+   "Emirates",
+   "Émirats"
+  ],
+  "borders": [
+   "OM",
+   "SA"
+  ]
+ },
+ "AF": {
+  "en": "Afghanistan",
+  "fr": "Afghanistan",
+  "aliases": [],
+  "borders": [
+   "CN",
+   "IR",
+   "PK",
+   "TJ",
+   "TM",
+   "UZ"
+  ]
+ },
+ "AG": {
+  "en": "Antigua & Barbuda",
+  "fr": "Antigua-et-Barbuda",
+  "aliases": [
+   "Antigua and Barbuda"
+  ],
+  "borders": []
+ },
+ "AL": {
+  "en": "Albania",
+  "fr": "Albanie",
+  "aliases": [],
+  "borders": [
+   "GR",
+   "ME",
+   "MK",
+   "XK"
+  ]
+ },
+ "AM": {
+  "en": "Armenia",
+  "fr": "Arménie",
+  "aliases": [],
+  "borders": [
+   "AZ",
+   "GE",
+   "IR",
+   "TR"
+  ]
+ },
+ "AO": {
+  "en": "Angola",
+  "fr": "Angola",
+  "aliases": [],
+  "borders": [
+   "CD",
+   "CG",
+   "NA",
+   "ZM"
+  ]
+ },
+ "AR": {
+  "en": "Argentina",
+  "fr": "Argentine",
+  "aliases": [],
+  "borders": [
+   "BO",
+   "BR",
+   "CL",
+   "PY",
+   "UY"
+  ]
+ },
+ "AT": {
+  "en": "Austria",
+  "fr": "Autriche",
+  "aliases": [],
+  "borders": [
+   "CH",
+   "CZ",
+   "DE",
+   "HU",
+   "IT",
+   "LI",
+   "SI",
+   "SK"
+  ]
+ },
+ "AU": {
+  "en": "Australia",
+  "fr": "Australie",
+  "aliases": [],
+  "borders": []
+ },
+ "AZ": {
+  "en": "Azerbaijan",
+  "fr": "Azerbaïdjan",
+  "aliases": [],
+  "borders": [
+   "AM",
+   "GE",
+   "IR",
+   "RU",
+   "TR"
+  ]
+ },
+ "BA": {
+  "en": "Bosnia and Herzegovina",
+  "fr": "Bosnie-Herzégovine",
+  "aliases": [
+   "Bosnia",
+   "Bosnie",
+   "Bosnia & Herzegovina"
+  ],
+  "borders": [
+   "HR",
+   "ME",
+   "RS"
+  ]
+ },
+ "BB": {
+  "en": "Barbados",
+  "fr": "Barbade",
+  "aliases": [],
+  "borders": []
+ },
+ "BD": {
+  "en": "Bangladesh",
+  "fr": "Bangladesh",
+  "aliases": [],
+  "borders": [
+   "IN",
+   "MM"
+  ]
+ },
+ "BE": {
+  "en": "Belgium",
+  "fr": "Belgique",
+  "aliases": [],
+  "borders": [
+   "DE",
+   "FR",
+   "LU",
+   "NL"
+  ]
+ },
+ "BF": {
+  "en": "Burkina Faso",
+  "fr": "Burkina Faso",
+  "aliases": [],
+  "borders": [
+   "BJ",
+   "CI",
+   "GH",
+   "ML",
+   "NE",
+   "TG"
+  ]
+ },
+ "BG": {
+  "en": "Bulgaria",
+  "fr": "Bulgarie",
+  "aliases": [],
+  "borders": [
+   "GR",
+   "MK",
+   "RO",
+   "RS",
+   "TR"
+  ]
+ },
+ "BH": {
+  "en": "Bahrain",
+  "fr": "Bahreïn",
+  "aliases": [],
+  "borders": []
+ },
+ "BI": {
+  "en": "Burundi",
+  "fr": "Burundi",
+  "aliases": [],
+  "borders": [
+   "CD",
+   "RW",
+   "TZ"
+  ]
+ },
+ "BJ": {
+  "en": "Benin",
+  "fr": "Bénin",
+  "aliases": [],
+  "borders": [
+   "BF",
+   "NE",
+   "NG",
+   "TG"
+  ]
+ },
+ "BN": {
+  "en": "Brunei",
+  "fr": "Brunei",
+  "aliases": [
+   "Brunei Darussalam"
+  ],
+  "borders": [
+   "MY"
+  ]
+ },
+ "BO": {
+  "en": "Bolivia",
+  "fr": "Bolivie",
+  "aliases": [],
+  "borders": [
+   "AR",
+   "BR",
+   "CL",
+   "PE",
+   "PY"
+  ]
+ },
+ "BR": {
+  "en": "Brazil",
+  "fr": "Brésil",
+  "aliases": [],
+  "borders": [
+   "AR",
+   "BO",
+   "CO",
+   "GF",
+   "GY",
+   "PE",
+   "PY",
+   "SR",
+   "UY",
+   "VE"
+  ]
+ },
+ "BS": {
+  "en": "Bahamas",
+  "fr": "Bahamas",
+  "aliases": [],
+  "borders": []
+ },
+ "BT": {
+  "en": "Bhutan",
+  "fr": "Bhoutan",
+  "aliases": [],
+  "borders": [
+   "CN",
+   "IN"
+  ]
+ },
+ "BW": {
+  "en": "Botswana",
+  "fr": "Botswana",
+  "aliases": [],
+  "borders": [
+   "NA",
+   "ZA",
+   "ZW"
+  ]
+ },
+ "BY": {
+  "en": "Belarus",
+  "fr": "Biélorussie",
+  "aliases": [],
+  "borders": [
+   "LT",
+   "LV",
+   "PL",
+   "RU",
+   "UA"
+  ]
+ },
+ "BZ": {
+  "en": "Belize",
+  "fr": "Belize",
+  "aliases": [],
+  "borders": [
+   "GT",
+   "MX"
+  ]
+ },
+ "CA": {
+  "en": "Canada",
+  "fr": "Canada",
+  "aliases": [],
+  "borders": [
+   "US"
+  ]
+ },
+ "CD": {
+  "en": "DR Congo",
+  "fr": "RD Congo",
+  "aliases": [
+   "Democratic Republic of the Congo",
+   "République démocratique du Congo",
+   "DRC",
+   "RDC",
+   "Congo-Kinshasa",
+   "Zaire",
+   "Zaïre",
+   "Congo Kinshasa",
+   "Congo - Kinshasa"
+  ],
+  "borders": [
+   "AO",
+   "BI",
+   "CF",
+   "CG",
+   "RW",
+   "SS",
+   "TZ",
+   "UG",
+   "ZM"
+  ]
+ },
+ "CF": {
+  "en": "Central African Republic",
+  "fr": "République centrafricaine",
+  "aliases": [
+   "République Centrafricaine",
+   "CAR",
+   "RCA",
+   "Centrafrique"
+  ],
+  "borders": [
+   "CD",
+   "CG",
+   "CM",
+   "SD",
+   "SS",
+   "TD"
+  ]
+ },
+ "CG": {
+  "en": "Congo",
+  "fr": "Congo",
+  "aliases": [
+   "Republic of the Congo",
+   "République du Congo",
+   "Congo-Brazzaville",
+   "Congo Brazzaville",
+   "Republic of Congo",
+   "Congo - Brazzaville"
+  ],
+  "borders": [
+   "AO",
+   "CD",
+   "CF",
+   "CM",
+   "GA"
+  ]
+ },
+ "CH": {
+  "en": "Switzerland",
+  "fr": "Suisse",
+  "aliases": [],
+  "borders": [
+   "AT",
+   "DE",
+   "FR",
+   "IT",
+   "LI"
+  ]
+ },
+ "CI": {
+  "en": "Ivory Coast",
+  "fr": "Côte d’Ivoire",
+  "aliases": [
+   "Cote d'Ivoire",
+   "Côte d'Ivoire",
+   "Côte-d'Ivoire"
+  ],
+  "borders": [
+   "BF",
+   "GH",
+   "GN",
+   "LR",
+   "ML"
+  ]
+ },
+ "CL": {
+  "en": "Chile",
+  "fr": "Chili",
+  "aliases": [],
+  "borders": [
+   "AR",
+   "BO",
+   "PE"
+  ]
+ },
+ "CM": {
+  "en": "Cameroon",
+  "fr": "Cameroun",
+  "aliases": [],
+  "borders": [
+   "CF",
+   "CG",
+   "GA",
+   "GQ",
+   "NG",
+   "TD"
+  ]
+ },
+ "CN": {
+  "en": "China",
+  "fr": "Chine",
+  "aliases": [
+   "People's Republic of China"
+  ],
+  "borders": [
+   "AF",
+   "BT",
+   "IN",
+   "KG",
+   "KP",
+   "KZ",
+   "LA",
+   "MM",
+   "MN",
+   "NP",
+   "PK",
+   "RU",
+   "TJ",
+   "VN"
+  ]
+ },
+ "CO": {
+  "en": "Colombia",
+  "fr": "Colombie",
+  "aliases": [],
+  "borders": [
+   "BR",
+   "EC",
+   "PA",
+   "PE",
+   "VE"
+  ]
+ },
+ "CR": {
+  "en": "Costa Rica",
+  "fr": "Costa Rica",
+  "aliases": [],
+  "borders": [
+   "NI",
+   "PA"
+  ]
+ },
+ "CU": {
+  "en": "Cuba",
+  "fr": "Cuba",
+  "aliases": [],
+  "borders": []
+ },
+ "CV": {
+  "en": "Cape Verde",
+  "fr": "Cap-Vert",
+  "aliases": [],
+  "borders": []
+ },
+ "CY": {
+  "en": "Cyprus",
+  "fr": "Chypre",
+  "aliases": [],
+  "borders": []
+ },
+ "CZ": {
+  "en": "Czechia",
+  "fr": "Tchéquie",
+  "aliases": [
+   "Czech Republic",
+   "République Tchèque",
+   "République tchèque"
+  ],
+  "borders": [
+   "AT",
+   "DE",
+   "PL",
+   "SK"
+  ]
+ },
+ "DE": {
+  "en": "Germany",
+  "fr": "Allemagne",
+  "aliases": [
+   "Deutschland"
+  ],
+  "borders": [
+   "AT",
+   "BE",
+   "CH",
+   "CZ",
+   "DK",
+   "FR",
+   "LU",
+   "NL",
+   "PL"
+  ]
+ },
+ "DJ": {
+  "en": "Djibouti",
+  "fr": "Djibouti",
+  "aliases": [],
+  "borders": [
+   "ER",
+   "ET",
+   "SO"
+  ]
+ },
+ "DK": {
+  "en": "Denmark",
+  "fr": "Danemark",
+  "aliases": [],
+  "borders": [
+   "DE"
+  ]
+ },
+ "DM": {
+  "en": "Dominica",
+  "fr": "Dominique",
+  "aliases": [],
+  "borders": []
+ },
+ "DO": {
+  "en": "Dominican Republic",
+  "fr": "République dominicaine",
+  "aliases": [
+   "République Dominicaine"
+  ],
+  "borders": [
+   "HT"
+  ]
+ },
+ "DZ": {
+  "en": "Algeria",
+  "fr": "Algérie",
+  "aliases": [],
+  "borders": [
+   "EH",
+   "LY",
+   "MA",
+   "ML",
+   "MR",
+   "NE",
+   "TN"
+  ]
+ },
+ "EC": {
+  "en": "Ecuador",
+  "fr": "Équateur",
+  "aliases": [],
+  "borders": [
+   "CO",
+   "PE"
+  ]
+ },
+ "EE": {
+  "en": "Estonia",
+  "fr": "Estonie",
+  "aliases": [],
+  "borders": [
+   "LV",
+   "RU"
+  ]
+ },
+ "EG": {
+  "en": "Egypt",
+  "fr": "Égypte",
+  "aliases": [],
+  "borders": [
+   "IL",
+   "LY",
+   "PS",
+   "SD"
+  ]
+ },
+ "EH": {
+  "en": "Western Sahara",
+  "fr": "Sahara occidental",
+  "aliases": [],
+  "borders": [
+   "DZ",
+   "MA",
+   "MR"
+  ]
+ },
+ "ER": {
+  "en": "Eritrea",
+  "fr": "Érythrée",
+  "aliases": [],
+  "borders": [
+   "DJ",
+   "ET",
+   "SD"
+  ]
+ },
+ "ES": {
+  "en": "Spain",
+  "fr": "Espagne",
+  "aliases": [
+   "España"
+  ],
+  "borders": [
+   "AD",
+   "FR",
+   "PT"
+  ]
+ },
+ "ET": {
+  "en": "Ethiopia",
+  "fr": "Éthiopie",
+  "aliases": [],
+  "borders": [
+   "DJ",
+   "ER",
+   "KE",
+   "SD",
+   "SO",
+   "SS"
+  ]
+ },
+ "FI": {
+  "en": "Finland",
+  "fr": "Finlande",
+  "aliases": [],
+  "borders": [
+   "NO",
+   "RU",
+   "SE"
+  ]
+ },
+ "FJ": {
+  "en": "Fiji",
+  "fr": "Fidji",
+  "aliases": [],
+  "borders": []
+ },
+ "FM": {
+  "en": "Micronesia",
+  "fr": "Micronésie",
+  "aliases": [
+   "Micronesia, Federated States of"
+  ],
+  "borders": []
+ },
+ "FR": {
+  "en": "France",
+  "fr": "France",
+  "aliases": [],
+  "borders": [
+   "AD",
+   "BE",
+   "CH",
+   "DE",
+   "ES",
+   "IT",
+   "LU",
+   "MC"
+  ]
+ },
+ "GA": {
+  "en": "Gabon",
+  "fr": "Gabon",
+  "aliases": [],
+  "borders": [
+   "CG",
+   "CM",
+   "GQ"
+  ]
+ },
+ "GB": {
+  "en": "United Kingdom",
+  "fr": "Royaume-Uni",
+  "aliases": [
+   "UK",
+   "Great Britain",
+   "Britain",
+   "England",
+   "Angleterre",
+   "Grande-Bretagne",
+   "Royaume Uni"
+  ],
+  "borders": [
+   "IE"
+  ]
+ },
+ "GD": {
+  "en": "Grenada",
+  "fr": "Grenade",
+  "aliases": [],
+  "borders": []
+ },
+ "GE": {
+  "en": "Georgia",
+  "fr": "Géorgie",
+  "aliases": [],
+  "borders": [
+   "AM",
+   "AZ",
+   "RU",
+   "TR"
+  ]
+ },
+ "GF": {
+  "en": "French Guiana",
+  "fr": "Guyane",
+  "aliases": [
+   "Guyane française",
+   "French Guyana"
+  ],
+  "borders": [
+   "BR",
+   "SR"
+  ]
+ },
+ "GH": {
+  "en": "Ghana",
+  "fr": "Ghana",
+  "aliases": [],
+  "borders": [
+   "BF",
+   "CI",
+   "TG"
+  ]
+ },
+ "GL": {
+  "en": "Greenland",
+  "fr": "Groenland",
+  "aliases": [],
+  "borders": []
+ },
+ "GM": {
+  "en": "Gambia",
+  "fr": "Gambie",
+  "aliases": [
+   "Republic of The Gambia",
+   "The Gambia"
+  ],
+  "borders": [
+   "SN"
+  ]
+ },
+ "GN": {
+  "en": "Guinea",
+  "fr": "Guinée",
+  "aliases": [],
+  "borders": [
+   "CI",
+   "GW",
+   "LR",
+   "ML",
+   "SL",
+   "SN"
+  ]
+ },
+ "GQ": {
+  "en": "Equatorial Guinea",
+  "fr": "Guinée équatoriale",
+  "aliases": [],
+  "borders": [
+   "CM",
+   "GA"
+  ]
+ },
+ "GR": {
+  "en": "Greece",
+  "fr": "Grèce",
+  "aliases": [],
+  "borders": [
+   "AL",
+   "BG",
+   "MK",
+   "TR"
+  ]
+ },
+ "GT": {
+  "en": "Guatemala",
+  "fr": "Guatemala",
+  "aliases": [],
+  "borders": [
+   "BZ",
+   "HN",
+   "MX",
+   "SV"
+  ]
+ },
+ "GW": {
+  "en": "Guinea-Bissau",
+  "fr": "Guinée-Bissau",
+  "aliases": [],
+  "borders": [
+   "GN",
+   "SN"
+  ]
+ },
+ "GY": {
+  "en": "Guyana",
+  "fr": "Guyana",
+  "aliases": [],
+  "borders": [
+   "BR",
+   "SR",
+   "VE"
+  ]
+ },
+ "HN": {
+  "en": "Honduras",
+  "fr": "Honduras",
+  "aliases": [],
+  "borders": [
+   "GT",
+   "NI",
+   "SV"
+  ]
+ },
+ "HR": {
+  "en": "Croatia",
+  "fr": "Croatie",
+  "aliases": [],
+  "borders": [
+   "BA",
+   "HU",
+   "ME",
+   "RS",
+   "SI"
+  ]
+ },
+ "HT": {
+  "en": "Haiti",
+  "fr": "Haïti",
+  "aliases": [],
+  "borders": [
+   "DO"
+  ]
+ },
+ "HU": {
+  "en": "Hungary",
+  "fr": "Hongrie",
+  "aliases": [],
+  "borders": [
+   "AT",
+   "HR",
+   "RO",
+   "RS",
+   "SI",
+   "SK",
+   "UA"
+  ]
+ },
+ "ID": {
+  "en": "Indonesia",
+  "fr": "Indonésie",
+  "aliases": [],
+  "borders": [
+   "MY",
+   "PG",
+   "TL"
+  ]
+ },
+ "IE": {
+  "en": "Ireland",
+  "fr": "Irlande",
+  "aliases": [],
+  "borders": [
+   "GB"
+  ]
+ },
+ "IL": {
+  "en": "Israel",
+  "fr": "Israël",
+  "aliases": [],
+  "borders": [
+   "EG",
+   "JO",
+   "LB",
+   "PS",
+   "SY"
+  ]
+ },
+ "IN": {
+  "en": "India",
+  "fr": "Inde",
+  "aliases": [],
+  "borders": [
+   "BD",
+   "BT",
+   "CN",
+   "MM",
+   "NP",
+   "PK"
+  ]
+ },
+ "IQ": {
+  "en": "Iraq",
+  "fr": "Irak",
+  "aliases": [],
+  "borders": [
+   "IR",
+   "JO",
+   "KW",
+   "SA",
+   "SY",
+   "TR"
+  ]
+ },
+ "IR": {
+  "en": "Iran",
+  "fr": "Iran",
+  "aliases": [
+   "Islamic Republic of Iran"
+  ],
+  "borders": [
+   "AF",
+   "AM",
+   "AZ",
+   "IQ",
+   "PK",
+   "TM",
+   "TR"
+  ]
+ },
+ "IS": {
+  "en": "Iceland",
+  "fr": "Islande",
+  "aliases": [],
+  "borders": []
+ },
+ "IT": {
+  "en": "Italy",
+  "fr": "Italie",
+  "aliases": [],
+  "borders": [
+   "AT",
+   "CH",
+   "FR",
+   "SI",
+   "SM",
+   "VA"
+  ]
+ },
+ "JM": {
+  "en": "Jamaica",
+  "fr": "Jamaïque",
+  "aliases": [],
+  "borders": []
+ },
+ "JO": {
+  "en": "Jordan",
+  "fr": "Jordanie",
+  "aliases": [],
+  "borders": [
+   "IL",
+   "IQ",
+   "PS",
+   "SA",
+   "SY"
+  ]
+ },
+ "JP": {
+  "en": "Japan",
+  "fr": "Japon",
+  "aliases": [],
+  "borders": []
+ },
+ "KE": {
+  "en": "Kenya",
+  "fr": "Kenya",
+  "aliases": [],
+  "borders": [
+   "ET",
+   "SO",
+   "SS",
+   "TZ",
+   "UG"
+  ]
+ },
+ "KG": {
+  "en": "Kyrgyzstan",
+  "fr": "Kirghizstan",
+  "aliases": [
+   "Kirghizistan"
+  ],
+  "borders": [
+   "CN",
+   "KZ",
+   "TJ",
+   "UZ"
+  ]
+ },
+ "KH": {
+  "en": "Cambodia",
+  "fr": "Cambodge",
+  "aliases": [],
+  "borders": [
+   "LA",
+   "TH",
+   "VN"
+  ]
+ },
+ "KI": {
+  "en": "Kiribati",
+  "fr": "Kiribati",
+  "aliases": [],
+  "borders": []
+ },
+ "KM": {
+  "en": "Comoros",
+  "fr": "Comores",
+  "aliases": [],
+  "borders": []
+ },
+ "KN": {
+  "en": "St. Kitts & Nevis",
+  "fr": "Saint-Christophe-et-Niévès",
+  "aliases": [
+   "Saint Kitts and Nevis"
+  ],
+  "borders": []
+ },
+ "KP": {
+  "en": "North Korea",
+  "fr": "Corée du Nord",
+  "aliases": [],
+  "borders": [
+   "CN",
+   "KR",
+   "RU"
+  ]
+ },
+ "KR": {
+  "en": "South Korea",
+  "fr": "Corée du Sud",
+  "aliases": [
+   "Korea, Republic of",
+   "Republic of Korea",
+   "Korea"
+  ],
+  "borders": [
+   "KP"
+  ]
+ },
+ "KW": {
+  "en": "Kuwait",
+  "fr": "Koweït",
+  "aliases": [],
+  "borders": [
+   "IQ",
+   "SA"
+  ]
+ },
+ "KZ": {
+  "en": "Kazakhstan",
+  "fr": "Kazakhstan",
+  "aliases": [],
+  "borders": [
+   "CN",
+   "KG",
+   "RU",
+   "TM",
+   "UZ"
+  ]
+ },
+ "LA": {
+  "en": "Laos",
+  "fr": "Laos",
+  "aliases": [
+   "Lao People's Democratic Republic"
+  ],
+  "borders": [
+   "CN",
+   "KH",
+   "MM",
+   "TH",
+   "VN"
+  ]
+ },
+ "LB": {
+  "en": "Lebanon",
+  "fr": "Liban",
+  "aliases": [],
+  "borders": [
+   "IL",
+   "SY"
+  ]
+ },
+ "LC": {
+  "en": "St. Lucia",
+  "fr": "Sainte-Lucie",
+  "aliases": [
+   "Saint Lucia"
+  ],
+  "borders": []
+ },
+ "LI": {
+  "en": "Liechtenstein",
+  "fr": "Liechtenstein",
+  "aliases": [],
+  "borders": [
+   "AT",
+   "CH"
+  ]
+ },
+ "LK": {
+  "en": "Sri Lanka",
+  "fr": "Sri Lanka",
+  "aliases": [],
+  "borders": []
+ },
+ "LR": {
+  "en": "Liberia",
+  "fr": "Liberia",
+  "aliases": [
+   "Libéria"
+  ],
+  "borders": [
+   "CI",
+   "GN",
+   "SL"
+  ]
+ },
+ "LS": {
+  "en": "Lesotho",
+  "fr": "Lesotho",
+  "aliases": [],
+  "borders": [
+   "ZA"
+  ]
+ },
+ "LT": {
+  "en": "Lithuania",
+  "fr": "Lituanie",
+  "aliases": [],
+  "borders": [
+   "BY",
+   "LV",
+   "PL",
+   "RU"
+  ]
+ },
+ "LU": {
+  "en": "Luxembourg",
+  "fr": "Luxembourg",
+  "aliases": [],
+  "borders": [
+   "BE",
+   "DE",
+   "FR"
+  ]
+ },
+ "LV": {
+  "en": "Latvia",
+  "fr": "Lettonie",
+  "aliases": [],
+  "borders": [
+   "BY",
+   "EE",
+   "LT",
+   "RU"
+  ]
+ },
+ "LY": {
+  "en": "Libya",
+  "fr": "Libye",
+  "aliases": [],
+  "borders": [
+   "DZ",
+   "EG",
+   "NE",
+   "SD",
+   "TD",
+   "TN"
+  ]
+ },
+ "MA": {
+  "en": "Morocco",
+  "fr": "Maroc",
+  "aliases": [],
+  "borders": [
+   "DZ",
+   "EH"
+  ]
+ },
+ "MC": {
+  "en": "Monaco",
+  "fr": "Monaco",
+  "aliases": [],
+  "borders": [
+   "FR"
+  ]
+ },
+ "MD": {
+  "en": "Moldova",
+  "fr": "Moldavie",
+  "aliases": [
+   "Moldova, Republic of"
+  ],
+  "borders": [
+   "RO",
+   "UA"
+  ]
+ },
+ "ME": {
+  "en": "Montenegro",
+  "fr": "Monténégro",
+  "aliases": [],
+  "borders": [
+   "AL",
+   "BA",
+   "HR",
+   "RS",
+   "XK"
+  ]
+ },
+ "MG": {
+  "en": "Madagascar",
+  "fr": "Madagascar",
+  "aliases": [],
+  "borders": []
+ },
+ "MH": {
+  "en": "Marshall Islands",
+  "fr": "Îles Marshall",
+  "aliases": [],
+  "borders": []
+ },
+ "MK": {
+  "en": "North Macedonia",
+  "fr": "Macédoine du Nord",
+  "aliases": [
+   "The Republic of North Macedonia",
+   "Macedonia",
+   "Macédoine"
+  ],
+  "borders": [
+   "AL",
+   "BG",
+   "GR",
+   "RS",
+   "XK"
+  ]
+ },
+ "ML": {
+  "en": "Mali",
+  "fr": "Mali",
+  "aliases": [],
+  "borders": [
+   "BF",
+   "CI",
+   "DZ",
+   "GN",
+   "MR",
+   "NE",
+   "SN"
+  ]
+ },
+ "MM": {
+  "en": "Myanmar",
+  "fr": "Birmanie",
+  "aliases": [
+   "Burma",
+   "Myanmar (Burma)",
+   "Myanmar (Birmanie)"
+  ],
+  "borders": [
+   "BD",
+   "CN",
+   "IN",
+   "LA",
+   "TH"
+  ]
+ },
+ "MN": {
+  "en": "Mongolia",
+  "fr": "Mongolie",
+  "aliases": [],
+  "borders": [
+   "CN",
+   "RU"
+  ]
+ },
+ "MR": {
+  "en": "Mauritania",
+  "fr": "Mauritanie",
+  "aliases": [],
+  "borders": [
+   "DZ",
+   "EH",
+   "ML",
+   "SN"
+  ]
+ },
+ "MT": {
+  "en": "Malta",
+  "fr": "Malte",
+  "aliases": [],
+  "borders": []
+ },
+ "MU": {
+  "en": "Mauritius",
+  "fr": "Maurice",
+  "aliases": [],
+  "borders": []
+ },
+ "MV": {
+  "en": "Maldives",
+  "fr": "Maldives",
+  "aliases": [],
+  "borders": []
+ },
+ "MW": {
+  "en": "Malawi",
+  "fr": "Malawi",
+  "aliases": [],
+  "borders": [
+   "MZ",
+   "TZ",
+   "ZM"
+  ]
+ },
+ "MX": {
+  "en": "Mexico",
+  "fr": "Mexique",
+  "aliases": [],
+  "borders": [
+   "BZ",
+   "GT",
+   "US"
+  ]
+ },
+ "MY": {
+  "en": "Malaysia",
+  "fr": "Malaisie",
+  "aliases": [],
+  "borders": [
+   "BN",
+   "ID",
+   "TH"
+  ]
+ },
+ "MZ": {
+  "en": "Mozambique",
+  "fr": "Mozambique",
+  "aliases": [],
+  "borders": [
+   "MW",
+   "SZ",
+   "TZ",
+   "ZA",
+   "ZM",
+   "ZW"
+  ]
+ },
+ "NA": {
+  "en": "Namibia",
+  "fr": "Namibie",
+  "aliases": [],
+  "borders": [
+   "AO",
+   "BW",
+   "ZA",
+   "ZM"
+  ]
+ },
+ "NE": {
+  "en": "Niger",
+  "fr": "Niger",
+  "aliases": [],
+  "borders": [
+   "BF",
+   "BJ",
+   "DZ",
+   "LY",
+   "ML",
+   "NG",
+   "TD"
+  ]
+ },
+ "NG": {
+  "en": "Nigeria",
+  "fr": "Nigeria",
+  "aliases": [
+   "Nigéria"
+  ],
+  "borders": [
+   "BJ",
+   "CM",
+   "NE",
+   "TD"
+  ]
+ },
+ "NI": {
+  "en": "Nicaragua",
+  "fr": "Nicaragua",
+  "aliases": [],
+  "borders": [
+   "CR",
+   "HN"
+  ]
+ },
+ "NL": {
+  "en": "Netherlands",
+  "fr": "Pays-Bas",
+  "aliases": [
+   "The Netherlands",
+   "Netherlands (Kingdom of the)",
+   "Holland",
+   "Hollande"
+  ],
+  "borders": [
+   "BE",
+   "DE"
+  ]
+ },
+ "NO": {
+  "en": "Norway",
+  "fr": "Norvège",
+  "aliases": [],
+  "borders": [
+   "FI",
+   "RU",
+   "SE"
+  ]
+ },
+ "NP": {
+  "en": "Nepal",
+  "fr": "Népal",
+  "aliases": [],
+  "borders": [
+   "CN",
+   "IN"
+  ]
+ },
+ "NR": {
+  "en": "Nauru",
+  "fr": "Nauru",
+  "aliases": [],
+  "borders": []
+ },
+ "NZ": {
+  "en": "New Zealand",
+  "fr": "Nouvelle-Zélande",
+  "aliases": [],
+  "borders": []
+ },
+ "OM": {
+  "en": "Oman",
+  "fr": "Oman",
+  "aliases": [],
+  "borders": [
+   "AE",
+   "SA",
+   "YE"
+  ]
+ },
+ "PA": {
+  "en": "Panama",
+  "fr": "Panama",
+  "aliases": [],
+  "borders": [
+   "CO",
+   "CR"
+  ]
+ },
+ "PE": {
+  "en": "Peru",
+  "fr": "Pérou",
+  "aliases": [],
+  "borders": [
+   "BO",
+   "BR",
+   "CL",
+   "CO",
+   "EC"
+  ]
+ },
+ "PG": {
+  "en": "Papua New Guinea",
+  "fr": "Papouasie-Nouvelle-Guinée",
+  "aliases": [],
+  "borders": [
+   "ID"
+  ]
+ },
+ "PH": {
+  "en": "Philippines",
+  "fr": "Philippines",
+  "aliases": [],
+  "borders": []
+ },
+ "PK": {
+  "en": "Pakistan",
+  "fr": "Pakistan",
+  "aliases": [],
+  "borders": [
+   "AF",
+   "CN",
+   "IN",
+   "IR"
+  ]
+ },
+ "PL": {
+  "en": "Poland",
+  "fr": "Pologne",
+  "aliases": [],
+  "borders": [
+   "BY",
+   "CZ",
+   "DE",
+   "LT",
+   "RU",
+   "SK",
+   "UA"
+  ]
+ },
+ "PS": {
+  "en": "Palestine",
+  "fr": "Palestine",
+  "aliases": [
+   "State of Palestine",
+   "Palestinian Territories",
+   "Territoires palestiniens"
+  ],
+  "borders": [
+   "EG",
+   "IL",
+   "JO"
+  ]
+ },
+ "PT": {
+  "en": "Portugal",
+  "fr": "Portugal",
+  "aliases": [],
+  "borders": [
+   "ES"
+  ]
+ },
+ "PW": {
+  "en": "Palau",
+  "fr": "Palaos",
+  "aliases": [],
+  "borders": []
+ },
+ "PY": {
+  "en": "Paraguay",
+  "fr": "Paraguay",
+  "aliases": [],
+  "borders": [
+   "AR",
+   "BO",
+   "BR"
+  ]
+ },
+ "QA": {
+  "en": "Qatar",
+  "fr": "Qatar",
+  "aliases": [],
+  "borders": [
+   "SA"
+  ]
+ },
+ "RO": {
+  "en": "Romania",
+  "fr": "Roumanie",
+  "aliases": [],
+  "borders": [
+   "BG",
+   "HU",
+   "MD",
+   "RS",
+   "UA"
+  ]
+ },
+ "RS": {
+  "en": "Serbia",
+  "fr": "Serbie",
+  "aliases": [],
+  "borders": [
+   "BA",
+   "BG",
+   "HR",
+   "HU",
+   "ME",
+   "MK",
+   "RO",
+   "XK"
+  ]
+ },
+ "RU": {
+  "en": "Russia",
+  "fr": "Russie",
+  "aliases": [
+   "Russian Federation",
+   "Fédération de Russie"
+  ],
+  "borders": [
+   "AZ",
+   "BY",
+   "CN",
+   "EE",
+   "FI",
+   "GE",
+   "KP",
+   "KZ",
+   "LT",
+   "LV",
+   "MN",
+   "NO",
+   "PL",
+   "UA"
+  ]
+ },
+ "RW": {
+  "en": "Rwanda",
+  "fr": "Rwanda",
+  "aliases": [],
+  "borders": [
+   "BI",
+   "CD",
+   "TZ",
+   "UG"
+  ]
+ },
+ "SA": {
+  "en": "Saudi Arabia",
+  "fr": "Arabie saoudite",
+  "aliases": [
+   "Arabie Saoudite"
+  ],
+  "borders": [
+   "AE",
+   "IQ",
+   "JO",
+   "KW",
+   "OM",
+   "QA",
+   "YE"
+  ]
+ },
+ "SB": {
+  "en": "Solomon Islands",
+  "fr": "Îles Salomon",
+  "aliases": [],
+  "borders": []
+ },
+ "SC": {
+  "en": "Seychelles",
+  "fr": "Seychelles",
+  "aliases": [],
+  "borders": []
+ },
+ "SD": {
+  "en": "Sudan",
+  "fr": "Soudan",
+  "aliases": [],
+  "borders": [
+   "CF",
+   "EG",
+   "ER",
+   "ET",
+   "LY",
+   "SS",
+   "TD"
+  ]
+ },
+ "SE": {
+  "en": "Sweden",
+  "fr": "Suède",
+  "aliases": [],
+  "borders": [
+   "FI",
+   "NO"
+  ]
+ },
+ "SG": {
+  "en": "Singapore",
+  "fr": "Singapour",
+  "aliases": [],
+  "borders": []
+ },
+ "SI": {
+  "en": "Slovenia",
+  "fr": "Slovénie",
+  "aliases": [],
+  "borders": [
+   "AT",
+   "HR",
+   "HU",
+   "IT"
+  ]
+ },
+ "SK": {
+  "en": "Slovakia",
+  "fr": "Slovaquie",
+  "aliases": [],
+  "borders": [
+   "AT",
+   "CZ",
+   "HU",
+   "PL",
+   "UA"
+  ]
+ },
+ "SL": {
+  "en": "Sierra Leone",
+  "fr": "Sierra Leone",
+  "aliases": [],
+  "borders": [
+   "GN",
+   "LR"
+  ]
+ },
+ "SM": {
+  "en": "San Marino",
+  "fr": "Saint-Marin",
+  "aliases": [],
+  "borders": [
+   "IT"
+  ]
+ },
+ "SN": {
+  "en": "Senegal",
+  "fr": "Sénégal",
+  "aliases": [],
+  "borders": [
+   "GM",
+   "GN",
+   "GW",
+   "ML",
+   "MR"
+  ]
+ },
+ "SO": {
+  "en": "Somalia",
+  "fr": "Somalie",
+  "aliases": [],
+  "borders": [
+   "DJ",
+   "ET",
+   "KE"
+  ]
+ },
+ "SR": {
+  "en": "Suriname",
+  "fr": "Suriname",
+  "aliases": [],
+  "borders": [
+   "BR",
+   "GF",
+   "GY"
+  ]
+ },
+ "SS": {
+  "en": "South Sudan",
+  "fr": "Soudan du Sud",
+  "aliases": [],
+  "borders": [
+   "CD",
+   "CF",
+   "ET",
+   "KE",
+   "SD",
+   "UG"
+  ]
+ },
+ "ST": {
+  "en": "São Tomé & Príncipe",
+  "fr": "Sao Tomé-et-Principe",
+  "aliases": [
+   "Sao Tome and Principe",
+   "São Tomé-et-Principe"
+  ],
+  "borders": []
+ },
+ "SV": {
+  "en": "El Salvador",
+  "fr": "Salvador",
+  "aliases": [],
+  "borders": [
+   "GT",
+   "HN"
+  ]
+ },
+ "SY": {
+  "en": "Syria",
+  "fr": "Syrie",
+  "aliases": [
+   "Syrian Arab Republic"
+  ],
+  "borders": [
+   "IL",
+   "IQ",
+   "JO",
+   "LB",
+   "TR"
+  ]
+ },
+ "SZ": {
+  "en": "Eswatini",
+  "fr": "Eswatini",
+  "aliases": [
+   "Royaume d'Eswatini",
+   "Swaziland"
+  ],
+  "borders": [
+   "MZ",
+   "ZA"
+  ]
+ },
+ "TD": {
+  "en": "Chad",
+  "fr": "Tchad",
+  "aliases": [],
+  "borders": [
+   "CF",
+   "CM",
+   "LY",
+   "NE",
+   "NG",
+   "SD"
+  ]
+ },
+ "TG": {
+  "en": "Togo",
+  "fr": "Togo",
+  "aliases": [],
+  "borders": [
+   "BF",
+   "BJ",
+   "GH"
+  ]
+ },
+ "TH": {
+  "en": "Thailand",
+  "fr": "Thaïlande",
+  "aliases": [],
+  "borders": [
+   "KH",
+   "LA",
+   "MM",
+   "MY"
+  ]
+ },
+ "TJ": {
+  "en": "Tajikistan",
+  "fr": "Tadjikistan",
+  "aliases": [],
+  "borders": [
+   "AF",
+   "CN",
+   "KG",
+   "UZ"
+  ]
+ },
+ "TL": {
+  "en": "East Timor",
+  "fr": "Timor oriental",
+  "aliases": [
+   "Timor-Leste",
+   "Timor"
+  ],
+  "borders": [
+   "ID"
+  ]
+ },
+ "TM": {
+  "en": "Turkmenistan",
+  "fr": "Turkménistan",
+  "aliases": [],
+  "borders": [
+   "AF",
+   "IR",
+   "KZ",
+   "UZ"
+  ]
+ },
+ "TN": {
+  "en": "Tunisia",
+  "fr": "Tunisie",
+  "aliases": [],
+  "borders": [
+   "DZ",
+   "LY"
+  ]
+ },
+ "TO": {
+  "en": "Tonga",
+  "fr": "Tonga",
+  "aliases": [],
+  "borders": []
+ },
+ "TR": {
+  "en": "Turkey",
+  "fr": "Turquie",
+  "aliases": [
+   "Türkiye",
+   "Turkiye"
+  ],
+  "borders": [
+   "AM",
+   "AZ",
+   "BG",
+   "GE",
+   "GR",
+   "IQ",
+   "IR",
+   "SY"
+  ]
+ },
+ "TT": {
+  "en": "Trinidad & Tobago",
+  "fr": "Trinité-et-Tobago",
+  "aliases": [
+   "Trinidad and Tobago"
+  ],
+  "borders": []
+ },
+ "TW": {
+  "en": "Taiwan",
+  "fr": "Taïwan",
+  "aliases": [
+   "Taiwan, Province of China"
+  ],
+  "borders": []
+ },
+ "TZ": {
+  "en": "Tanzania",
+  "fr": "Tanzanie",
+  "aliases": [
+   "United Republic of Tanzania",
+   "République unie de Tanzanie"
+  ],
+  "borders": [
+   "BI",
+   "CD",
+   "KE",
+   "MW",
+   "MZ",
+   "RW",
+   "UG",
+   "ZM"
+  ]
+ },
+ "UA": {
+  "en": "Ukraine",
+  "fr": "Ukraine",
+  "aliases": [],
+  "borders": [
+   "BY",
+   "HU",
+   "MD",
+   "PL",
+   "RO",
+   "RU",
+   "SK"
+  ]
+ },
+ "UG": {
+  "en": "Uganda",
+  "fr": "Ouganda",
+  "aliases": [],
+  "borders": [
+   "CD",
+   "KE",
+   "RW",
+   "SS",
+   "TZ"
+  ]
+ },
+ "US": {
+  "en": "United States",
+  "fr": "États-Unis",
+  "aliases": [
+   "United States of America",
+   "USA",
+   "U.S.A.",
+   "US",
+   "U.S.",
+   "États-Unis d'Amérique",
+   "America",
+   "Amérique",
+   "EU",
+   "EUA"
+  ],
+  "borders": [
+   "CA",
+   "MX"
+  ]
+ },
+ "UY": {
+  "en": "Uruguay",
+  "fr": "Uruguay",
+  "aliases": [],
+  "borders": [
+   "AR",
+   "BR"
+  ]
+ },
+ "UZ": {
+  "en": "Uzbekistan",
+  "fr": "Ouzbékistan",
+  "aliases": [],
+  "borders": [
+   "AF",
+   "KG",
+   "KZ",
+   "TJ",
+   "TM"
+  ]
+ },
+ "VA": {
+  "en": "Vatican City",
+  "fr": "Vatican",
+  "aliases": [
+   "Holy See (Vatican City State)",
+   "Saint-Siège (Vatican)",
+   "Holy See",
+   "Saint-Siège",
+   "Cité du Vatican",
+   "État de la Cité du Vatican"
+  ],
+  "borders": [
+   "IT"
+  ]
+ },
+ "VC": {
+  "en": "St. Vincent & Grenadines",
+  "fr": "Saint-Vincent-et-les Grenadines",
+  "aliases": [
+   "Saint Vincent and the Grenadines",
+   "Saint-Vincent-et-les-Grenadines"
+  ],
+  "borders": []
+ },
+ "VE": {
+  "en": "Venezuela",
+  "fr": "Venezuela",
+  "aliases": [],
+  "borders": [
+   "BR",
+   "CO",
+   "GY"
+  ]
+ },
+ "VN": {
+  "en": "Vietnam",
+  "fr": "Viêt Nam",
+  "aliases": [],
+  "borders": [
+   "CN",
+   "KH",
+   "LA"
+  ]
+ },
+ "VU": {
+  "en": "Vanuatu",
+  "fr": "Vanuatu",
+  "aliases": [],
+  "borders": []
+ },
+ "WS": {
+  "en": "Samoa",
+  "fr": "Samoa",
+  "aliases": [],
+  "borders": []
+ },
+ "XK": {
+  "en": "Kosovo",
+  "fr": "Kosovo",
+  "aliases": [],
+  "borders": [
+   "AL",
+   "ME",
+   "MK",
+   "RS"
+  ]
+ },
+ "YE": {
+  "en": "Yemen",
+  "fr": "Yémen",
+  "aliases": [],
+  "borders": [
+   "OM",
+   "SA"
+  ]
+ },
+ "ZA": {
+  "en": "South Africa",
+  "fr": "Afrique du Sud",
+  "aliases": [],
+  "borders": [
+   "BW",
+   "LS",
+   "MZ",
+   "NA",
+   "SZ",
+   "ZW"
+  ]
+ },
+ "ZM": {
+  "en": "Zambia",
+  "fr": "Zambie",
+  "aliases": [],
+  "borders": [
+   "AO",
+   "CD",
+   "MW",
+   "MZ",
+   "NA",
+   "TZ",
+   "ZW"
+  ]
+ },
+ "ZW": {
+  "en": "Zimbabwe",
+  "fr": "Zimbabwe",
+  "aliases": [],
+  "borders": [
+   "BW",
+   "MZ",
+   "ZA",
+   "ZM"
+  ]
+ }
+}
