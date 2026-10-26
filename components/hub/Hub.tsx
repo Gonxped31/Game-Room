@@ -237,13 +237,9 @@ function TalkPanel({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Desktop: 300px cards in columns, at least 28px apart, the row's spare width
- * spread between them (empty columns collapse, so a short row spans the
- * folder too); mobile, a 14px stack.
- */
+/** Desktop rows of 300px cards with a 28px gap (wrapping); mobile, a 14px stack. */
 function CardRow({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-3.5 min-[760px]:grid min-[760px]:grid-cols-[repeat(auto-fit,300px)] min-[760px]:justify-between min-[760px]:gap-[28px]">{children}</div>;
+  return <div className="flex flex-col gap-3.5 min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:items-stretch min-[760px]:gap-[28px]">{children}</div>;
 }
 
 /**
@@ -381,6 +377,9 @@ export default function Hub({ games }: { games: GameEntry[] }) {
             {solo.map((game) => (
               <SoloCard key={game.slug} game={game} />
             ))}
+            <div className="hidden min-h-[120px] min-w-[220px] flex-1 items-center justify-center rounded-[20px] border-[2.5px] border-dashed border-white/35 p-4 text-center text-base font-semibold text-white/75 min-[760px]:flex">
+              More solo games coming
+            </div>
           </CardRow>
         </Folder>
       ) : null}

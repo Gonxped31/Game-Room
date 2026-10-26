@@ -130,43 +130,33 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
 }
 
 /**
- * The desktop card (from 760px): art panel, title, description, chips, then
- * the buttons.
- */
-function DesktopCard({ game, description, tags, className = "", children }: { game: GameEntry; description: string; tags: string[]; className?: string; children: ReactNode }) {
-  return (
-    <article className={`hidden flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT} ${className}`}>
-      <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
-        <GameArt slug={game.slug} />
-      </div>
-      <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
-        <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
-          {game.title}
-        </h4>
-        <p className="m-0 min-h-[63px] text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
-          {description}
-        </p>
-        <Chips game={game} tags={tags} className="text-[13px]" />
-        <div className="mt-auto flex flex-col gap-2.5 pt-1.5">{children}</div>
-      </div>
-    </article>
-  );
-}
-
-/**
  * One game's card in a Social folder (references/game-room/game-room-ui-spec.md,
- * "Game card"): the 300px desktop card (Start + Join, and Matchmaking for games
- * strangers can play) from 760px, the compact card (mini art beside the text) below.
+ * "Game card"): the 300px desktop card (art panel, title, description, chips,
+ * Start + Join, and Matchmaking for games strangers can play) from 760px, the compact card (mini art beside the text) below.
  * Both are in the DOM; CSS shows one.
  */
 export default function GameCard(props: GameCardProps) {
   const { game } = props;
   return (
     <>
-      <DesktopCard game={game} description={game.description} tags={game.tags} className="w-[300px]">
-        <StartJoin {...props} size="desktop" />
-        <Matchmaking {...props} size="desktop" />
-      </DesktopCard>
+      <article className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT}`}>
+        <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
+          <GameArt slug={game.slug} />
+        </div>
+        <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
+          <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+            {game.title}
+          </h4>
+          <p className="m-0 min-h-[63px] text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
+            {game.description}
+          </p>
+          <Chips game={game} tags={game.tags} className="text-[13px]" />
+          <div className="mt-auto flex flex-col gap-2.5 pt-1.5">
+            <StartJoin {...props} size="desktop" />
+            <Matchmaking {...props} size="desktop" />
+          </div>
+        </div>
+      </article>
       <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
         <StartJoin {...props} size="mobile" />
         <Matchmaking {...props} size="mobile" />
@@ -198,17 +188,32 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
 }
 
 /**
- * A game's card in the Solo folder: the same 300px card as the Social
- * folder's, with one "Play solo" button.
+ * A game's card in the Solo folder: the wide desktop card (art on the left,
+ * text and one "Play solo" button on the right), or the compact card on
+ * mobile.
  */
 export function SoloCard({ game }: { game: GameEntry }) {
   const solo = game.solo;
   if (!solo) return null;
   return (
     <>
-      <DesktopCard game={game} description={solo.description} tags={solo.tags} className="w-[300px]">
-        <PlaySolo game={game} path={solo.path} size="desktop" />
-      </DesktopCard>
+      <article className={`hidden w-[628px] max-w-full gap-5 rounded-[20px] bg-white p-2.5 shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT}`}>
+        <div aria-hidden="true" className="h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl">
+          <GameArt slug={game.slug} />
+        </div>
+        <div className={`flex min-w-0 flex-1 flex-col gap-2.5 py-2 pr-2.5 ${game.bodyClassName}`}>
+          <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+            {game.title}
+          </h4>
+          <p className="m-0 text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
+            {solo.description}
+          </p>
+          <Chips game={game} tags={solo.tags} className="text-[13px]" />
+          <div className="mt-auto pt-1.5">
+            <PlaySolo game={game} path={solo.path} size="desktop" />
+          </div>
+        </div>
+      </article>
       <CompactCard game={game} description={solo.description} chip={solo.tags[0]}>
         <PlaySolo game={game} path={solo.path} size="mobile" />
       </CompactCard>
