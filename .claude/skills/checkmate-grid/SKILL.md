@@ -18,6 +18,16 @@ another by its own moves**. No rooms, no rules node for game state.
 | `queen` | no two on a diagonal at any distance. With one piece per row and column, a queen attacks exactly what a bishop does, so the bishop only appears in mix |
 | `mix` | each region shows its own piece (rook, king, knight, bishop; at least 3 kinds) and the piece placed there must not attack any other, nor be attacked |
 
+**Why one per row and column for every piece, even knights** (tried and
+measured, 2026-10-25; the user chose to keep the rule for all): with only
+"one per region + real chess attacks", knight, king and bishop puzzles can't
+be made unique. For a single solution, every empty square must be attacked by
+some other region's piece (or that region's piece could move there): 72
+squares on a 9×9, while 9 knights or kings attack at most 72 between them.
+The generator failed every time, even with 25× more repair steps. Rooks,
+queens and mix worked. The row and column rule is the puzzle's frame (as in
+Queens); the pieces' chess moves add to it.
+
 Two modes, as tabs on the page: **Daily puzzle** (one grid for everyone, global
 board; docs/daily.md) and **Endless** (generated on the device, best time per
 piece and size kept in localStorage). The offline download (/admin) is Endless only.
