@@ -131,13 +131,12 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
 
 /**
  * The desktop card (from 760px): art panel, title, description, chips, then
- * the buttons. The art keeps the 280x168 panel's proportions, so a card wider
- * than 300px (the Solo folder's fill their row) shows all of it.
+ * the buttons.
  */
 function DesktopCard({ game, description, tags, className = "", children }: { game: GameEntry; description: string; tags: string[]; className?: string; children: ReactNode }) {
   return (
     <article className={`hidden flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT} ${className}`}>
-      <div aria-hidden="true" className="aspect-[280/168] shrink-0 overflow-hidden rounded-xl">
+      <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
         <GameArt slug={game.slug} />
       </div>
       <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
@@ -199,15 +198,15 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
 }
 
 /**
- * A game's card in the Solo folder: the same cards as the Social folder's,
- * with one "Play solo" button. On desktop they share the row's width.
+ * A game's card in the Solo folder: the same 300px card as the Social
+ * folder's, with one "Play solo" button.
  */
 export function SoloCard({ game }: { game: GameEntry }) {
   const solo = game.solo;
   if (!solo) return null;
   return (
     <>
-      <DesktopCard game={game} description={solo.description} tags={solo.tags}>
+      <DesktopCard game={game} description={solo.description} tags={solo.tags} className="w-[300px]">
         <PlaySolo game={game} path={solo.path} size="desktop" />
       </DesktopCard>
       <CompactCard game={game} description={solo.description} chip={solo.tags[0]}>

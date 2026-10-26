@@ -373,11 +373,11 @@ export default function Hub({ games }: { games: GameEntry[] }) {
           count={solo.length}
           description="Play on your own, anytime."
         >
-          <div className="flex flex-col gap-3.5 min-[760px]:grid min-[760px]:grid-cols-[repeat(auto-fit,minmax(260px,1fr))] min-[760px]:gap-[28px]">
+          <CardRow>
             {solo.map((game) => (
               <SoloCard key={game.slug} game={game} />
             ))}
-          </div>
+          </CardRow>
         </Folder>
       ) : null}
 
