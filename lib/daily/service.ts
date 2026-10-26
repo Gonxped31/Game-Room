@@ -8,7 +8,7 @@ import type { DailyGame } from "./types";
  * the board themselves.
  *
  * /daily/{slug}/{day}/puzzle          the day's puzzle, generated once
- * /daily/{slug}/{day}/attempts/{uid}  { startedAt, ranked, finishedAt?, ms?, unranked? }
+ * /daily/{slug}/{day}/attempts/{uid}  { startedAt, ranked, finishedAt?, ms?, penaltyMs?, unranked? }
  * /daily/{slug}/{day}/ips/{ipHash}    the uid whose attempt is this connection's ranked one
  * /daily/{slug}/{day}/board/{uid}     { name, ms }: ranked solves only
  * /daily/{slug}/streaks/{uid}         { streak, lastDay }
@@ -47,7 +47,10 @@ export interface Attempt {
   startedAt: number;
   ranked: boolean;
   finishedAt?: number;
+  /** The time on the board: from Start to the finish, plus any penalty. */
   ms?: number;
+  /** The part of `ms` that is a penalty (DailyGame.verify's), when there is one. */
+  penaltyMs?: number;
   /** Why a finished attempt isn't on the board. */
   unranked?: UnrankedReason;
 }
@@ -201,14 +204,16 @@ export async function submitDaily(ctx: DailyContext, input: { day: unknown; move
     const verdict = ctx.game.verify(puzzle, input.moves);
     if (!verdict.ok) throw new DailyError(verdict.reason, 422);
 
-    const ms = ctx.now - attempt.startedAt;
+    const elapsed = ctx.now - attempt.startedAt;
+    const penaltyMs = Number.isSafeInteger(verdict.penaltyMs) && verdict.penaltyMs! > 0 ? verdict.penaltyMs! : 0;
+    const ms = elapsed + penaltyMs;
     const gaps = verdict.moveTimes.slice(1).map((t, i) => t - verdict.moveTimes[i]);
     let unranked: UnrankedReason | undefined = attempt.ranked ? undefined : "connection";
-    if (!unranked && ms < ctx.game.minHumanMs(puzzle)) unranked = "too-fast";
+    if (!unranked && elapsed < ctx.game.minHumanMs(puzzle)) unranked = "too-fast";
     if (!unranked && gaps.length >= REGULAR_MIN_GAPS && standardDeviation(gaps) < REGULAR_GAP_MS) unranked = "regular";
 
     const name = cleanName(input.name) ?? (await ctx.store.get<string>(`daily/names/${ctx.uid}`)) ?? fallbackName(ctx.uid);
-    const finished: Attempt = { ...attempt, finishedAt: ctx.now, ms, ranked: !unranked, ...(unranked ? { unranked } : {}) };
+    const finished: Attempt = { ...attempt, finishedAt: ctx.now, ms, ranked: !unranked, ...(penaltyMs ? { penaltyMs } : {}), ...(unranked ? { unranked } : {}) };
     // claim on finishedAt: of two submits racing, only the first writes a result.
     const first = await ctx.store.claim(`${path}/finishedAt`, ctx.now);
     if (first === ctx.now) {

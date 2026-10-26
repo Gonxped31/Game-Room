@@ -22,5 +22,7 @@ export type Verdict =
       ok: true;
       /** When each move was made, ms after the start by the player's clock (for the bot check). */
       moveTimes: number[];
+      /** Added to the server's time for the board, e.g. Border Run's seconds per guess beyond the par. None by default. */
+      penaltyMs?: number;
     }
   | { ok: false; reason: string };

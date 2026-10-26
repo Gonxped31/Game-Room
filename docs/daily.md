@@ -45,7 +45,7 @@ To reproduce that class of failure locally: run a standalone build with
 
 ```
 /daily/{slug}/{day}/puzzle          the day's puzzle (JSON string)
-/daily/{slug}/{day}/attempts/{uid}  { startedAt, ranked, finishedAt?, ms?, unranked? }
+/daily/{slug}/{day}/attempts/{uid}  { startedAt, ranked, finishedAt?, ms?, penaltyMs?, unranked? }
 /daily/{slug}/{day}/ips/{hash}      uid of the connection's ranked attempt (hash salted, per day; never the IP)
 /daily/{slug}/{day}/board/{uid}     { name, ms }
 /daily/{slug}/streaks/{uid}         { streak, lastDay }

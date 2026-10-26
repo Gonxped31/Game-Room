@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { borderrunDaily } from "@/lib/games/borderrun/daily";
+import { AREA_COUNTRIES } from "@/lib/games/borderrun/areas";
+import { COUNTRIES } from "@/lib/games/borderrun/countries";
+import { shortestPath, type Route } from "@/lib/games/borderrun/route";
 import { solutions } from "@/lib/games/regions/solver";
 import type { Puzzle } from "@/lib/games/regions/board";
 import { regionsDaily, scheduleFor } from "@/lib/games/regions/daily";
@@ -191,6 +195,37 @@ describe("daily service", () => {
     expect(status.players).toBe(3);
     expect(status.name).toBe("A");
     expect(status.number).toBe(11);
+  });
+});
+
+describe("a penalty from the game (Border Run)", () => {
+  const ctx = (store: DailyStore, uid: string, now = NOW): DailyContext => ({ ...ctxFor(store, uid, now), game: borderrunDaily });
+  const guesses = (route: Route, wasted: number) => {
+    const path = shortestPath(route)!;
+    // Islands: wasted guesses that can never complete a route of their own.
+    const off = [...AREA_COUNTRIES[route.area]].filter((code) => !COUNTRIES[code].borders.length).slice(0, wasted);
+    return [...off, ...path.slice(1, -1)].map((code, i) => ({ code, t: (i + 1) * 2100 + (i % 2) * 400 }));
+  };
+
+  it("adds the penalty to the time on the board, and keeps it apart", async () => {
+    const store = memoryStore();
+    const { puzzle, day, label } = await startDaily(ctx(store, "geo"), "ip-g");
+    expect(label).toBe("Africa"); // Wednesday
+    const result = await submitDaily(ctx(store, "geo", NOW + 60_000), { day, moves: guesses(puzzle as Route, 2), name: "Geo" });
+    expect(result.attempt).toMatchObject({ ms: 90_000, penaltyMs: 30_000, ranked: true });
+    expect(result.board).toEqual([{ name: "Geo", ms: 90_000, me: true }]);
+  });
+
+  it("no penalty, no field; and the too-fast check looks at the real time, not the penalty", async () => {
+    const store = memoryStore();
+    const { puzzle, day } = await startDaily(ctx(store, "par"), "ip-p");
+    const clean = await submitDaily(ctx(store, "par", NOW + 40_000), { day, moves: guesses(puzzle as Route, 0), name: "Par" });
+    expect(clean.attempt).toMatchObject({ ms: 40_000, ranked: true });
+    expect(clean.attempt.penaltyMs).toBeUndefined();
+
+    await startDaily(ctx(store, "quick"), "ip-q");
+    const quick = await submitDaily(ctx(store, "quick", NOW + 500), { day, moves: guesses(puzzle as Route, 3), name: "Q" });
+    expect(quick.attempt).toMatchObject({ unranked: "too-fast", ms: 500 + 45_000 });
   });
 });
 
