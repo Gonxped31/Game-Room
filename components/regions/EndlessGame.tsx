@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { MAX_SIZE, MIN_SIZE, VARIANTS, type Variant } from "@/lib/games/regions/constants";
 import { generate } from "@/lib/games/regions/generate";
-import { clearAll, newPlay, PIECE, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
+import { clearAll, newPlay, PIECE, replay, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
 import { GLYPH, VARIANT_NAME, VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
 import { AutoMarkButton, formatTime, Segmented, Toolbar, useAutoMark } from "./Controls";
+import { ENDLESS_GAME_KEY, isPuzzle, readJson, removeKey, writeJson, type SavedEndlessGame } from "./storage";
 
 const SIZES = Array.from({ length: MAX_SIZE - MIN_SIZE + 1 }, (_, i) => MIN_SIZE + i);
 const VARIANT_ICON: Record<Variant, string> = { rook: GLYPH.rook, king: GLYPH.king, knight: GLYPH.knight, queen: GLYPH.queen, mix: "✦" };
@@ -88,16 +89,42 @@ export default function EndlessGame() {
     [commit],
   );
 
-  // This device's last piece, size and best times; storage is read after mount, never during render.
+  // This device's last piece, size and best times, and the puzzle in progress if the page was reloaded mid-game;
+  // storage is read after mount, never during render.
   useEffect(() => {
-    const timer = setTimeout(() => setSaved(load()), 0);
+    const timer = setTimeout(() => {
+      const prefs = load();
+      const game = readJson(ENDLESS_GAME_KEY) as SavedEndlessGame | null;
+      let resumed: Play | null = null;
+      if (game && isPuzzle(game.puzzle) && Array.isArray(game.moves) && Number.isFinite(game.elapsed)) {
+        try {
+          const play = replay(game.puzzle, game.moves);
+          if (!status(play).solved) resumed = play;
+        } catch {
+          // A saved game that doesn't replay is dropped below.
+        }
+      }
+      if (!resumed) {
+        removeKey(ENDLESS_GAME_KEY);
+        setSaved(prefs);
+        return;
+      }
+      // The clock picks up where it was; time with the page closed doesn't count.
+      const start = performance.now() - Math.max(game!.elapsed, resumed.moves.at(-1)?.t ?? 0);
+      setSaved({ ...prefs, variant: resumed.puzzle.variant, size: resumed.puzzle.size });
+      setStarted(true);
+      commit(resumed);
+      setStartedAt(start);
+      setNow(performance.now());
+    }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [commit]);
 
   /** Back to the pickers; the puzzle in progress is dropped. */
   const change = () => {
     commit(null);
     setStarted(false);
+    removeKey(ENDLESS_GAME_KEY);
   };
 
   const solved = play ? status(play).solved : false;
@@ -106,6 +133,30 @@ export default function EndlessGame() {
     const timer = setInterval(() => setNow(performance.now()), 250);
     return () => clearInterval(timer);
   }, [play, solved]);
+
+  // The puzzle in progress is saved on every move, every second and when the page goes away; a solved one is forgotten.
+  useEffect(() => {
+    if (!play) return;
+    if (solved) {
+      removeKey(ENDLESS_GAME_KEY);
+      return;
+    }
+    const persist = () => {
+      const game: SavedEndlessGame = {
+        puzzle: play.puzzle,
+        moves: play.moves,
+        elapsed: Math.max(play.moves.at(-1)?.t ?? 0, Math.round(performance.now() - startedAt)),
+      };
+      writeJson(ENDLESS_GAME_KEY, game);
+    };
+    persist();
+    const timer = setInterval(persist, 1000);
+    window.addEventListener("pagehide", persist);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("pagehide", persist);
+    };
+  }, [play, solved, startedAt]);
 
   const elapsed = (play && solved ? play.moves[play.moves.length - 1].t : now - startedAt) || 0;
   const bestKey = play ? `${play.puzzle.variant}-${play.puzzle.size}` : "";

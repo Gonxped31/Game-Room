@@ -8,10 +8,11 @@ import { MAX_NAME_LENGTH } from "@/lib/daily/service";
 import type { Puzzle } from "@/lib/games/regions/board";
 import { GAME_TITLE } from "@/lib/games/regions/constants";
 import { scheduleFor } from "@/lib/games/regions/daily";
-import { clearAll, newPlay, PIECE, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
+import { clearAll, newPlay, PIECE, replay, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
 import { VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
 import { AutoMarkButton, formatTime, Toolbar, useAutoMark } from "./Controls";
+import { DAILY_MOVES_KEY, readJson, removeKey, writeJson, type SavedDailyMoves } from "./storage";
 
 const SLUG = "regions";
 /** The name typed last time, on this device (try/catch: storage can be blocked). */
@@ -101,18 +102,31 @@ export default function DailyGame() {
   };
 
   /** Starts (or resumes, after a reload) today's attempt: the server's clock is the one that counts. */
-  const begin = async (info: Info, status: DailyStatus) => {
-    setPhase({ kind: "ready", info, status, busy: true });
+  const begin = async (info: Info, today: DailyStatus) => {
+    setPhase({ kind: "ready", info, status: today, busy: true });
     try {
       const sentAt = Date.now();
       const start = await dailyRequest<StartResponse<Puzzle>>(SLUG, "start");
       const receivedAt = Date.now();
       // The server's clock minus ours, taken halfway through the request.
       const offset = start.serverNow - Math.round((sentAt + receivedAt) / 2);
-      const play = newPlay(start.puzzle);
+      // After a reload, today's moves come back from this device; the server kept the puzzle and the clock.
+      let play = newPlay(start.puzzle);
+      const saved = readJson(DAILY_MOVES_KEY) as SavedDailyMoves | null;
+      if (saved?.day === start.day && Array.isArray(saved.moves)) {
+        try {
+          play = replay(start.puzzle, saved.moves);
+        } catch {
+          removeKey(DAILY_MOVES_KEY);
+        }
+      }
       latest.current = play;
       setNow(Date.now());
-      setPhase({ kind: "playing", info: { day: start.day, number: start.number, label: start.label }, play, startedAt: start.attempt.startedAt, offset, submitting: false });
+      const startInfo = { day: start.day, number: start.number, label: start.label };
+      // Solved before the reload, but the result never reached the server: send it now.
+      const solvedAlready = status(play).solved;
+      setPhase({ kind: "playing", info: startInfo, play, startedAt: start.attempt.startedAt, offset, submitting: solvedAlready });
+      if (solvedAlready) void submit(startInfo, play);
     } catch (error) {
       setPhase({ kind: "error", message: messageOf(error), retry: true });
     }
@@ -130,6 +144,14 @@ export default function DailyGame() {
     const timer = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(timer);
   }, [playing]);
+
+  // Today's moves are saved on every change, so a reload brings the board back; a finished attempt forgets them.
+  const dayPlayed = phase.kind === "playing" ? phase.info.day : null;
+  const movesPlayed = phase.kind === "playing" ? phase.play.moves : null;
+  useEffect(() => {
+    if (phase.kind === "done") removeKey(DAILY_MOVES_KEY);
+    else if (dayPlayed && movesPlayed) writeJson(DAILY_MOVES_KEY, { day: dayPlayed, moves: movesPlayed } satisfies SavedDailyMoves);
+  }, [phase.kind, dayPlayed, movesPlayed]);
 
   const submit = async (info: Info, play: Play) => {
     try {

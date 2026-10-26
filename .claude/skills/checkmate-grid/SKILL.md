@@ -35,6 +35,13 @@ size, Start - and generates nothing before Start (the user's call, 2026-10-26);
 while playing, Change goes back to it, New/Next puzzle keep the piece and size.
 The offline download (/admin) is Endless only.
 
+**A reload loses nothing** (`components/regions/storage.ts`, this device's
+localStorage): the tab is remembered; the Endless puzzle in progress (grid,
+moves, time spent) resumes, its clock continuing without the time the page
+was closed, and is forgotten on a solve or Change; today's Daily moves come
+back on top of the server's resumed attempt (the server keeps the puzzle and
+the clock), and a solve that never reached the server is sent on resume.
+
 **Auto ✕** is a button, the same in both modes (`useAutoMark` +
 `AutoMarkButton` in `Controls.tsx`; the user's calls, 2026-10-26): a press
 **shows** a faint ✕ on every square the placed pieces rule out - it never
