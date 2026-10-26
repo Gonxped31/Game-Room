@@ -3,7 +3,7 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AREA_COUNTRIES, AREA_NAME } from "@/lib/games/borderrun/areas";
 import { PENALTY_MS } from "@/lib/games/borderrun/constants";
-import { findCountry, nameOf, suggest } from "@/lib/games/borderrun/countries";
+import { capitalDistanceKm, COUNTRIES, findCountry, nameOf, suggest } from "@/lib/games/borderrun/countries";
 import { refusalOf, status, type Play, type Refusal } from "@/lib/games/borderrun/play";
 import { closenessOf, type Closeness } from "@/lib/games/borderrun/route";
 import type { Lang } from "@/lib/games/shared/language";
@@ -270,10 +270,28 @@ export function shownOf(play: Play, reveal?: string[] | null): Shown[] {
   return shown;
 }
 
-/** The map for a game in progress (or finished). */
+/** The map for a game in progress, or finished: then the route (yours, or the one shown on giving up) is drawn and named. */
 export function PlayMap({ play, lang, reveal }: { play: Play; lang: Lang; reveal?: string[] | null }) {
   const shown = useMemo(() => shownOf(play, reveal), [play, reveal]);
-  return <RouteMap area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} />;
+  const route = reveal ?? status(play).path;
+  return <RouteMap area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} route={route} />;
+}
+
+/** "Lisbon → Warsaw · 2,760 km as the crow flies": the capitals, once the route is over. */
+export function CapitalLine({ play, lang }: { play: Play; lang: Lang }) {
+  const { start, end } = play.route;
+  const km = capitalDistanceKm(start, end);
+  const from = COUNTRIES[start].capital;
+  const to = COUNTRIES[end].capital;
+  if (km === null || !from || !to) return null;
+  return (
+    <p className="br-capitals">
+      <span className="br-capitals-names">
+        {from[lang]} → {to[lang]}
+      </span>{" "}
+      · {km.toLocaleString("en-US")} km as the crow flies, capital to capital
+    </p>
+  );
 }
 
 /** "Portugal → Spain → France → Germany → Poland". */

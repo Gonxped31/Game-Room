@@ -4,14 +4,16 @@ import data from "./countries.json";
 /**
  * Every country on the map (scripts/borderrun-data.mjs builds countries.json
  * from Natural Earth and the ISO tables): its EN and FR names, the other
- * names people type, and its land borders, by ISO 3166 alpha-2 code
- * (French Guiana is GF, Kosovo XK).
+ * names people type, its land borders, and its capital (every country with a
+ * border has one), by ISO 3166 alpha-2 code (French Guiana is GF, Kosovo XK).
  */
 export interface Country {
   en: string;
   fr: string;
   aliases: string[];
   borders: string[];
+  /** [lon, lat] */
+  capital?: { en: string; fr: string; at: number[] };
 }
 
 export const COUNTRIES: Readonly<Record<string, Country>> = data;
@@ -21,11 +23,25 @@ export const isCountry = (code: unknown): code is string => typeof code === "str
 
 export const nameOf = (code: string, lang: Lang) => COUNTRIES[code][lang];
 
+const EARTH_RADIUS_KM = 6371;
+
+/** Capital to capital, as the crow flies (great circle), in km rounded to 10; null if either has no capital. */
+export function capitalDistanceKm(a: string, b: string): number | null {
+  const from = COUNTRIES[a].capital?.at;
+  const to = COUNTRIES[b].capital?.at;
+  if (!from || !to) return null;
+  const rad = Math.PI / 180;
+  const [lon1, lat1] = [from[0] * rad, from[1] * rad];
+  const [lon2, lat2] = [to[0] * rad, to[1] * rad];
+  const h = Math.sin((lat2 - lat1) / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2;
+  return Math.round((2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h))) / 10) * 10;
+}
+
 /** A name as compared: no accents, no case, words split on anything but letters and digits. */
 export function fold(text: string): string {
   return text
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/\p{M}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();

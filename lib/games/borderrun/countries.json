@@ -6,7 +6,15 @@
   "borders": [
    "ES",
    "FR"
-  ]
+  ],
+  "capital": {
+   "en": "Andorra la Vella",
+   "fr": "Andorre-la-Vieille",
+   "at": [
+    1.53,
+    42.51
+   ]
+  }
  },
  "AE": {
   "en": "United Arab Emirates",
@@ -21,7 +29,15 @@
   "borders": [
    "OM",
    "SA"
-  ]
+  ],
+  "capital": {
+   "en": "Abu Dhabi",
+   "fr": "Abou Dabi",
+   "at": [
+    54.37,
+    24.47
+   ]
+  }
  },
  "AF": {
   "en": "Afghanistan",
@@ -34,7 +50,15 @@
    "TJ",
    "TM",
    "UZ"
-  ]
+  ],
+  "capital": {
+   "en": "Kabul",
+   "fr": "Kaboul",
+   "at": [
+    69.18,
+    34.52
+   ]
+  }
  },
  "AG": {
   "en": "Antigua & Barbuda",
@@ -53,7 +77,15 @@
    "ME",
    "MK",
    "XK"
-  ]
+  ],
+  "capital": {
+   "en": "Tirana",
+   "fr": "Tirana",
+   "at": [
+    19.82,
+    41.33
+   ]
+  }
  },
  "AM": {
   "en": "Armenia",
@@ -64,7 +96,15 @@
    "GE",
    "IR",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Yerevan",
+   "fr": "Erevan",
+   "at": [
+    44.51,
+    40.18
+   ]
+  }
  },
  "AO": {
   "en": "Angola",
@@ -75,7 +115,15 @@
    "CG",
    "NA",
    "ZM"
-  ]
+  ],
+  "capital": {
+   "en": "Luanda",
+   "fr": "Luanda",
+   "at": [
+    13.23,
+    -8.84
+   ]
+  }
  },
  "AR": {
   "en": "Argentina",
@@ -87,7 +135,15 @@
    "CL",
    "PY",
    "UY"
-  ]
+  ],
+  "capital": {
+   "en": "Buenos Aires",
+   "fr": "Buenos Aires",
+   "at": [
+    -58.43,
+    -34.61
+   ]
+  }
  },
  "AT": {
   "en": "Austria",
@@ -102,7 +158,15 @@
    "LI",
    "SI",
    "SK"
-  ]
+  ],
+  "capital": {
+   "en": "Vienna",
+   "fr": "Vienne",
+   "at": [
+    16.36,
+    48.2
+   ]
+  }
  },
  "AU": {
   "en": "Australia",
@@ -120,7 +184,15 @@
    "IR",
    "RU",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Baku",
+   "fr": "Bakou",
+   "at": [
+    49.86,
+    40.4
+   ]
+  }
  },
  "BA": {
   "en": "Bosnia and Herzegovina",
@@ -134,7 +206,15 @@
    "HR",
    "ME",
    "RS"
-  ]
+  ],
+  "capital": {
+   "en": "Sarajevo",
+   "fr": "Sarajevo",
+   "at": [
+    18.38,
+    43.85
+   ]
+  }
  },
  "BB": {
   "en": "Barbados",
@@ -149,7 +229,15 @@
   "borders": [
    "IN",
    "MM"
-  ]
+  ],
+  "capital": {
+   "en": "Dhaka",
+   "fr": "Dacca",
+   "at": [
+    90.41,
+    23.73
+   ]
+  }
  },
  "BE": {
   "en": "Belgium",
@@ -160,7 +248,15 @@
    "FR",
    "LU",
    "NL"
-  ]
+  ],
+  "capital": {
+   "en": "Brussels",
+   "fr": "Bruxelles",
+   "at": [
+    4.33,
+    50.84
+   ]
+  }
  },
  "BF": {
   "en": "Burkina Faso",
@@ -173,7 +269,15 @@
    "ML",
    "NE",
    "TG"
-  ]
+  ],
+  "capital": {
+   "en": "Ouagadougou",
+   "fr": "Ouagadougou",
+   "at": [
+    -1.53,
+    12.37
+   ]
+  }
  },
  "BG": {
   "en": "Bulgaria",
@@ -185,7 +289,15 @@
    "RO",
    "RS",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Sofia",
+   "fr": "Sofia",
+   "at": [
+    23.31,
+    42.69
+   ]
+  }
  },
  "BH": {
   "en": "Bahrain",
@@ -201,7 +313,15 @@
    "CD",
    "RW",
    "TZ"
-  ]
+  ],
+  "capital": {
+   "en": "Gitega",
+   "fr": "Gitega",
+   "at": [
+    29.93,
+    -3.43
+   ]
+  }
  },
  "BJ": {
   "en": "Benin",
@@ -212,7 +332,15 @@
    "NE",
    "NG",
    "TG"
-  ]
+  ],
+  "capital": {
+   "en": "Porto-Novo",
+   "fr": "Porto-Novo",
+   "at": [
+    2.62,
+    6.48
+   ]
+  }
  },
  "BN": {
   "en": "Brunei",
@@ -222,7 +350,15 @@
   ],
   "borders": [
    "MY"
-  ]
+  ],
+  "capital": {
+   "en": "Bandar Seri Begawan",
+   "fr": "Bandar Seri Begawan",
+   "at": [
+    114.93,
+    4.88
+   ]
+  }
  },
  "BO": {
   "en": "Bolivia",
@@ -234,7 +370,15 @@
    "CL",
    "PE",
    "PY"
-  ]
+  ],
+  "capital": {
+   "en": "Sucre",
+   "fr": "Sucre",
+   "at": [
+    -65.26,
+    -19.04
+   ]
+  }
  },
  "BR": {
   "en": "Brazil",
@@ -251,7 +395,15 @@
    "SR",
    "UY",
    "VE"
-  ]
+  ],
+  "capital": {
+   "en": "Brasília",
+   "fr": "Brasilia",
+   "at": [
+    -47.92,
+    -15.78
+   ]
+  }
  },
  "BS": {
   "en": "Bahamas",
@@ -266,7 +418,15 @@
   "borders": [
    "CN",
    "IN"
-  ]
+  ],
+  "capital": {
+   "en": "Thimphu",
+   "fr": "Thimphou",
+   "at": [
+    89.64,
+    27.47
+   ]
+  }
  },
  "BW": {
   "en": "Botswana",
@@ -276,7 +436,15 @@
    "NA",
    "ZA",
    "ZW"
-  ]
+  ],
+  "capital": {
+   "en": "Gaborone",
+   "fr": "Gaborone",
+   "at": [
+    25.91,
+    -24.65
+   ]
+  }
  },
  "BY": {
   "en": "Belarus",
@@ -288,7 +456,15 @@
    "PL",
    "RU",
    "UA"
-  ]
+  ],
+  "capital": {
+   "en": "Minsk",
+   "fr": "Minsk",
+   "at": [
+    27.56,
+    53.9
+   ]
+  }
  },
  "BZ": {
   "en": "Belize",
@@ -297,7 +473,15 @@
   "borders": [
    "GT",
    "MX"
-  ]
+  ],
+  "capital": {
+   "en": "Belmopan",
+   "fr": "Belmopan",
+   "at": [
+    -88.77,
+    17.25
+   ]
+  }
  },
  "CA": {
   "en": "Canada",
@@ -305,7 +489,15 @@
   "aliases": [],
   "borders": [
    "US"
-  ]
+  ],
+  "capital": {
+   "en": "Ottawa",
+   "fr": "Ottawa",
+   "at": [
+    -75.7,
+    45.42
+   ]
+  }
  },
  "CD": {
   "en": "DR Congo",
@@ -331,7 +523,15 @@
    "TZ",
    "UG",
    "ZM"
-  ]
+  ],
+  "capital": {
+   "en": "Kinshasa",
+   "fr": "Kinshasa",
+   "at": [
+    15.31,
+    -4.33
+   ]
+  }
  },
  "CF": {
   "en": "Central African Republic",
@@ -349,7 +549,15 @@
    "SD",
    "SS",
    "TD"
-  ]
+  ],
+  "capital": {
+   "en": "Bangui",
+   "fr": "Bangui",
+   "at": [
+    18.56,
+    4.37
+   ]
+  }
  },
  "CG": {
   "en": "Congo",
@@ -368,7 +576,15 @@
    "CF",
    "CM",
    "GA"
-  ]
+  ],
+  "capital": {
+   "en": "Brazzaville",
+   "fr": "Brazzaville",
+   "at": [
+    15.28,
+    -4.26
+   ]
+  }
  },
  "CH": {
   "en": "Switzerland",
@@ -380,7 +596,15 @@
    "FR",
    "IT",
    "LI"
-  ]
+  ],
+  "capital": {
+   "en": "Bern",
+   "fr": "Berne",
+   "at": [
+    7.47,
+    46.92
+   ]
+  }
  },
  "CI": {
   "en": "Ivory Coast",
@@ -396,7 +620,15 @@
    "GN",
    "LR",
    "ML"
-  ]
+  ],
+  "capital": {
+   "en": "Yamoussoukro",
+   "fr": "Yamoussoukro",
+   "at": [
+    -5.28,
+    6.82
+   ]
+  }
  },
  "CL": {
   "en": "Chile",
@@ -406,7 +638,15 @@
    "AR",
    "BO",
    "PE"
-  ]
+  ],
+  "capital": {
+   "en": "Santiago",
+   "fr": "Santiago",
+   "at": [
+    -70.65,
+    -33.44
+   ]
+  }
  },
  "CM": {
   "en": "Cameroon",
@@ -419,7 +659,15 @@
    "GQ",
    "NG",
    "TD"
-  ]
+  ],
+  "capital": {
+   "en": "Yaoundé",
+   "fr": "Yaoundé",
+   "at": [
+    11.51,
+    3.87
+   ]
+  }
  },
  "CN": {
   "en": "China",
@@ -442,7 +690,15 @@
    "RU",
    "TJ",
    "VN"
-  ]
+  ],
+  "capital": {
+   "en": "Beijing",
+   "fr": "Pékin",
+   "at": [
+    116.39,
+    39.9
+   ]
+  }
  },
  "CO": {
   "en": "Colombia",
@@ -454,7 +710,15 @@
    "PA",
    "PE",
    "VE"
-  ]
+  ],
+  "capital": {
+   "en": "Bogotá",
+   "fr": "Bogota",
+   "at": [
+    -74.09,
+    4.6
+   ]
+  }
  },
  "CR": {
   "en": "Costa Rica",
@@ -463,7 +727,15 @@
   "borders": [
    "NI",
    "PA"
-  ]
+  ],
+  "capital": {
+   "en": "San José",
+   "fr": "San José",
+   "at": [
+    -84.08,
+    9.93
+   ]
+  }
  },
  "CU": {
   "en": "Cuba",
@@ -496,7 +768,15 @@
    "DE",
    "PL",
    "SK"
-  ]
+  ],
+  "capital": {
+   "en": "Prague",
+   "fr": "Prague",
+   "at": [
+    14.42,
+    50.09
+   ]
+  }
  },
  "DE": {
   "en": "Germany",
@@ -514,7 +794,15 @@
    "LU",
    "NL",
    "PL"
-  ]
+  ],
+  "capital": {
+   "en": "Berlin",
+   "fr": "Berlin",
+   "at": [
+    13.4,
+    52.52
+   ]
+  }
  },
  "DJ": {
   "en": "Djibouti",
@@ -524,7 +812,15 @@
    "ER",
    "ET",
    "SO"
-  ]
+  ],
+  "capital": {
+   "en": "Djibouti",
+   "fr": "Djibouti",
+   "at": [
+    43.15,
+    11.6
+   ]
+  }
  },
  "DK": {
   "en": "Denmark",
@@ -532,7 +828,15 @@
   "aliases": [],
   "borders": [
    "DE"
-  ]
+  ],
+  "capital": {
+   "en": "Copenhagen",
+   "fr": "Copenhague",
+   "at": [
+    12.56,
+    55.68
+   ]
+  }
  },
  "DM": {
   "en": "Dominica",
@@ -548,7 +852,15 @@
   ],
   "borders": [
    "HT"
-  ]
+  ],
+  "capital": {
+   "en": "Santo Domingo",
+   "fr": "Saint-Domingue",
+   "at": [
+    -69.93,
+    18.47
+   ]
+  }
  },
  "DZ": {
   "en": "Algeria",
@@ -562,7 +874,15 @@
    "MR",
    "NE",
    "TN"
-  ]
+  ],
+  "capital": {
+   "en": "Algiers",
+   "fr": "Alger",
+   "at": [
+    3.05,
+    36.77
+   ]
+  }
  },
  "EC": {
   "en": "Ecuador",
@@ -571,7 +891,15 @@
   "borders": [
    "CO",
    "PE"
-  ]
+  ],
+  "capital": {
+   "en": "Quito",
+   "fr": "Quito",
+   "at": [
+    -78.5,
+    -0.21
+   ]
+  }
  },
  "EE": {
   "en": "Estonia",
@@ -580,7 +908,15 @@
   "borders": [
    "LV",
    "RU"
-  ]
+  ],
+  "capital": {
+   "en": "Tallinn",
+   "fr": "Tallinn",
+   "at": [
+    24.73,
+    59.43
+   ]
+  }
  },
  "EG": {
   "en": "Egypt",
@@ -591,7 +927,15 @@
    "LY",
    "PS",
    "SD"
-  ]
+  ],
+  "capital": {
+   "en": "Cairo",
+   "fr": "Le Caire",
+   "at": [
+    31.25,
+    30.05
+   ]
+  }
  },
  "EH": {
   "en": "Western Sahara",
@@ -601,7 +945,15 @@
    "DZ",
    "MA",
    "MR"
-  ]
+  ],
+  "capital": {
+   "en": "Laayoune",
+   "fr": "Laâyoune",
+   "at": [
+    -13.2,
+    27.15
+   ]
+  }
  },
  "ER": {
   "en": "Eritrea",
@@ -611,7 +963,15 @@
    "DJ",
    "ET",
    "SD"
-  ]
+  ],
+  "capital": {
+   "en": "Asmara",
+   "fr": "Asmara",
+   "at": [
+    38.93,
+    15.33
+   ]
+  }
  },
  "ES": {
   "en": "Spain",
@@ -623,7 +983,15 @@
    "AD",
    "FR",
    "PT"
-  ]
+  ],
+  "capital": {
+   "en": "Madrid",
+   "fr": "Madrid",
+   "at": [
+    -3.69,
+    40.4
+   ]
+  }
  },
  "ET": {
   "en": "Ethiopia",
@@ -636,7 +1004,15 @@
    "SD",
    "SO",
    "SS"
-  ]
+  ],
+  "capital": {
+   "en": "Addis Ababa",
+   "fr": "Addis-Abeba",
+   "at": [
+    38.7,
+    9.04
+   ]
+  }
  },
  "FI": {
   "en": "Finland",
@@ -646,7 +1022,15 @@
    "NO",
    "RU",
    "SE"
-  ]
+  ],
+  "capital": {
+   "en": "Helsinki",
+   "fr": "Helsinki",
+   "at": [
+    24.93,
+    60.16
+   ]
+  }
  },
  "FJ": {
   "en": "Fiji",
@@ -675,7 +1059,15 @@
    "IT",
    "LU",
    "MC"
-  ]
+  ],
+  "capital": {
+   "en": "Paris",
+   "fr": "Paris",
+   "at": [
+    2.35,
+    48.86
+   ]
+  }
  },
  "GA": {
   "en": "Gabon",
@@ -685,7 +1077,15 @@
    "CG",
    "CM",
    "GQ"
-  ]
+  ],
+  "capital": {
+   "en": "Libreville",
+   "fr": "Libreville",
+   "at": [
+    9.46,
+    0.39
+   ]
+  }
  },
  "GB": {
   "en": "United Kingdom",
@@ -701,7 +1101,15 @@
   ],
   "borders": [
    "IE"
-  ]
+  ],
+  "capital": {
+   "en": "London",
+   "fr": "Londres",
+   "at": [
+    -0.12,
+    51.5
+   ]
+  }
  },
  "GD": {
   "en": "Grenada",
@@ -718,7 +1126,15 @@
    "AZ",
    "RU",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Tbilisi",
+   "fr": "Tbilissi",
+   "at": [
+    44.79,
+    41.73
+   ]
+  }
  },
  "GF": {
   "en": "French Guiana",
@@ -730,7 +1146,15 @@
   "borders": [
    "BR",
    "SR"
-  ]
+  ],
+  "capital": {
+   "en": "Cayenne",
+   "fr": "Cayenne",
+   "at": [
+    -52.33,
+    4.93
+   ]
+  }
  },
  "GH": {
   "en": "Ghana",
@@ -740,7 +1164,15 @@
    "BF",
    "CI",
    "TG"
-  ]
+  ],
+  "capital": {
+   "en": "Accra",
+   "fr": "Accra",
+   "at": [
+    -0.22,
+    5.55
+   ]
+  }
  },
  "GL": {
   "en": "Greenland",
@@ -757,7 +1189,15 @@
   ],
   "borders": [
    "SN"
-  ]
+  ],
+  "capital": {
+   "en": "Banjul",
+   "fr": "Banjul",
+   "at": [
+    -16.59,
+    13.45
+   ]
+  }
  },
  "GN": {
   "en": "Guinea",
@@ -770,7 +1210,15 @@
    "ML",
    "SL",
    "SN"
-  ]
+  ],
+  "capital": {
+   "en": "Conakry",
+   "fr": "Conakry",
+   "at": [
+    -13.68,
+    9.53
+   ]
+  }
  },
  "GQ": {
   "en": "Equatorial Guinea",
@@ -779,7 +1227,15 @@
   "borders": [
    "CM",
    "GA"
-  ]
+  ],
+  "capital": {
+   "en": "Malabo",
+   "fr": "Malabo",
+   "at": [
+    8.78,
+    3.75
+   ]
+  }
  },
  "GR": {
   "en": "Greece",
@@ -790,7 +1246,15 @@
    "BG",
    "MK",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Athens",
+   "fr": "Athènes",
+   "at": [
+    23.73,
+    37.99
+   ]
+  }
  },
  "GT": {
   "en": "Guatemala",
@@ -801,7 +1265,15 @@
    "HN",
    "MX",
    "SV"
-  ]
+  ],
+  "capital": {
+   "en": "Guatemala City",
+   "fr": "Guatemala-Ville",
+   "at": [
+    -90.53,
+    14.62
+   ]
+  }
  },
  "GW": {
   "en": "Guinea-Bissau",
@@ -810,7 +1282,15 @@
   "borders": [
    "GN",
    "SN"
-  ]
+  ],
+  "capital": {
+   "en": "Bissau",
+   "fr": "Bissau",
+   "at": [
+    -15.6,
+    11.87
+   ]
+  }
  },
  "GY": {
   "en": "Guyana",
@@ -820,7 +1300,15 @@
    "BR",
    "SR",
    "VE"
-  ]
+  ],
+  "capital": {
+   "en": "Georgetown",
+   "fr": "Georgetown",
+   "at": [
+    -58.17,
+    6.8
+   ]
+  }
  },
  "HN": {
   "en": "Honduras",
@@ -830,7 +1318,15 @@
    "GT",
    "NI",
    "SV"
-  ]
+  ],
+  "capital": {
+   "en": "Tegucigalpa",
+   "fr": "Tegucigalpa",
+   "at": [
+    -87.22,
+    14.1
+   ]
+  }
  },
  "HR": {
   "en": "Croatia",
@@ -842,7 +1338,15 @@
    "ME",
    "RS",
    "SI"
-  ]
+  ],
+  "capital": {
+   "en": "Zagreb",
+   "fr": "Zagreb",
+   "at": [
+    16,
+    45.8
+   ]
+  }
  },
  "HT": {
   "en": "Haiti",
@@ -850,7 +1354,15 @@
   "aliases": [],
   "borders": [
    "DO"
-  ]
+  ],
+  "capital": {
+   "en": "Port-au-Prince",
+   "fr": "Port-au-Prince",
+   "at": [
+    -72.34,
+    18.54
+   ]
+  }
  },
  "HU": {
   "en": "Hungary",
@@ -864,7 +1376,15 @@
    "SI",
    "SK",
    "UA"
-  ]
+  ],
+  "capital": {
+   "en": "Budapest",
+   "fr": "Budapest",
+   "at": [
+    19.08,
+    47.5
+   ]
+  }
  },
  "ID": {
   "en": "Indonesia",
@@ -874,7 +1394,15 @@
    "MY",
    "PG",
    "TL"
-  ]
+  ],
+  "capital": {
+   "en": "Jakarta",
+   "fr": "Jakarta",
+   "at": [
+    106.83,
+    -6.17
+   ]
+  }
  },
  "IE": {
   "en": "Ireland",
@@ -882,7 +1410,15 @@
   "aliases": [],
   "borders": [
    "GB"
-  ]
+  ],
+  "capital": {
+   "en": "Dublin",
+   "fr": "Dublin",
+   "at": [
+    -6.26,
+    53.35
+   ]
+  }
  },
  "IL": {
   "en": "Israel",
@@ -894,7 +1430,15 @@
    "LB",
    "PS",
    "SY"
-  ]
+  ],
+  "capital": {
+   "en": "Jerusalem",
+   "fr": "Jérusalem",
+   "at": [
+    35.21,
+    31.78
+   ]
+  }
  },
  "IN": {
   "en": "India",
@@ -907,7 +1451,15 @@
    "MM",
    "NP",
    "PK"
-  ]
+  ],
+  "capital": {
+   "en": "New Delhi",
+   "fr": "New Delhi",
+   "at": [
+    77.2,
+    28.6
+   ]
+  }
  },
  "IQ": {
   "en": "Iraq",
@@ -920,7 +1472,15 @@
    "SA",
    "SY",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Baghdad",
+   "fr": "Bagdad",
+   "at": [
+    44.39,
+    33.34
+   ]
+  }
  },
  "IR": {
   "en": "Iran",
@@ -936,7 +1496,15 @@
    "PK",
    "TM",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Tehran",
+   "fr": "Téhéran",
+   "at": [
+    51.42,
+    35.67
+   ]
+  }
  },
  "IS": {
   "en": "Iceland",
@@ -955,7 +1523,15 @@
    "SI",
    "SM",
    "VA"
-  ]
+  ],
+  "capital": {
+   "en": "Rome",
+   "fr": "Rome",
+   "at": [
+    12.48,
+    41.9
+   ]
+  }
  },
  "JM": {
   "en": "Jamaica",
@@ -973,7 +1549,15 @@
    "PS",
    "SA",
    "SY"
-  ]
+  ],
+  "capital": {
+   "en": "Amman",
+   "fr": "Amman",
+   "at": [
+    35.93,
+    31.95
+   ]
+  }
  },
  "JP": {
   "en": "Japan",
@@ -991,7 +1575,15 @@
    "SS",
    "TZ",
    "UG"
-  ]
+  ],
+  "capital": {
+   "en": "Nairobi",
+   "fr": "Nairobi",
+   "at": [
+    36.81,
+    -1.28
+   ]
+  }
  },
  "KG": {
   "en": "Kyrgyzstan",
@@ -1004,7 +1596,15 @@
    "KZ",
    "TJ",
    "UZ"
-  ]
+  ],
+  "capital": {
+   "en": "Bishkek",
+   "fr": "Bichkek",
+   "at": [
+    74.58,
+    42.88
+   ]
+  }
  },
  "KH": {
   "en": "Cambodia",
@@ -1014,7 +1614,15 @@
    "LA",
    "TH",
    "VN"
-  ]
+  ],
+  "capital": {
+   "en": "Phnom Penh",
+   "fr": "Phnom Penh",
+   "at": [
+    104.91,
+    11.55
+   ]
+  }
  },
  "KI": {
   "en": "Kiribati",
@@ -1044,7 +1652,15 @@
    "CN",
    "KR",
    "RU"
-  ]
+  ],
+  "capital": {
+   "en": "Pyongyang",
+   "fr": "Pyongyang",
+   "at": [
+    125.75,
+    39.02
+   ]
+  }
  },
  "KR": {
   "en": "South Korea",
@@ -1056,7 +1672,15 @@
   ],
   "borders": [
    "KP"
-  ]
+  ],
+  "capital": {
+   "en": "Seoul",
+   "fr": "Séoul",
+   "at": [
+    127,
+    37.57
+   ]
+  }
  },
  "KW": {
   "en": "Kuwait",
@@ -1065,7 +1689,15 @@
   "borders": [
    "IQ",
    "SA"
-  ]
+  ],
+  "capital": {
+   "en": "Kuwait City",
+   "fr": "Koweït",
+   "at": [
+    47.98,
+    29.37
+   ]
+  }
  },
  "KZ": {
   "en": "Kazakhstan",
@@ -1077,7 +1709,15 @@
    "RU",
    "TM",
    "UZ"
-  ]
+  ],
+  "capital": {
+   "en": "Astana",
+   "fr": "Astana",
+   "at": [
+    71.43,
+    51.18
+   ]
+  }
  },
  "LA": {
   "en": "Laos",
@@ -1091,7 +1731,15 @@
    "MM",
    "TH",
    "VN"
-  ]
+  ],
+  "capital": {
+   "en": "Vientiane",
+   "fr": "Vientiane",
+   "at": [
+    102.6,
+    17.97
+   ]
+  }
  },
  "LB": {
   "en": "Lebanon",
@@ -1100,7 +1748,15 @@
   "borders": [
    "IL",
    "SY"
-  ]
+  ],
+  "capital": {
+   "en": "Beirut",
+   "fr": "Beyrouth",
+   "at": [
+    35.51,
+    33.87
+   ]
+  }
  },
  "LC": {
   "en": "St. Lucia",
@@ -1117,7 +1773,15 @@
   "borders": [
    "AT",
    "CH"
-  ]
+  ],
+  "capital": {
+   "en": "Vaduz",
+   "fr": "Vaduz",
+   "at": [
+    9.52,
+    47.13
+   ]
+  }
  },
  "LK": {
   "en": "Sri Lanka",
@@ -1135,7 +1799,15 @@
    "CI",
    "GN",
    "SL"
-  ]
+  ],
+  "capital": {
+   "en": "Monrovia",
+   "fr": "Monrovia",
+   "at": [
+    -10.8,
+    6.31
+   ]
+  }
  },
  "LS": {
   "en": "Lesotho",
@@ -1143,7 +1815,15 @@
   "aliases": [],
   "borders": [
    "ZA"
-  ]
+  ],
+  "capital": {
+   "en": "Maseru",
+   "fr": "Maseru",
+   "at": [
+    27.48,
+    -29.32
+   ]
+  }
  },
  "LT": {
   "en": "Lithuania",
@@ -1154,7 +1834,15 @@
    "LV",
    "PL",
    "RU"
-  ]
+  ],
+  "capital": {
+   "en": "Vilnius",
+   "fr": "Vilnius",
+   "at": [
+    25.32,
+    54.68
+   ]
+  }
  },
  "LU": {
   "en": "Luxembourg",
@@ -1164,7 +1852,15 @@
    "BE",
    "DE",
    "FR"
-  ]
+  ],
+  "capital": {
+   "en": "Luxembourg",
+   "fr": "Luxembourg",
+   "at": [
+    6.13,
+    49.61
+   ]
+  }
  },
  "LV": {
   "en": "Latvia",
@@ -1175,7 +1871,15 @@
    "EE",
    "LT",
    "RU"
-  ]
+  ],
+  "capital": {
+   "en": "Riga",
+   "fr": "Riga",
+   "at": [
+    24.1,
+    56.95
+   ]
+  }
  },
  "LY": {
   "en": "Libya",
@@ -1188,7 +1892,15 @@
    "SD",
    "TD",
    "TN"
-  ]
+  ],
+  "capital": {
+   "en": "Tripoli",
+   "fr": "Tripoli",
+   "at": [
+    13.18,
+    32.89
+   ]
+  }
  },
  "MA": {
   "en": "Morocco",
@@ -1197,7 +1909,15 @@
   "borders": [
    "DZ",
    "EH"
-  ]
+  ],
+  "capital": {
+   "en": "Rabat",
+   "fr": "Rabat",
+   "at": [
+    -6.84,
+    34.03
+   ]
+  }
  },
  "MC": {
   "en": "Monaco",
@@ -1205,7 +1925,15 @@
   "aliases": [],
   "borders": [
    "FR"
-  ]
+  ],
+  "capital": {
+   "en": "Monaco",
+   "fr": "Monaco",
+   "at": [
+    7.41,
+    43.74
+   ]
+  }
  },
  "MD": {
   "en": "Moldova",
@@ -1216,7 +1944,15 @@
   "borders": [
    "RO",
    "UA"
-  ]
+  ],
+  "capital": {
+   "en": "Chișinău",
+   "fr": "Chișinău",
+   "at": [
+    28.86,
+    47.01
+   ]
+  }
  },
  "ME": {
   "en": "Montenegro",
@@ -1228,7 +1964,15 @@
    "HR",
    "RS",
    "XK"
-  ]
+  ],
+  "capital": {
+   "en": "Podgorica",
+   "fr": "Podgorica",
+   "at": [
+    19.27,
+    42.47
+   ]
+  }
  },
  "MG": {
   "en": "Madagascar",
@@ -1256,7 +2000,15 @@
    "GR",
    "RS",
    "XK"
-  ]
+  ],
+  "capital": {
+   "en": "Skopje",
+   "fr": "Skopje",
+   "at": [
+    21.43,
+    42
+   ]
+  }
  },
  "ML": {
   "en": "Mali",
@@ -1270,7 +2022,15 @@
    "MR",
    "NE",
    "SN"
-  ]
+  ],
+  "capital": {
+   "en": "Bamako",
+   "fr": "Bamako",
+   "at": [
+    -8,
+    12.65
+   ]
+  }
  },
  "MM": {
   "en": "Myanmar",
@@ -1286,7 +2046,15 @@
    "IN",
    "LA",
    "TH"
-  ]
+  ],
+  "capital": {
+   "en": "Naypyidaw",
+   "fr": "Naypyidaw",
+   "at": [
+    96.12,
+    19.77
+   ]
+  }
  },
  "MN": {
   "en": "Mongolia",
@@ -1295,7 +2063,15 @@
   "borders": [
    "CN",
    "RU"
-  ]
+  ],
+  "capital": {
+   "en": "Ulaanbaatar",
+   "fr": "Oulan-Bator",
+   "at": [
+    106.91,
+    47.92
+   ]
+  }
  },
  "MR": {
   "en": "Mauritania",
@@ -1306,7 +2082,15 @@
    "EH",
    "ML",
    "SN"
-  ]
+  ],
+  "capital": {
+   "en": "Nouakchott",
+   "fr": "Nouakchott",
+   "at": [
+    -15.98,
+    18.09
+   ]
+  }
  },
  "MT": {
   "en": "Malta",
@@ -1334,7 +2118,15 @@
    "MZ",
    "TZ",
    "ZM"
-  ]
+  ],
+  "capital": {
+   "en": "Lilongwe",
+   "fr": "Lilongwe",
+   "at": [
+    33.78,
+    -13.98
+   ]
+  }
  },
  "MX": {
   "en": "Mexico",
@@ -1344,7 +2136,15 @@
    "BZ",
    "GT",
    "US"
-  ]
+  ],
+  "capital": {
+   "en": "Mexico City",
+   "fr": "Mexico",
+   "at": [
+    -99.13,
+    19.44
+   ]
+  }
  },
  "MY": {
   "en": "Malaysia",
@@ -1354,7 +2154,15 @@
    "BN",
    "ID",
    "TH"
-  ]
+  ],
+  "capital": {
+   "en": "Kuala Lumpur",
+   "fr": "Kuala Lumpur",
+   "at": [
+    101.69,
+    3.14
+   ]
+  }
  },
  "MZ": {
   "en": "Mozambique",
@@ -1367,7 +2175,15 @@
    "ZA",
    "ZM",
    "ZW"
-  ]
+  ],
+  "capital": {
+   "en": "Maputo",
+   "fr": "Maputo",
+   "at": [
+    32.59,
+    -25.95
+   ]
+  }
  },
  "NA": {
   "en": "Namibia",
@@ -1378,7 +2194,15 @@
    "BW",
    "ZA",
    "ZM"
-  ]
+  ],
+  "capital": {
+   "en": "Windhoek",
+   "fr": "Windhoek",
+   "at": [
+    17.08,
+    -22.57
+   ]
+  }
  },
  "NE": {
   "en": "Niger",
@@ -1392,7 +2216,15 @@
    "ML",
    "NG",
    "TD"
-  ]
+  ],
+  "capital": {
+   "en": "Niamey",
+   "fr": "Niamey",
+   "at": [
+    2.11,
+    13.52
+   ]
+  }
  },
  "NG": {
   "en": "Nigeria",
@@ -1405,7 +2237,15 @@
    "CM",
    "NE",
    "TD"
-  ]
+  ],
+  "capital": {
+   "en": "Abuja",
+   "fr": "Abuja",
+   "at": [
+    7.49,
+    9.05
+   ]
+  }
  },
  "NI": {
   "en": "Nicaragua",
@@ -1414,7 +2254,15 @@
   "borders": [
    "CR",
    "HN"
-  ]
+  ],
+  "capital": {
+   "en": "Managua",
+   "fr": "Managua",
+   "at": [
+    -86.27,
+    12.15
+   ]
+  }
  },
  "NL": {
   "en": "Netherlands",
@@ -1428,7 +2276,15 @@
   "borders": [
    "BE",
    "DE"
-  ]
+  ],
+  "capital": {
+   "en": "Amsterdam",
+   "fr": "Amsterdam",
+   "at": [
+    4.91,
+    52.35
+   ]
+  }
  },
  "NO": {
   "en": "Norway",
@@ -1438,7 +2294,15 @@
    "FI",
    "RU",
    "SE"
-  ]
+  ],
+  "capital": {
+   "en": "Oslo",
+   "fr": "Oslo",
+   "at": [
+    10.75,
+    59.92
+   ]
+  }
  },
  "NP": {
   "en": "Nepal",
@@ -1447,7 +2311,15 @@
   "borders": [
    "CN",
    "IN"
-  ]
+  ],
+  "capital": {
+   "en": "Kathmandu",
+   "fr": "Katmandou",
+   "at": [
+    85.31,
+    27.72
+   ]
+  }
  },
  "NR": {
   "en": "Nauru",
@@ -1469,7 +2341,15 @@
    "AE",
    "SA",
    "YE"
-  ]
+  ],
+  "capital": {
+   "en": "Muscat",
+   "fr": "Mascate",
+   "at": [
+    58.38,
+    23.59
+   ]
+  }
  },
  "PA": {
   "en": "Panama",
@@ -1478,7 +2358,15 @@
   "borders": [
    "CO",
    "CR"
-  ]
+  ],
+  "capital": {
+   "en": "Panama City",
+   "fr": "Panama",
+   "at": [
+    -79.53,
+    8.97
+   ]
+  }
  },
  "PE": {
   "en": "Peru",
@@ -1490,7 +2378,15 @@
    "CL",
    "CO",
    "EC"
-  ]
+  ],
+  "capital": {
+   "en": "Lima",
+   "fr": "Lima",
+   "at": [
+    -77.05,
+    -12.05
+   ]
+  }
  },
  "PG": {
   "en": "Papua New Guinea",
@@ -1498,7 +2394,15 @@
   "aliases": [],
   "borders": [
    "ID"
-  ]
+  ],
+  "capital": {
+   "en": "Port Moresby",
+   "fr": "Port Moresby",
+   "at": [
+    147.19,
+    -9.46
+   ]
+  }
  },
  "PH": {
   "en": "Philippines",
@@ -1515,7 +2419,15 @@
    "CN",
    "IN",
    "IR"
-  ]
+  ],
+  "capital": {
+   "en": "Islamabad",
+   "fr": "Islamabad",
+   "at": [
+    73.08,
+    33.69
+   ]
+  }
  },
  "PL": {
   "en": "Poland",
@@ -1529,7 +2441,15 @@
    "RU",
    "SK",
    "UA"
-  ]
+  ],
+  "capital": {
+   "en": "Warsaw",
+   "fr": "Varsovie",
+   "at": [
+    21.01,
+    52.23
+   ]
+  }
  },
  "PS": {
   "en": "Palestine",
@@ -1543,7 +2463,15 @@
    "EG",
    "IL",
    "JO"
-  ]
+  ],
+  "capital": {
+   "en": "Ramallah",
+   "fr": "Ramallah",
+   "at": [
+    35.21,
+    31.9
+   ]
+  }
  },
  "PT": {
   "en": "Portugal",
@@ -1551,7 +2479,15 @@
   "aliases": [],
   "borders": [
    "ES"
-  ]
+  ],
+  "capital": {
+   "en": "Lisbon",
+   "fr": "Lisbonne",
+   "at": [
+    -9.15,
+    38.72
+   ]
+  }
  },
  "PW": {
   "en": "Palau",
@@ -1567,7 +2503,15 @@
    "AR",
    "BO",
    "BR"
-  ]
+  ],
+  "capital": {
+   "en": "Asunción",
+   "fr": "Asuncion",
+   "at": [
+    -57.63,
+    -25.29
+   ]
+  }
  },
  "QA": {
   "en": "Qatar",
@@ -1575,7 +2519,15 @@
   "aliases": [],
   "borders": [
    "SA"
-  ]
+  ],
+  "capital": {
+   "en": "Doha",
+   "fr": "Doha",
+   "at": [
+    51.53,
+    25.29
+   ]
+  }
  },
  "RO": {
   "en": "Romania",
@@ -1587,7 +2539,15 @@
    "MD",
    "RS",
    "UA"
-  ]
+  ],
+  "capital": {
+   "en": "Bucharest",
+   "fr": "Bucarest",
+   "at": [
+    26.1,
+    44.44
+   ]
+  }
  },
  "RS": {
   "en": "Serbia",
@@ -1602,7 +2562,15 @@
    "MK",
    "RO",
    "XK"
-  ]
+  ],
+  "capital": {
+   "en": "Belgrade",
+   "fr": "Belgrade",
+   "at": [
+    20.47,
+    44.82
+   ]
+  }
  },
  "RU": {
   "en": "Russia",
@@ -1626,7 +2594,15 @@
    "NO",
    "PL",
    "UA"
-  ]
+  ],
+  "capital": {
+   "en": "Moscow",
+   "fr": "Moscou",
+   "at": [
+    37.61,
+    55.75
+   ]
+  }
  },
  "RW": {
   "en": "Rwanda",
@@ -1637,7 +2613,15 @@
    "CD",
    "TZ",
    "UG"
-  ]
+  ],
+  "capital": {
+   "en": "Kigali",
+   "fr": "Kigali",
+   "at": [
+    30.06,
+    -1.95
+   ]
+  }
  },
  "SA": {
   "en": "Saudi Arabia",
@@ -1653,7 +2637,15 @@
    "OM",
    "QA",
    "YE"
-  ]
+  ],
+  "capital": {
+   "en": "Riyadh",
+   "fr": "Riyad",
+   "at": [
+    46.72,
+    24.63
+   ]
+  }
  },
  "SB": {
   "en": "Solomon Islands",
@@ -1679,7 +2671,15 @@
    "LY",
    "SS",
    "TD"
-  ]
+  ],
+  "capital": {
+   "en": "Khartoum",
+   "fr": "Khartoum",
+   "at": [
+    32.53,
+    15.59
+   ]
+  }
  },
  "SE": {
   "en": "Sweden",
@@ -1688,7 +2688,15 @@
   "borders": [
    "FI",
    "NO"
-  ]
+  ],
+  "capital": {
+   "en": "Stockholm",
+   "fr": "Stockholm",
+   "at": [
+    18.07,
+    59.32
+   ]
+  }
  },
  "SG": {
   "en": "Singapore",
@@ -1705,7 +2713,15 @@
    "HR",
    "HU",
    "IT"
-  ]
+  ],
+  "capital": {
+   "en": "Ljubljana",
+   "fr": "Ljubljana",
+   "at": [
+    14.51,
+    46.06
+   ]
+  }
  },
  "SK": {
   "en": "Slovakia",
@@ -1717,7 +2733,15 @@
    "HU",
    "PL",
    "UA"
-  ]
+  ],
+  "capital": {
+   "en": "Bratislava",
+   "fr": "Bratislava",
+   "at": [
+    17.12,
+    48.15
+   ]
+  }
  },
  "SL": {
   "en": "Sierra Leone",
@@ -1726,7 +2750,15 @@
   "borders": [
    "GN",
    "LR"
-  ]
+  ],
+  "capital": {
+   "en": "Freetown",
+   "fr": "Freetown",
+   "at": [
+    -13.24,
+    8.47
+   ]
+  }
  },
  "SM": {
   "en": "San Marino",
@@ -1734,7 +2766,15 @@
   "aliases": [],
   "borders": [
    "IT"
-  ]
+  ],
+  "capital": {
+   "en": "San Marino",
+   "fr": "Saint-Marin",
+   "at": [
+    12.44,
+    43.94
+   ]
+  }
  },
  "SN": {
   "en": "Senegal",
@@ -1746,7 +2786,15 @@
    "GW",
    "ML",
    "MR"
-  ]
+  ],
+  "capital": {
+   "en": "Dakar",
+   "fr": "Dakar",
+   "at": [
+    -17.48,
+    14.72
+   ]
+  }
  },
  "SO": {
   "en": "Somalia",
@@ -1756,7 +2804,15 @@
    "DJ",
    "ET",
    "KE"
-  ]
+  ],
+  "capital": {
+   "en": "Mogadishu",
+   "fr": "Mogadiscio",
+   "at": [
+    45.36,
+    2.07
+   ]
+  }
  },
  "SR": {
   "en": "Suriname",
@@ -1766,7 +2822,15 @@
    "BR",
    "GF",
    "GY"
-  ]
+  ],
+  "capital": {
+   "en": "Paramaribo",
+   "fr": "Paramaribo",
+   "at": [
+    -55.17,
+    5.84
+   ]
+  }
  },
  "SS": {
   "en": "South Sudan",
@@ -1779,7 +2843,15 @@
    "KE",
    "SD",
    "UG"
-  ]
+  ],
+  "capital": {
+   "en": "Juba",
+   "fr": "Djouba",
+   "at": [
+    31.58,
+    4.83
+   ]
+  }
  },
  "ST": {
   "en": "São Tomé & Príncipe",
@@ -1797,7 +2869,15 @@
   "borders": [
    "GT",
    "HN"
-  ]
+  ],
+  "capital": {
+   "en": "San Salvador",
+   "fr": "San Salvador",
+   "at": [
+    -89.22,
+    13.7
+   ]
+  }
  },
  "SY": {
   "en": "Syria",
@@ -1811,7 +2891,15 @@
    "JO",
    "LB",
    "TR"
-  ]
+  ],
+  "capital": {
+   "en": "Damascus",
+   "fr": "Damas",
+   "at": [
+    36.3,
+    33.5
+   ]
+  }
  },
  "SZ": {
   "en": "Eswatini",
@@ -1823,7 +2911,15 @@
   "borders": [
    "MZ",
    "ZA"
-  ]
+  ],
+  "capital": {
+   "en": "Mbabane",
+   "fr": "Mbabane",
+   "at": [
+    31.13,
+    -26.32
+   ]
+  }
  },
  "TD": {
   "en": "Chad",
@@ -1836,7 +2932,15 @@
    "NE",
    "NG",
    "SD"
-  ]
+  ],
+  "capital": {
+   "en": "N'Djamena",
+   "fr": "N'Djaména",
+   "at": [
+    15.05,
+    12.12
+   ]
+  }
  },
  "TG": {
   "en": "Togo",
@@ -1846,7 +2950,15 @@
    "BF",
    "BJ",
    "GH"
-  ]
+  ],
+  "capital": {
+   "en": "Lomé",
+   "fr": "Lomé",
+   "at": [
+    1.22,
+    6.13
+   ]
+  }
  },
  "TH": {
   "en": "Thailand",
@@ -1857,7 +2969,15 @@
    "LA",
    "MM",
    "MY"
-  ]
+  ],
+  "capital": {
+   "en": "Bangkok",
+   "fr": "Bangkok",
+   "at": [
+    100.51,
+    13.75
+   ]
+  }
  },
  "TJ": {
   "en": "Tajikistan",
@@ -1868,7 +2988,15 @@
    "CN",
    "KG",
    "UZ"
-  ]
+  ],
+  "capital": {
+   "en": "Dushanbe",
+   "fr": "Douchanbé",
+   "at": [
+    68.77,
+    38.56
+   ]
+  }
  },
  "TL": {
   "en": "East Timor",
@@ -1879,7 +3007,15 @@
   ],
   "borders": [
    "ID"
-  ]
+  ],
+  "capital": {
+   "en": "Dili",
+   "fr": "Dili",
+   "at": [
+    125.58,
+    -8.56
+   ]
+  }
  },
  "TM": {
   "en": "Turkmenistan",
@@ -1890,7 +3026,15 @@
    "IR",
    "KZ",
    "UZ"
-  ]
+  ],
+  "capital": {
+   "en": "Ashgabat",
+   "fr": "Achgabat",
+   "at": [
+    58.38,
+    37.95
+   ]
+  }
  },
  "TN": {
   "en": "Tunisia",
@@ -1899,7 +3043,15 @@
   "borders": [
    "DZ",
    "LY"
-  ]
+  ],
+  "capital": {
+   "en": "Tunis",
+   "fr": "Tunis",
+   "at": [
+    10.18,
+    36.8
+   ]
+  }
  },
  "TO": {
   "en": "Tonga",
@@ -1923,7 +3075,15 @@
    "IQ",
    "IR",
    "SY"
-  ]
+  ],
+  "capital": {
+   "en": "Ankara",
+   "fr": "Ankara",
+   "at": [
+    32.86,
+    39.93
+   ]
+  }
  },
  "TT": {
   "en": "Trinidad & Tobago",
@@ -1957,7 +3117,15 @@
    "RW",
    "UG",
    "ZM"
-  ]
+  ],
+  "capital": {
+   "en": "Dodoma",
+   "fr": "Dodoma",
+   "at": [
+    35.75,
+    -6.18
+   ]
+  }
  },
  "UA": {
   "en": "Ukraine",
@@ -1971,7 +3139,15 @@
    "RO",
    "RU",
    "SK"
-  ]
+  ],
+  "capital": {
+   "en": "Kyiv",
+   "fr": "Kiev",
+   "at": [
+    30.51,
+    50.44
+   ]
+  }
  },
  "UG": {
   "en": "Uganda",
@@ -1983,7 +3159,15 @@
    "RW",
    "SS",
    "TZ"
-  ]
+  ],
+  "capital": {
+   "en": "Kampala",
+   "fr": "Kampala",
+   "at": [
+    32.58,
+    0.32
+   ]
+  }
  },
  "US": {
   "en": "United States",
@@ -2003,7 +3187,15 @@
   "borders": [
    "CA",
    "MX"
-  ]
+  ],
+  "capital": {
+   "en": "Washington",
+   "fr": "Washington",
+   "at": [
+    -77.01,
+    38.9
+   ]
+  }
  },
  "UY": {
   "en": "Uruguay",
@@ -2012,7 +3204,15 @@
   "borders": [
    "AR",
    "BR"
-  ]
+  ],
+  "capital": {
+   "en": "Montevideo",
+   "fr": "Montevideo",
+   "at": [
+    -56.19,
+    -34.91
+   ]
+  }
  },
  "UZ": {
   "en": "Uzbekistan",
@@ -2024,7 +3224,15 @@
    "KZ",
    "TJ",
    "TM"
-  ]
+  ],
+  "capital": {
+   "en": "Tashkent",
+   "fr": "Tachkent",
+   "at": [
+    69.27,
+    41.3
+   ]
+  }
  },
  "VA": {
   "en": "Vatican City",
@@ -2039,7 +3247,15 @@
   ],
   "borders": [
    "IT"
-  ]
+  ],
+  "capital": {
+   "en": "Vatican City",
+   "fr": "Cité du Vatican",
+   "at": [
+    12.45,
+    41.9
+   ]
+  }
  },
  "VC": {
   "en": "St. Vincent & Grenadines",
@@ -2058,7 +3274,15 @@
    "BR",
    "CO",
    "GY"
-  ]
+  ],
+  "capital": {
+   "en": "Caracas",
+   "fr": "Caracas",
+   "at": [
+    -66.92,
+    10.5
+   ]
+  }
  },
  "VN": {
   "en": "Vietnam",
@@ -2068,7 +3292,15 @@
    "CN",
    "KH",
    "LA"
-  ]
+  ],
+  "capital": {
+   "en": "Hanoi",
+   "fr": "Hanoï",
+   "at": [
+    105.85,
+    21.04
+   ]
+  }
  },
  "VU": {
   "en": "Vanuatu",
@@ -2091,7 +3323,15 @@
    "ME",
    "MK",
    "RS"
-  ]
+  ],
+  "capital": {
+   "en": "Pristina",
+   "fr": "Pristina",
+   "at": [
+    21.17,
+    42.67
+   ]
+  }
  },
  "YE": {
   "en": "Yemen",
@@ -2100,7 +3340,15 @@
   "borders": [
    "OM",
    "SA"
-  ]
+  ],
+  "capital": {
+   "en": "Sanaa",
+   "fr": "Sanaa",
+   "at": [
+    44.2,
+    15.36
+   ]
+  }
  },
  "ZA": {
   "en": "South Africa",
@@ -2113,7 +3361,15 @@
    "NA",
    "SZ",
    "ZW"
-  ]
+  ],
+  "capital": {
+   "en": "Pretoria",
+   "fr": "Pretoria",
+   "at": [
+    28.23,
+    -25.7
+   ]
+  }
  },
  "ZM": {
   "en": "Zambia",
@@ -2127,7 +3383,15 @@
    "NA",
    "TZ",
    "ZW"
-  ]
+  ],
+  "capital": {
+   "en": "Lusaka",
+   "fr": "Lusaka",
+   "at": [
+    28.28,
+    -15.41
+   ]
+  }
  },
  "ZW": {
   "en": "Zimbabwe",
@@ -2138,6 +3402,14 @@
    "MZ",
    "ZA",
    "ZM"
-  ]
+  ],
+  "capital": {
+   "en": "Harare",
+   "fr": "Harare",
+   "at": [
+    31.04,
+    -17.82
+   ]
+  }
  }
 }

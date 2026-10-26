@@ -379,6 +379,19 @@
   margin-top: 2px;
 }
 
+.br-page .br-capitals {
+  margin: 0;
+  color: var(--br-ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.br-page .br-capitals-names {
+  color: var(--br-ink);
+  font-weight: 800;
+}
+
 .br-page .br-path {
   margin: 0;
   font-size: 15px;
@@ -437,6 +450,66 @@
   stroke-width: 2px;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
+}
+
+/* Names on the map: dark letters on a paper halo, so they read over any colour. */
+.br-page .br-map-label {
+  fill: var(--br-ink);
+  stroke: var(--br-paper);
+  stroke-linejoin: round;
+  paint-order: stroke;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.br-page .br-map-label[data-main] {
+  font-weight: 800;
+}
+
+/* The start's and end's anchor: a white ring the line starts and ends on. */
+.br-page .br-map-end {
+  fill: #fff;
+  stroke: var(--br-ink);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The route: round dots (zero-length dashes with round caps) on a white halo, drawn in from the start. */
+.br-page .br-map-route-halo,
+.br-page .br-map-route-dots {
+  fill: none;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.br-page .br-map-route-halo {
+  stroke: #fff;
+  stroke-width: 7px;
+  stroke-dasharray: 0 10;
+}
+
+.br-page .br-map-route-dots {
+  stroke: var(--br-ink);
+  stroke-width: 4px;
+  stroke-dasharray: 0 10;
+}
+
+.br-page .br-map-route-reveal {
+  fill: none;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: br-draw 1.2s ease-out both;
+}
+
+@keyframes br-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* The guess box and its suggestions. */
@@ -640,5 +713,8 @@
   .br-page .br-button,
   .br-page .br-map-country {
     transition: none;
+  }
+  .br-page .br-map-route-reveal {
+    animation: none;
   }
 }

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Builds Border Run's map data from public sources, once; the output is
 // committed, so neither the build nor the app fetches anything:
-//   lib/games/borderrun/countries.json  names (EN, FR, aliases) and land borders, for the game logic (server and client)
+//   lib/games/borderrun/countries.json  names (EN, FR, aliases), land borders and capitals, for the game logic (server and client)
 //   lib/games/borderrun/shapes.json     simplified outlines, for the map (client only)
 //
 // Sources, pinned:
 //   world-atlas 2.0.2 countries-50m (Natural Earth 1:50m admin 0, public domain; ISC packaging)
 //   i18n-iso-countries 7.14.0 (ISO codes, and EN/FR names with their alternatives; MIT)
+//   Natural Earth 5.1.2 ne_50m_populated_places (capitals, with EN/FR names; public domain)
 // Display names come from this Node's Intl.DisplayNames (EN and FR), with the
 // overrides below, and are written into the JSON, so they don't depend on the
 // browser.
@@ -21,6 +22,7 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(repo, "lib/games/borderrun");
 const ATLAS = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json";
 const ISO = "https://cdn.jsdelivr.net/npm/i18n-iso-countries@7.14.0";
+const PLACES = "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_populated_places.geojson";
 
 /** Douglas-Peucker tolerance, in degrees (about 4 km). */
 const TOLERANCE = 0.04;
@@ -40,6 +42,19 @@ const DISPLAY = {
   en: { CD: "DR Congo", CG: "Congo", MM: "Myanmar", PS: "Palestine", VA: "Vatican City", BA: "Bosnia and Herzegovina", TR: "Turkey", CI: "Ivory Coast", TL: "East Timor", XK: "Kosovo", SZ: "Eswatini", GF: "French Guiana", EH: "Western Sahara" },
   fr: { CD: "RD Congo", CG: "Congo", MM: "Birmanie", PS: "Palestine", VA: "Vatican", TL: "Timor oriental", XK: "Kosovo", GF: "Guyane", US: "États-Unis", VN: "Viêt Nam", EH: "Sahara occidental" },
 };
+/**
+ * The capital, where Natural Earth lists more than one or none for a country
+ * (it has no country-level capital for the last four): the official seat,
+ * picked by name.
+ */
+const CAPITAL = { ZA: "Pretoria", CI: "Yamoussoukro", BO: "Sucre", MM: "Naypyidaw", XK: "Pristina", GF: "Cayenne", PS: "Ramallah", EH: "Laayoune", TZ: "Dodoma", BJ: "Porto-Novo" };
+/**
+ * Where Natural Earth 5.1.2 is out of date: Burundi's capital moved to Gitega
+ * in 2019 (not among its 1:50m places, so placed by hand), and Nur-Sultan
+ * went back to Astana in 2022.
+ */
+const CAPITAL_FIX = { BI: { en: "Gitega", fr: "Gitega", at: [29.93, -3.43] }, KZ: { en: "Astana", fr: "Astana" } };
+
 /** Short forms people type, on top of the sources' alternatives. */
 const EXTRA_ALIASES = {
   US: ["USA", "US", "America", "Amérique", "EU", "EUA"],
@@ -71,7 +86,13 @@ const json = async (url) => {
   return response.json();
 };
 
-const [topo, codes, enNames, frNames] = await Promise.all([json(ATLAS), json(`${ISO}/codes.json`), json(`${ISO}/langs/en.json`), json(`${ISO}/langs/fr.json`)]);
+const [topo, codes, enNames, frNames, places] = await Promise.all([
+  json(ATLAS),
+  json(`${ISO}/codes.json`),
+  json(`${ISO}/langs/en.json`),
+  json(`${ISO}/langs/fr.json`),
+  json(PLACES),
+]);
 const isoOf = Object.fromEntries(codes.map(([alpha2, , numeric]) => [numeric, alpha2]));
 
 // --- Arcs: decode the quantized, delta-encoded arcs into degrees.
@@ -192,6 +213,20 @@ const displayEn = new Intl.DisplayNames(["en"], { type: "region" });
 const displayFr = new Intl.DisplayNames(["fr"], { type: "region" });
 const list = (value) => (value === undefined ? [] : Array.isArray(value) ? value : [value]);
 
+/** A country's capital: its name in EN and FR, and where it is ([lon, lat], to 0.01°). */
+function capitalOf(code) {
+  if (CAPITAL_FIX[code]?.at) return CAPITAL_FIX[code];
+  const ofCountry = places.features.filter(({ properties: p }) => p.ISO_A2 === code || (code === "XK" && p.ADM0NAME === "Kosovo"));
+  const picked = CAPITAL[code]
+    ? // By name among every place: Natural Earth files Laayoune under Morocco.
+      places.features.filter(({ properties: p }) => p.NAME === CAPITAL[code] && p.FEATURECLA.includes("capital"))
+    : ofCountry.filter(({ properties: p }) => p.FEATURECLA === "Admin-0 capital");
+  if (picked.length !== 1) throw new Error(`${picked.length} capitals for ${code}`);
+  const { properties: p, geometry } = picked[0];
+  const [lon, lat] = geometry.coordinates;
+  return { en: p.NAME_EN || p.NAME, fr: p.NAME_FR || p.NAME, at: [Math.round(lon * 100) / 100, Math.round(lat * 100) / 100], ...CAPITAL_FIX[code] };
+}
+
 const codesOnMap = [...polygonsOf.keys()].sort();
 const displayOf = (code) => {
   const en = DISPLAY.en[code] ?? displayEn.of(code);
@@ -201,7 +236,7 @@ const displayOf = (code) => {
 };
 const allAliases = (code) => [...new Set([...list(enNames.countries[code]), ...list(frNames.countries[code]), ...(EXTRA_ALIASES[code] ?? []), displayEn.of(code), displayFr.of(code)])];
 // An alias two countries share ("Congo") names neither: the display names decide.
-const fold = (text) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const fold = (text) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const claims = new Map();
 for (const code of codesOnMap) {
   const { en, fr } = displayOf(code);
@@ -218,6 +253,8 @@ for (const code of codesOnMap) {
   const { en, fr } = displayOf(code);
   const aliases = allAliases(code).filter((alias) => alias && alias !== en && alias !== fr && claims.get(fold(alias)).size === 1);
   countries[code] = { en, fr, aliases, borders: [...borders.get(code)].sort() };
+  // A capital for every country a route can start or end in: the route's distance is capital to capital.
+  if (countries[code].borders.length) countries[code].capital = capitalOf(code);
 
   // Outlines: drop specks of islands, keep the largest piece whatever its size; round to PRECISION and delta-encode.
   const pieces = polygonsOf.get(code).map((rings) => ({ rings, size: area(rings[0]) }));

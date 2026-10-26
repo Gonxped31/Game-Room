@@ -10,7 +10,7 @@ import { addGuess, newPlay, replay, status, type Play } from "@/lib/games/border
 import { closenessOf, type Route } from "@/lib/games/borderrun/route";
 import { SHARE_SQUARE } from "@/lib/games/borderrun/theme";
 import type { Lang } from "@/lib/games/shared/language";
-import { formatTime, GuessInput, GuessList, PathLine, PlayMap, RouteHeader, Toolbar } from "./Controls";
+import { CapitalLine, formatTime, GuessInput, GuessList, PathLine, PlayMap, RouteHeader, Toolbar } from "./Controls";
 import { DAILY_GUESSES_KEY, DAILY_KEY, isRoute, readJson, removeKey, writeJson, type SavedDailyGuesses } from "./storage";
 
 const SLUG = "borderrun";
@@ -294,6 +294,7 @@ export default function DailyGame({ lang }: { lang: Lang }) {
         <>
           <PlayMap play={play} lang={lang} />
           {path ? <PathLine path={path} lang={lang} /> : null}
+          <CapitalLine play={play} lang={lang} />
         </>
       ) : null}
       <section aria-label="Today's board">

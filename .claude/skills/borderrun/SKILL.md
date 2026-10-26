@@ -41,12 +41,14 @@ route that never reached the server is sent on resume).
 
 `scripts/borderrun-data.mjs` builds two committed JSON files from pinned
 public sources (world-atlas 2.0.2 = Natural Earth 1:50m, public domain;
-i18n-iso-countries 7.14.0 for codes and EN/FR alternatives; Node's
-`Intl.DisplayNames` for display names). Rerun it only to change the data.
+i18n-iso-countries 7.14.0 for codes and EN/FR alternatives; Natural Earth
+5.1.2 1:50m populated places for capitals; Node's `Intl.DisplayNames` for
+display names). Rerun it only to change the data: it is deterministic, so a
+rerun with no script change leaves both files as they are.
 
 | File | What | Who loads it |
 | :--- | :--- | :--- |
-| `lib/games/borderrun/countries.json` | 199 countries by ISO alpha-2: `en`, `fr`, `aliases`, land `borders` (318) | Server (daily) and client |
+| `lib/games/borderrun/countries.json` | 199 countries by ISO alpha-2: `en`, `fr`, `aliases`, land `borders` (318), and a `capital` (`en`, `fr`, `at` [lon, lat]) for every country with a border | Server (daily) and client |
 | `lib/games/borderrun/shapes.json` | `c` centre, `p` simplified outlines, delta-encoded in 1/100° (~200 KB, ~75 KB gzipped) | Client only (`RouteMap`) |
 
 How it's made, and why:
@@ -66,13 +68,33 @@ How it's made, and why:
   whole east of 180°, or it would draw as a band across the map.
 - The Vatican's outline collapses at this simplification: it has only its
   centre, drawn as a dot (like every country too small to see on the map).
+- **Capitals are the official seat**, not the biggest city: `CAPITAL` picks
+  by name where Natural Earth lists several or the wrong one (Pretoria,
+  Sucre, Dodoma, Porto-Novo…), `CAPITAL_FIX` covers what it is out of date on
+  (Gitega, Astana). Tests pin a few.
+
+## The finished map
+
+Once a route is over (complete, or shown on giving up), `PlayMap` passes the
+route to `RouteMap`, which draws a dotted line through it (drawn in over
+1.2 s, none with reduced motion) and names its countries; `CapitalLine` adds
+"Lisbon → Warsaw · 2,760 km as the crow flies" under the map.
+- **The line crosses each border at `crossingPoint`**: the shared vertex
+  with the shortest detour from the previous point toward the next country,
+  not the border's middle (`borderPoint`, still used for the closed-border ✕).
+  The middle of Russia-China is on the Amur, so a route coming from the
+  Caucasus looped out to Manchuria.
+- **Names and the line's ends sit on `anchorOf`**: the country's centre, or
+  the middle of its visible outline when the centre is off the map (Russia on
+  Europe). Labels are placed greedily (start and end first, above, else
+  below, else dropped): the route is also spelled out under the map.
 
 ## Files
 
 | Path | What |
 | :--- | :--- |
 | `lib/games/borderrun/constants.ts` | `GAME_TITLE`, `PENALTY_MS`, `AREAS`, par limits |
-| `lib/games/borderrun/countries.ts` | `COUNTRIES`, `findCountry` (EN/FR/aliases, accents and articles ignored), `suggest` |
+| `lib/games/borderrun/countries.ts` | `COUNTRIES`, `findCountry` (EN/FR/aliases, accents and articles ignored), `suggest`, `capitalDistanceKm` |
 | `lib/games/borderrun/areas.ts` | Each map's countries (Russia and Turkey on Europe and Asia; Oceania only on the world map), its view box, its name |
 | `lib/games/borderrun/route.ts` | `Route`, `neighboursOf` (map + closed borders), `distances`, `shortestPath`, `closenessOf`, `generateRoute`, the seeded RNG |
 | `lib/games/borderrun/play.ts` | The guess log: `refusalOf`, `addGuess`, `replay`, `status` (complete, path, extra, penalty) |
@@ -80,7 +102,7 @@ How it's made, and why:
 | `lib/games/borderrun/theme.ts` | Colours (match `borderrun.css`), share squares |
 | `components/borderrun/Stage.tsx` | The page shell: title sign, EN/FR switch, mode tabs; `online` adds Daily |
 | `components/borderrun/RouteMap.tsx` | The SVG map (Miller projection, fixed size per map) |
-| `components/borderrun/Controls.tsx` | `Segmented`, `RouteHeader`, `Toolbar`, `GuessInput` (combobox), `GuessList`, `PlayMap` |
+| `components/borderrun/Controls.tsx` | `Segmented`, `RouteHeader`, `Toolbar`, `GuessInput` (combobox), `GuessList`, `PlayMap`, `CapitalLine` |
 | `components/borderrun/EndlessGame.tsx`, `DailyGame.tsx` | The two modes |
 | `components/borderrun/borderrun.css` | **All styles, plain CSS**, every rule under `.br-page` |
 | `exports/borderrun/` | The offline single-file export (Endless only; Overpass inlined) |

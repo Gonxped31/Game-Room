@@ -6,7 +6,7 @@ import { AREAS, PENALTY_MS, type Area } from "@/lib/games/borderrun/constants";
 import { addGuess, newPlay, replay, status, type Play } from "@/lib/games/borderrun/play";
 import { generateRoute, shortestPath } from "@/lib/games/borderrun/route";
 import type { Lang } from "@/lib/games/shared/language";
-import { formatTime, GuessInput, GuessList, PathLine, PlayMap, RouteHeader, Segmented, Toolbar } from "./Controls";
+import { CapitalLine, formatTime, GuessInput, GuessList, PathLine, PlayMap, RouteHeader, Segmented, Toolbar } from "./Controls";
 import { ENDLESS_GAME_KEY, ENDLESS_KEY, isArea, isRoute, readJson, removeKey, writeJson, type SavedEndlessGame } from "./storage";
 
 /** How long Endless routes are on each map, in countries between start and end (the daily's weekday ranges). */
@@ -209,6 +209,7 @@ export default function EndlessGame({ lang }: { lang: Lang }) {
       </div>
       <PlayMap play={play} lang={lang} reveal={reveal} />
       {result!.complete && result!.path ? <PathLine path={result!.path} lang={lang} /> : null}
+      {over ? <CapitalLine play={play} lang={lang} /> : null}
       {/* Keyed by the route, so a new one starts with an empty box. */}
       {over ? null : <GuessInput key={startedAt} play={play} lang={lang} onGuess={onGuess} />}
       <GuessList play={play} lang={lang} />

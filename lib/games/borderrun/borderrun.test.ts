@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AREA_COUNTRIES, AREA_VIEW } from "./areas";
 import { AREAS, MAX_PAR, PENALTY_MS } from "./constants";
-import { CODES, COUNTRIES, findCountry, fold, suggest } from "./countries";
+import { capitalDistanceKm, CODES, COUNTRIES, findCountry, fold, suggest } from "./countries";
 import { borderrunDaily, SCHEDULE } from "./daily";
 import { addGuess, newPlay, refusalOf, replay, status } from "./play";
 import { closenessOf, distances, generateRoute, neighboursOf, shortestPath, type Route } from "./route";
@@ -63,6 +63,30 @@ describe("map data", () => {
         expect(inView, `${code} on ${area}`).toBe(true);
       }
     }
+  });
+});
+
+describe("capitals", () => {
+  it("every country a route can start or end in has a capital, in both languages", () => {
+    for (const code of CODES) {
+      if (!COUNTRIES[code].borders.length) continue;
+      const capital = COUNTRIES[code].capital;
+      expect(capital?.en, code).toBeTruthy();
+      expect(capital?.fr, code).toBeTruthy();
+      expect(capital!.at).toHaveLength(2);
+    }
+    expect(COUNTRIES.PT.capital).toMatchObject({ en: "Lisbon", fr: "Lisbonne" });
+    expect(COUNTRIES.ZA.capital?.en).toBe("Pretoria");
+    // Official seats, where the source lists the biggest city or an old name.
+    expect([COUNTRIES.TZ, COUNTRIES.BJ, COUNTRIES.BI, COUNTRIES.KZ].map((c) => c.capital?.en)).toEqual(["Dodoma", "Porto-Novo", "Gitega", "Astana"]);
+  });
+
+  it("measures capital to capital as the crow flies", () => {
+    expect(capitalDistanceKm("FR", "DE")).toBe(880); // Paris-Berlin, about 878 km
+    expect(capitalDistanceKm("PT", "PL")).toBe(2760); // Lisbon-Warsaw, about 2,760 km
+    expect(capitalDistanceKm("US", "CA")).toBeGreaterThan(700);
+    expect(capitalDistanceKm("US", "CA")).toBeLessThan(760); // Washington-Ottawa, about 735 km
+    expect(capitalDistanceKm("FR", "FR")).toBe(0);
   });
 });
 

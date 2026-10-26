@@ -93,7 +93,7 @@ check("B1 typing clears the message", (await message()) === "");
 
 // B2: names in French, without accents or case; an island counts (off route); a repeat doesn't.
 const first = path[0];
-const plainFrench = COUNTRIES[first].fr.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const plainFrench = COUNTRIES[first].fr.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 await guess(plainFrench);
 check("B2 French name without accents or capitals accepted", (await guessCount()) === 1 && (await page.locator(".br-guess-name").first().textContent()) === name(first), plainFrench);
 const island = islandOn(game.route);
