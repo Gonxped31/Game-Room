@@ -3,6 +3,14 @@
     ".read": false,
     ".write": false,
 
+    "daily": {
+      "$slug": {
+        "$day": {
+          "board": { ".indexOn": ["ms"] }
+        }
+      }
+    },
+
     "games": {
       "$room": {
         ".read": "auth != null",

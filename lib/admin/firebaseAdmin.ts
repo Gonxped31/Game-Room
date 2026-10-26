@@ -1,9 +1,11 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
+import { getAuth, type Auth } from "firebase-admin/auth";
 import { getDatabase, type Database } from "firebase-admin/database";
 
 /**
- * The privileged database handle for /api/admin/* routes only - it bypasses
- * database.rules.json entirely, so it must never reach client code.
+ * The privileged database handle for the /api/admin/* and /api/daily/*
+ * routes only - it bypasses database.rules.json entirely, so it must never
+ * reach client code.
  *
  * - Production: `FIREBASE_SERVICE_ACCOUNT` holds the service-account JSON key
  *   (Firebase console > Project settings > Service accounts), set on Vercel
@@ -42,4 +44,13 @@ function adminApp(): App {
 
 export function adminDb(): Database {
   return getDatabase(adminApp());
+}
+
+/**
+ * Checks guests' ID tokens (the daily routes, app/api/daily/). On the
+ * emulators, `FIREBASE_AUTH_EMULATOR_HOST` makes it accept the Auth
+ * emulator's tokens.
+ */
+export function adminAuth(): Auth {
+  return getAuth(adminApp());
 }

@@ -5,6 +5,7 @@ import Stage from "@/components/regions/Stage";
 export default function RegionsPage() {
   return (
     <Stage
+      online
       nav={
         <Link href="/" className="cg-back" aria-label="Back to all games">
           ←

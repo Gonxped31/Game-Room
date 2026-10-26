@@ -24,6 +24,10 @@ const appEnv = {
   NEXT_PUBLIC_FIREBASE_PROJECT_ID: PROJECT,
   NEXT_PUBLIC_FIREBASE_APP_ID: "demo-app",
   NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL: "http://127.0.0.1:9099",
+  // The server routes' firebase-admin (lib/admin/firebaseAdmin.ts): the /admin and daily routes read and
+  // write the Database emulator and accept the Auth emulator's guest tokens.
+  FIREBASE_DATABASE_EMULATOR_HOST: "127.0.0.1:9000",
+  FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099",
 };
 
 // Each child's full output goes to its own log file, for when something dies.

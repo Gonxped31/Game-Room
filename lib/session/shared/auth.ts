@@ -100,4 +100,17 @@ export function ensureGuestUid(): Promise<string> {
   });
 }
 
+/**
+ * The guest's Firebase ID token, for server routes that need to know who's
+ * asking (the daily puzzles). Rejects in local mode, which has no tokens.
+ */
+export async function guestIdToken(): Promise<string> {
+  if (!hasFirebaseConfig) throw new Error("No guest tokens in local mode.");
+  await ensureGuestUid();
+  const [{ getAuth }, { getFirebaseApp }] = await Promise.all([import("firebase/auth"), import("@/lib/store/firebaseApp")]);
+  const user = getAuth(getFirebaseApp()).currentUser;
+  if (!user) throw new Error("Not signed in.");
+  return user.getIdToken();
+}
+
 export const CONNECTION_ERROR_MESSAGE = "Can't connect right now. Check your connection and reload.";

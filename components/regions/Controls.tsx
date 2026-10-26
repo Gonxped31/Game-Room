@@ -63,6 +63,40 @@ export function Toggle({ label, checked, onChange }: { label: string; checked: b
   );
 }
 
+/** The row above the board while playing: the time (and best), Undo and Clear. */
+export function Toolbar({
+  elapsed,
+  best,
+  canUndo,
+  canClear,
+  onUndo,
+  onClear,
+}: {
+  elapsed: number;
+  best?: number;
+  canUndo: boolean;
+  canClear: boolean;
+  onUndo: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="cg-toolbar">
+      <span className="cg-time" aria-label={`Time ${formatTime(elapsed)}`}>
+        {formatTime(elapsed)}
+        {best !== undefined ? <span className="cg-best"> · best {formatTime(best)}</span> : null}
+      </span>
+      <span className="cg-actions">
+        <button type="button" className="cg-button" disabled={!canUndo} onClick={onUndo}>
+          Undo
+        </button>
+        <button type="button" className="cg-button" disabled={!canClear} onClick={onClear}>
+          Clear
+        </button>
+      </span>
+    </div>
+  );
+}
+
 /** m:ss (or h:mm:ss past an hour). */
 export function formatTime(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));

@@ -6,7 +6,7 @@ import { generate } from "@/lib/games/regions/generate";
 import { clearAll, newPlay, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
 import { GLYPH, VARIANT_NAME, VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
-import { formatTime, Segmented, Toggle } from "./Controls";
+import { formatTime, Segmented, Toggle, Toolbar } from "./Controls";
 
 const SIZES = Array.from({ length: MAX_SIZE - MIN_SIZE + 1 }, (_, i) => MIN_SIZE + i);
 const VARIANT_ICON: Record<Variant, string> = { rook: GLYPH.rook, king: GLYPH.king, knight: GLYPH.knight, queen: GLYPH.queen, mix: "✦" };
@@ -169,25 +169,14 @@ export default function EndlessGame() {
             </button>
           </div>
         ) : (
-          <div className="cg-toolbar">
-            <span className="cg-time" aria-label={`Time ${formatTime(elapsed)}`}>
-              {formatTime(elapsed)}
-              {best !== undefined ? <span className="cg-best"> · best {formatTime(best)}</span> : null}
-            </span>
-            <span className="cg-actions">
-              <button type="button" className="cg-button" disabled={!play || play.moves.length === 0} onClick={() => play && commit(undo(play))}>
-                Undo
-              </button>
-              <button
-                type="button"
-                className="cg-button"
-                disabled={!play || play.marks.every((mark) => mark === 0)}
-                onClick={() => play && commit(clearAll(play, Math.round(performance.now() - startedAt)))}
-              >
-                Clear
-              </button>
-            </span>
-          </div>
+          <Toolbar
+            elapsed={elapsed}
+            best={best}
+            canUndo={!!play && play.moves.length > 0}
+            canClear={!!play && play.marks.some((mark) => mark !== 0)}
+            onUndo={() => play && commit(undo(play))}
+            onClear={() => play && commit(clearAll(play, Math.round(performance.now() - startedAt)))}
+          />
         )}
       </div>
 
