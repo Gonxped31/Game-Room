@@ -1,0 +1,4 @@
+T-mnnv | 1 | - | S | infra,admin | Deploy database.rules.json for the admin analytics (activeMinutes, visits, closedAt) once Vercel production runs main c11611c or later; ask the user first
+created: 2026-10-26T01:19:47.070Z
+
+Trigger: Vercel has finished deploying main at c11611c or later to production (the client that writes activeMinutes and visits, and handles closedAt). What: deploy the rules (npx firebase deploy --only database --project <id>, or paste database.rules.json in the console), then hard-reload and test a fresh room in a normal + private window. Why: the rules add activeMinutes (+1 per minute), users/{uid}/visits and the closedAt freeze; client first, then rules (database-rules skill). Until then play time is estimated and visit writes are refused, harmlessly. Ask the user before deploying.
