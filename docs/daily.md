@@ -71,7 +71,9 @@ To reproduce that class of failure locally: run a standalone build with
   like /admin). Changing it changes every future puzzle and resets the
   connection slots, so set it once.
 - **`FIREBASE_SERVICE_ACCOUNT`**: already set for /admin.
-- **Rules**: deploy after the app as usual; the only change is the board index
-  (without it the server's board query still works, slower, with a warning).
+- **Rules**: deploy after the app as usual (`npx firebase deploy --only
+  database`). The board index is **required**: without it the real database
+  refuses the board query ("Index not defined"), so every daily route answers
+  500. The emulator doesn't enforce indexes, so local tests can't catch this.
 - On the emulators (`dev-against-emulators.mjs`), the admin SDK's emulator
   hosts are set and a fixed development secret stands in.

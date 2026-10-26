@@ -92,12 +92,18 @@ out before the new client, and every room creation failed with
 `permission_denied` (`transaction at /games/<code>/meta failed`).
 
 1. Merge and push, and let Vercel finish deploying.
-2. Deploy the rules, either with:
+2. Deploy the rules from an up-to-date `main`, with the user's go-ahead:
    ```bash
-   npx firebase deploy --only database --project <your-project-id>
+   npx firebase deploy --only database
    ```
-   or by pasting `database.rules.json` into the console under Realtime Database →
-   Rules.
+   - `.firebaserc` makes the production project (`first-to-worst-74d1a`) the
+     default. Emulator and test commands always pass `--project demo-game-room`,
+     which overrides it; keep it that way, or they'd run against production's ID.
+   - The CLI must be signed in: `npx firebase login:list`. If it isn't, ask the
+     user to run `! npx firebase login` (interactive).
+   - Prefer this to pasting the file into the console (Realtime Database →
+     Rules): it deploys exactly the committed file. A pasted wrong version once
+     left the daily board's index missing (2026-10-26).
 3. Hard-reload, and test with a fresh room in a normal window plus a private
    window.
 

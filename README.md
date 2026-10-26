@@ -141,13 +141,15 @@ and one guest ID holds one seat per room.
 ### Database rules
 
 The rules live in `database.rules.json`. Deploy them with the Firebase CLI (it's a
-dev dependency):
+dev dependency; sign in once with `npx firebase login`):
 
 ```bash
-npx firebase deploy --only database --project <your-project-id>
+npx firebase deploy --only database
 ```
 
-Or paste the file's contents into **Realtime Database > Rules** in the console.
+`.firebaserc` makes the production project the default. Pasting the file's
+contents into **Realtime Database > Rules** in the console also works, but the
+CLI deploys exactly the committed file.
 
 Everything is keyed on the guest ID (`auth.uid`):
 
