@@ -1,5 +1,4 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
-import { getAuth, type Auth } from "firebase-admin/auth";
 import { getDatabase, type Database } from "firebase-admin/database";
 
 /**
@@ -46,11 +45,6 @@ export function adminDb(): Database {
   return getDatabase(adminApp());
 }
 
-/**
- * Checks guests' ID tokens (the daily routes, app/api/daily/). On the
- * emulators, `FIREBASE_AUTH_EMULATOR_HOST` makes it accept the Auth
- * emulator's tokens.
- */
-export function adminAuth(): Auth {
-  return getAuth(adminApp());
-}
+// Never import firebase-admin/auth here: on Vercel it fails to load (jose 6 is
+// ESM-only) and would take every route importing this file down with it.
+// Guests' tokens are checked by lib/daily/token.ts instead.

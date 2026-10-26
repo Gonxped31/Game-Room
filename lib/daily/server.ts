@@ -1,8 +1,9 @@
 import { createHash, createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
-import { AdminConfigError, adminAuth, adminDb } from "@/lib/admin/firebaseAdmin";
+import { AdminConfigError, adminDb } from "@/lib/admin/firebaseAdmin";
 import { DAILY_GAMES } from "./games";
 import { DailyError, type DailyContext, type DailyStore } from "./service";
+import { verifyGuestToken } from "./token";
 
 /**
  * The daily routes' server side (app/api/daily/[slug]/): who's asking, the
@@ -75,13 +76,8 @@ export async function dailyRoute(request: Request, slug: string, run: (ctx: Dail
   const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return NextResponse.json({ error: "Not signed in." }, { status: 401, headers: NO_STORE });
   try {
-    let uid: string;
-    try {
-      uid = (await adminAuth().verifyIdToken(token)).uid;
-    } catch (error) {
-      if (error instanceof AdminConfigError) throw error;
-      return NextResponse.json({ error: "Not signed in." }, { status: 401, headers: NO_STORE });
-    }
+    const uid = await verifyGuestToken(token);
+    if (!uid) return NextResponse.json({ error: "Not signed in." }, { status: 401, headers: NO_STORE });
     const body = await run({ store: adminStore(), game, seedFor, uid, now: Date.now() });
     return NextResponse.json(body, { headers: NO_STORE });
   } catch (error) {

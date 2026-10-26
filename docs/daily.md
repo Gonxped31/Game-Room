@@ -33,8 +33,15 @@ one `DailyGame`. First user: Checkmate Grid (`checkmate-grid` skill).
 
 All daily data lives under `/daily`, which **the rules close to every client**
 (the root's `.read`/`.write` false; `tests/rules/daily.test.ts`). Only the
-routes touch it, through firebase-admin (`adminDb()`, `adminAuth()`). The rules
-add just the board's `.indexOn: ms`.
+routes touch it, through firebase-admin (`adminDb()`). The rules add just the
+board's `.indexOn: ms`.
+
+Guests' ID tokens are checked by `lib/daily/token.ts` with `jose` (Google's
+public keys, this project's issuer and audience), **not** firebase-admin/auth:
+that module require()s the ESM-only jose 6, which Vercel's Node refuses while
+loading it - imported once, it took every /admin route down (2026-10-26).
+To reproduce that class of failure locally: run a standalone build with
+`NODE_OPTIONS=--no-experimental-require-module`.
 
 ```
 /daily/{slug}/{day}/puzzle          the day's puzzle (JSON string)
