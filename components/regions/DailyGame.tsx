@@ -8,24 +8,27 @@ import { MAX_NAME_LENGTH } from "@/lib/daily/service";
 import type { Puzzle } from "@/lib/games/regions/board";
 import { GAME_TITLE } from "@/lib/games/regions/constants";
 import { scheduleFor } from "@/lib/games/regions/daily";
-import { clearAll, newPlay, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
+import { clearAll, newPlay, PIECE, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
 import { VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
-import { formatTime, Toggle, Toolbar } from "./Controls";
+import { AutoMarkButton, formatTime, Toolbar, useAutoMark } from "./Controls";
 
 const SLUG = "regions";
-/** The name typed last time and the auto-✕ switch, on this device (try/catch: storage can be blocked). */
+/** The name typed last time, on this device (try/catch: storage can be blocked). */
 const STORAGE_KEY = "checkmate-grid:daily:v1";
+interface Prefs {
+  name: string;
+}
 
-function loadPrefs(): { name: string; autoMark: boolean } {
+function loadPrefs(): Prefs {
   try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as { name?: unknown; autoMark?: unknown } | null;
-    return { name: typeof raw?.name === "string" ? raw.name : "", autoMark: raw?.autoMark === true };
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as { name?: unknown } | null;
+    return { name: typeof raw?.name === "string" ? raw.name : "" };
   } catch {
-    return { name: "", autoMark: false };
+    return { name: "" };
   }
 }
-function savePrefs(prefs: { name: string; autoMark: boolean }) {
+function savePrefs(prefs: Prefs) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
   } catch {
@@ -65,15 +68,16 @@ const UNRANKED: Record<string, string> = {
  */
 export default function DailyGame() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
-  const [prefs, setPrefs] = useState<{ name: string; autoMark: boolean } | null>(null);
+  const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [now, setNow] = useState(0);
   const [shared, setShared] = useState<string | null>(null);
+  const auto = useAutoMark();
   // The latest game, for a drag that paints several cells before React re-renders.
   const latest = useRef<Play | null>(null);
 
-  const updatePrefs = (change: Partial<{ name: string; autoMark: boolean }>) =>
+  const updatePrefs = (change: Partial<Prefs>) =>
     setPrefs((current) => {
-      const next = { ...(current ?? { name: "", autoMark: false }), ...change };
+      const next = { ...(current ?? { name: "" }), ...change };
       savePrefs(next);
       return next;
     });
@@ -224,9 +228,9 @@ export default function DailyGame() {
             onClear={() => commit(clearAll(play, moveTime()))}
           />
         )}
-        <Board play={play} autoMark={prefs.autoMark} locked={solved} onSet={onSet} />
+        <Board play={play} hint={auto.hint} locked={solved} onSet={onSet} />
         <div className="cg-footer">
-          <Toggle label="Auto ✕" checked={prefs.autoMark} onChange={(autoMark) => updatePrefs({ autoMark })} />
+          <AutoMarkButton auto={auto} usable={!solved && play.marks.includes(PIECE)} />
         </div>
       </>
     );

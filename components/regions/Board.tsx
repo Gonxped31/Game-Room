@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type
 import { colOf, rowOf } from "@/lib/games/regions/board";
 import { EMPTY, MARK, nextMark, PIECE, ruledOut, status, type Mark, type Play } from "@/lib/games/regions/play";
 import { GLYPH, INK, PIECE_NAME, REGION_COLORS } from "@/lib/games/regions/theme";
+import type { AutoMarkHint } from "./Controls";
 
 const INNER_LINE = "rgba(22, 38, 29, 0.25)";
 
@@ -17,8 +18,8 @@ function edge(side: "Right" | "Bottom", atEdge: boolean, sameRegion: boolean): C
 
 interface BoardProps {
   play: Play;
-  /** Draw a faint ✕ on every cell the placed pieces rule out. */
-  autoMark: boolean;
+  /** Auto ✕ (Controls.tsx): a faint ✕ on every cell the placed pieces rule out while "on", fading out while "fading". */
+  hint: AutoMarkHint;
   /** Taps stop once solved. */
   locked: boolean;
   onSet: (cell: number, to: Mark) => void;
@@ -29,7 +30,7 @@ interface BoardProps {
  * cell paints ✕ on every empty cell it crosses, as in Queens. Arrow keys move
  * between cells, Enter or Space cycles one.
  */
-export default function Board({ play, autoMark, locked, onSet }: BoardProps) {
+export default function Board({ play, hint, locked, onSet }: BoardProps) {
   const { puzzle, marks } = play;
   const { size } = puzzle;
   const [focus, setFocus] = useState(0);
@@ -37,7 +38,7 @@ export default function Board({ play, autoMark, locked, onSet }: BoardProps) {
   const drag = useRef<{ start: number; painting: boolean; seen: Set<number> } | null>(null);
 
   const bad = useMemo(() => new Set(status(play).bad), [play]);
-  const out = useMemo(() => (autoMark ? ruledOut(play) : new Set<number>()), [autoMark, play]);
+  const out = useMemo(() => (hint !== "off" ? ruledOut(play) : new Set<number>()), [hint, play]);
   /** In mix, each region's piece is drawn small in its first cell. */
   const labelCells = useMemo(() => {
     const firsts = new Map<number, number>();
@@ -118,6 +119,7 @@ export default function Board({ play, autoMark, locked, onSet }: BoardProps) {
       role="grid"
       aria-label={`${size} by ${size} board`}
       className="cg-board"
+      data-hint={hint}
       style={{ "--n": size } as CSSProperties}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

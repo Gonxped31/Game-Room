@@ -35,6 +35,14 @@ size, Start - and generates nothing before Start (the user's call, 2026-10-26);
 while playing, Change goes back to it, New/Next puzzle keep the piece and size.
 The offline download (/admin) is Endless only.
 
+**Auto ✕** is a button, the same in both modes (`useAutoMark` +
+`AutoMarkButton` in `Controls.tsx`; the user's calls, 2026-10-26): a press
+**shows** a faint ✕ on every square the placed pieces rule out - it never
+places marks - for 3 s, then they fade out, and the button stays locked until
+30 s after the press. It can't be pressed with no piece on the board or once
+solved. Locked means `aria-disabled` (still focusable), so in Playwright a tap
+during the lock needs `click({ force: true })`; a plain click waits it out.
+
 ## Files
 
 | Path | What |

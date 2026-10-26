@@ -330,53 +330,26 @@
   background: var(--cg-card);
 }
 
-/* Auto ✕ switch. */
-.cg-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--cg-ink);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
+/* Auto ✕: a button; locked (aria-disabled) for 30 s after a press, dimmed, with the seconds left. */
+.cg-auto[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: 0 3px 0 var(--cg-ink);
+  transform: none;
 }
 
-.cg-toggle-track {
-  position: relative;
-  width: 42px;
-  height: 24px;
-  border: 2px solid var(--cg-ink);
-  border-radius: 999px;
-  background: var(--cg-card);
+.cg-auto-left {
+  font-variant-numeric: tabular-nums;
 }
 
-.cg-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--cg-ink);
-  transition: transform 120ms;
-}
-
-.cg-toggle[aria-checked="true"] .cg-toggle-track {
-  background: var(--cg-accent);
-}
-
-.cg-toggle[aria-checked="true"] .cg-toggle-thumb {
-  transform: translateX(18px);
+/* Its faint ✕s fade out once their 3 s are up (Controls.tsx: AUTO_MARK_FADE_MS). */
+.cg-board[data-hint="fading"] .cg-cell[data-shown="auto"] .cg-glyph {
+  opacity: 0;
+  transition: opacity 400ms ease-out;
 }
 
 .cg-seg-option:focus-visible,
 .cg-button:focus-visible,
-.cg-toggle:focus-visible,
 .cg-back:focus-visible {
   outline: 3px solid #000;
   outline-offset: 2px;
@@ -554,7 +527,7 @@
     animation: none;
   }
   .cg-button,
-  .cg-toggle-thumb {
+  .cg-board[data-hint="fading"] .cg-cell[data-shown="auto"] .cg-glyph {
     transition: none;
   }
 }

@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { MAX_SIZE, MIN_SIZE, VARIANTS, type Variant } from "@/lib/games/regions/constants";
 import { generate } from "@/lib/games/regions/generate";
-import { clearAll, newPlay, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
+import { clearAll, newPlay, PIECE, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
 import { GLYPH, VARIANT_NAME, VARIANT_RULE } from "@/lib/games/regions/theme";
 import Board from "./Board";
-import { formatTime, Segmented, Toggle, Toolbar } from "./Controls";
+import { AutoMarkButton, formatTime, Segmented, Toolbar, useAutoMark } from "./Controls";
 
 const SIZES = Array.from({ length: MAX_SIZE - MIN_SIZE + 1 }, (_, i) => MIN_SIZE + i);
 const VARIANT_ICON: Record<Variant, string> = { rook: GLYPH.rook, king: GLYPH.king, knight: GLYPH.knight, queen: GLYPH.queen, mix: "✦" };
@@ -16,11 +16,10 @@ const STORAGE_KEY = "checkmate-grid:endless:v1";
 interface Saved {
   variant: Variant;
   size: number;
-  autoMark: boolean;
   /** Best solve time (ms) per `${variant}-${size}`. */
   best: Record<string, number>;
 }
-const DEFAULTS: Saved = { variant: "king", size: 7, autoMark: false, best: {} };
+const DEFAULTS: Saved = { variant: "king", size: 7, best: {} };
 
 function load(): Saved {
   try {
@@ -29,7 +28,6 @@ function load(): Saved {
     return {
       variant: VARIANTS.includes(raw.variant as Variant) ? (raw.variant as Variant) : DEFAULTS.variant,
       size: SIZES.includes(raw.size as number) ? (raw.size as number) : DEFAULTS.size,
-      autoMark: raw.autoMark === true,
       best: raw.best && typeof raw.best === "object" ? raw.best : {},
     };
   } catch {
@@ -58,6 +56,7 @@ export default function EndlessGame() {
   const [play, setPlay] = useState<Play | null>(null);
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
+  const auto = useAutoMark();
 
   const update = (change: Partial<Saved>) =>
     setSaved((current) => {
@@ -214,7 +213,7 @@ export default function EndlessGame() {
       </div>
 
       {play ? (
-        <Board play={play} autoMark={saved.autoMark} locked={solved} onSet={onSet} />
+        <Board play={play} hint={auto.hint} locked={solved} onSet={onSet} />
       ) : (
         <div className="cg-board cg-board-empty" style={{ "--n": saved.size } as CSSProperties}>
           <p className="cg-status">Shuffling…</p>
@@ -222,7 +221,7 @@ export default function EndlessGame() {
       )}
 
       <div className="cg-footer">
-        <Toggle label="Auto ✕" checked={saved.autoMark} onChange={(autoMark) => update({ autoMark })} />
+        <AutoMarkButton auto={auto} usable={!!play && !solved && play.marks.includes(PIECE)} />
         <button type="button" className="cg-button" onClick={() => deal(saved.variant, saved.size)}>
           New puzzle
         </button>

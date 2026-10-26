@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 /**
  * A segmented switch: role="radiogroup", arrow keys move the choice
@@ -51,14 +51,62 @@ export function Segmented<T extends string | number>({
   );
 }
 
-/** An on/off switch with its label. */
-export function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+/**
+ * Auto ✕, the user's call (2026-10-26): a press shows a faint ✕ on every
+ * square the placed pieces rule out, without placing anything, for
+ * AUTO_MARK_SHOW_MS; the ✕s then fade out over AUTO_MARK_FADE_MS, and the
+ * button stays locked until AUTO_MARK_LOCK_MS after the press. A peek, not a
+ * permanent aid.
+ */
+export const AUTO_MARK_SHOW_MS = 3000;
+export const AUTO_MARK_FADE_MS = 400;
+export const AUTO_MARK_LOCK_MS = 30_000;
+
+/** What the board draws for Auto ✕: nothing, the faint ✕s, or the ✕s fading out. */
+export type AutoMarkHint = "off" | "on" | "fading";
+
+/** Auto ✕'s timing, shared by Daily and Endless: the hint to draw, the lock's seconds left, and `use` for a press. */
+export function useAutoMark() {
+  const [pressedAt, setPressedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    if (pressedAt === null) return;
+    const timer = setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (t - pressedAt >= AUTO_MARK_LOCK_MS) setPressedAt(null);
+    }, 100);
+    return () => clearInterval(timer);
+  }, [pressedAt]);
+  const since = pressedAt === null ? Infinity : now - pressedAt;
+  const hint: AutoMarkHint = since < AUTO_MARK_SHOW_MS ? "on" : since < AUTO_MARK_SHOW_MS + AUTO_MARK_FADE_MS ? "fading" : "off";
+  const lockLeft = pressedAt === null ? 0 : Math.max(1, Math.ceil((AUTO_MARK_LOCK_MS - since) / 1000));
+  const use = () => {
+    const t = Date.now();
+    setNow(t);
+    setPressedAt(t);
+  };
+  return { hint, locked: pressedAt !== null, lockLeft, use };
+}
+
+/**
+ * The Auto ✕ button. While locked (or with no piece on the board, or once
+ * solved) it ignores presses, shown dimmed, with the lock's seconds left;
+ * aria-disabled rather than disabled, so keyboard focus isn't lost.
+ */
+export function AutoMarkButton({ auto, usable }: { auto: ReturnType<typeof useAutoMark>; usable: boolean }) {
+  const off = auto.locked || !usable;
   return (
-    <button type="button" role="switch" aria-checked={checked} className="cg-toggle" onClick={() => onChange(!checked)}>
-      <span aria-hidden="true" className="cg-toggle-track">
-        <span className="cg-toggle-thumb" />
-      </span>
-      {label}
+    <button
+      type="button"
+      className="cg-button cg-auto"
+      aria-disabled={off || undefined}
+      aria-label={auto.locked ? `Auto ✕, available in ${auto.lockLeft} seconds` : "Auto ✕: show the squares your pieces rule out"}
+      onClick={() => {
+        if (!off) auto.use();
+      }}
+    >
+      Auto ✕{auto.locked ? <span className="cg-auto-left"> {auto.lockLeft}s</span> : null}
     </button>
   );
 }
