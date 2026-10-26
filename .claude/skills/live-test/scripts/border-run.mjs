@@ -202,6 +202,54 @@ await box().waitFor();
 check("B11 FR survives a reload", (await routeTitle()).includes(name(game.route.start, "fr")));
 await page.getByRole("radiogroup", { name: "Country names" }).getByRole("radio", { name: "EN" }).click();
 
+// B12: the map zooms (buttons, double tap or click, ctrl + wheel), drags once zoomed, and a new route starts zoomed out.
+const viewBox = async () => (await page.locator(".br-map").getAttribute("viewBox")).split(" ").map(Number);
+const [, , wholeWidth] = await viewBox();
+check("B12 whole map: only Zoom in", (await button("Zoom out").count()) === 0 && (await button("Show the whole map").count()) === 0);
+await button("Zoom in").click();
+let [x0, , w0] = await viewBox();
+check("B12 Zoom in halves the view", Math.abs(w0 - wholeWidth / 2) < 0.01, `${wholeWidth} → ${w0}`);
+check("B12 zoomed: Zoom out and Show the whole map appear", (await button("Zoom out").count()) === 1 && (await button("Show the whole map").count()) === 1);
+const mapBox = await page.locator(".br-map").boundingBox();
+const middle = { x: mapBox.x + mapBox.width / 2, y: mapBox.y + mapBox.height / 2 };
+const drag = async (dx) => {
+  await page.mouse.move(middle.x, middle.y);
+  await page.mouse.down();
+  await page.mouse.move(middle.x + dx, middle.y, { steps: 5 });
+  await page.mouse.up();
+};
+// Right drags the view west; at the map's west edge it can't go, so then left.
+await drag(60);
+let [x1, , w1] = await viewBox();
+if (x1 === x0) {
+  await drag(-60);
+  [x1, , w1] = await viewBox();
+}
+check("B12 dragging pans the zoomed map", x1 !== x0 && w1 === w0, `x ${x0} → ${x1}`);
+await page.waitForTimeout(400);
+if (profile === "desktop") {
+  await page.mouse.dblclick(middle.x, middle.y);
+} else {
+  await page.touchscreen.tap(middle.x, middle.y);
+  await page.touchscreen.tap(middle.x, middle.y);
+}
+[, , w1] = await viewBox();
+check(`B12 a double ${profile === "desktop" ? "click" : "tap"} zooms in`, Math.abs(w1 - w0 / 2) < 0.01, `${w0} → ${w1}`);
+if (profile === "desktop") {
+  await page.keyboard.down("Control");
+  await page.mouse.wheel(0, -100);
+  await page.keyboard.up("Control");
+  await page.waitForTimeout(200);
+  const [, , w2] = await viewBox();
+  check("B12 ctrl + wheel zooms in", w2 < w1, `${w1} → ${w2}`);
+}
+await button("Show the whole map").click();
+check("B12 Show the whole map", (await viewBox())[2] === wholeWidth && (await button("Zoom out").count()) === 0);
+await button("Zoom in").click();
+await button("New route").click();
+await box().waitFor();
+check("B12 a new route starts zoomed out", (await viewBox())[2] === wholeWidth);
+
 // D1: the daily resumes after a reload, guesses and server clock included.
 await tab("Daily route");
 await button("Start").click({ timeout: 60000 });

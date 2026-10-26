@@ -400,6 +400,11 @@
 }
 
 /* The map: a fixed shape per map, so nothing moves as countries appear. */
+/* The map's frame: it holds the zoom buttons, in its bottom-right corner. */
+.br-page .br-map-frame {
+  position: relative;
+}
+
 .br-page .br-map {
   display: block;
   width: 100%;
@@ -407,6 +412,63 @@
   border: 2px solid var(--br-ink);
   border-radius: 16px;
   background: var(--br-sea);
+  /* One finger scrolls the page over the whole map; once zoomed in, it drags the map. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.br-page .br-map[data-zoomed] {
+  touch-action: none;
+  cursor: grab;
+}
+
+.br-page .br-map[data-zoomed]:active {
+  cursor: grabbing;
+}
+
+.br-page .br-map-zoom {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.br-page .br-map-zoom-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid var(--br-ink);
+  border-radius: 10px;
+  background: var(--br-card);
+  color: var(--br-ink);
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--br-ink);
+}
+
+.br-page .br-map-zoom-button:enabled:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.br-page .br-map-zoom-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.br-page .br-map-zoom-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .br-page .br-map-sea {
@@ -437,19 +499,31 @@
   stroke-width: 1.5px;
 }
 
-.br-page .br-map-closed circle {
-  fill: var(--br-off);
-  stroke: #fff;
-  stroke-width: 1.5px;
+/* A closed border: the border itself in red, as long as it is, with a small ✕ on it. */
+.br-page .br-map-closed-line {
+  fill: none;
+  stroke: var(--br-off);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
-.br-page .br-map-closed path {
+.br-page .br-map-closed-halo,
+.br-page .br-map-closed-cross {
   fill: none;
-  stroke: #fff;
-  stroke-width: 2px;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
+}
+
+.br-page .br-map-closed-halo {
+  stroke: #fff;
+  stroke-width: 5px;
+}
+
+.br-page .br-map-closed-cross {
+  stroke: var(--br-off);
+  stroke-width: 2.5px;
 }
 
 /* Names on the map: dark letters on a paper halo, so they read over any colour. */

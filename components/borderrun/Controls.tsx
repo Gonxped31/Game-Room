@@ -274,7 +274,9 @@ export function shownOf(play: Play, reveal?: string[] | null): Shown[] {
 export function PlayMap({ play, lang, reveal }: { play: Play; lang: Lang; reveal?: string[] | null }) {
   const shown = useMemo(() => shownOf(play, reveal), [play, reveal]);
   const route = reveal ?? status(play).path;
-  return <RouteMap area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} route={route} />;
+  // Keyed by the route, so a new one starts with the whole map in view (the zoom stays on finishing).
+  const key = `${play.route.area}:${play.route.start}:${play.route.end}:${play.route.closed.join(";")}`;
+  return <RouteMap key={key} area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} route={route} />;
 }
 
 /** "Lisbon → Warsaw · 2,760 km as the crow flies": the capitals, once the route is over. */

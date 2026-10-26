@@ -73,6 +73,35 @@ How it's made, and why:
   Sucre, Dodoma, Porto-Novo…), `CAPITAL_FIX` covers what it is out of date on
   (Gitega, Astana). Tests pin a few.
 
+## The map
+
+**Closed borders** are drawn along their length in red (`borderLines`: the
+runs of one country's outline through the other's vertices), with a small ✕
+at the border's middle (`borderPoint`), so the mark is as big as the border.
+
+**It zooms and pans** (`useZoom`, in the SVG's viewBox): the + button (from
+the whole map it zooms in on what's drawn, not the map's middle), − and
+"Show the whole map" once zoomed, double tap or click, pinch, ctrl + wheel
+(a trackpad pinch; a plain wheel still scrolls the page), drag once zoomed.
+- **Sizes are in the visible width** (`vw`), so dots, ✕s, rings and names
+  keep their size on screen; tiny countries switch from a dot to their
+  outline as you zoom in. Strokes are `non-scaling-stroke`.
+- **Touch**: `touch-action: pan-y` on the whole map (one finger scrolls the
+  page), `none` once zoomed; a non-passive `touchmove` cancels the browser's
+  own pinch and scroll for two fingers or when zoomed.
+- **The zoom resets with the route**: `PlayMap` keys `RouteMap` by the route,
+  so finishing keeps the zoom and New route starts with the whole map.
+- Live test B12 covers the buttons, drag, double tap or click and ctrl +
+  wheel; pinch is only testable on a real phone.
+
+**Names** (`placeLabels`) never hide a small country: inside a country only
+when the name fits there, otherwise above or below it (beside it only for a
+tall one like Chile, since beside drifts onto neighbours), clear of the
+small countries drawn and of the zoom buttons' corner (measured with a
+`ResizeObserver`). The start's and end's try every side, and at worst cover
+a small country rather than go missing. A name with no room is left out:
+zooming in makes room, and the route is spelled out under the map.
+
 ## The finished map
 
 Once a route is over (complete, or shown on giving up), `PlayMap` passes the
@@ -86,8 +115,8 @@ route to `RouteMap`, which draws a dotted line through it (drawn in over
   Caucasus looped out to Manchuria.
 - **Names and the line's ends sit on `anchorOf`**: the country's centre, or
   the middle of its visible outline when the centre is off the map (Russia on
-  Europe). Labels are placed greedily (start and end first, above, else
-  below, else dropped): the route is also spelled out under the map.
+  Europe). The line's ends use the whole map, so the line stays put as you
+  pan; names use the part in view.
 
 ## Files
 
@@ -101,7 +130,7 @@ route to `RouteMap`, which draws a dotted line through it (drawn in over
 | `lib/games/borderrun/daily.ts` | The `DailyGame`: `SCHEDULE`, `verify` replays the guesses and returns `penaltyMs` |
 | `lib/games/borderrun/theme.ts` | Colours (match `borderrun.css`), share squares |
 | `components/borderrun/Stage.tsx` | The page shell: title sign, EN/FR switch, mode tabs; `online` adds Daily |
-| `components/borderrun/RouteMap.tsx` | The SVG map (Miller projection, fixed size per map) |
+| `components/borderrun/RouteMap.tsx` | The SVG map (Miller projection, fixed size per map), its zoom (`useZoom`) and names (`placeLabels`) |
 | `components/borderrun/Controls.tsx` | `Segmented`, `RouteHeader`, `Toolbar`, `GuessInput` (combobox), `GuessList`, `PlayMap`, `CapitalLine` |
 | `components/borderrun/EndlessGame.tsx`, `DailyGame.tsx` | The two modes |
 | `components/borderrun/borderrun.css` | **All styles, plain CSS**, every rule under `.br-page` |
