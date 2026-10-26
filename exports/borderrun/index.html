@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#F4F0E6" />
+    <title>Border Run</title>
+    <!-- Border Run, endless routes: a copy of the game downloaded from Game Room. Everything is in this file; it plays offline. -->
+    <!-- scripts/export-solo.mjs swaps this for the fonts, inlined. -->
+    <meta name="inline-fonts" content="https://fonts.googleapis.com/css2?family=Overpass:wght@400;500;600;700;800&display=swap" />
+    <style>
+      /* The name next/font gives this variable on the site (app/layout.tsx); borderrun.css builds its stack from it. */
+      :root {
+        --font-overpass: "Overpass";
+      }
+      html,
+      body {
+        margin: 0;
+        background: #f4f0e6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

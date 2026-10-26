@@ -158,6 +158,24 @@ export const ALL_GAMES: GameEntry[] = [
       tags: ["Just you", "Endless puzzles"],
     },
   },
+  {
+    slug: "borderrun",
+    title: "Border Run",
+    section: "solo",
+    description: "Two countries, a border or two closed. Link them by land in as few guesses as you can.",
+    shortDescription: "Link two countries by land.",
+    tags: ["Just you"],
+    ink: "#1D2733",
+    textSecondary: "#566273",
+    accentColor: "#F5C04A",
+    titleClassName: "font-[family-name:var(--font-overpass)] font-extrabold tracking-[0.01em]",
+    bodyClassName: "font-[family-name:var(--font-overpass)]",
+    solo: {
+      path: "/borderrun",
+      description: "Link two countries by land, around the closed borders. A new route every day.",
+      tags: ["Just you", "Daily route"],
+    },
+  },
 ];
 
 /** The games shown as cards on the hub. */

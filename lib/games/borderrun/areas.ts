@@ -28,7 +28,7 @@ export const AREA_COUNTRIES: Record<Area, ReadonlySet<string>> = {
 
 /** What each map shows: longitude west to east, then latitude south to north (degrees). */
 export const AREA_VIEW: Record<Area, { west: number; east: number; south: number; north: number }> = {
-  europe: { west: -25, east: 45, south: 34, north: 71 },
+  europe: { west: -25, east: 45, south: 34, north: 72 },
   americas: { west: -170, east: -30, south: -56, north: 72 },
   africa: { west: -19, east: 53, south: -36, north: 38 },
   asia: { west: 25, east: 148, south: -11, north: 56 },

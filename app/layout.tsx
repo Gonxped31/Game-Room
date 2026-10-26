@@ -63,7 +63,8 @@ const bigShoulders = Big_Shoulders({
 const overpass = Overpass({
   variable: "--font-overpass",
   subsets: ["latin"],
-  weight: ["400", "600", "800"],
+  // 500 and 700 for Border Run.
+  weight: ["400", "500", "600", "700", "800"],
   preload: false,
 });
 const overpassMono = Overpass_Mono({

@@ -123,7 +123,9 @@ const ring = (indexes) => {
     const arc = index < 0 ? simple[~index].slice().reverse() : simple[index];
     points.push(...(points.length ? arc.slice(1) : arc));
   }
-  return points;
+  // A ring that crosses the date line (Russia's far east, Fiji) jumps from 180 to -180: keep it whole, east of 180.
+  const crosses = points.some(([x], i) => i > 0 && Math.abs(x - points[i - 1][0]) > 180);
+  return crosses ? points.map(([x, y]) => [x < 0 ? x + 360 : x, y]) : points;
 };
 const area = (points) => {
   let sum = 0;

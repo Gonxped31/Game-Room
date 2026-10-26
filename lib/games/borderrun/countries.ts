@@ -53,8 +53,8 @@ export function findCountry(text: string): string | null {
 
 /**
  * Autocomplete: the countries among `codes` whose name (in either language,
- * or an alias) starts with what's typed, or has a word that does. Names
- * starting with it come first, then alphabetical in `lang`.
+ * or an alias) starts with what's typed, or has a word that does. An exact
+ * name comes first, then names starting with it, then alphabetical in `lang`.
  */
 export function suggest(text: string, codes: Iterable<string>, lang: Lang, limit = 6): string[] {
   const key = fold(text);
@@ -65,7 +65,7 @@ export function suggest(text: string, codes: Iterable<string>, lang: Lang, limit
     const names = [lang === "en" ? en : fr, lang === "en" ? fr : en, ...aliases].map(fold);
     let best = Infinity;
     names.forEach((name, i) => {
-      const score = name.startsWith(key) ? (i === 0 ? 0 : 1) : name.split(" ").some((word) => word.startsWith(key)) ? 2 : Infinity;
+      const score = name === key ? -1 : name.startsWith(key) ? (i === 0 ? 0 : 1) : name.split(" ").some((word) => word.startsWith(key)) ? 2 : Infinity;
       best = Math.min(best, score);
     });
     if (best < Infinity) scored.push([code, best]);

@@ -1,0 +1,4 @@
+/* The base the stage gets from app/globals.css on the site: Tailwind's preflight
+   (borderrun.css was written on it). scripts/export-solo.mjs compiles this with
+   Tailwind and inlines it. */
+@import "tailwindcss";
