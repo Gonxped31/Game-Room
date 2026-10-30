@@ -25,7 +25,7 @@ games/{roomCode}/
   buzzerquiz                   -- Buzzer Quiz (maxPlayers must be 4): the whole game, buzzes included
   wordscramble, wordscrambleTyping/{pN} -- Word Scramble (maxPlayers must be 8); each seat's own typing signal
   borderrun, borderrunRuns/{pN} -- Border Run's races (maxPlayers 8, or 4 for a public Challenge); each seat's own guesses
-  lasthop                      -- Last Hop (maxPlayers must be 2): the whole match, board as a cells string; a public room's mode == its queue while in the lobby
+  lasthop                      -- Last Hop (maxPlayers must be 2): the whole match, board as a cells string; a public room's mode == its queue while in the lobby; votes and pawns per seat
   regions, regionsRuns/{pN}     -- Checkmate Grid's races (same seats); each seat's own moves, appended one by one
   meta/publicLang, autoStart   -- public (matchmade) rooms: a language (buzzerquiz/wordscramble), `any` (nighthighway) or a mode (borderrun/regions: challenge/survival; lasthop: track/grid); autoStart members only (docs/matchmaking.md)
 queue/{slug}/{lang}/{room}     -- matchmaking queue: listable per slug+lang; members write; anyone deletes a stale (60 s) entry

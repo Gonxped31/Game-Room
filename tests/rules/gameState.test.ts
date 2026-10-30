@@ -211,6 +211,8 @@ describe("Last Hop", () => {
     const write = (state: hop.LastHopState) => writeAndReadBack(db, path, state);
     const now = Date.now();
     let game = await write(hop.newGame());
+    game = await write(hop.setPawn(game, "p1", "frog"));
+    game = await write(hop.setPawn(game, "p2", "ghost"));
     game = await write(hop.startMatch(game, generateBoard("track", Math.random), "p2", now));
     game = await playRound(write, game);
     while (game.phase === "roundOver") {
@@ -251,6 +253,8 @@ describe("Last Hop", () => {
     ["a bad reason", lasthopState({ history: [{ winner: "p1", reason: "resign", aSeat: "p1", moves: 3 }] })],
     ["an 11th round's result", lasthopState({ history: { 10: { winner: "p1", reason: "time", aSeat: "p1", moves: 3 } } })],
     ["a bad vote", lasthopState({ votes: { p1: "quit" } })],
+    ["an unknown pawn", lasthopState({ pawns: { p1: "dragon" } })],
+    ["a third seat's pawn", lasthopState({ pawns: { p3: "frog" } })],
     ["a third seat's vote", lasthopState({ votes: { p3: "again" } })],
     ["an unknown key", lasthopState({ cheats: true })],
   ])("rejects %s", async (_, state) => {

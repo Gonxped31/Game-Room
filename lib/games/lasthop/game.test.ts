@@ -18,6 +18,8 @@ import {
   nextRound,
   normalize,
   setMode,
+  pawnOf,
+  setPawn,
   startMatch,
   vote,
 } from "./game";
@@ -262,5 +264,33 @@ describe("votes after a matchmaking match", () => {
     expect(() => vote(started(), "p1", "again", deal, "p1", T)).toThrow("between matches");
     expect(() => vote(newGame(), "p1", "again", deal, "p1", T)).toThrow();
     expect(() => vote(done(), "p1", "quit" as never, deal, "p1", T)).toThrow();
+  });
+});
+
+describe("pawns", () => {
+  it("plays each seat's default until its player picks", () => {
+    expect([pawnOf(newGame(), "p1"), pawnOf(newGame(), "p2")]).toEqual(["square", "circle"]);
+  });
+
+  it("lets each player pick their own, in the lobby or between matches, and keeps it through a match", () => {
+    const frog = setPawn(newGame(), "p1", "frog");
+    expect(pawnOf(frog, "p1")).toBe("frog");
+    const both = setPawn(frog, "p2", "ghost");
+    expect(both.pawns).toEqual({ p1: "frog", p2: "ghost" });
+    const playing = startMatch(both, WIDE, "p1", T);
+    expect(playing.pawns).toEqual({ p1: "frog", p2: "ghost" });
+    expect(() => setPawn(playing, "p1", "star")).toThrow("between matches");
+    expect(pawnOf(setPawn(playMatch(["p1", "p1", "p1"]), "p2", "heart"), "p2")).toBe("heart");
+  });
+
+  it("refuses the other player's pawn (their default too) or an unknown one", () => {
+    expect(() => setPawn(newGame(), "p1", "circle")).toThrow("other player");
+    expect(() => setPawn(setPawn(newGame(), "p2", "bear"), "p1", "bear")).toThrow("other player");
+    expect(() => setPawn(newGame(), "p1", "dragon" as never)).toThrow();
+  });
+
+  it("survives Reset (newGame with the picks) and keeps no empty object", () => {
+    expect(newGame("grid", { p1: "star" }).pawns).toEqual({ p1: "star" });
+    expect("pawns" in newGame("grid", {})).toBe(false);
   });
 });

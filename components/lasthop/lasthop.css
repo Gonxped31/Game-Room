@@ -67,31 +67,32 @@
   background: var(--target);
 }
 
+/* A piece: the player's pawn (an SVG with its own shadow), the direction chevron over it. */
 .lh-piece {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 80%;
-  height: 80%;
-  margin-top: -3px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.35), transparent 45%), var(--fill);
-  box-shadow: 0 4px 0 var(--shade);
+  width: 76%;
+  height: 76%;
+  margin-top: -4px;
+  border-radius: 30%;
   color: var(--ink);
   transition: transform 120ms ease-out, opacity 120ms;
 }
 
-/* p1's pieces: rounded squares, a little smaller so they sit inside the well's curve. */
-.lh-piece.lh-sq {
-  width: 74%;
-  height: 74%;
-  border-radius: 24%;
+.lh-body {
+  width: 100%;
+  height: 100%;
 }
 
 .lh-chev {
-  width: 52%;
-  height: 52%;
-  opacity: 0.55;
+  position: absolute;
+  top: 34%;
+  left: 34%;
+  width: 32%;
+  height: 32%;
+  opacity: 0.6;
 }
 
 /* Forward (toward higher squares) points down in a column, right in a row, down-right on a grid. */
@@ -107,12 +108,12 @@
 
 .lh-piece.lh-movable {
   outline: 2px solid rgb(255 246 234 / 0.75);
-  outline-offset: 3px;
+  outline-offset: 4px;
 }
 
 .lh-piece.lh-picked {
   outline: 3px solid var(--target);
-  outline-offset: 3px;
+  outline-offset: 4px;
   transform: translateY(-3px) scale(1.06);
 }
 

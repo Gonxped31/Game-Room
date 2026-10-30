@@ -3,17 +3,19 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import type { Role } from "@/lib/session/types";
 import { CLOCKS } from "@/lib/games/lasthop/constants";
-import { FOCUS, FONT, isSquare, PrimaryButton, seatColor } from "./ui";
+import type { Pawn } from "@/lib/games/lasthop/constants";
+import { PawnShape } from "./pawns";
+import { FOCUS, FONT, PrimaryButton, seatColor } from "./ui";
 
 type Cell = "me" | "them" | "";
 
-/** A game piece in the drawings: the viewer's shape and colour for "me", the other player's for "them". */
-function Piece({ x, y, size, seat }: { x: number; y: number; size: number; seat: Role }) {
-  const s = size * 0.76;
-  return isSquare(seat) ? (
-    <rect x={x - s / 2} y={y - s / 2} width={s} height={s} rx={s * 0.24} fill={seatColor(seat)} />
-  ) : (
-    <circle cx={x} cy={y} r={s / 2} fill={seatColor(seat)} />
+/** A game piece in the drawings: the viewer's pawn and colour for "me", the other player's for "them". */
+function Piece({ x, y, size, seat, pawns }: { x: number; y: number; size: number; seat: Role; pawns: Record<Role, Pawn> }) {
+  const s = size * 0.74;
+  return (
+    <svg x={x - s / 2} y={y - s / 2} width={s} height={s} viewBox="0 0 100 100" overflow="visible">
+      <PawnShape pawn={pawns[seat]} fill={seatColor(seat)} />
+    </svg>
   );
 }
 
@@ -26,7 +28,7 @@ const centre = (i: number) => i * PITCH + CELL / 2;
  * One row of wells, as on the Track, with an arrow (or an arc, for a jump)
  * from the moving piece to where it lands, or a cross where it can't move.
  */
-function Row({ cells, me, from, to, blocked }: { cells: Cell[]; me: Role; from?: number; to?: number; blocked?: number }) {
+function Row({ cells, me, pawns, from, to, blocked }: { cells: Cell[]; me: Role; pawns: Record<Role, Pawn>; from?: number; to?: number; blocked?: number }) {
   const them: Role = me === "p1" ? "p2" : "p1";
   const w = cells.length * PITCH - GAP;
   const y = 30;
@@ -36,7 +38,7 @@ function Row({ cells, me, from, to, blocked }: { cells: Cell[]; me: Role; from?:
       {cells.map((c, i) => (
         <g key={i}>
           <rect x={i * PITCH} y={y - CELL / 2} width={CELL} height={CELL} rx={CELL * 0.3} fill="var(--well)" stroke={i === to ? "var(--target)" : "var(--well-rim)"} strokeWidth={2} strokeDasharray={i === to ? "4 3" : undefined} />
-          {c ? <Piece x={centre(i)} y={y} size={CELL} seat={c === "me" ? me : them} /> : null}
+          {c ? <Piece x={centre(i)} y={y} size={CELL} seat={c === "me" ? me : them} pawns={pawns} /> : null}
         </g>
       ))}
       {from != null && to != null ? (
@@ -52,7 +54,7 @@ function Row({ cells, me, from, to, blocked }: { cells: Cell[]; me: Role; from?:
 }
 
 /** The Grid: your piece in the middle can go up or left. */
-function GridPicture({ me }: { me: Role }) {
+function GridPicture({ me, pawns }: { me: Role; pawns: Record<Role, Pawn> }) {
   const size = 3;
   const w = size * PITCH - GAP;
   return (
@@ -63,7 +65,7 @@ function GridPicture({ me }: { me: Role }) {
         const target = i === 1 || i === 3;
         return <rect key={i} x={x} y={y} width={CELL} height={CELL} rx={CELL * 0.3} fill="var(--well)" stroke={target ? "var(--target)" : "var(--well-rim)"} strokeWidth={2} strokeDasharray={target ? "4 3" : undefined} />;
       })}
-      <Piece x={centre(1)} y={centre(1)} size={CELL} seat={me} />
+      <Piece x={centre(1)} y={centre(1)} size={CELL} seat={me} pawns={pawns} />
       <path d={`M${centre(1)} ${centre(1) - 15} V${centre(0) + 8}`} stroke="var(--target)" strokeWidth={2.5} strokeLinecap="round" markerEnd="url(#lh-arrow)" />
       <path d={`M${centre(1) - 15} ${centre(1)} H${centre(0) + 8}`} stroke="var(--target)" strokeWidth={2.5} strokeLinecap="round" markerEnd="url(#lh-arrow)" />
     </svg>
@@ -93,7 +95,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 const LIST = "m-0 grid gap-1.5 pl-5 text-[15px] leading-snug text-[var(--muted)] [&_b]:text-[var(--text)]";
 
 /** The rules, in full, with drawings in the viewer's own shape and colour. */
-function RulesContent({ me }: { me: Role }) {
+function RulesContent({ me, pawns }: { me: Role; pawns: Record<Role, Pawn> }) {
   return (
     <div className="grid gap-5">
       <Section title="The goal: make the last move">
@@ -108,13 +110,13 @@ function RulesContent({ me }: { me: Role }) {
           Pieces only go <b className="text-[var(--text)]">forward</b>, toward the other side. On your screen yours always start at the bottom (or right) and move up (or left).
         </p>
         <div className="grid gap-2 min-[560px]:grid-cols-3">
-          <Example title="Slide." picture={<Row cells={["", "me"]} me={me} from={1} to={0} />}>
+          <Example title="Slide." picture={<Row cells={["", "me"]} me={me} pawns={pawns} from={1} to={0} />}>
             One square forward, into an empty square.
           </Example>
-          <Example title="Jump." picture={<Row cells={["", "them", "me"]} me={me} from={2} to={0} />}>
+          <Example title="Jump." picture={<Row cells={["", "them", "me"]} me={me} pawns={pawns} from={2} to={0} />}>
             Over exactly one of their pieces, into the empty square right behind it.
           </Example>
-          <Example title="Blocked." picture={<Row cells={["them", "them", "me"]} me={me} blocked={2} />}>
+          <Example title="Blocked." picture={<Row cells={["them", "them", "me"]} me={me} pawns={pawns} blocked={2} />}>
             Nothing empty in front, and nothing empty behind the piece in front: this piece can&apos;t move.
           </Example>
         </div>
@@ -126,7 +128,7 @@ function RulesContent({ me }: { me: Role }) {
           </li>
         </ul>
         <div className="flex items-center gap-3 rounded-xl bg-[var(--surface-2)] p-3">
-          <GridPicture me={me} />
+          <GridPicture me={me} pawns={pawns} />
           <p className="m-0 text-[15px] leading-snug">
             <b>On the Grid</b>, this piece can slide up or left (theirs go down or right). Jumps work the same way, in a straight line.
           </p>
@@ -161,7 +163,8 @@ function RulesContent({ me }: { me: Role }) {
             10 rounds, it&apos;s a draw.
           </li>
           <li>
-            Your pieces keep your shape and colour all match: <b>player 1 plays squares, player 2 circles</b>.
+            <b>Pick your pawn</b> in the lobby or between matches (a frog, a ghost, a star…); the two of you can&apos;t have the same one. Your colour
+            stays yours all match, whichever side you play.
           </li>
         </ul>
       </Section>
@@ -174,7 +177,7 @@ function RulesContent({ me }: { me: Role }) {
  * (Escape, the backdrop or Close shuts it). `variant` "icon" is the header's
  * round ? button, "link" a text button for the lobby.
  */
-export default function RulesButton({ me, variant = "icon" }: { me: Role | null; variant?: "icon" | "link" }) {
+export default function RulesButton({ me, pawns, variant = "icon" }: { me: Role | null; pawns: Record<Role, Pawn>; variant?: "icon" | "link" }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -193,12 +196,12 @@ export default function RulesButton({ me, variant = "icon" }: { me: Role | null;
           Read the full rules
         </button>
       )}
-      {open ? <RulesDialog me={me ?? "p1"} onClose={() => setOpen(false)} /> : null}
+      {open ? <RulesDialog me={me ?? "p1"} pawns={pawns} onClose={() => setOpen(false)} /> : null}
     </>
   );
 }
 
-function RulesDialog({ me, onClose }: { me: Role; onClose: () => void }) {
+function RulesDialog({ me, pawns, onClose }: { me: Role; pawns: Record<Role, Pawn>; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -244,7 +247,7 @@ function RulesDialog({ me, onClose }: { me: Role; onClose: () => void }) {
           </button>
         </div>
         <div ref={body} tabIndex={-1} className="overflow-y-auto px-5 py-4 outline-none">
-          <RulesContent me={me} />
+          <RulesContent me={me} pawns={pawns} />
           <PrimaryButton className="mt-5" onClick={onClose}>
             Got it
           </PrimaryButton>

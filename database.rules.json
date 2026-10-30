@@ -401,6 +401,11 @@
             "p2": { ".validate": "newData.val() == 'again' || newData.val() == 'switch'" },
             "$other": { ".validate": false }
           },
+          "pawns": {
+            "p1": { ".validate": "newData.val() == 'square' || newData.val() == 'circle' || newData.val() == 'frog' || newData.val() == 'bunny' || newData.val() == 'bear' || newData.val() == 'star' || newData.val() == 'heart' || newData.val() == 'ghost'" },
+            "p2": { ".validate": "newData.val() == 'square' || newData.val() == 'circle' || newData.val() == 'frog' || newData.val() == 'bunny' || newData.val() == 'bear' || newData.val() == 'star' || newData.val() == 'heart' || newData.val() == 'ghost'" },
+            "$other": { ".validate": false }
+          },
           "$other": { ".validate": false }
         },
 
