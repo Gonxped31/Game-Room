@@ -3,12 +3,15 @@
 import { type CSSProperties, useMemo, useState } from "react";
 import type { Role } from "@/lib/session/types";
 import { type Board as BoardData, type Colour, legalMoves } from "@/lib/games/lasthop/board";
-import { FOCUS, isSquare, seatColor, seatShade } from "./ui";
+import type { Pawn } from "@/lib/games/lasthop/constants";
+import { PawnShape } from "./pawns";
+import { FOCUS, seatColor, seatShade } from "./ui";
 
 interface BoardProps {
   board: BoardData;
-  /** Who plays each colour this round: their pieces wear their color. */
+  /** Who plays each colour this round: their pieces wear their colour and pawn. */
   seatOf: (colour: Colour) => Role;
+  pawnOf: (seat: Role) => Pawn;
   /**
    * Turn the board half a turn, so the viewer's own pieces start at the
    * bottom (or right) and move up (or left). True for whoever plays A.
@@ -29,7 +32,7 @@ interface BoardProps {
  * 640px) or a Grid. A tap on one of your pieces that can move shows where it
  * can go; a tap there moves it. Pieces that can't move on your turn are dimmed.
  */
-export default function Board({ board, seatOf, rotated, moving, last, moveKey, onMove, nameOf }: BoardProps) {
+export default function Board({ board, seatOf, pawnOf, rotated, moving, last, moveKey, onMove, nameOf }: BoardProps) {
   const [selected, setSelected] = useState<{ cell: number; key: number } | null>(null);
   const moves = useMemo(() => (moving ? legalMoves(board, moving) : []), [board, moving]);
   // A selection belongs to the move it was made in; any move clears it.
@@ -102,9 +105,10 @@ export default function Board({ board, seatOf, rotated, moving, last, moveKey, o
             {piece && seat ? (
               <span
                 key={hop ? moveKey : undefined}
-                className={`lh-piece ${isSquare(seat) ? "lh-sq" : ""} ${hop ? "lh-hop" : ""} ${isPick ? "lh-picked" : ""} ${canMove && !isPick ? "lh-movable" : ""} ${dim ? "lh-dim" : ""}`}
-                style={{ ...hop, "--fill": seatColor(seat), "--shade": seatShade(seat) } as CSSProperties}
+                className={`lh-piece ${hop ? "lh-hop" : ""} ${isPick ? "lh-picked" : ""} ${canMove && !isPick ? "lh-movable" : ""} ${dim ? "lh-dim" : ""}`}
+                style={hop}
               >
+                <PawnShape pawn={pawnOf(seat)} fill={seatColor(seat)} shade={seatShade(seat)} className="lh-body" />
                 <svg aria-hidden="true" viewBox="0 0 24 24" className={`lh-chev ${forward ? "lh-fwd" : "lh-back"}`}>
                   <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

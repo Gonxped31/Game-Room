@@ -4,7 +4,7 @@
 // They play a Track match through - taps during "Get ready" that do nothing, a
 // reload mid-round, the Leave room question, a round lost on time, the pair's
 // second round on the same board with sides swapped, the match's end (also
-// after a reload), How to play from the header and the lobby. The guest only plays: only the host starts, switches the
+// after a reload), pawn picks (the other's taken), How to play from the header and the lobby. The guest only plays: only the host starts, switches the
 // next match to Grid, plays again and resets (Reset keeps Grid). Then
 // matchmaking: two strangers search Track, the match starts by itself; after
 // it they vote (a split vote waits, an agreed "Change to Grid" starts a Grid
@@ -66,10 +66,22 @@ try {
   // The lobby only shows the mode picked on the hub: nobody can switch it here.
   for (const page of [A, B]) {
     await page.getByText("Quick and sharp. One row, every move counts.").waitFor();
-    if ((await page.getByRole("radio").count()) !== 0) throw new Error("the lobby offers a mode switch");
+    if ((await page.getByRole("radiogroup", { name: /Mode/ }).count()) !== 0) throw new Error("the lobby offers a mode switch");
   }
   await shot(B, "lobby-iphone");
   log("Start asked for the mode; the lobby only shows it");
+
+  // Pawns: each player picks their own; the other's is taken.
+  await A.getByRole("radio", { name: "Frog", exact: true }).click();
+  await until(async () => (await state()).pawns?.p1 === "frog", "Sam's frog");
+  await B.getByRole("radio", { name: "Frog (Sam's)" }).waitFor();
+  if (!(await B.getByRole("radio", { name: "Frog (Sam's)" }).isDisabled())) throw new Error("the other player's pawn isn't taken");
+  await B.getByRole("radio", { name: "Ghost", exact: true }).click();
+  await until(async () => (await state()).pawns?.p2 === "ghost", "Léa's ghost");
+  await A.getByText("Your pawn: Frog").waitFor();
+  await B.getByText("Your pawn: Ghost").waitFor();
+  await shot(B, "pawns-iphone");
+  log("pawns: Sam picked the frog, Léa the ghost (the frog taken for her)");
 
   // How to play: from the header's ? (closed with Got it) and the lobby's link (closed with Escape).
   await B.getByRole("button", { name: "How to play" }).click();
@@ -208,7 +220,7 @@ try {
   await A.getByRole("button", { name: "Reset game" }).click();
   await A.getByRole("dialog").getByRole("button", { name: "Reset game" }).click();
   for (const page of [A, B]) await page.getByRole("heading", { name: "Make the last move" }).waitFor({ timeout: 10000 });
-  if ((await state()).mode !== "grid" || (await B.getByRole("radio").count()) !== 0) throw new Error("Reset game lost the mode or shows a switch");
+  if ((await state()).mode !== "grid" || (await B.getByRole("radiogroup", { name: /Mode/ }).count()) !== 0) throw new Error("Reset game lost the mode or shows a switch");
   await B.getByText("Longer, more open. Pieces move two ways.").waitFor();
   log("Reset game keeps Grid");
 

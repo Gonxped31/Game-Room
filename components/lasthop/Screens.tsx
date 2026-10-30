@@ -5,8 +5,9 @@ import { type ReactNode, useState } from "react";
 import type { Role } from "@/lib/session/types";
 import { NEW_ROOM_CONFIRM, type RoomQuestion } from "@/lib/session/shared/roomActions";
 import RoomDialog, { type RoomDialogProps } from "@/components/RoomDialog";
-import { CLOCKS, MODE_LABELS, MODES, type Mode } from "@/lib/games/lasthop/constants";
+import { CLOCKS, MODE_LABELS, MODES, type Mode, type Pawn, PAWN_LABELS, PAWNS } from "@/lib/games/lasthop/constants";
 import { otherMode, type RoundResult, type Vote } from "@/lib/games/lasthop/game";
+import { PawnShape } from "./pawns";
 import { FOCUS, FONT, formatClock, PieceMark, PrimaryButton, SecondaryButton, seatColor } from "./ui";
 
 /** The page frame's title row: the wordmark, the match so far, and the How to play button (`rules`). */
@@ -48,6 +49,7 @@ export function Message({ text, alert, home }: { text: string; alert?: boolean; 
 /** A player's strip: color, name, the moves they have, and their chess clock. */
 export function PlayerBar({
   seat,
+  pawn,
   name,
   isMe,
   clockMs,
@@ -65,6 +67,7 @@ export function PlayerBar({
   moves: number;
   online: boolean;
   wins: number;
+  pawn: Pawn;
 }) {
   const low = running && clockMs < 10_000;
   return (
@@ -72,7 +75,7 @@ export function PlayerBar({
       className={`flex items-center gap-3 rounded-2xl px-3.5 py-2.5 transition-colors motion-reduce:transition-none ${running ? "bg-[var(--surface-2)]" : "bg-[var(--surface)]"}`}
       style={running ? { boxShadow: `inset 0 0 0 2px ${seatColor(seat)}` } : undefined}
     >
-      <PieceMark seat={seat} />
+      <PieceMark seat={seat} pawn={pawn} size={24} />
       <div className="min-w-0 flex-1">
         <p className="m-0 truncate text-[16px] font-bold">
           {name}
@@ -93,14 +96,9 @@ export function PlayerBar({
   );
 }
 
-/** A small picture of each mode for the lobby: a row of wells, or a 4x3 block, with each player's pieces in their shape. */
+/** A small picture of each mode for the lobby: a row of wells, or a 4x3 block, in each player's colour. */
 function ModePicture({ mode }: { mode: Mode }) {
-  const dot = (cx: number, cy: number, c: string) =>
-    c === "p1" ? (
-      <rect key={`${cx}-${cy}`} x={cx - 6.5} y={cy - 6.5} width="13" height="13" rx="3.5" fill="var(--p1)" />
-    ) : (
-      <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="7" fill={c ? `var(--${c})` : "var(--well)"} />
-    );
+  const dot = (cx: number, cy: number, c: string) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="7" fill={c ? `var(--${c})` : "var(--well)"} />;
   if (mode === "track") {
     const cells = ["p1", "p1", "", "p1", "", "", "p2", "p2", "", "p2"];
     return (
@@ -139,7 +137,7 @@ function ModeInfo({ mode }: { mode: Mode }) {
  * (`onStart`; the guest waits for `hostName`). The mode was picked on the
  * hub's Start; here it only shows. The host changes it between matches.
  */
-export function Lobby({ mode, onStart, hostName, rules }: { mode: Mode; onStart?: () => void; hostName: string; rules?: ReactNode }) {
+export function Lobby({ mode, onStart, hostName, rules, pawnPicker }: { mode: Mode; onStart?: () => void; hostName: string; rules?: ReactNode; pawnPicker?: ReactNode }) {
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4">
@@ -154,6 +152,7 @@ export function Lobby({ mode, onStart, hostName, rules }: { mode: Mode; onStart?
       <div className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[var(--p1)] bg-[var(--surface-2)] p-3.5">
         <ModeInfo mode={mode} />
       </div>
+      {pawnPicker}
       {onStart ? (
         <PrimaryButton onClick={onStart}>Start the match</PrimaryButton>
       ) : (
@@ -217,6 +216,7 @@ export function MatchLobby({
   status,
   onFindAnother,
   onLeave,
+  pawnPicker,
 }: {
   mode: Mode;
   myName: string;
@@ -224,6 +224,7 @@ export function MatchLobby({
   status: string;
   onFindAnother?: () => void;
   onLeave: () => void;
+  pawnPicker?: ReactNode;
 }) {
   return (
     <div className="grid gap-4">
@@ -236,6 +237,7 @@ export function MatchLobby({
           {status}
         </p>
       </div>
+      {pawnPicker}
       {onFindAnother ? <PrimaryButton onClick={onFindAnother}>Find another player</PrimaryButton> : null}
       <SecondaryButton onClick={onLeave}>Leave room</SecondaryButton>
     </div>
@@ -257,6 +259,41 @@ export function RoundBanner({ result, name, me, nextIn, sameBoard }: { result: R
         {why} {sameBoard ? "Next: the same board, sides swapped" : "Next: a new board"}
         {nextIn != null ? ` in ${nextIn}` : ""}.
       </p>
+    </div>
+  );
+}
+
+/**
+ * "Your pawn": the eight pawns in the player's colour, theirs picked. The
+ * other player's pawn is taken (shown in their colour, disabled).
+ */
+export function PawnPicker({ me, mine, theirs, otherName, onPick }: { me: Role; mine: Pawn; theirs: Pawn; otherName: string; onPick: (pawn: Pawn) => void }) {
+  const other: Role = me === "p1" ? "p2" : "p1";
+  return (
+    <div className="grid gap-2 rounded-2xl bg-[var(--surface)] p-3.5">
+      <p id="lh-pawn-label" className={`${FONT} m-0 text-[16px] font-bold`}>
+        Your pawn: <span style={{ color: seatColor(me) }}>{PAWN_LABELS[mine]}</span>
+      </p>
+      <div role="radiogroup" aria-labelledby="lh-pawn-label" className="grid grid-cols-4 gap-2 min-[560px]:grid-cols-8">
+        {PAWNS.map((pawn) => {
+          const on = pawn === mine;
+          const taken = pawn === theirs;
+          return (
+            <button
+              key={pawn}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={taken ? `${PAWN_LABELS[pawn]} (${otherName}'s)` : PAWN_LABELS[pawn]}
+              disabled={taken}
+              onClick={() => !on && onPick(pawn)}
+              className={`flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 p-2 disabled:cursor-not-allowed ${on ? "border-[var(--p1)] bg-[var(--surface-2)]" : "border-transparent bg-[var(--well)]"} ${taken ? "opacity-45" : ""} ${FOCUS}`}
+            >
+              <PawnShape pawn={pawn} fill={seatColor(taken ? other : me)} className="h-full max-h-[44px] w-full max-w-[44px]" />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -286,6 +323,8 @@ export function MatchOver({
   hostName,
   onAgain,
   voting,
+  pawnOf,
+  pawnPicker,
 }: {
   score: Record<Role, number>;
   history: RoundResult[];
@@ -298,6 +337,8 @@ export function MatchOver({
   hostName?: string;
   onAgain?: () => void;
   voting?: Voting;
+  pawnOf: (seat: Role) => Pawn;
+  pawnPicker?: ReactNode;
 }) {
   const title = winner == null ? "A draw" : me ? (winner === me ? "You win the match!" : `${name(winner)} wins the match`) : `${name(winner)} wins the match`;
   return (
@@ -312,7 +353,7 @@ export function MatchOver({
         <ol className="m-0 mt-3 grid list-none gap-1.5 p-0 text-left text-[14px]">
           {history.map((r, i) => (
             <li key={i} className="flex items-center gap-2.5 rounded-xl bg-[var(--surface-2)] px-3 py-2">
-              <PieceMark seat={r.winner} size={14} />
+              <PieceMark seat={r.winner} pawn={pawnOf(r.winner)} size={16} />
               <span className="flex-1">
                 Round {i + 1}: <b>{name(r.winner)}</b>
               </span>
@@ -323,6 +364,7 @@ export function MatchOver({
           ))}
         </ol>
       </div>
+      {pawnPicker}
       {voting ? (
         <VotePanel mode={mode} voting={voting} />
       ) : onMode ? (

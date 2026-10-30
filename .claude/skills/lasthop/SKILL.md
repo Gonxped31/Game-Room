@@ -64,7 +64,7 @@ generator tests in `board.test.ts` check it.
 | `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (between matches), `vote` (matchmaking); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
 | `lib/games/lasthop/constants.ts` | Modes, clocks, delays, round limits |
 | `app/lasthop/page.tsx` | Session (`useGameSession`), deadlines (`flag` or `nextRound`), screens |
-| `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`), `lasthop.css` (board sizes, animation), `Rules.tsx` (How to play) |
+| `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`, `PieceMark`), `pawns.tsx` (the pawn drawings), `lasthop.css` (board sizes, animation), `Rules.tsx` (How to play) |
 | `database.rules.json` → `lasthop` | Validates the whole state; `maxPlayers` must be 2 |
 | `lib/games/matchGames.ts` → `LASTHOP_MATCH` | The two matchmaking queues |
 | `.claude/skills/live-test/scripts/last-hop.mjs` | Desktop host vs a phone (`[phoneProfile]`, default `iphone`): Start's mode, host-only mode, a whole Track match, a Grid round; then a matchmaking pair |
@@ -89,12 +89,16 @@ generator tests in `board.test.ts` check it.
   left)**: whoever plays A sees the board turned half a turn (`rotated`, done by
   reversing the render order, so display coordinates come from `xy`). The
   opponent's bar is on top, yours below. Spectators see it unturned.
-- **Pieces wear their player's colour and shape** for the whole match (p1
-  tangerine rounded squares, p2 mint circles; `isSquare`, `PieceMark`),
-  whichever side they play that round. The wells are rounded squares. The
-  shapes also show in the player bars, the lobby's pictures, the match's
-  round list, the hub art and the tile (the user's call, 2026-10-30: telling
-  the sides apart by colour alone was too hard).
+- **Pieces wear their player's colour and pawn** for the whole match,
+  whichever side they play that round. Colour is the seat's (p1 tangerine, p2
+  mint). **Each player picks their own pawn** (the user's call, 2026-10-30:
+  a personal choice, so the guest picks too): Square, Circle, Frog, Bunny,
+  Bear, Star, Heart, Ghost (`PAWNS`), drawn flat in `pawns.tsx`. Picked in the
+  lobby, the matchmaking waiting screen or after a match (`setPawn` refuses
+  mid-match and the other player's pawn); defaults p1 Square, p2 Circle
+  (`pawnOf`). Reset keeps the picks. They show on the board, the player bars,
+  the round list and the How to play drawings; the hub art and tile keep the
+  defaults.
 - A Track is a **column on phones** (cells sized from `100dvh`, 34-54px) and a
   **row from 640px**. The chevron in each piece points forward
   (`lh-fwd`/`lh-back`, rotated by CSS per layout).
@@ -120,6 +124,9 @@ Keep it in step with the rules here when they change (clocks come from
 - **`clocks` holds what was left when the current turn started**; the running
   clock is `clockLeft(state, seat, now)`. `move` charges `now - turnStartedAt`
   (never negative, so a move during "Get ready" is free) and adds the increment.
+- **"Get ready" is only before a round's first move** (`moves > 0`): after
+  that, a device whose server clock runs behind the mover's would otherwise
+  lock the board for a moment after every opposing move.
 - `move` refuses once the mover's flag time has passed, so a late move can't
   beat a `flag` that's due.
 - The rules cap `round` and `score` at 10 and `history` keys at `0-9`, matching

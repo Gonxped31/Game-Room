@@ -1,7 +1,7 @@
 import type { Role, WithIdentity } from "@/lib/session/types";
 import { assertDue } from "@/lib/session/shared/deadline";
 import { applyMove, type Board, type Colour, findMove, legalMoves, opponent } from "./board";
-import { BETWEEN_MS, CLOCKS, MAX_ROUNDS, MIN_ROUNDS, type Mode, MODES, START_DELAY_MS } from "./constants";
+import { BETWEEN_MS, CLOCKS, DEFAULT_PAWNS, MAX_ROUNDS, MIN_ROUNDS, type Mode, MODES, type Pawn, PAWNS, START_DELAY_MS } from "./constants";
 
 /**
  * Last Hop's state machine. A match is rounds in pairs: each board is played
@@ -48,14 +48,18 @@ export interface LastHopState extends WithIdentity {
   history: RoundResult[];
   /** After a match in a matchmaking room (no host): each player's vote for what's next. */
   votes?: Partial<Record<Role, Vote>>;
+  /** The pawns players picked; a seat without one plays its `DEFAULT_PAWNS` (`pawnOf`). */
+  pawns?: Partial<Record<Role, Pawn>>;
 }
 
 export function otherSeat(seat: Role): Role {
   return seat === "p1" ? "p2" : "p1";
 }
 
-export function newGame(mode: Mode = "track"): LastHopState {
+/** A fresh lobby in `mode`, keeping the pawns players already picked (Reset game). */
+export function newGame(mode: Mode = "track", pawns?: Partial<Record<Role, Pawn>>): LastHopState {
   return {
+    ...(pawns && Object.keys(pawns).length ? { pawns } : {}),
     names: {},
     phase: "lobby",
     mode,
@@ -78,6 +82,24 @@ export function normalize(state: LastHopState): LastHopState {
     score: { p1: state.score?.p1 ?? 0, p2: state.score?.p2 ?? 0 },
     clocks: { p1: state.clocks?.p1 ?? 0, p2: state.clocks?.p2 ?? 0 },
   };
+}
+
+/** The pawn a seat plays: its pick, or its default. */
+export function pawnOf(state: LastHopState, seat: Role): Pawn {
+  return state.pawns?.[seat] ?? DEFAULT_PAWNS[seat];
+}
+
+/**
+ * A player picks their pawn, in the lobby or between matches (never
+ * mid-match, where it would change under the other player's eyes). It must
+ * differ from the other player's.
+ */
+export function setPawn(state: LastHopState, seat: Role, pawn: Pawn): LastHopState {
+  const s = normalize(state);
+  if (s.phase !== "lobby" && s.phase !== "matchOver") throw new Error("Pawns are picked between matches.");
+  if (!PAWNS.includes(pawn)) throw new Error("Unknown pawn.");
+  if (pawnOf(s, otherSeat(seat)) === pawn) throw new Error("The other player has that pawn.");
+  return { ...s, pawns: { ...s.pawns, [seat]: pawn } };
 }
 
 /** Who plays A in a round: `firstA` in odd rounds, the other seat in even ones. */

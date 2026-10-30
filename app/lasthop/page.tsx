@@ -26,7 +26,9 @@ import {
   newGame,
   nextRound,
   normalize,
+  pawnOf,
   seatOf,
+  setPawn,
   setMode,
   startMatch,
   vote,
@@ -36,7 +38,7 @@ import InviteLinkBanner from "@/components/InviteLinkBanner";
 import RolePicker from "@/components/RolePicker";
 import Board from "@/components/lasthop/Board";
 import RulesButton from "@/components/lasthop/Rules";
-import { AskDialog, Footer, Header, Lobby, MatchLobby, MatchOver, Message, PlayerBar, RoundBanner } from "@/components/lasthop/Screens";
+import { AskDialog, Footer, Header, Lobby, MatchLobby, MatchOver, Message, PawnPicker, PlayerBar, RoundBanner } from "@/components/lasthop/Screens";
 import { FONT, THEME } from "@/components/lasthop/ui";
 import "@/components/lasthop/lasthop.css";
 
@@ -83,7 +85,9 @@ export default function LastHopPage() {
 
   const playing = game?.phase === "playing" && game.board != null;
   const myTurn = playing && me != null && moverOf(game) === me;
-  const started = playing && now != null && game.turnStartedAt != null && now >= game.turnStartedAt;
+  // "Get ready" is only before a round's first move: after that, a device whose
+  // server clock runs a little behind the mover's must not lock the board again.
+  const started = playing && game.turnStartedAt != null && (game.moves > 0 || (now != null && now >= game.turnStartedAt));
 
   useEffect(() => {
     document.title = myTurn ? `▶ Your move · ${GAME_TITLE}` : GAME_TITLE;
@@ -99,7 +103,8 @@ export default function LastHopPage() {
       const s = normalize(current);
       return startMatch(s, generateBoard(s.mode, Math.random, s.start), randomSeat(), serverNow());
     });
-  const onReset = () => setGame(newGame(game?.mode));
+  // Reset keeps the mode and the pawns players picked.
+  const onReset = () => setGame(newGame(game?.mode, game?.pawns));
 
   // A matchmaking room: its queue is its mode; no host, it starts by itself.
   const publicMode = isMode(session.publicLang) ? session.publicLang : null;
@@ -143,6 +148,13 @@ export default function LastHopPage() {
   const leaveNow = () => (isPublic ? publicRoom.leave() : leaveToHub(session.leave));
   const leave = () => (me && bothJoined && midMatch ? setAskingLeave(true) : void leaveNow());
 
+  // Each player picks their own pawn (between matches): a personal choice, not the host's.
+  const pawns = { p1: game ? pawnOf(game, "p1") : "square", p2: game ? pawnOf(game, "p2") : "circle" } as const;
+  const pawnPicker =
+    game && me && other && (game.phase === "lobby" || game.phase === "matchOver") ? (
+      <PawnPicker me={me} mine={pawns[me]} theirs={pawns[other]} otherName={name(other)} onPick={(pawn) => transact((st) => setPawn(st, me, pawn))} />
+    ) : null;
+
   const problem = roomProblemMessage(session);
   let screen;
   // The matchmaking screens (waiting, voting) have their own Leave room button: no footer under them.
@@ -168,7 +180,7 @@ export default function LastHopPage() {
     const secs = publicRoom.autoStartAt != null && lobbyNow != null ? Math.max(0, Math.ceil((publicRoom.autoStartAt - lobbyNow) / 1000)) : null;
     const status = secs != null ? (secs > 0 ? `Starting in ${secs} s` : "Starting…") : online[other] ? "Getting ready…" : `${name(other)} is offline.`;
     footer = false;
-    screen = <MatchLobby mode={publicMode} myName={name(me)} otherName={name(other)} status={status} onLeave={leave} />;
+    screen = <MatchLobby mode={publicMode} myName={name(me)} otherName={name(other)} status={status} onLeave={leave} pawnPicker={pawnPicker} />;
   } else if (!me && !(bothJoined && game.phase !== "lobby")) {
     screen = <RolePicker names={names} canTakeOver={canTakeOver} onPick={pickIdentity} accentColor="#FF8A4C" accentShadowColor="#B4511E" />;
   } else if (!bothJoined) {
@@ -184,7 +196,7 @@ export default function LastHopPage() {
       />
     );
   } else if (game.phase === "lobby") {
-    screen = <Lobby mode={game.mode} onStart={isHost ? onStart : undefined} hostName={hostName} rules={<RulesButton me={me} variant="link" />} />;
+    screen = <Lobby mode={game.mode} onStart={isHost ? onStart : undefined} hostName={hostName} rules={<RulesButton me={me} pawns={pawns} variant="link" />} pawnPicker={pawnPicker} />;
   } else if (game.phase === "matchOver") {
     screen = (
       <MatchOver
@@ -193,6 +205,8 @@ export default function LastHopPage() {
         winner={matchWinner(game)}
         name={name}
         me={me}
+        pawnOf={(seat) => pawns[seat]}
+        pawnPicker={pawnPicker}
         mode={game.mode}
         onMode={isHost ? (mode) => transact((st) => setMode(st, mode)) : undefined}
         hostName={!isPublic && me && !isHost ? hostName : undefined}
@@ -227,6 +241,7 @@ export default function LastHopPage() {
         moves={legalMoves(board, colourOf(game, seat)).length}
         online={Boolean(online[seat])}
         wins={game.score[seat]}
+        pawn={pawns[seat]}
       />
     );
     const result = game.phase === "roundOver" ? game.history.at(-1) : undefined;
@@ -253,6 +268,7 @@ export default function LastHopPage() {
           <Board
             board={board}
             seatOf={(colour) => seatOf(game, colour)}
+            pawnOf={(seat) => pawns[seat]}
             rotated={rotated}
             moving={myTurn && started ? colourOf(game, me!) : null}
             last={game.last}
@@ -276,7 +292,7 @@ export default function LastHopPage() {
     <div style={THEME} className={`${FONT} min-h-screen bg-[var(--stage)] font-medium text-[var(--text)]`}>
       <main className="mx-auto flex max-w-[560px] flex-col gap-3 px-4 pt-3 pb-6 min-[640px]:max-w-[840px] min-[640px]:gap-4 min-[640px]:pt-6">
         <InAppBrowserBanner />
-        <Header round={game && game.phase !== "lobby" ? game.round : undefined} score={score} rules={<RulesButton me={me} />} />
+        <Header round={game && game.phase !== "lobby" ? game.round : undefined} score={score} rules={<RulesButton me={me} pawns={pawns} />} />
         {/* The board takes the page's width; the other screens stay a readable column. */}
         {midMatch && bothJoined ? screen : <div className="mx-auto w-full max-w-[560px]">{screen}</div>}
         {footer ? (
