@@ -11,7 +11,7 @@ import { newGame as newRace } from "@/lib/games/nighthighway/game";
 import { newGame as newScramble } from "@/lib/games/wordscramble/game";
 import { newRace as newBorderRun } from "@/lib/games/borderrun/race";
 import { newRace as newGridRace } from "@/lib/games/regions/race";
-import { newGame as newHop, setMode as setHopMode } from "@/lib/games/lasthop/game";
+import { newGame as newHop } from "@/lib/games/lasthop/game";
 import { dbAs, ROOM, seed, setupEnv, TS } from "./helpers";
 
 let env: RulesTestEnvironment;
@@ -223,11 +223,11 @@ describe("Last Hop's public rooms", () => {
     await assertSucceeds(send("alice", publicRoom("grid")));
     const publicMeta = { ...meta("alice"), gameSlug: "lasthop", maxPlayers: 2, publicLang: "grid" };
     await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: publicMeta, ts: TS })));
-    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain(setHopMode(newHop("grid"), "track"))));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain(newHop("track"))));
     await env.clearDatabase();
     await assertSucceeds(send("alice", createRoomUpdate({ code: ROOM, uid: "alice", gameSlug: "lasthop", maxPlayers: 2, initialState: plain(newHop("track")), ts: TS })));
     const privateMeta = { gameSlug: "lasthop", maxPlayers: 2, createdAt: 1, createdBy: "alice" };
     await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: privateMeta, ts: TS })));
-    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain(setHopMode(newHop("track"), "grid"))));
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain(newHop("grid"))));
   });
 });

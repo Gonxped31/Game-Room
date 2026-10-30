@@ -1,12 +1,13 @@
 // Last Hop end-to-end, against a dev server on the emulators (see
-// dev-against-emulators.mjs): a desktop host starts a Grid room from the hub
-// and an iPhone joins; only the host can change the mode. They play a Track
-// match through - taps during "Get ready" that do nothing, a reload mid-round,
-// the Leave room question, a round lost on time, the pair's second round on the
-// same board with sides swapped, the match's end (also after a reload) and
-// Play again - then Reset game and a Grid round. Then matchmaking: two
-// strangers search Track, the match starts by itself, one leaves and the
-// other is offered another player. About three minutes.
+// dev-against-emulators.mjs): a desktop host starts a Track room from the hub
+// (the mode is picked there; the lobby only shows it) and an iPhone joins.
+// They play a Track match through - taps during "Get ready" that do nothing, a
+// reload mid-round, the Leave room question, a round lost on time, the pair's
+// second round on the same board with sides swapped, the match's end (also
+// after a reload). Between matches only the host switches to Grid; Play again
+// plays a Grid round, and Reset game keeps Grid. Then matchmaking: two
+// strangers search Track, the match starts by itself, one leaves and the other
+// is offered another player. About three minutes.
 //
 //   node .claude/skills/live-test/scripts/last-hop.mjs [baseUrl] [screenshotDir] [phoneProfile]
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
@@ -41,13 +42,13 @@ try {
   // The hub's Start asks for the mode first.
   await A.goto(BASE);
   await A.getByRole("button", { name: "Start a Last Hop room" }).click();
-  await A.getByRole("dialog").getByRole("radio", { name: /Grid/ }).click();
+  await A.getByRole("dialog").getByRole("radio", { name: /Track/ }).click();
   await A.getByRole("dialog").getByRole("button", { name: "Start room" }).click();
   await A.waitForURL(/\/lasthop#[a-z0-9]{6}$/, { timeout: 60000 });
   const room = new URL(A.url()).hash.slice(1);
   const path = `games/${room}/lasthop`;
   const state = () => admin(path);
-  if ((await until(state, "the room's state")).mode !== "grid") throw new Error("the room didn't start in Grid");
+  if ((await until(state, "the room's state")).mode !== "track") throw new Error("the room didn't start in Track");
   await A.getByLabel("Your name").fill("Sam");
   await A.getByRole("button", { name: "Continue" }).click();
   await A.getByRole("button", { name: "Copy invite link" }).waitFor({ timeout: 30000 });
@@ -60,17 +61,13 @@ try {
   for (const page of [A, B]) await page.getByRole("heading", { name: "Make the last move" }).waitFor({ timeout: 30000 });
   log("both in the lobby");
 
-  // Only the host picks the mode; the other player sees it change.
-  await B.getByRole("radio", { name: /Grid/, checked: true }).waitFor();
-  await B.getByText("Sam picks the mode.").waitFor();
-  if (!(await B.getByRole("radio", { name: /Track/ }).isDisabled())) throw new Error("the guest's mode switch isn't disabled");
-  await B.getByRole("radio", { name: /Track/ }).click({ force: true });
-  await wait(800);
-  if ((await state()).mode !== "grid") throw new Error("the guest changed the mode");
+  // The lobby only shows the mode picked on the hub: nobody can switch it here.
+  for (const page of [A, B]) {
+    await page.getByText("Quick and sharp. One row, every move counts.").waitFor();
+    if ((await page.getByRole("radio").count()) !== 0) throw new Error("the lobby offers a mode switch");
+  }
   await shot(B, "lobby-iphone");
-  await A.getByRole("radio", { name: /Track/ }).click();
-  await B.getByRole("radio", { name: /Track/, checked: true }).waitFor();
-  log("Start asked for the mode; only the host changes it");
+  log("Start asked for the mode; the lobby only shows it");
 
   const pageOf = (seat) => (seat === "p1" ? A : B);
   /** The mover plays one move through the board: a piece that can move, then a square to move to. */
@@ -155,26 +152,26 @@ try {
   for (const page of [A, B]) await page.getByRole("heading", { name: /wins the match|You win the match|A draw/ }).waitFor({ timeout: 10000 });
   await shot(A, "match-over-desktop");
   await shot(B, "match-over-iphone");
-  if ((await B.getByRole("button", { name: "Change mode" }).count()) !== 0) throw new Error("the guest can change the mode after a match");
-  await A.getByRole("button", { name: "Change mode" }).waitFor();
   await B.reload();
   await B.getByRole("heading", { name: /wins the match|You win the match|A draw/ }).waitFor({ timeout: 30000 });
   log("match over", `${s.score.p1}-${s.score.p2}`, "(also after a reload)");
 
-  // Play again: a clean score.
+  // Between matches only the host switches the mode; the guest sees it.
+  if ((await B.getByRole("radiogroup", { name: "Mode for the next match" }).count()) !== 0) throw new Error("the guest can switch the mode");
+  await B.getByText("Sam picks the mode.", { exact: false }).waitFor();
+  await A.getByRole("radiogroup", { name: "Mode for the next match" }).getByRole("radio", { name: /Grid/ }).click();
+  await until(async () => (await state()).mode === "grid", "the host's switch to Grid");
+  await B.getByText("Next match: Grid", { exact: false }).waitFor();
+  await shot(A, "next-match-desktop");
+  log("between matches only the host switched to Grid");
+
+  // Play again: a clean score, in Grid.
   await B.getByRole("button", { name: "Play again" }).click();
   const again = await until(async () => { const v = await state(); return v.phase === "playing" && v.round === 1 ? v : null; }, "a new match");
   if (again.score.p1 !== 0 || again.score.p2 !== 0 || (again.history ?? []).length) throw new Error("Play again kept the score");
-  log("Play again starts clean");
-
-  // Reset game → the lobby; then a Grid round.
-  await A.getByRole("button", { name: "Reset game" }).click();
-  await A.getByRole("dialog").getByRole("button", { name: "Reset game" }).click();
-  for (const page of [A, B]) await page.getByRole("heading", { name: "Make the last move" }).waitFor({ timeout: 10000 });
-  await A.getByRole("radio", { name: /Grid/ }).click();
-  await B.getByRole("radio", { name: /Grid/, checked: true }).waitFor();
-  await B.getByRole("button", { name: "Start the match" }).click();
+  if (again.mode !== "grid" || again.board.h === 1) throw new Error("Play again isn't in Grid");
   for (const page of [A, B]) await page.getByRole("group", { name: "The grid" }).waitFor({ timeout: 10000 });
+  log("Play again starts clean, in Grid");
   const g = await state();
   log("grid dealt:", g.board.w, "x", g.board.h);
   await until(async () => Date.now() > (await state()).turnStartedAt + 300, "the clock to start");
@@ -185,6 +182,14 @@ try {
   s = await playRoundOut();
   if (s.phase !== "roundOver" || s.history[0].reason !== "stuck") throw new Error(`grid round ended ${JSON.stringify(s.history)}`);
   log("grid round played out:", s.history[0].moves, "moves");
+
+  // Reset game: back to the lobby, still in Grid, still no switch.
+  await A.getByRole("button", { name: "Reset game" }).click();
+  await A.getByRole("dialog").getByRole("button", { name: "Reset game" }).click();
+  for (const page of [A, B]) await page.getByRole("heading", { name: "Make the last move" }).waitFor({ timeout: 10000 });
+  if ((await state()).mode !== "grid" || (await B.getByRole("radio").count()) !== 0) throw new Error("Reset game lost the mode or shows a switch");
+  await B.getByText("Longer, more open. Pieces move two ways.").waitFor();
+  log("Reset game keeps Grid");
 
   // ---- Matchmaking: two strangers search Track ---------------------------------------
   const search = async (page, name) => {

@@ -114,15 +114,29 @@ function ModePicture({ mode }: { mode: Mode }) {
   );
 }
 
+/** A mode's picture, name, line and clock: inside the lobby's card and the host's switch between matches. */
+function ModeInfo({ mode }: { mode: Mode }) {
+  const clock = CLOCKS[mode];
+  return (
+    <>
+      <span className="flex h-[60px] w-full items-center justify-center">
+        <ModePicture mode={mode} />
+      </span>
+      <span className={`${FONT} text-[20px] font-bold`}>{MODE_LABELS[mode].label}</span>
+      <span className="text-[14px] leading-snug text-[var(--muted)]">{MODE_LABELS[mode].detail}</span>
+      <span className="text-[13px] font-medium text-[var(--muted)]">
+        {clock.startMs / 60_000} min each, +{clock.incrementMs / 1000} s a move
+      </span>
+    </>
+  );
+}
+
 /**
- * Both players are in: the rules, the mode, Start. Only the host picks the
- * mode (`onMode` unset for the other player, who sees the host's pick);
- * either player starts.
+ * Both players are in: the rules, the room's mode, Start (either player).
+ * The mode was picked on the hub's Start; here it only shows. The host
+ * changes it between matches (`MatchOver`).
  */
-export function Lobby({ mode, onMode, hostName, onStart }: { mode: Mode; onMode?: (mode: Mode) => void; hostName: string; onStart: () => void }) {
-  const choose = (next: Mode) => {
-    if (onMode && next !== mode) onMode(next);
-  };
+export function Lobby({ mode, onStart }: { mode: Mode; onStart: () => void }) {
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4">
@@ -133,53 +147,50 @@ export function Lobby({ mode, onMode, hostName, onStart }: { mode: Mode; onMode?
           <li>Each board is played twice, swapping sides. You each have a chess clock.</li>
         </ul>
       </div>
-      <div
-        role="radiogroup"
-        aria-label="Mode"
-        aria-describedby={onMode ? undefined : "lh-mode-host"}
-        className="grid grid-cols-2 gap-3"
-        onKeyDown={(e) => {
-          if (onMode && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
-            e.preventDefault();
-            const next = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
-            choose(next);
-            (e.currentTarget.querySelector(`[data-mode="${next}"]`) as HTMLElement | null)?.focus();
-          }
-        }}
-      >
-        {MODES.map((m) => {
-          const on = m === mode;
-          const clock = CLOCKS[m];
-          return (
-            <button
-              key={m}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              aria-disabled={onMode ? undefined : true}
-              tabIndex={on ? 0 : -1}
-              data-mode={m}
-              onClick={() => choose(m)}
-              className={`flex ${onMode ? "cursor-pointer" : "cursor-default"} flex-col items-start gap-2 rounded-2xl border-2 p-3.5 text-left text-[var(--text)] ${on ? "border-[var(--p1)] bg-[var(--surface-2)]" : "border-transparent bg-[var(--surface)]"} ${FOCUS}`}
-            >
-              <span className="flex h-[60px] w-full items-center justify-center">
-                <ModePicture mode={m} />
-              </span>
-              <span className={`${FONT} text-[20px] font-bold`}>{MODE_LABELS[m].label}</span>
-              <span className="text-[14px] leading-snug text-[var(--muted)]">{MODE_LABELS[m].detail}</span>
-              <span className="text-[13px] font-medium text-[var(--muted)]">
-                {clock.startMs / 60_000} min each, +{clock.incrementMs / 1000} s a move
-              </span>
-            </button>
-          );
-        })}
+      <div className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[var(--p1)] bg-[var(--surface-2)] p-3.5">
+        <ModeInfo mode={mode} />
       </div>
-      {onMode ? null : (
-        <p id="lh-mode-host" className="m-0 -mt-1 text-center text-[14px] text-[var(--muted)]">
-          {hostName} picks the mode.
-        </p>
-      )}
       <PrimaryButton onClick={onStart}>Start the match</PrimaryButton>
+    </div>
+  );
+}
+
+/** The host's Track / Grid switch for the next match. */
+function ModeSwitch({ mode, onMode }: { mode: Mode; onMode: (mode: Mode) => void }) {
+  const choose = (next: Mode) => {
+    if (next !== mode) onMode(next);
+  };
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Mode for the next match"
+      className="grid grid-cols-2 gap-3"
+      onKeyDown={(e) => {
+        if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+          e.preventDefault();
+          const next = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+          choose(next);
+          (e.currentTarget.querySelector(`[data-mode="${next}"]`) as HTMLElement | null)?.focus();
+        }
+      }}
+    >
+      {MODES.map((m) => {
+        const on = m === mode;
+        return (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            tabIndex={on ? 0 : -1}
+            data-mode={m}
+            onClick={() => choose(m)}
+            className={`flex cursor-pointer flex-col items-start gap-2 rounded-2xl border-2 p-3.5 text-left text-[var(--text)] ${on ? "border-[var(--p1)] bg-[var(--surface-2)]" : "border-transparent bg-[var(--surface)]"} ${FOCUS}`}
+          >
+            <ModeInfo mode={m} />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -240,22 +251,32 @@ export function RoundBanner({ result, name, me, nextIn, sameBoard }: { result: R
   );
 }
 
+/**
+ * The match's result and its rounds, then the next match: the host picks its
+ * mode here (`onMode`; the other player sees `hostName` picks it, and a
+ * matchmaking room keeps its mode), and either player starts it.
+ */
 export function MatchOver({
   score,
   history,
   winner,
   name,
   me,
+  mode,
+  onMode,
+  hostName,
   onAgain,
-  onLobby,
 }: {
   score: Record<Role, number>;
   history: RoundResult[];
   winner: Role | null;
   name: (seat: Role) => string;
   me: Role | null;
+  mode: Mode;
+  onMode?: (mode: Mode) => void;
+  /** Set where someone else picks the mode (a private room's guest). */
+  hostName?: string;
   onAgain?: () => void;
-  onLobby?: () => void;
 }) {
   const title = winner == null ? "A draw" : me ? (winner === me ? "You win the match!" : `${name(winner)} wins the match`) : `${name(winner)} wins the match`;
   return (
@@ -281,8 +302,18 @@ export function MatchOver({
           ))}
         </ol>
       </div>
+      {onMode ? (
+        <>
+          <p className={`${FONT} m-0 text-[18px] font-bold`}>Next match</p>
+          <ModeSwitch mode={mode} onMode={onMode} />
+        </>
+      ) : (
+        <p className="m-0 text-center text-[15px] text-[var(--muted)]">
+          Next match: <b className="text-[var(--text)]">{MODE_LABELS[mode].label}</b>
+          {hostName ? ` · ${hostName} picks the mode.` : null}
+        </p>
+      )}
       {onAgain ? <PrimaryButton onClick={onAgain}>Play again</PrimaryButton> : null}
-      {onLobby ? <SecondaryButton onClick={onLobby}>Change mode</SecondaryButton> : null}
     </div>
   );
 }
@@ -302,7 +333,7 @@ export function AskDialog(props: RoomDialogProps) {
 
 const RESET_CONFIRM: RoomQuestion = {
   title: "Reset the game?",
-  message: "The match ends and you go back to choosing a mode. Seats stay as they are.",
+  message: "The match ends and you're back in the lobby, in the same mode. Seats stay as they are.",
   cancelLabel: "Cancel",
   confirmLabel: "Reset game",
   busyLabel: "Resetting…",

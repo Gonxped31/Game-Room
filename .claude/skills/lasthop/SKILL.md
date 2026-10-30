@@ -20,11 +20,12 @@ competitive (the user's design, 2026-10-29/30).
   blocking theirs. A always moves first.
 - **Modes**: **Track** (8-11 squares, 3-4 pieces a side, every A starting left
   of every B) and **Grid** (4x4 or 5x5, A in the top-left corner, B in the
-  bottom-right). The hub's Start asks for one (registry `modes`, `?mode=`,
-  dropped from the link once the room exists). In a private room **only the
-  host** (the creator; anyone if the host has left) changes it, in the lobby
-  or with "Change mode" after a match (the user's call, 2026-10-30). Either
-  player starts and plays again.
+  bottom-right). **The mode is picked on the hub's Start** (registry `modes`,
+  `?mode=`, dropped from the link once the room exists); the room's lobby only
+  shows it. **Between matches** (`matchOver`), only the host (the creator;
+  anyone if the host has left) switches it for the next match, and `setMode`
+  refuses any other phase (the user's call, 2026-10-30). Reset game keeps the
+  mode. Either player starts and plays again.
 - **Matchmaking**: one queue per mode (`LASTHOP_MATCH`, `meta.publicLang` =
   `track` or `grid`; the rules keep the room's `mode` equal to it). A public
   room starts by itself once both players are online (`usePublicRoom`), has no
@@ -54,7 +55,7 @@ generator tests in `board.test.ts` check it.
 | Path | What |
 | :--- | :--- |
 | `lib/games/lasthop/board.ts` | `Board` (`w`, `h`, row-major `cells` of `A`/`B`/`.`), `legalMoves`, `applyMove`, `mirrored`, `solve` (perfect play: who wins, game length), `generateBoard` (+ `playable`, `FALLBACK`) |
-| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `toLobby`, `setMode`; `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
+| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (between matches); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
 | `lib/games/lasthop/constants.ts` | Modes, clocks, delays, round limits |
 | `app/lasthop/page.tsx` | Session (`useGameSession`), deadlines (`flag` or `nextRound`), screens |
 | `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`), `lasthop.css` (board sizes, animation) |

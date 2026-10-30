@@ -19,7 +19,6 @@ import {
   normalize,
   setMode,
   startMatch,
-  toLobby,
 } from "./game";
 
 const T = 1_000_000;
@@ -60,12 +59,18 @@ describe("newGame and setMode", () => {
     expect(game.clocks.p1).toBe(CLOCKS.track.startMs);
   });
 
-  it("changes the mode and its clocks in the lobby only", () => {
-    const grid = setMode(newGame(), "grid");
+  it("starts in the mode it's given (the hub's Start)", () => {
+    expect(newGame("grid")).toMatchObject({ mode: "grid", clocks: { p1: CLOCKS.grid.startMs, p2: CLOCKS.grid.startMs } });
+  });
+
+  it("changes the mode and its clocks between matches only", () => {
+    const done = playMatch(["p1", "p1", "p1"]);
+    const grid = setMode(done, "grid");
     expect(grid.mode).toBe("grid");
     expect(grid.clocks.p2).toBe(CLOCKS.grid.startMs);
+    expect(() => setMode(newGame(), "grid")).toThrow("between matches");
     expect(() => setMode(started(), "grid")).toThrow();
-    expect(() => setMode(newGame(), "hex" as never)).toThrow();
+    expect(() => setMode(done, "hex" as never)).toThrow();
   });
 
   it("normalizes what the database drops", () => {
@@ -218,13 +223,11 @@ describe("the match", () => {
     expect(matchWinner(done)).toBeNull();
   });
 
-  it("plays again with a clean score, or goes back to the lobby", () => {
+  it("plays again with a clean score, in the mode picked for the next match", () => {
     const done = playMatch(["p1", "p1", "p1"]);
     const again = startMatch(done, WIDE, "p2", T * 2);
-    expect(again).toMatchObject({ phase: "playing", round: 1, score: { p1: 0, p2: 0 }, history: [], firstA: "p2" });
-    const lobby = toLobby(done);
-    expect(lobby).toMatchObject({ phase: "lobby", mode: "track", round: 0, history: [] });
-    expect(lobby.board).toBeUndefined();
-    expect(() => toLobby(started())).toThrow();
+    expect(again).toMatchObject({ phase: "playing", mode: "track", round: 1, score: { p1: 0, p2: 0 }, history: [], firstA: "p2" });
+    const grid = startMatch(setMode(done, "grid"), { w: 4, h: 4, cells: "AAA.A.....BB..BB" }, "p1", T * 2);
+    expect(grid).toMatchObject({ phase: "playing", mode: "grid", clocks: { p1: CLOCKS.grid.startMs, p2: CLOCKS.grid.startMs } });
   });
 });

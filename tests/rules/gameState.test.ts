@@ -218,7 +218,6 @@ describe("Last Hop", () => {
       game = await playRound(write, game);
     }
     expect(game.phase).toBe("matchOver");
-    game = await write(hop.toLobby(game));
     game = await write(hop.setMode(game, "grid"));
     game = await write(hop.startMatch(game, generateBoard("grid", Math.random), "p1", now));
     const m = legalMoves(game.board!, "A")[0];

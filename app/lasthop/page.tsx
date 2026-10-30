@@ -29,7 +29,6 @@ import {
   seatOf,
   setMode,
   startMatch,
-  toLobby,
 } from "@/lib/games/lasthop/game";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
@@ -110,7 +109,8 @@ export default function LastHopPage() {
   });
   const isPublic = publicRoom.isPublic;
   const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
-  // Only the host (the room's creator) picks the mode; anyone, if the host has left.
+  // The mode is picked on the hub's Start; between matches, only the host (the
+  // room's creator; anyone, if the host has left) changes it.
   const canChooseMode = !isPublic && me != null && (session.hostSeat == null || session.hostSeat === me);
 
   // The other player left a matchmaking room: search again in the same mode.
@@ -174,14 +174,7 @@ export default function LastHopPage() {
       />
     );
   } else if (game.phase === "lobby") {
-    screen = (
-      <Lobby
-        mode={game.mode}
-        onMode={canChooseMode ? (mode) => transact((s) => setMode(s, mode)) : undefined}
-        hostName={session.hostSeat ? name(session.hostSeat) : "The host"}
-        onStart={onStart}
-      />
-    );
+    screen = <Lobby mode={game.mode} onStart={onStart} />;
   } else if (game.phase === "matchOver") {
     screen = (
       <MatchOver
@@ -190,8 +183,10 @@ export default function LastHopPage() {
         winner={matchWinner(game)}
         name={name}
         me={me}
+        mode={game.mode}
+        onMode={canChooseMode ? (mode) => transact((st) => setMode(st, mode)) : undefined}
+        hostName={!isPublic && !canChooseMode ? (session.hostSeat ? name(session.hostSeat) : "The host") : undefined}
         onAgain={me ? onStart : undefined}
-        onLobby={canChooseMode ? () => transact(toLobby) : undefined}
       />
     );
   } else if (game.board) {
