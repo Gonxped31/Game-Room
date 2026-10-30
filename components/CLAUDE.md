@@ -33,6 +33,9 @@
     through the registry's `roomHref`, since a game's route can differ from
     its slug (Same Page: `/same-page`, slug `ftw`).
   - Room pages: `InAppBrowserBanner`.
+  - `HowToPlay` - every game's rules dialog (the header's ? and a lobby
+    button), in the game's look; each game's content is
+    `components/<slug>/Rules.tsx` (`docs/how-to-play.md`).
   - Every page: `LocalModeBanner`, and `ConnectionBanner` ("Reconnecting…" after
     2 s without the database; skipped on `/solo` pages).
   - Crashes: `app/error.tsx` and `app/global-error.tsx` show `RecoveryScreen`

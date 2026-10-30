@@ -78,6 +78,12 @@ game"); the folder counts and card rows follow the registry on their own.
 - Apply game moves with `transact((s) => transition(s, ...))`. Reset with
   `setGame(newGame(...))`, which keeps everyone seated.
 - Add `<InAppBrowserBanner />` at the top of the page, as both existing games do.
+- **Write its How to play**: `components/<slug>/Rules.tsx`, the full rules on
+  the shared `components/HowToPlay.tsx` dialog, opened from a **?** in the
+  game's header on every screen and a "How to play" button in its lobby or
+  setup screen. What it must say, in what order, and how it looks:
+  `docs/how-to-play.md`. A test (`lib/games/howToPlay.test.ts`) fails without
+  it.
 - Reuse `Header`, `Footer`, `RoleStickers` and `Button` where the look fits.
   Otherwise give the game its own components; visuals are per game.
 - **No back link to the hub in a room**: each room screen's way out is "Leave
@@ -127,14 +133,14 @@ workflow.
 - Tag new todos for the game with its slug (e.g. `--tag frontend,<slug>`).
 - Create a `.claude/skills/<slug>/SKILL.md` reference for the game. Follow the
   `first-to-worst` or `co-counsel` skill: rules, files, state, page flow and
-  gotchas.
+  gotchas. Point it at the game's `Rules.tsx`, which changes with the rules.
 - Add the game to the list of games in the root `CLAUDE.md` and in `README.md`
   ("The games").
 
 ## Removing a game
 
 Reverse the steps:
-- Delete `lib/games/<slug>/`, `components/<slug>/` and `app/<slug>/`.
+- Delete `lib/games/<slug>/`, `components/<slug>/` (its How to play with it) and `app/<slug>/`.
 - Remove the registry entry and the art.
 - Remove the rules node, the slug from `meta/gameSlug`, and its rules tests.
 - Remove its skill.

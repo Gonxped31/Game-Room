@@ -26,6 +26,7 @@ demand:
 | The shared race layer (Challenge and Survival for solo games) | `docs/race.md` |
 | Working on Border Run (link two countries by land: solo and daily, Challenge and Survival races; map data, routes, EN/FR names) | `borderrun` skill; `docs/daily.md` |
 | Adding (or removing) a game | `add-game` skill |
+| A game's How to play (every game has one: what it says, where it opens) | `docs/how-to-play.md` |
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |
 | Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |
 | Testing a change with two players on phone + desktop (emulators + Playwright) | `live-test` skill |
