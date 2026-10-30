@@ -111,7 +111,8 @@ node .claude/skills/live-test/scripts/last-hop.mjs [baseUrl] [screenshotDir] [ph
 
 A desktop host (who starts a Track room from the hub) and a phone (`iphone`
 by default; `iphone-se` checks the smallest Track) play a whole Track match:
-the lobby only shows the mode; each player picks a pawn (the other's is
+in the lobby only the host can switch the mode (to Grid and back); each player
+picks a pawn (the other's is
 taken); How to play opens from the header and the
 lobby and closes; nothing can be picked during "Get ready" or by
 the waiting player; a reload mid-round keeps the board; Leave room asks first;

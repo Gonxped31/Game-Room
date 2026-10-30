@@ -135,9 +135,24 @@ function ModeInfo({ mode }: { mode: Mode }) {
 /**
  * Both players are in: the rules, the room's mode, and the host's Start
  * (`onStart`; the guest waits for `hostName`). The mode was picked on the
- * hub's Start; here it only shows. The host changes it between matches.
+ * hub's Start; the host may switch it here (`onMode`), and the guest sees
+ * the pick.
  */
-export function Lobby({ mode, onStart, hostName, rules, pawnPicker }: { mode: Mode; onStart?: () => void; hostName: string; rules?: ReactNode; pawnPicker?: ReactNode }) {
+export function Lobby({
+  mode,
+  onMode,
+  onStart,
+  hostName,
+  rules,
+  pawnPicker,
+}: {
+  mode: Mode;
+  onMode?: (mode: Mode) => void;
+  onStart?: () => void;
+  hostName: string;
+  rules?: ReactNode;
+  pawnPicker?: ReactNode;
+}) {
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4">
@@ -149,9 +164,13 @@ export function Lobby({ mode, onStart, hostName, rules, pawnPicker }: { mode: Mo
         </ul>
         {rules ? <div className="mt-3">{rules}</div> : null}
       </div>
-      <div className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[var(--p1)] bg-[var(--surface-2)] p-3.5">
-        <ModeInfo mode={mode} />
-      </div>
+      {onMode ? (
+        <ModeSwitch mode={mode} onMode={onMode} label="Mode" />
+      ) : (
+        <div className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[var(--p1)] bg-[var(--surface-2)] p-3.5">
+          <ModeInfo mode={mode} />
+        </div>
+      )}
       {pawnPicker}
       {onStart ? (
         <PrimaryButton onClick={onStart}>Start the match</PrimaryButton>
@@ -164,15 +183,15 @@ export function Lobby({ mode, onStart, hostName, rules, pawnPicker }: { mode: Mo
   );
 }
 
-/** The host's Track / Grid switch for the next match. */
-function ModeSwitch({ mode, onMode }: { mode: Mode; onMode: (mode: Mode) => void }) {
+/** The host's Track / Grid switch: in the lobby, or for the next match. */
+function ModeSwitch({ mode, onMode, label = "Mode for the next match" }: { mode: Mode; onMode: (mode: Mode) => void; label?: string }) {
   const choose = (next: Mode) => {
     if (next !== mode) onMode(next);
   };
   return (
     <div
       role="radiogroup"
-      aria-label="Mode for the next match"
+      aria-label={label}
       className="grid grid-cols-2 gap-3"
       onKeyDown={(e) => {
         if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
