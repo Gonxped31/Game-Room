@@ -83,6 +83,17 @@ export default function GameTile({ slug }: { slug: string }) {
       </span>
     );
   }
+  if (slug === "lasthop") {
+    // The card's hop: a tangerine piece over a mint one, on the night stage.
+    return (
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#1E1733]">
+        <svg width="30" height="30" viewBox="0 0 30 30">
+          <circle cx="15" cy="23" r="5.5" fill="#43D6B5" />
+          <circle cx="15" cy="10" r="6.5" fill="#FF8A4C" />
+        </svg>
+      </span>
+    );
+  }
   // A game without its own tile yet: its accent color with the first letter.
   const game = gameBySlug(slug);
   return (

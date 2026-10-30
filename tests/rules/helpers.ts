@@ -82,6 +82,10 @@ export function regionsState(overrides: Record<string, unknown> = {}) {
   return { phase: "lobby", mode: "challenge", pieces: "mixed", rounds: 3, round: 0, seed: "", startsAt: 0, endsAt: 0, nextAt: 0, ...overrides };
 }
 
+export function lasthopState(overrides: Record<string, unknown> = {}) {
+  return { phase: "lobby", mode: "track", round: 0, firstA: "p1", turn: "A", clocks: { p1: 60000, p2: 60000 }, moves: 0, score: { p1: 0, p2: 0 }, ...overrides };
+}
+
 export function cocounselState(overrides: Record<string, unknown> = {}) {
   return { caseId: "ruined-birthday", partIndex: 0, attempts: 0, phase: "SELECTING", ...overrides };
 }
@@ -98,7 +102,7 @@ export async function seedRoom(
   const { creator, seated = [], gameSlug = "ftw", maxPlayers = 2, room = ROOM, presence = {} } = opts;
   const data: Record<string, unknown> = {
     [`games/${room}/meta`]: { ...metaFor(creator, gameSlug, maxPlayers), createdAt: Date.now() - 1000 },
-    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : gameSlug === "nighthighway" ? nighthighwayState() : gameSlug === "buzzerquiz" ? buzzerquizState() : gameSlug === "wordscramble" ? wordscrambleState() : gameSlug === "borderrun" ? borderrunState() : gameSlug === "regions" ? regionsState() : ftwState(),
+    [`games/${room}/${gameSlug}`]: gameSlug === "cocounsel" ? cocounselState() : gameSlug === "nighthighway" ? nighthighwayState() : gameSlug === "buzzerquiz" ? buzzerquizState() : gameSlug === "wordscramble" ? wordscrambleState() : gameSlug === "borderrun" ? borderrunState() : gameSlug === "regions" ? regionsState() : gameSlug === "lasthop" ? lasthopState() : ftwState(),
   };
   seated.forEach((uid, i) => {
     data[`games/${room}/seats/p${i + 1}`] = uid;

@@ -61,6 +61,11 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
     the par adds 15 seconds.
   - **Daily route**: one continent a day (the world on Sundays), the same for
     everyone, on the shared daily board. **Endless**: any map, as many as you like.
+- **Last Hop** (`/lasthop`) - a 1v1 duel: slide your pieces forward or hop over
+  one of theirs, on a **Track** (one row) or a **Grid** (pieces move two ways).
+  - If it's your turn and you can't move, you lose the round, so the trick is to
+    save moves and block theirs.
+  - Each board is played twice, swapping sides; each player has a chess clock.
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
 game, the database-rules workflow and live two-player testing are Claude Code skills

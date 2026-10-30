@@ -103,6 +103,20 @@ until the fourth player joins. They play 3 turns per team:
 
 Then come the end screen and a rematch with the same teams.
 
+**Last Hop** has its own check (about two minutes):
+
+```bash
+node .claude/skills/live-test/scripts/last-hop.mjs [baseUrl] [screenshotDir] [phoneProfile]
+```
+
+A desktop player and a phone (`iphone` by default; `iphone-se` checks the
+smallest Track) play a whole Track match: either side picks the mode; nothing
+can be picked during "Get ready" or by the waiting player; a reload mid-round
+keeps the board; Leave room asks first; a round lost on time (the clock is cut
+through the emulator); the pair's second round on the same board with sides
+swapped; the match's end, also after a reload; Play again with a clean score.
+Then Reset game, Grid mode, and a Grid round played out.
+
 **Checkmate Grid's races** (`/regions/race`) have their own check (about four minutes):
 
 ```bash

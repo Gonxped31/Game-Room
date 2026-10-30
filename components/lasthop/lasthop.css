@@ -1,0 +1,158 @@
+/*
+ * Last Hop's board (components/lasthop/Board.tsx). Sizes come from --w (the
+ * board's width in squares): a Track is a column of wells on phones, sized to
+ * the screen's height, and a row from 640px; a Grid is square.
+ */
+
+.lh-board {
+  --gap: 6px;
+  --pitch: calc(var(--cell) + var(--gap));
+  margin-inline: auto;
+}
+
+.lh-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+  --cell: clamp(34px, calc((100dvh - 300px - (var(--w) - 1) * var(--gap)) / var(--w)), 54px);
+}
+
+@media (min-width: 640px) {
+  .lh-track {
+    flex-direction: row;
+    --cell: min(68px, calc((min(100vw, 840px) - 40px - (var(--w) - 1) * var(--gap)) / var(--w)));
+  }
+}
+
+.lh-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--w), var(--cell));
+  gap: var(--gap);
+  width: max-content;
+  --cell: min(76px, calc((min(100vw, 560px) - 48px - (var(--w) - 1) * var(--gap)) / var(--w)));
+}
+
+.lh-well {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--cell);
+  height: var(--cell);
+  padding: 0;
+  border: 2px solid var(--well-rim);
+  border-radius: 50%;
+  background: var(--well);
+  box-shadow: inset 0 4px 0 rgb(0 0 0 / 0.35);
+}
+
+.lh-well.lh-target {
+  border: 2px dashed var(--target);
+}
+
+/* The square a piece just left. */
+.lh-well.lh-left::after {
+  content: "";
+  width: 22%;
+  height: 22%;
+  border-radius: 50%;
+  background: var(--well-rim);
+}
+
+.lh-dot {
+  width: 30%;
+  height: 30%;
+  border-radius: 50%;
+  background: var(--target);
+}
+
+.lh-piece {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80%;
+  height: 80%;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.35), transparent 45%), var(--fill);
+  box-shadow: 0 4px 0 var(--shade);
+  color: var(--ink);
+  transition: transform 120ms ease-out, opacity 120ms;
+}
+
+.lh-chev {
+  width: 52%;
+  height: 52%;
+  opacity: 0.55;
+}
+
+/* Forward (toward higher squares) points down in a column, right in a row, down-right on a grid. */
+.lh-track .lh-fwd { transform: rotate(90deg); }
+.lh-track .lh-back { transform: rotate(-90deg); }
+.lh-grid .lh-fwd { transform: rotate(45deg); }
+.lh-grid .lh-back { transform: rotate(-135deg); }
+
+@media (min-width: 640px) {
+  .lh-track .lh-fwd { transform: none; }
+  .lh-track .lh-back { transform: rotate(180deg); }
+}
+
+.lh-piece.lh-movable {
+  outline: 2px solid rgb(255 246 234 / 0.75);
+  outline-offset: 3px;
+}
+
+.lh-piece.lh-picked {
+  outline: 3px solid var(--target);
+  outline-offset: 3px;
+  transform: translateY(-3px) scale(1.06);
+}
+
+.lh-piece.lh-dim {
+  opacity: 0.45;
+}
+
+/* The landing piece starts where it was and hops in. */
+.lh-track .lh-hop { --tx: 0; --ty: var(--d); }
+.lh-grid .lh-hop { --tx: var(--dx); --ty: var(--dy); }
+@media (min-width: 640px) {
+  .lh-track .lh-hop { --tx: var(--d); --ty: 0; }
+}
+
+.lh-hop {
+  animation: lh-hop 260ms ease-out;
+}
+
+@keyframes lh-hop {
+  from {
+    transform: translate(calc(var(--tx) * var(--pitch)), calc(var(--ty) * var(--pitch)));
+  }
+  50% {
+    transform: translate(calc(var(--tx) * 0.5 * var(--pitch)), calc(var(--ty) * 0.5 * var(--pitch))) scale(1.25);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* A clock under 10 s. */
+.lh-low {
+  animation: lh-pulse 1s ease-in-out infinite;
+}
+
+@keyframes lh-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lh-hop,
+  .lh-low {
+    animation: none;
+  }
+  .lh-piece {
+    transition: none;
+  }
+}
