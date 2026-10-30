@@ -7,8 +7,8 @@ import { ALL_GAMES } from "./registry";
  * Every game has a How to play (docs/how-to-play.md): its rules in
  * `components/<slug>/Rules.tsx`, opened from the game's header and lobby.
  * Games that had none when the rule came in (2026-10-30) wait here, one todo
- * each (tag `howtoplay`); take a game off this list in the change that gives it one. A new game
- * never goes on it.
+ * each (tag `howtoplay`); take a game off this list in the change that gives
+ * it one. A new game never goes on it.
  */
 const PENDING = new Set(["ftw", "cocounsel", "nighthighway", "buzzerquiz", "wordscramble", "regions", "borderrun"]);
 
