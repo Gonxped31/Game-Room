@@ -121,8 +121,8 @@ export default function LastHopPage() {
   const isPublic = publicRoom.isPublic;
   const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
   // A private room's host (its creator; whoever is left, if the host has gone)
-  // decides everything: Start, Play again, the next mode, Reset. The guest
-  // only plays. A matchmaking room has no host: its players vote.
+  // decides everything: the mode (in the lobby and between matches), Start,
+  // Play again, Reset. The guest only plays. A matchmaking room has no host: its players vote.
   const isHost = !isPublic && me != null && (session.hostSeat == null || session.hostSeat === me);
   const hostName = session.hostSeat ? name(session.hostSeat) : "The host";
 
@@ -196,7 +196,16 @@ export default function LastHopPage() {
       />
     );
   } else if (game.phase === "lobby") {
-    screen = <Lobby mode={game.mode} onStart={isHost ? onStart : undefined} hostName={hostName} rules={<RulesButton me={me} pawns={pawns} variant="link" />} pawnPicker={pawnPicker} />;
+    screen = (
+      <Lobby
+        mode={game.mode}
+        onMode={isHost ? (mode) => transact((st) => setMode(st, mode)) : undefined}
+        onStart={isHost ? onStart : undefined}
+        hostName={hostName}
+        rules={<RulesButton me={me} pawns={pawns} variant="link" />}
+        pawnPicker={pawnPicker}
+      />
+    );
   } else if (game.phase === "matchOver") {
     screen = (
       <MatchOver

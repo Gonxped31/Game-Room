@@ -145,10 +145,15 @@ export function otherMode(mode: Mode): Mode {
   return mode === "track" ? "grid" : "track";
 }
 
-/** The next match's mode: the room's mode is picked when it's created, and changes only between matches. */
+/**
+ * The next match's mode: picked when the room is created (the hub's Start),
+ * then switched by the host in the lobby or between matches, never mid-match
+ * (Reset game goes back to the lobby). A matchmaking room's lobby keeps its
+ * queue's mode (the rules refuse a switch there).
+ */
 export function setMode(state: LastHopState, mode: Mode): LastHopState {
   const s = normalize(state);
-  if (s.phase !== "matchOver") throw new Error("The mode changes between matches.");
+  if (s.phase !== "lobby" && s.phase !== "matchOver") throw new Error("The mode changes between matches.");
   if (!MODES.includes(mode)) throw new Error("Unknown mode.");
   return { ...s, mode, clocks: { p1: CLOCKS[mode].startMs, p2: CLOCKS[mode].startMs } };
 }

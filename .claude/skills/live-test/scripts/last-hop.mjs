@@ -1,15 +1,16 @@
 // Last Hop end-to-end, against a dev server on the emulators (see
 // dev-against-emulators.mjs): a desktop host starts a Track room from the hub
-// (the mode is picked there; the lobby only shows it) and an iPhone joins.
-// They play a Track match through - taps during "Get ready" that do nothing, a
-// reload mid-round, the Leave room question, a round lost on time, the pair's
-// second round on the same board with sides swapped, the match's end (also
-// after a reload), pawn picks (the other's taken), How to play from the header and the lobby. The guest only plays: only the host starts, switches the
-// next match to Grid, plays again and resets (Reset keeps Grid). Then
-// matchmaking: two strangers search Track, the match starts by itself; after
-// it they vote (a split vote waits, an agreed "Change to Grid" starts a Grid
-// match); one leaves and the other is offered another player. About three
-// minutes.
+// (the mode is picked there; in the lobby only the host can switch it) and an
+// iPhone joins. Pawn picks (the other's taken) and How to play (from the
+// header and the lobby). They play a Track match through - taps during "Get
+// ready" that do nothing, a reload mid-round, the Leave room question, a round
+// lost on time, the pair's second round on the same board with sides swapped,
+// the match's end (also after a reload). The guest only plays: only the host
+// starts, switches the next match to Grid, plays again and resets (Reset keeps
+// Grid). Then matchmaking: two strangers search Track, the match starts by
+// itself; after it they vote (a split vote waits, an agreed "Change to Grid"
+// starts a Grid match); one leaves and the other is offered another player.
+// About three minutes.
 //
 //   node .claude/skills/live-test/scripts/last-hop.mjs [baseUrl] [screenshotDir] [phoneProfile]
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
@@ -63,13 +64,20 @@ try {
   for (const page of [A, B]) await page.getByRole("heading", { name: "Make the last move" }).waitFor({ timeout: 30000 });
   log("both in the lobby");
 
-  // The lobby only shows the mode picked on the hub: nobody can switch it here.
-  for (const page of [A, B]) {
-    await page.getByText("Quick and sharp. One row, every move counts.").waitFor();
-    if ((await page.getByRole("radiogroup", { name: /Mode/ }).count()) !== 0) throw new Error("the lobby offers a mode switch");
-  }
+  // The lobby: the host can switch the mode the hub's Start picked; the guest only sees it.
+  await B.getByText("Quick and sharp. One row, every move counts.").waitFor();
+  if ((await B.getByRole("radiogroup", { name: /Mode/ }).count()) !== 0) throw new Error("the guest has a mode switch");
+  const hostSwitch = A.getByRole("radiogroup", { name: "Mode" });
+  await hostSwitch.getByRole("radio", { name: /Track/, checked: true }).waitFor();
+  await hostSwitch.getByRole("radio", { name: /Grid/ }).click();
+  await until(async () => (await state()).mode === "grid", "the host's switch to Grid in the lobby");
+  await B.getByText("Longer, more open. Pieces move two ways.").waitFor();
+  await shot(A, "lobby-host-desktop");
+  await hostSwitch.getByRole("radio", { name: /Track/ }).click();
+  await until(async () => (await state()).mode === "track", "the host's switch back to Track");
+  await B.getByText("Quick and sharp. One row, every move counts.").waitFor();
   await shot(B, "lobby-iphone");
-  log("Start asked for the mode; the lobby only shows it");
+  log("Start asked for the mode; in the lobby only the host switches it (Grid, then back to Track)");
 
   // Pawns: each player picks their own; the other's is taken.
   await A.getByRole("radio", { name: "Frog", exact: true }).click();

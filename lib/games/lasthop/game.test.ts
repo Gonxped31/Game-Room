@@ -66,13 +66,16 @@ describe("newGame and setMode", () => {
     expect(newGame("grid")).toMatchObject({ mode: "grid", clocks: { p1: CLOCKS.grid.startMs, p2: CLOCKS.grid.startMs } });
   });
 
-  it("changes the mode and its clocks between matches only", () => {
+  it("changes the mode and its clocks in the lobby or between matches, never mid-match", () => {
     const done = playMatch(["p1", "p1", "p1"]);
     const grid = setMode(done, "grid");
     expect(grid.mode).toBe("grid");
     expect(grid.clocks.p2).toBe(CLOCKS.grid.startMs);
-    expect(() => setMode(newGame(), "grid")).toThrow("between matches");
-    expect(() => setMode(started(), "grid")).toThrow();
+    expect(setMode(newGame(), "grid")).toMatchObject({ phase: "lobby", mode: "grid", clocks: { p1: CLOCKS.grid.startMs } });
+    expect(() => setMode(started(), "grid")).toThrow("between matches");
+    const over = finishRound(started(QUICK), "p1");
+    expect(over.phase).toBe("roundOver");
+    expect(() => setMode(over, "grid")).toThrow("between matches");
     expect(() => setMode(done, "hex" as never)).toThrow();
   });
 

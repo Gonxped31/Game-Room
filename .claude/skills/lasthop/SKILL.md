@@ -21,13 +21,14 @@ competitive (the user's design, 2026-10-29/30).
 - **Modes**: **Track** (8-11 squares, 3-4 pieces a side, every A starting left
   of every B) and **Grid** (4x4 or 5x5, A in the top-left corner, B in the
   bottom-right). **The mode is picked on the hub's Start** (registry `modes`,
-  `?mode=`, dropped from the link once the room exists); the room's lobby only
-  shows it. **In a private room the host decides everything, the guest only
-  plays** (the user's call, 2026-10-30): Start, the next match's mode (a
-  switch on the result screen; `setMode` refuses any phase but `matchOver`),
-  Play again and Reset game (which keeps the mode). "The host" is the creator,
-  or whoever is left if the creator has gone (`isHost` in the page). The guest
-  sees "Waiting for Sam to start…".
+  `?mode=`, dropped from the link once the room exists). **In a private room
+  the host decides everything, the guest only plays** (the user's calls,
+  2026-10-30): the mode (a switch in the lobby and on the result screen;
+  `setMode` refuses mid-match, so the host uses Reset game to go back to the
+  lobby), Start, Play again and Reset game (which keeps the mode and pawns).
+  "The host" is the creator, or whoever is left if the creator has gone
+  (`isHost` in the page). The guest sees the host's pick and "Waiting for Sam
+  to start…".
 - **Matchmaking**: one queue per mode (`LASTHOP_MATCH`, `meta.publicLang` =
   `track` or `grid`; the rules keep the room's `mode` equal to it while it's
   in the lobby, the only phase it's listed in). A public room starts by itself
@@ -61,7 +62,7 @@ generator tests in `board.test.ts` check it.
 | Path | What |
 | :--- | :--- |
 | `lib/games/lasthop/board.ts` | `Board` (`w`, `h`, row-major `cells` of `A`/`B`/`.`), `legalMoves`, `applyMove`, `mirrored`, `solve` (perfect play: who wins, game length), `generateBoard` (+ `playable`, `FALLBACK`) |
-| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (between matches), `vote` (matchmaking); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
+| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (lobby or between matches), `vote` (matchmaking); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
 | `lib/games/lasthop/constants.ts` | Modes, clocks, delays, round limits |
 | `app/lasthop/page.tsx` | Session (`useGameSession`), deadlines (`flag` or `nextRound`), screens |
 | `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`, `PieceMark`), `pawns.tsx` (the pawn drawings), `lasthop.css` (board sizes, animation), `Rules.tsx` (How to play) |
