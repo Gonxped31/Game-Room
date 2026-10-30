@@ -66,7 +66,8 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
   - If it's your turn and you can't move, you lose the round, so the trick is to
     save moves and block theirs.
   - Each board is played twice, swapping sides; each player has a chess clock.
-  - The host picks the mode; Matchmaking pairs strangers in either mode.
+  - In a room, the host picks the mode and starts each match; Matchmaking pairs
+    strangers in either mode, and they vote to replay or change mode.
 
 See `CLAUDE.md` for the architecture and conventions. Each game's details, adding a
 game, the database-rules workflow and live two-player testing are Claude Code skills

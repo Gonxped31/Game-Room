@@ -19,6 +19,7 @@ import {
   normalize,
   setMode,
   startMatch,
+  vote,
 } from "./game";
 
 const T = 1_000_000;
@@ -229,5 +230,37 @@ describe("the match", () => {
     expect(again).toMatchObject({ phase: "playing", mode: "track", round: 1, score: { p1: 0, p2: 0 }, history: [], firstA: "p2" });
     const grid = startMatch(setMode(done, "grid"), { w: 4, h: 4, cells: "AAA.A.....BB..BB" }, "p1", T * 2);
     expect(grid).toMatchObject({ phase: "playing", mode: "grid", clocks: { p1: CLOCKS.grid.startMs, p2: CLOCKS.grid.startMs } });
+  });
+});
+
+describe("votes after a matchmaking match", () => {
+  const GRID: Board = { w: 4, h: 4, cells: "AAA.A.....BB..BB" };
+  const deal = (mode: "track" | "grid") => (mode === "grid" ? GRID : WIDE);
+  const done = () => playMatch(["p1", "p1", "p1"]);
+
+  it("waits for both votes, and shows a lone one", () => {
+    const one = vote(done(), "p1", "again", deal, "p2", T * 2);
+    expect(one).toMatchObject({ phase: "matchOver", votes: { p1: "again" } });
+  });
+
+  it("waits while they disagree; a changed vote that agrees starts the match", () => {
+    const split = vote(vote(done(), "p1", "again", deal, "p2", T * 2), "p2", "switch", deal, "p2", T * 2);
+    expect(split).toMatchObject({ phase: "matchOver", mode: "track", votes: { p1: "again", p2: "switch" } });
+    const agreed = vote(split, "p1", "switch", deal, "p2", T * 3);
+    expect(agreed).toMatchObject({ phase: "playing", mode: "grid", round: 1, start: GRID.cells, score: { p1: 0, p2: 0 }, history: [] });
+    expect(agreed.clocks.p1).toBe(CLOCKS.grid.startMs);
+    expect(agreed.votes).toBeUndefined();
+  });
+
+  it("replays in the same mode when both vote again", () => {
+    const again = vote(vote(done(), "p2", "again", deal, "p1", T * 2), "p1", "again", deal, "p1", T * 2);
+    expect(again).toMatchObject({ phase: "playing", mode: "track", start: WIDE.cells, firstA: "p1" });
+    expect(again.votes).toBeUndefined();
+  });
+
+  it("refuses a vote outside the end of a match, or an unknown one", () => {
+    expect(() => vote(started(), "p1", "again", deal, "p1", T)).toThrow("between matches");
+    expect(() => vote(newGame(), "p1", "again", deal, "p1", T)).toThrow();
+    expect(() => vote(done(), "p1", "quit" as never, deal, "p1", T)).toThrow();
   });
 });

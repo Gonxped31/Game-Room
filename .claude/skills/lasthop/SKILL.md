@@ -22,15 +22,21 @@ competitive (the user's design, 2026-10-29/30).
   of every B) and **Grid** (4x4 or 5x5, A in the top-left corner, B in the
   bottom-right). **The mode is picked on the hub's Start** (registry `modes`,
   `?mode=`, dropped from the link once the room exists); the room's lobby only
-  shows it. **Between matches** (`matchOver`), only the host (the creator;
-  anyone if the host has left) switches it for the next match, and `setMode`
-  refuses any other phase (the user's call, 2026-10-30). Reset game keeps the
-  mode. Either player starts and plays again.
+  shows it. **In a private room the host decides everything, the guest only
+  plays** (the user's call, 2026-10-30): Start, the next match's mode (a
+  switch on the result screen; `setMode` refuses any phase but `matchOver`),
+  Play again and Reset game (which keeps the mode). "The host" is the creator,
+  or whoever is left if the creator has gone (`isHost` in the page). The guest
+  sees "Waiting for Sam to start…".
 - **Matchmaking**: one queue per mode (`LASTHOP_MATCH`, `meta.publicLang` =
-  `track` or `grid`; the rules keep the room's `mode` equal to it). A public
-  room starts by itself once both players are online (`usePublicRoom`), has no
-  Reset game, New room or mode switch, and if the other player leaves, the one
-  left gets **Find another player** (searches the same queue again).
+  `track` or `grid`; the rules keep the room's `mode` equal to it while it's
+  in the lobby, the only phase it's listed in). A public room starts by itself
+  once both players are online (`usePublicRoom`) and has no host, Reset game
+  or New room. **After a match both players vote** (`vote`, `votes`): "Replay
+  Track" or "Change to Grid"; the next match starts once both pick the same,
+  a pick can be changed, and leaving is just Leave room. If the other player
+  leaves, the one left gets **Find another player** (searches the queue of the
+  mode the room plays now).
 - **Chess clock**: Track 1 min each +2 s a move, Grid 2 min each +3 s a move
   (`CLOCKS`). Running out loses the round. The clock starts 3 s after a round
   is dealt (`START_DELAY_MS`, "Get ready"). A player who goes offline keeps
@@ -55,7 +61,7 @@ generator tests in `board.test.ts` check it.
 | Path | What |
 | :--- | :--- |
 | `lib/games/lasthop/board.ts` | `Board` (`w`, `h`, row-major `cells` of `A`/`B`/`.`), `legalMoves`, `applyMove`, `mirrored`, `solve` (perfect play: who wins, game length), `generateBoard` (+ `playable`, `FALLBACK`) |
-| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (between matches); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
+| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (between matches), `vote` (matchmaking); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
 | `lib/games/lasthop/constants.ts` | Modes, clocks, delays, round limits |
 | `app/lasthop/page.tsx` | Session (`useGameSession`), deadlines (`flag` or `nextRound`), screens |
 | `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`), `lasthop.css` (board sizes, animation) |

@@ -115,10 +115,12 @@ the lobby only shows the mode; nothing can be picked during "Get ready" or by
 the waiting player; a reload mid-round keeps the board; Leave room asks first;
 a round lost on time (the clock is cut through the emulator); the pair's
 second round on the same board with sides swapped; the match's end, also after
-a reload. Between matches only the host switches to Grid; Play again plays a
-Grid round with a clean score; Reset game keeps Grid. Then matchmaking: two
-strangers search Track, land in one room, the match starts by itself, one
-leaves mid-match and the other is offered "Find another player".
+a reload. The guest only plays: only the host starts, switches the next match
+to Grid, plays again (a clean score, a Grid round) and resets (Reset keeps
+Grid). Then matchmaking: two strangers search Track, land in one room, the
+match starts by itself; after it they vote (a split vote waits; agreeing on
+"Change to Grid" starts a Grid match); one leaves mid-match and the other is
+offered "Find another player".
 
 **Checkmate Grid's races** (`/regions/race`) have their own check (about four minutes):
 

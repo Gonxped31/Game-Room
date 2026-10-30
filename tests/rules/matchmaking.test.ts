@@ -224,6 +224,8 @@ describe("Last Hop's public rooms", () => {
     const publicMeta = { ...meta("alice"), gameSlug: "lasthop", maxPlayers: 2, publicLang: "grid" };
     await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: publicMeta, ts: TS })));
     await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain(newHop("track"))));
+    // After the lobby (a vote between matches), the mode may change.
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain({ ...newHop("track"), phase: "matchOver" })));
     await env.clearDatabase();
     await assertSucceeds(send("alice", createRoomUpdate({ code: ROOM, uid: "alice", gameSlug: "lasthop", maxPlayers: 2, initialState: plain(newHop("track")), ts: TS })));
     const privateMeta = { gameSlug: "lasthop", maxPlayers: 2, createdAt: 1, createdBy: "alice" };

@@ -218,8 +218,16 @@ describe("Last Hop", () => {
       game = await playRound(write, game);
     }
     expect(game.phase).toBe("matchOver");
+    // The host's switch for the next match, there and back.
     game = await write(hop.setMode(game, "grid"));
-    game = await write(hop.startMatch(game, generateBoard("grid", Math.random), "p1", now));
+    game = await write(hop.setMode(game, "track"));
+    // A matchmaking vote: one, a disagreement, then both for the other mode, which starts a Grid match.
+    const deal = (mode: "track" | "grid") => generateBoard(mode, Math.random);
+    game = await write(hop.vote(game, "p1", "again", deal, "p1", now));
+    game = await write(hop.vote(game, "p2", "switch", deal, "p1", now));
+    expect(game.votes).toEqual({ p1: "again", p2: "switch" });
+    game = await write(hop.vote(game, "p1", "switch", deal, "p1", now));
+    expect(game).toMatchObject({ phase: "playing", mode: "grid" });
     const m = legalMoves(game.board!, "A")[0];
     game = await write(hop.move(game, "p1", m.from, m.to, now));
     game = await write(hop.flag(game, hop.flagAt(game)!));
@@ -242,6 +250,8 @@ describe("Last Hop", () => {
     ["a bad winner", lasthopState({ history: [{ winner: "p3", reason: "time", aSeat: "p1", moves: 3 }] })],
     ["a bad reason", lasthopState({ history: [{ winner: "p1", reason: "resign", aSeat: "p1", moves: 3 }] })],
     ["an 11th round's result", lasthopState({ history: { 10: { winner: "p1", reason: "time", aSeat: "p1", moves: 3 } } })],
+    ["a bad vote", lasthopState({ votes: { p1: "quit" } })],
+    ["a third seat's vote", lasthopState({ votes: { p3: "again" } })],
     ["an unknown key", lasthopState({ cheats: true })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));

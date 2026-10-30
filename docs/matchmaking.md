@@ -26,8 +26,11 @@ other queue. It starts by itself once 2 (Challenge) or 4 (Survival) are online.
 
 **Last Hop queues by mode too** (2026-10-30): `track` and `grid`, each a 1v1
 (`LASTHOP_MATCH`). The rules keep a public room's `lasthop/mode` equal to its
-queue. It starts by itself once both players are online; if one leaves
-mid-match, the other gets **Find another player**, as in Night Highway.
+queue while it's in the lobby (the only phase it's listed in). It starts by
+itself once both players are online. After a match the two **vote**: replay
+the mode or change to the other, and the next match starts once both pick the
+same (the user's call, 2026-10-30); leaving is Leave room. If one leaves, the
+other gets **Find another player**, as in Night Highway.
 
 ## Data model
 

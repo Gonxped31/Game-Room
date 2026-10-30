@@ -14,6 +14,8 @@ import { BETWEEN_MS, CLOCKS, MAX_ROUNDS, MIN_ROUNDS, type Mode, MODES, START_DEL
 
 export type Phase = "lobby" | "playing" | "roundOver" | "matchOver";
 export type EndReason = "stuck" | "time";
+/** A matchmaking player's vote after a match: the same mode again, or the other one. */
+export type Vote = "again" | "switch";
 
 export interface RoundResult {
   winner: Role;
@@ -44,6 +46,8 @@ export interface LastHopState extends WithIdentity {
   moves: number;
   score: Record<Role, number>;
   history: RoundResult[];
+  /** After a match in a matchmaking room (no host): each player's vote for what's next. */
+  votes?: Partial<Record<Role, Vote>>;
 }
 
 export function otherSeat(seat: Role): Role {
@@ -115,6 +119,10 @@ export function dueAt(state: LastHopState): number | undefined {
   return undefined;
 }
 
+export function otherMode(mode: Mode): Mode {
+  return mode === "track" ? "grid" : "track";
+}
+
 /** The next match's mode: the room's mode is picked when it's created, and changes only between matches. */
 export function setMode(state: LastHopState, mode: Mode): LastHopState {
   const s = normalize(state);
@@ -132,7 +140,7 @@ function without(game: LastHopState, ...keys: (keyof LastHopState)[]): LastHopSt
 
 function roundStart(s: LastHopState, round: number, board: Board, start: string, now: number): LastHopState {
   return {
-    ...without(s, "nextAt", "last"),
+    ...without(s, "nextAt", "last", "votes"),
     phase: "playing",
     round,
     board: { ...board, cells: start },
@@ -151,6 +159,22 @@ export function startMatch(state: LastHopState, board: Board, firstA: Role, now:
   checkBoard(board);
   const fresh = { ...s, firstA, score: { p1: 0, p2: 0 }, history: [] };
   return roundStart(fresh, 1, board, board.cells, now);
+}
+
+/**
+ * A matchmaking player's vote after a match. Once both have voted the same
+ * way, the next match starts: again in this mode, or in the other one, on a
+ * board from `deal`. Until then (or while they disagree) the votes just show,
+ * and either player may change theirs.
+ */
+export function vote(state: LastHopState, seat: Role, choice: Vote, deal: (mode: Mode) => Board, firstA: Role, now: number): LastHopState {
+  const s = normalize(state);
+  if (s.phase !== "matchOver") throw new Error("Votes are cast between matches.");
+  if (choice !== "again" && choice !== "switch") throw new Error("Unknown vote.");
+  const votes = { ...s.votes, [seat]: choice };
+  if (votes.p1 == null || votes.p1 !== votes.p2) return { ...s, votes };
+  const next = choice === "switch" ? setMode(s, otherMode(s.mode)) : s;
+  return startMatch(next, deal(next.mode), firstA, now);
 }
 
 export function move(state: LastHopState, seat: Role, from: number, to: number, now: number): LastHopState {

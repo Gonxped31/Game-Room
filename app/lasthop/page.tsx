@@ -29,6 +29,7 @@ import {
   seatOf,
   setMode,
   startMatch,
+  vote,
 } from "@/lib/games/lasthop/game";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
@@ -109,19 +110,23 @@ export default function LastHopPage() {
   });
   const isPublic = publicRoom.isPublic;
   const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
-  // The mode is picked on the hub's Start; between matches, only the host (the
-  // room's creator; anyone, if the host has left) changes it.
-  const canChooseMode = !isPublic && me != null && (session.hostSeat == null || session.hostSeat === me);
+  // A private room's host (its creator; whoever is left, if the host has gone)
+  // decides everything: Start, Play again, the next mode, Reset. The guest
+  // only plays. A matchmaking room has no host: its players vote.
+  const isHost = !isPublic && me != null && (session.hostSeat == null || session.hostSeat === me);
+  const hostName = session.hostSeat ? name(session.hostSeat) : "The host";
 
   // The other player left a matchmaking room: search again in the same mode.
   const [finding, setFinding] = useState<"idle" | "searching" | "offline">("idle");
   const findAnother = async () => {
     const myName = me ? names[me] : undefined;
-    if (!session.uid || !myName || !publicMode) return;
+    // The mode this room plays now: a vote may have changed it from its queue's.
+    const mode = game?.mode ?? publicMode;
+    if (!session.uid || !myName || !mode) return;
     setFinding("searching");
     try {
       await session.leave();
-      const code = await findMatch({ uid: session.uid, name: myName, lang: publicMode, game: LASTHOP_MATCH[publicMode] });
+      const code = await findMatch({ uid: session.uid, name: myName, lang: mode, game: LASTHOP_MATCH[mode] });
       window.location.href = roomHref(GAME_SLUG, code);
     } catch {
       setFinding("offline");
@@ -135,8 +140,8 @@ export default function LastHopPage() {
 
   const problem = roomProblemMessage(session);
   let screen;
-  // The matchmaking screens have their own Leave room button: no footer under them.
-  let footer = true;
+  // The matchmaking screens (waiting, voting) have their own Leave room button: no footer under them.
+  let footer = !(isPublic && game?.phase === "matchOver");
   if (problem) screen = <Message text={problem} alert home />;
   else if (!game) screen = <Message text="Connecting to the room…" />;
   else if (isPublic && me && publicMode && (!bothJoined || !other)) {
@@ -174,7 +179,7 @@ export default function LastHopPage() {
       />
     );
   } else if (game.phase === "lobby") {
-    screen = <Lobby mode={game.mode} onStart={onStart} />;
+    screen = <Lobby mode={game.mode} onStart={isHost ? onStart : undefined} hostName={hostName} />;
   } else if (game.phase === "matchOver") {
     screen = (
       <MatchOver
@@ -184,9 +189,20 @@ export default function LastHopPage() {
         name={name}
         me={me}
         mode={game.mode}
-        onMode={canChooseMode ? (mode) => transact((st) => setMode(st, mode)) : undefined}
-        hostName={!isPublic && !canChooseMode ? (session.hostSeat ? name(session.hostSeat) : "The host") : undefined}
-        onAgain={me ? onStart : undefined}
+        onMode={isHost ? (mode) => transact((st) => setMode(st, mode)) : undefined}
+        hostName={!isPublic && me && !isHost ? hostName : undefined}
+        onAgain={isHost ? onStart : undefined}
+        voting={
+          isPublic && me && other
+            ? {
+                mine: game.votes?.[me],
+                theirs: game.votes?.[other],
+                otherName: name(other),
+                onVote: (choice) => transact((st) => vote(st, me, choice, (mode) => generateBoard(mode, Math.random), randomSeat(), serverNow())),
+                onLeave: leave,
+              }
+            : undefined
+        }
       />
     );
   } else if (game.board) {
@@ -262,7 +278,7 @@ export default function LastHopPage() {
           <Footer
             room={room}
             roomName={roomName}
-            onReset={session.roomClosed || problem || isPublic ? undefined : onReset}
+            onReset={session.roomClosed || problem || !isHost ? undefined : onReset}
             onNewRoom={isPublic ? undefined : newRoom}
             onLeave={problem || !game ? undefined : leave}
           />
