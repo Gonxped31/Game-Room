@@ -6,7 +6,7 @@ import type { Role } from "@/lib/session/types";
 import { NEW_ROOM_CONFIRM, type RoomQuestion } from "@/lib/session/shared/roomActions";
 import RoomDialog, { type RoomDialogProps } from "@/components/RoomDialog";
 import { CLOCKS, MODE_LABELS, MODES, type Mode } from "@/lib/games/lasthop/constants";
-import type { RoundResult } from "@/lib/games/lasthop/game";
+import { otherMode, type RoundResult, type Vote } from "@/lib/games/lasthop/game";
 import { FOCUS, FONT, formatClock, PieceMark, PrimaryButton, SecondaryButton, seatColor } from "./ui";
 
 /** The page frame's title row: the wordmark, and the match so far. */
@@ -132,11 +132,11 @@ function ModeInfo({ mode }: { mode: Mode }) {
 }
 
 /**
- * Both players are in: the rules, the room's mode, Start (either player).
- * The mode was picked on the hub's Start; here it only shows. The host
- * changes it between matches (`MatchOver`).
+ * Both players are in: the rules, the room's mode, and the host's Start
+ * (`onStart`; the guest waits for `hostName`). The mode was picked on the
+ * hub's Start; here it only shows. The host changes it between matches.
  */
-export function Lobby({ mode, onStart }: { mode: Mode; onStart: () => void }) {
+export function Lobby({ mode, onStart, hostName }: { mode: Mode; onStart?: () => void; hostName: string }) {
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4">
@@ -150,7 +150,13 @@ export function Lobby({ mode, onStart }: { mode: Mode; onStart: () => void }) {
       <div className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[var(--p1)] bg-[var(--surface-2)] p-3.5">
         <ModeInfo mode={mode} />
       </div>
-      <PrimaryButton onClick={onStart}>Start the match</PrimaryButton>
+      {onStart ? (
+        <PrimaryButton onClick={onStart}>Start the match</PrimaryButton>
+      ) : (
+        <p aria-live="polite" className="m-0 text-center text-[16px] font-medium text-[var(--muted)]">
+          Waiting for {hostName} to start the match…
+        </p>
+      )}
     </div>
   );
 }
@@ -251,10 +257,19 @@ export function RoundBanner({ result, name, me, nextIn, sameBoard }: { result: R
   );
 }
 
+/** A matchmaking room's vote after a match: each player's pick, and casting one. */
+export interface Voting {
+  mine?: Vote;
+  theirs?: Vote;
+  otherName: string;
+  onVote: (vote: Vote) => void;
+  onLeave: () => void;
+}
+
 /**
- * The match's result and its rounds, then the next match: the host picks its
- * mode here (`onMode`; the other player sees `hostName` picks it, and a
- * matchmaking room keeps its mode), and either player starts it.
+ * The match's result and its rounds, then what's next. In a private room the
+ * host decides (`onMode` + `onAgain`) and the guest waits for `hostName`; in
+ * a matchmaking room both vote (`voting`).
  */
 export function MatchOver({
   score,
@@ -266,6 +281,7 @@ export function MatchOver({
   onMode,
   hostName,
   onAgain,
+  voting,
 }: {
   score: Record<Role, number>;
   history: RoundResult[];
@@ -274,9 +290,10 @@ export function MatchOver({
   me: Role | null;
   mode: Mode;
   onMode?: (mode: Mode) => void;
-  /** Set where someone else picks the mode (a private room's guest). */
+  /** Set where the host decides and this is the guest. */
   hostName?: string;
   onAgain?: () => void;
+  voting?: Voting;
 }) {
   const title = winner == null ? "A draw" : me ? (winner === me ? "You win the match!" : `${name(winner)} wins the match`) : `${name(winner)} wins the match`;
   return (
@@ -302,18 +319,63 @@ export function MatchOver({
           ))}
         </ol>
       </div>
-      {onMode ? (
+      {voting ? (
+        <VotePanel mode={mode} voting={voting} />
+      ) : onMode ? (
         <>
           <p className={`${FONT} m-0 text-[18px] font-bold`}>Next match</p>
           <ModeSwitch mode={mode} onMode={onMode} />
         </>
       ) : (
-        <p className="m-0 text-center text-[15px] text-[var(--muted)]">
+        <p aria-live="polite" className="m-0 text-center text-[15px] text-[var(--muted)]">
           Next match: <b className="text-[var(--text)]">{MODE_LABELS[mode].label}</b>
-          {hostName ? ` · ${hostName} picks the mode.` : null}
+          {hostName ? ` · Waiting for ${hostName} to start it…` : null}
         </p>
       )}
       {onAgain ? <PrimaryButton onClick={onAgain}>Play again</PrimaryButton> : null}
+    </div>
+  );
+}
+
+/**
+ * Replay or change mode, by vote: the next match starts once both pick the
+ * same. Each option shows who picked it; a pick can be changed. Leaving is
+ * just leaving the room.
+ */
+function VotePanel({ mode, voting }: { mode: Mode; voting: Voting }) {
+  const { mine, theirs, otherName, onVote, onLeave } = voting;
+  const label = (v: Vote) => (v === "again" ? `Replay ${MODE_LABELS[mode].label}` : `Change to ${MODE_LABELS[otherMode(mode)].label}`);
+  const status =
+    mine == null && theirs == null
+      ? "Vote for the next match. It starts when you both pick the same."
+      : mine == null
+        ? `${otherName} voted: ${label(theirs!)}.`
+        : theirs == null
+          ? `Waiting for ${otherName} to vote…`
+          : `${otherName} voted: ${label(theirs)}. Pick the same to start.`;
+  return (
+    <div className="grid gap-3">
+      <p className={`${FONT} m-0 text-[18px] font-bold`}>What next?</p>
+      <div className="grid grid-cols-2 gap-3">
+        {(["again", "switch"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={mine === v}
+            onClick={() => onVote(v)}
+            className={`flex min-h-[86px] cursor-pointer flex-col items-start justify-between gap-2 rounded-2xl border-2 p-3.5 text-left text-[var(--text)] ${mine === v ? "border-[var(--p1)] bg-[var(--surface-2)]" : "border-transparent bg-[var(--surface)]"} ${FOCUS}`}
+          >
+            <span className={`${FONT} text-[18px] font-bold`}>{label(v)}</span>
+            <span className="text-[13px] font-medium text-[var(--muted)]">
+              {[mine === v ? "You" : null, theirs === v ? otherName : null].filter(Boolean).join(" · ") || "\u00a0"}
+            </span>
+          </button>
+        ))}
+      </div>
+      <p aria-live="polite" className="m-0 text-center text-[15px] text-[var(--muted)]">
+        {status}
+      </p>
+      <SecondaryButton onClick={onLeave}>Leave room</SecondaryButton>
     </div>
   );
 }

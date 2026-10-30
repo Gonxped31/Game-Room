@@ -353,7 +353,7 @@
           ".write": "auth != null && newData.parent().child('meta/gameSlug').val() == 'lasthop' && (newData.parent().child('members/' + auth.uid).exists() || (!data.parent().child('meta').exists() && newData.parent().child('meta/createdBy').val() == auth.uid))",
           ".validate": "newData.hasChildren(['phase', 'mode', 'round', 'firstA', 'turn', 'clocks', 'moves', 'score']) && !root.child('games/' + $room + '/closedAt').exists()",
           "phase": { ".validate": "newData.val() == 'lobby' || newData.val() == 'playing' || newData.val() == 'roundOver' || newData.val() == 'matchOver'" },
-          "mode": { ".validate": "(newData.val() == 'track' || newData.val() == 'grid') && (!newData.parent().parent().child('meta/publicLang').exists() || newData.parent().parent().child('meta/publicLang').val() == newData.val())" },
+          "mode": { ".validate": "(newData.val() == 'track' || newData.val() == 'grid') && (!newData.parent().parent().child('meta/publicLang').exists() || newData.parent().child('phase').val() != 'lobby' || newData.parent().parent().child('meta/publicLang').val() == newData.val())" },
           "round": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10" },
           "firstA": { ".validate": "newData.val() == 'p1' || newData.val() == 'p2'" },
           "board": {
@@ -395,6 +395,11 @@
               "moves": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
               "$other": { ".validate": false }
             }
+          },
+          "votes": {
+            "p1": { ".validate": "newData.val() == 'again' || newData.val() == 'switch'" },
+            "p2": { ".validate": "newData.val() == 'again' || newData.val() == 'switch'" },
+            "$other": { ".validate": false }
           },
           "$other": { ".validate": false }
         },
