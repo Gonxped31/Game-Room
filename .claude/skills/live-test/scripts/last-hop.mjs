@@ -1,10 +1,12 @@
 // Last Hop end-to-end, against a dev server on the emulators (see
-// dev-against-emulators.mjs): a desktop player and an iPhone play a Track
-// match through - mode picked by either side, taps during "Get ready" that do
-// nothing, a reload mid-round, the Leave room question, a round lost on time,
-// the pair's second round on the same board with sides swapped, the match's
-// end and Play again - then Reset game, a Grid round, and a reload of the end
-// screen. About two minutes.
+// dev-against-emulators.mjs): a desktop host starts a Grid room from the hub
+// and an iPhone joins; only the host can change the mode. They play a Track
+// match through - taps during "Get ready" that do nothing, a reload mid-round,
+// the Leave room question, a round lost on time, the pair's second round on the
+// same board with sides swapped, the match's end (also after a reload) and
+// Play again - then Reset game and a Grid round. Then matchmaking: two
+// strangers search Track, the match starts by itself, one leaves and the
+// other is offered another player. About three minutes.
 //
 //   node .claude/skills/live-test/scripts/last-hop.mjs [baseUrl] [screenshotDir] [phoneProfile]
 import { closeBrowsers, newProfileContext } from "../../ui-review/scripts/screenshots.mjs";
@@ -36,11 +38,16 @@ const mover = (s) => (s.turn === "A" ? aSeat(s) : other(aSeat(s)));
 try {
   const A = await player("desktop", "A (desktop)");
   const B = await player(PHONE, `B (${PHONE})`);
-  await A.goto(`${BASE}/lasthop`);
-  await A.waitForFunction(() => location.hash.length === 7, null, { timeout: 60000 });
+  // The hub's Start asks for the mode first.
+  await A.goto(BASE);
+  await A.getByRole("button", { name: "Start a Last Hop room" }).click();
+  await A.getByRole("dialog").getByRole("radio", { name: /Grid/ }).click();
+  await A.getByRole("dialog").getByRole("button", { name: "Start room" }).click();
+  await A.waitForURL(/\/lasthop#[a-z0-9]{6}$/, { timeout: 60000 });
   const room = new URL(A.url()).hash.slice(1);
   const path = `games/${room}/lasthop`;
   const state = () => admin(path);
+  if ((await until(state, "the room's state")).mode !== "grid") throw new Error("the room didn't start in Grid");
   await A.getByLabel("Your name").fill("Sam");
   await A.getByRole("button", { name: "Continue" }).click();
   await A.getByRole("button", { name: "Copy invite link" }).waitFor({ timeout: 30000 });
@@ -53,13 +60,17 @@ try {
   for (const page of [A, B]) await page.getByRole("heading", { name: "Make the last move" }).waitFor({ timeout: 30000 });
   log("both in the lobby");
 
-  // Either side picks the mode; the other sees it.
-  await B.getByRole("radio", { name: /Grid/ }).click();
-  await A.getByRole("radio", { name: /Grid/, checked: true }).waitFor();
+  // Only the host picks the mode; the other player sees it change.
+  await B.getByRole("radio", { name: /Grid/, checked: true }).waitFor();
+  await B.getByText("Sam picks the mode.").waitFor();
+  if (!(await B.getByRole("radio", { name: /Track/ }).isDisabled())) throw new Error("the guest's mode switch isn't disabled");
+  await B.getByRole("radio", { name: /Track/ }).click({ force: true });
+  await wait(800);
+  if ((await state()).mode !== "grid") throw new Error("the guest changed the mode");
   await shot(B, "lobby-iphone");
   await A.getByRole("radio", { name: /Track/ }).click();
   await B.getByRole("radio", { name: /Track/, checked: true }).waitFor();
-  log("mode picked from either side");
+  log("Start asked for the mode; only the host changes it");
 
   const pageOf = (seat) => (seat === "p1" ? A : B);
   /** The mover plays one move through the board: a piece that can move, then a square to move to. */
@@ -144,6 +155,8 @@ try {
   for (const page of [A, B]) await page.getByRole("heading", { name: /wins the match|You win the match|A draw/ }).waitFor({ timeout: 10000 });
   await shot(A, "match-over-desktop");
   await shot(B, "match-over-iphone");
+  if ((await B.getByRole("button", { name: "Change mode" }).count()) !== 0) throw new Error("the guest can change the mode after a match");
+  await A.getByRole("button", { name: "Change mode" }).waitFor();
   await B.reload();
   await B.getByRole("heading", { name: /wins the match|You win the match|A draw/ }).waitFor({ timeout: 30000 });
   log("match over", `${s.score.p1}-${s.score.p2}`, "(also after a reload)");
@@ -172,6 +185,42 @@ try {
   s = await playRoundOut();
   if (s.phase !== "roundOver" || s.history[0].reason !== "stuck") throw new Error(`grid round ended ${JSON.stringify(s.history)}`);
   log("grid round played out:", s.history[0].moves, "moves");
+
+  // ---- Matchmaking: two strangers search Track ---------------------------------------
+  const search = async (page, name) => {
+    await page.goto(BASE);
+    await page.getByRole("button", { name: "Matchmaking for Last Hop: play with other players" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Your name").fill(name);
+    await dialog.getByRole("radio", { name: /Track/ }).click();
+    await dialog.getByRole("button", { name: "Find players" }).click();
+    await page.waitForURL(/\/lasthop#[a-z0-9]{6}$/, { timeout: 30000 });
+    return new URL(page.url()).hash.slice(1);
+  };
+  const C = await player("android", "C (Android)");
+  const D = await player("desktop", "D (desktop)");
+  const pub = await search(C, "Kim");
+  await C.getByText("Waiting for a player…").waitFor({ timeout: 15000 });
+  const meta = await admin(`games/${pub}/meta`);
+  if (meta.publicLang !== "track" || meta.maxPlayers !== 2) throw new Error(`public room meta ${JSON.stringify(meta)}`);
+  if ((await C.getByRole("radiogroup", { name: "Mode" }).count()) !== 0) throw new Error("a public lobby shows the mode switch");
+  await shot(C, "match-waiting-android");
+  if ((await search(D, "Ola")) !== pub) throw new Error("the second searcher landed in another room");
+  await D.getByText(/Starting in|Starting…/).waitFor({ timeout: 15000 });
+  await shot(D, "match-countdown-desktop");
+  const pubState = () => admin(`games/${pub}/lasthop`);
+  const started = await until(async () => { const v = await pubState(); return v?.phase === "playing" ? v : null; }, "the auto-start", 30000);
+  if (started.mode !== "track") throw new Error("the public match isn't Track");
+  for (const page of [C, D]) await page.getByRole("group", { name: "The track" }).waitFor({ timeout: 10000 });
+  log("matchmaking: both in room", pub, "and the match started by itself");
+  // Kim leaves mid-match (asked first); Ola is offered another player.
+  await C.getByRole("button", { name: "Leave room" }).click();
+  await C.getByRole("dialog").getByRole("button", { name: "Leave room" }).click();
+  await C.waitForURL((url) => url.pathname === "/", { timeout: 15000 });
+  await D.getByText("The other player left.").waitFor({ timeout: 15000 });
+  await D.getByRole("button", { name: "Find another player" }).waitFor();
+  await shot(D, "match-left-desktop");
+  log("matchmaking: leaving mid-match offers the other another player");
 
   if (errors.length) throw new Error(`console errors:\n${errors.join("\n")}`);
   console.log("PASS");

@@ -42,7 +42,7 @@
   height: var(--cell);
   padding: 0;
   border: 2px solid var(--well-rim);
-  border-radius: 50%;
+  border-radius: 30%;
   background: var(--well);
   box-shadow: inset 0 4px 0 rgb(0 0 0 / 0.35);
 }
@@ -79,6 +79,13 @@
   box-shadow: 0 4px 0 var(--shade);
   color: var(--ink);
   transition: transform 120ms ease-out, opacity 120ms;
+}
+
+/* p1's pieces: rounded squares, a little smaller so they sit inside the well's curve. */
+.lh-piece.lh-sq {
+  width: 74%;
+  height: 74%;
+  border-radius: 24%;
 }
 
 .lh-chev {

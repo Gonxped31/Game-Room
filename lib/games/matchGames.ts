@@ -7,6 +7,8 @@ import { GAME_SLUG as BUZZERQUIZ, MAX_PLAYERS as BUZZERQUIZ_PLAYERS } from "./bu
 import { newGame as newRace } from "./nighthighway/game";
 import { isLang } from "./shared/language";
 import { newGame as newScramble } from "./wordscramble/game";
+import { newGame as newHop } from "./lasthop/game";
+import { GAME_SLUG as LASTHOP, type Mode as HopMode } from "./lasthop/constants";
 import { GAME_SLUG as WORDSCRAMBLE, MAX_PLAYERS as WORDSCRAMBLE_PLAYERS } from "./wordscramble/constants";
 
 const NIGHTHIGHWAY = "nighthighway";
@@ -46,10 +48,18 @@ const raceMatch = (gameSlug: string, publicState: (mode: Mode) => unknown): Reco
 export const BORDERRUN_MATCH = raceMatch("borderrun", newBorderRun);
 export const REGIONS_MATCH = raceMatch("regions", newGridRace);
 
+/**
+ * Last Hop queues by mode too (Track or Grid; no words): a public room is a
+ * 1v1 in one mode, and stays in it.
+ */
+const hopMatch = (mode: HopMode): MatchGame => ({ gameSlug: LASTHOP, maxPlayers: 2, lobbyPhase: "lobby", languages: false, queue: mode, publicState: () => newHop(mode) });
+export const LASTHOP_MATCH: Record<HopMode, MatchGame> = { track: hopMatch("track"), grid: hopMatch("grid") };
+
 /** Games whose Matchmaking asks for a mode first (registry `modes`): each mode's own queue. */
 export const MATCH_MODES: Partial<Record<string, Partial<Record<string, MatchGame>>>> = {
   borderrun: BORDERRUN_MATCH,
   regions: REGIONS_MATCH,
+  [LASTHOP]: LASTHOP_MATCH,
 };
 
 export const MATCH_GAMES: Partial<Record<string, MatchGame>> = {

@@ -11,6 +11,7 @@ import { newGame as newRace } from "@/lib/games/nighthighway/game";
 import { newGame as newScramble } from "@/lib/games/wordscramble/game";
 import { newRace as newBorderRun } from "@/lib/games/borderrun/race";
 import { newRace as newGridRace } from "@/lib/games/regions/race";
+import { newGame as newHop, setMode as setHopMode } from "@/lib/games/lasthop/game";
 import { dbAs, ROOM, seed, setupEnv, TS } from "./helpers";
 
 let env: RulesTestEnvironment;
@@ -190,5 +191,43 @@ describe.each([
     const privateMeta = { gameSlug: slug, maxPlayers: 8, createdAt: 1, createdBy: "alice" };
     await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: privateMeta, ts: TS })));
     await assertSucceeds(send("alice", { [`games/${ROOM}/${slug}/mode`]: "survival" }));
+  });
+});
+
+describe("Last Hop's public rooms", () => {
+  const publicRoom = (mode: string, opts: { maxPlayers?: number; stateMode?: "track" | "grid" } = {}) =>
+    createRoomUpdate({
+      code: ROOM,
+      uid: "alice",
+      gameSlug: "lasthop",
+      maxPlayers: opts.maxPlayers ?? 2,
+      initialState: plain(newHop(opts.stateMode ?? (mode as "track" | "grid"))),
+      ts: TS,
+      publicLang: mode,
+    });
+
+  it("queues by mode, a 1v1 in each", async () => {
+    await assertSucceeds(send("alice", publicRoom("track")));
+    await env.clearDatabase();
+    await assertSucceeds(send("alice", publicRoom("grid")));
+  });
+
+  it("refuses more seats, a language queue, or a game in another mode than its queue", async () => {
+    await assertFails(send("alice", publicRoom("track", { maxPlayers: 4 })));
+    await assertFails(send("alice", publicRoom("en", { stateMode: "track" })));
+    await assertFails(send("alice", publicRoom("challenge", { stateMode: "track" })));
+    await assertFails(send("alice", publicRoom("track", { stateMode: "grid" })));
+  });
+
+  it("keeps a public room in its mode; a private room changes it", async () => {
+    await assertSucceeds(send("alice", publicRoom("grid")));
+    const publicMeta = { ...meta("alice"), gameSlug: "lasthop", maxPlayers: 2, publicLang: "grid" };
+    await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: publicMeta, ts: TS })));
+    await assertFails(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain(setHopMode(newHop("grid"), "track"))));
+    await env.clearDatabase();
+    await assertSucceeds(send("alice", createRoomUpdate({ code: ROOM, uid: "alice", gameSlug: "lasthop", maxPlayers: 2, initialState: plain(newHop("track")), ts: TS })));
+    const privateMeta = { gameSlug: "lasthop", maxPlayers: 2, createdAt: 1, createdBy: "alice" };
+    await assertSucceeds(send("alice", claimSeatUpdate({ code: ROOM, seat: "p1", uid: "alice", name: "alice", meta: privateMeta, ts: TS })));
+    await assertSucceeds(dbAs(env, "alice").ref(`games/${ROOM}/lasthop`).set(plain(setHopMode(newHop("track"), "grid"))));
   });
 });

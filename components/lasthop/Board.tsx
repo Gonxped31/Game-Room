@@ -3,7 +3,7 @@
 import { type CSSProperties, useMemo, useState } from "react";
 import type { Role } from "@/lib/session/types";
 import { type Board as BoardData, type Colour, legalMoves } from "@/lib/games/lasthop/board";
-import { FOCUS, seatColor, seatShade } from "./ui";
+import { FOCUS, isSquare, seatColor, seatShade } from "./ui";
 
 interface BoardProps {
   board: BoardData;
@@ -102,7 +102,7 @@ export default function Board({ board, seatOf, rotated, moving, last, moveKey, o
             {piece && seat ? (
               <span
                 key={hop ? moveKey : undefined}
-                className={`lh-piece ${hop ? "lh-hop" : ""} ${isPick ? "lh-picked" : ""} ${canMove && !isPick ? "lh-movable" : ""} ${dim ? "lh-dim" : ""}`}
+                className={`lh-piece ${isSquare(seat) ? "lh-sq" : ""} ${hop ? "lh-hop" : ""} ${isPick ? "lh-picked" : ""} ${canMove && !isPick ? "lh-movable" : ""} ${dim ? "lh-dim" : ""}`}
                 style={{ ...hop, "--fill": seatColor(seat), "--shade": seatShade(seat) } as CSSProperties}
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className={`lh-chev ${forward ? "lh-fwd" : "lh-back"}`}>

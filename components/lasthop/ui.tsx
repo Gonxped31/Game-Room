@@ -4,10 +4,10 @@ import type { ButtonHTMLAttributes, CSSProperties } from "react";
 import type { Role } from "@/lib/session/types";
 
 /**
- * Last Hop's look: a night-violet stage with round wells, each player's
- * pieces in their own color for the whole match (tangerine for p1, mint for
- * p2), whichever side they play that round. Colors are CSS variables on the
- * page's root (`THEME`).
+ * Last Hop's look: a night-violet stage with rounded wells, each player's
+ * pieces in their own color and shape for the whole match (tangerine
+ * rounded squares for p1, mint circles for p2), whichever side they play
+ * that round. Colors are CSS variables on the page's root (`THEME`).
  */
 export const THEME = {
   "--stage": "#1E1733",
@@ -30,6 +30,17 @@ export const FONT = "font-[family-name:var(--font-rubik)]";
 
 export const seatColor = (seat: Role) => `var(--${seat})`;
 export const seatShade = (seat: Role) => `var(--${seat}-shade)`;
+/** p1's pieces are rounded squares, p2's circles: the sides tell apart by shape as well as color. */
+export const isSquare = (seat: Role) => seat === "p1";
+
+/** A player's piece in small, beside their name. */
+export function PieceMark({ seat, size = 20 }: { seat: Role; size?: number }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 20 20" className="shrink-0">
+      {isSquare(seat) ? <rect x="1.5" y="1.5" width="17" height="17" rx="4.5" fill={seatColor(seat)} /> : <circle cx="10" cy="10" r="9" fill={seatColor(seat)} />}
+    </svg>
+  );
+}
 
 /** Keyboard focus on the dark stage. */
 export const FOCUS = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[var(--text)]";
