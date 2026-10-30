@@ -20,7 +20,16 @@ competitive (the user's design, 2026-10-29/30).
   blocking theirs. A always moves first.
 - **Modes**: **Track** (8-11 squares, 3-4 pieces a side, every A starting left
   of every B) and **Grid** (4x4 or 5x5, A in the top-left corner, B in the
-  bottom-right). Either player picks the mode in the lobby.
+  bottom-right). The hub's Start asks for one (registry `modes`, `?mode=`,
+  dropped from the link once the room exists). In a private room **only the
+  host** (the creator; anyone if the host has left) changes it, in the lobby
+  or with "Change mode" after a match (the user's call, 2026-10-30). Either
+  player starts and plays again.
+- **Matchmaking**: one queue per mode (`LASTHOP_MATCH`, `meta.publicLang` =
+  `track` or `grid`; the rules keep the room's `mode` equal to it). A public
+  room starts by itself once both players are online (`usePublicRoom`), has no
+  Reset game, New room or mode switch, and if the other player leaves, the one
+  left gets **Find another player** (searches the same queue again).
 - **Chess clock**: Track 1 min each +2 s a move, Grid 2 min each +3 s a move
   (`CLOCKS`). Running out loses the round. The clock starts 3 s after a round
   is dealt (`START_DELAY_MS`, "Get ready"). A player who goes offline keeps
@@ -50,7 +59,8 @@ generator tests in `board.test.ts` check it.
 | `app/lasthop/page.tsx` | Session (`useGameSession`), deadlines (`flag` or `nextRound`), screens |
 | `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`), `lasthop.css` (board sizes, animation) |
 | `database.rules.json` → `lasthop` | Validates the whole state; `maxPlayers` must be 2 |
-| `.claude/skills/live-test/scripts/last-hop.mjs` | Desktop vs a phone (`[phoneProfile]`, default `iphone`): a whole Track match and a Grid round |
+| `lib/games/matchGames.ts` → `LASTHOP_MATCH` | The two matchmaking queues |
+| `.claude/skills/live-test/scripts/last-hop.mjs` | Desktop host vs a phone (`[phoneProfile]`, default `iphone`): Start's mode, host-only mode, a whole Track match, a Grid round; then a matchmaking pair |
 
 ## The generator
 
@@ -70,8 +80,12 @@ generator tests in `board.test.ts` check it.
   left)**: whoever plays A sees the board turned half a turn (`rotated`, done by
   reversing the render order, so display coordinates come from `xy`). The
   opponent's bar is on top, yours below. Spectators see it unturned.
-- **Pieces wear their player's colour** for the whole match (p1 tangerine, p2
-  mint), whichever side they play that round.
+- **Pieces wear their player's colour and shape** for the whole match (p1
+  tangerine rounded squares, p2 mint circles; `isSquare`, `PieceMark`),
+  whichever side they play that round. The wells are rounded squares. The
+  shapes also show in the player bars, the lobby's pictures, the match's
+  round list, the hub art and the tile (the user's call, 2026-10-30: telling
+  the sides apart by colour alone was too hard).
 - A Track is a **column on phones** (cells sized from `100dvh`, 34-54px) and a
   **row from 640px**. The chevron in each piece points forward
   (`lh-fwd`/`lh-back`, rotated by CSS per layout).

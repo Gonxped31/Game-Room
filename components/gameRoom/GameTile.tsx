@@ -84,12 +84,12 @@ export default function GameTile({ slug }: { slug: string }) {
     );
   }
   if (slug === "lasthop") {
-    // The card's hop: a tangerine piece over a mint one, on the night stage.
+    // The card's hop: a tangerine square over a mint circle, on the night stage.
     return (
       <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#1E1733]">
         <svg width="30" height="30" viewBox="0 0 30 30">
           <circle cx="15" cy="23" r="5.5" fill="#43D6B5" />
-          <circle cx="15" cy="10" r="6.5" fill="#FF8A4C" />
+          <rect x="8.5" y="3.5" width="13" height="13" rx="3.5" fill="#FF8A4C" />
         </svg>
       </span>
     );

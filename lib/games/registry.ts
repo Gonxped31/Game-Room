@@ -103,6 +103,10 @@ export const ALL_GAMES: GameEntry[] = [
     shortDescription: "Hop forward. Make the last move.",
     tags: ["2 players", "Track or Grid"],
     maxPlayers: 2,
+    modes: [
+      { key: "track", label: "Track", detail: "Quick and sharp. One row: every move counts." },
+      { key: "grid", label: "Grid", detail: "Longer, more open. Pieces move two ways." },
+    ],
     ink: "#1E1733",
     textSecondary: "#544A70",
     accentColor: "#FF8A4C",

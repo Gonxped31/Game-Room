@@ -2,12 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
+import { usePublicRoom } from "@/lib/session/usePublicRoom";
+import { CONNECTION_ERROR_MESSAGE } from "@/lib/session/shared/auth";
+import { findMatch } from "@/lib/session/shared/findMatch";
 import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import type { Role } from "@/lib/session/types";
 import { generateBoard, legalMoves } from "@/lib/games/lasthop/board";
-import { GAME_SLUG, GAME_TITLE } from "@/lib/games/lasthop/constants";
+import { GAME_SLUG, GAME_TITLE, type Mode, MODES } from "@/lib/games/lasthop/constants";
+import { LASTHOP_MATCH } from "@/lib/games/matchGames";
+import { roomHref } from "@/lib/games/registry";
 import {
   clockLeft,
   colourOf,
@@ -30,25 +35,37 @@ import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import RolePicker from "@/components/RolePicker";
 import Board from "@/components/lasthop/Board";
-import { AskDialog, Footer, Header, Lobby, MatchOver, Message, PlayerBar, RoundBanner } from "@/components/lasthop/Screens";
+import { AskDialog, Footer, Header, Lobby, MatchLobby, MatchOver, Message, PlayerBar, RoundBanner } from "@/components/lasthop/Screens";
 import { FONT, THEME } from "@/components/lasthop/ui";
 import "@/components/lasthop/lasthop.css";
 
 const randomSeat = (): Role => (Math.random() < 0.5 ? "p1" : "p2");
+const isMode = (value: unknown): value is Mode => MODES.includes(value as Mode);
+/** The mode the hub's Start picked (`?mode=`), for a room created on this visit. */
+const modeFromUrl = (): Mode => {
+  const mode = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("mode");
+  return isMode(mode) ? mode : "track";
+};
 
 /**
  * Last Hop: a 1v1 duel on a Track or a Grid (the `lasthop` skill). The whole
  * match lives in `games/{room}/lasthop`; a clock running out and the next
  * round are applied by whichever device sees the deadline pass first
- * (`useDeadline` + `flag` / `nextRound`).
+ * (`useDeadline` + `flag` / `nextRound`). A matchmaking room (one queue
+ * per mode) starts by itself once both players are online.
  */
 export default function LastHopPage() {
-  const createInitialState = useCallback(() => newGame(), []);
+  const createInitialState = useCallback(() => newGame(modeFromUrl()), []);
   const session = useGameSession<LastHopState>({ gameSlug: GAME_SLUG, createInitialState });
   const { room, me, other, names, bothJoined, roomName, canRenameRoom, setRoomName, roomNameError, online, canTakeOver, pickIdentity, transact, setGame, newRoom } = session;
   const raw = session.game;
   const game = useMemo(() => (raw ? normalize(raw) : null), [raw]);
   const serverNow = useServerClock();
+
+  // Once the room exists, the shared link is just /lasthop#code.
+  useEffect(() => {
+    if (game && window.location.search) window.history.replaceState(window.history.state, "", window.location.pathname + window.location.hash);
+  }, [game]);
 
   useDeadline(game ? dueAt(game) : undefined, serverNow, () =>
     transact((current) => {
@@ -79,17 +96,70 @@ export default function LastHopPage() {
   const onStart = () => transact((current) => startMatch(current, generateBoard(normalize(current).mode, Math.random), randomSeat(), serverNow()));
   const onReset = () => setGame(newGame(game?.mode));
 
+  // A matchmaking room: its queue is its mode; no host, it starts by itself.
+  const publicMode = isMode(session.publicLang) ? session.publicLang : null;
+  const midMatch = game?.phase === "playing" || game?.phase === "roundOver";
+  const publicRoom = usePublicRoom({
+    session,
+    game: LASTHOP_MATCH[publicMode ?? "track"],
+    inLobby: game?.phase === "lobby",
+    ready: session.onlineSeats.length >= 2,
+    onStart,
+    serverNow,
+    leaveOnBack: game != null && !midMatch,
+  });
+  const isPublic = publicRoom.isPublic;
+  const lobbyNow = useTicker(publicRoom.autoStartAt != null, serverNow, 250);
+  // Only the host (the room's creator) picks the mode; anyone, if the host has left.
+  const canChooseMode = !isPublic && me != null && (session.hostSeat == null || session.hostSeat === me);
+
+  // The other player left a matchmaking room: search again in the same mode.
+  const [finding, setFinding] = useState<"idle" | "searching" | "offline">("idle");
+  const findAnother = async () => {
+    const myName = me ? names[me] : undefined;
+    if (!session.uid || !myName || !publicMode) return;
+    setFinding("searching");
+    try {
+      await session.leave();
+      const code = await findMatch({ uid: session.uid, name: myName, lang: publicMode, game: LASTHOP_MATCH[publicMode] });
+      window.location.href = roomHref(GAME_SLUG, code);
+    } catch {
+      setFinding("offline");
+    }
+  };
+
   // Leaving mid-match ends it for the other player: ask first.
   const [askingLeave, setAskingLeave] = useState(false);
-  const leaveNow = () => leaveToHub(session.leave);
-  const midMatch = game?.phase === "playing" || game?.phase === "roundOver";
+  const leaveNow = () => (isPublic ? publicRoom.leave() : leaveToHub(session.leave));
   const leave = () => (me && bothJoined && midMatch ? setAskingLeave(true) : void leaveNow());
 
   const problem = roomProblemMessage(session);
   let screen;
+  // The matchmaking screens have their own Leave room button: no footer under them.
+  let footer = true;
   if (problem) screen = <Message text={problem} alert home />;
   else if (!game) screen = <Message text="Connecting to the room…" />;
-  else if (!me && !(bothJoined && game.phase !== "lobby")) {
+  else if (isPublic && me && publicMode && (!bothJoined || !other)) {
+    // Alone in a matchmaking room: still waiting, or the other player left mid-match.
+    footer = false;
+    screen =
+      game.phase === "lobby" ? (
+        <MatchLobby mode={publicMode} myName={name(me)} status="Waiting for a player…" onLeave={leave} />
+      ) : (
+        <MatchLobby
+          mode={publicMode}
+          myName={name(me)}
+          status={finding === "searching" ? "Looking for a player…" : finding === "offline" ? CONNECTION_ERROR_MESSAGE : "The other player left."}
+          onFindAnother={finding === "searching" ? undefined : () => void findAnother()}
+          onLeave={leave}
+        />
+      );
+  } else if (isPublic && me && publicMode && other && game.phase === "lobby") {
+    const secs = publicRoom.autoStartAt != null && lobbyNow != null ? Math.max(0, Math.ceil((publicRoom.autoStartAt - lobbyNow) / 1000)) : null;
+    const status = secs != null ? (secs > 0 ? `Starting in ${secs} s` : "Starting…") : online[other] ? "Getting ready…" : `${name(other)} is offline.`;
+    footer = false;
+    screen = <MatchLobby mode={publicMode} myName={name(me)} otherName={name(other)} status={status} onLeave={leave} />;
+  } else if (!me && !(bothJoined && game.phase !== "lobby")) {
     screen = <RolePicker names={names} canTakeOver={canTakeOver} onPick={pickIdentity} accentColor="#FF8A4C" accentShadowColor="#B4511E" />;
   } else if (!bothJoined) {
     screen = (
@@ -104,7 +174,14 @@ export default function LastHopPage() {
       />
     );
   } else if (game.phase === "lobby") {
-    screen = <Lobby mode={game.mode} onMode={(mode) => transact((s) => setMode(s, mode))} onStart={onStart} />;
+    screen = (
+      <Lobby
+        mode={game.mode}
+        onMode={canChooseMode ? (mode) => transact((s) => setMode(s, mode)) : undefined}
+        hostName={session.hostSeat ? name(session.hostSeat) : "The host"}
+        onStart={onStart}
+      />
+    );
   } else if (game.phase === "matchOver") {
     screen = (
       <MatchOver
@@ -114,7 +191,7 @@ export default function LastHopPage() {
         name={name}
         me={me}
         onAgain={me ? onStart : undefined}
-        onLobby={me ? () => transact(toLobby) : undefined}
+        onLobby={canChooseMode ? () => transact(toLobby) : undefined}
       />
     );
   } else if (game.board) {
@@ -186,7 +263,15 @@ export default function LastHopPage() {
         <Header round={game && game.phase !== "lobby" ? game.round : undefined} score={score} />
         {/* The board takes the page's width; the other screens stay a readable column. */}
         {midMatch && bothJoined ? screen : <div className="mx-auto w-full max-w-[560px]">{screen}</div>}
-        <Footer room={room} roomName={roomName} onReset={session.roomClosed || problem ? undefined : onReset} onNewRoom={newRoom} onLeave={problem || !game ? undefined : leave} />
+        {footer ? (
+          <Footer
+            room={room}
+            roomName={roomName}
+            onReset={session.roomClosed || problem || isPublic ? undefined : onReset}
+            onNewRoom={isPublic ? undefined : newRoom}
+            onLeave={problem || !game ? undefined : leave}
+          />
+        ) : null}
         {askingLeave ? <AskDialog question={LEAVE_CONFIRM} onCancel={() => setAskingLeave(false)} onConfirm={leaveNow} /> : null}
       </main>
     </div>

@@ -1,6 +1,6 @@
 # Matchmaking
 
-Buzzer Quiz, Word Scramble, Night Highway, Border Run and Checkmate Grid can be played with
+Buzzer Quiz, Word Scramble, Night Highway, Border Run, Checkmate Grid and Last Hop can be played with
 strangers. On the hub, their cards have a third button, **Matchmaking**: the player
 enters a display name, picks the content language (EN/FR; not for Night Highway,
 which has no words) or, for the races (Border Run, Checkmate Grid), the mode (Challenge or Survival; nothing
@@ -24,6 +24,11 @@ language and Checkmate Grid has no words, so its queues are `challenge` (rooms o
 `borderrun/mode` equal to it: to switch modes, a player leaves and searches the
 other queue. It starts by itself once 2 (Challenge) or 4 (Survival) are online.
 
+**Last Hop queues by mode too** (2026-10-30): `track` and `grid`, each a 1v1
+(`LASTHOP_MATCH`). The rules keep a public room's `lasthop/mode` equal to its
+queue. It starts by itself once both players are online; if one leaves
+mid-match, the other gets **Find another player**, as in Night Highway.
+
 ## Data model
 
 ```
@@ -32,8 +37,9 @@ games/{room}/autoStart: number                 // server ms; public rooms only, 
 queue/{slug}/{lang}/{room}: { players, updatedAt }   // the waiting public rooms
 ```
 
-- `publicLang` is only accepted as `en`/`fr` for `buzzerquiz` and `wordscramble`, and
-  as `any` (`ANY_LANG`) for `nighthighway`.
+- `publicLang` is only accepted as `en`/`fr` for `buzzerquiz` and `wordscramble`,
+  as `any` (`ANY_LANG`) for `nighthighway`, as `challenge`/`survival` for the
+  races and as `track`/`grid` for `lasthop`.
 - `queue/{slug}/{lang}` can be **listed** by any signed-in guest (the whole point).
   `/queue` and `/queue/{slug}` cannot.
 - A queue entry can be written by a member of the room, or by its creator in the

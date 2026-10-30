@@ -7,7 +7,7 @@ import { NEW_ROOM_CONFIRM, type RoomQuestion } from "@/lib/session/shared/roomAc
 import RoomDialog, { type RoomDialogProps } from "@/components/RoomDialog";
 import { CLOCKS, MODE_LABELS, MODES, type Mode } from "@/lib/games/lasthop/constants";
 import type { RoundResult } from "@/lib/games/lasthop/game";
-import { FOCUS, FONT, formatClock, PrimaryButton, SecondaryButton, seatColor } from "./ui";
+import { FOCUS, FONT, formatClock, PieceMark, PrimaryButton, SecondaryButton, seatColor } from "./ui";
 
 /** The page frame's title row: the wordmark, and the match so far. */
 export function Header({ round, score }: { round?: number; score?: ReactNode }) {
@@ -69,7 +69,7 @@ export function PlayerBar({
       className={`flex items-center gap-3 rounded-2xl px-3.5 py-2.5 transition-colors motion-reduce:transition-none ${running ? "bg-[var(--surface-2)]" : "bg-[var(--surface)]"}`}
       style={running ? { boxShadow: `inset 0 0 0 2px ${seatColor(seat)}` } : undefined}
     >
-      <span aria-hidden="true" className="h-5 w-5 shrink-0 rounded-full" style={{ background: seatColor(seat) }} />
+      <PieceMark seat={seat} />
       <div className="min-w-0 flex-1">
         <p className="m-0 truncate text-[16px] font-bold">
           {name}
@@ -90,29 +90,38 @@ export function PlayerBar({
   );
 }
 
-/** A small picture of each mode for the lobby: a row of wells, or a 3x3 block. */
+/** A small picture of each mode for the lobby: a row of wells, or a 4x3 block, with each player's pieces in their shape. */
 function ModePicture({ mode }: { mode: Mode }) {
-  const dot = (cx: number, cy: number, fill: string) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="7" fill={fill} />;
+  const dot = (cx: number, cy: number, c: string) =>
+    c === "p1" ? (
+      <rect key={`${cx}-${cy}`} x={cx - 6.5} y={cy - 6.5} width="13" height="13" rx="3.5" fill="var(--p1)" />
+    ) : (
+      <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="7" fill={c ? `var(--${c})` : "var(--well)"} />
+    );
   if (mode === "track") {
     const cells = ["p1", "p1", "", "p1", "", "", "p2", "p2", "", "p2"];
     return (
       <svg aria-hidden="true" viewBox="0 0 200 24" className="h-6 w-full">
-        {cells.map((c, i) => dot(10 + i * 20, 12, c ? `var(--${c})` : "var(--well)"))}
+        {cells.map((c, i) => dot(10 + i * 20, 12, c))}
       </svg>
     );
   }
   const cells = ["p1", "p1", "", "p1", "", "", "", "", "p2", "", "p2", "p2"];
   return (
     <svg aria-hidden="true" viewBox="0 0 80 60" className="h-[60px] w-[80px]">
-      {cells.map((c, i) => dot(10 + (i % 4) * 20, 10 + Math.floor(i / 4) * 20, c ? `var(--${c})` : "var(--well)"))}
+      {cells.map((c, i) => dot(10 + (i % 4) * 20, 10 + Math.floor(i / 4) * 20, c))}
     </svg>
   );
 }
 
-/** Both players are in: pick the mode, read the rules, start. Either player can do both. */
-export function Lobby({ mode, onMode, onStart }: { mode: Mode; onMode: (mode: Mode) => void; onStart: () => void }) {
+/**
+ * Both players are in: the rules, the mode, Start. Only the host picks the
+ * mode (`onMode` unset for the other player, who sees the host's pick);
+ * either player starts.
+ */
+export function Lobby({ mode, onMode, hostName, onStart }: { mode: Mode; onMode?: (mode: Mode) => void; hostName: string; onStart: () => void }) {
   const choose = (next: Mode) => {
-    if (next !== mode) onMode(next);
+    if (onMode && next !== mode) onMode(next);
   };
   return (
     <div className="grid gap-4">
@@ -127,9 +136,10 @@ export function Lobby({ mode, onMode, onStart }: { mode: Mode; onMode: (mode: Mo
       <div
         role="radiogroup"
         aria-label="Mode"
+        aria-describedby={onMode ? undefined : "lh-mode-host"}
         className="grid grid-cols-2 gap-3"
         onKeyDown={(e) => {
-          if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+          if (onMode && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
             e.preventDefault();
             const next = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
             choose(next);
@@ -146,10 +156,11 @@ export function Lobby({ mode, onMode, onStart }: { mode: Mode; onMode: (mode: Mo
               type="button"
               role="radio"
               aria-checked={on}
+              aria-disabled={onMode ? undefined : true}
               tabIndex={on ? 0 : -1}
               data-mode={m}
               onClick={() => choose(m)}
-              className={`flex cursor-pointer flex-col items-start gap-2 rounded-2xl border-2 p-3.5 text-left text-[var(--text)] ${on ? "border-[var(--p1)] bg-[var(--surface-2)]" : "border-transparent bg-[var(--surface)]"} ${FOCUS}`}
+              className={`flex ${onMode ? "cursor-pointer" : "cursor-default"} flex-col items-start gap-2 rounded-2xl border-2 p-3.5 text-left text-[var(--text)] ${on ? "border-[var(--p1)] bg-[var(--surface-2)]" : "border-transparent bg-[var(--surface)]"} ${FOCUS}`}
             >
               <span className="flex h-[60px] w-full items-center justify-center">
                 <ModePicture mode={m} />
@@ -163,7 +174,49 @@ export function Lobby({ mode, onMode, onStart }: { mode: Mode; onMode: (mode: Mo
           );
         })}
       </div>
+      {onMode ? null : (
+        <p id="lh-mode-host" className="m-0 -mt-1 text-center text-[14px] text-[var(--muted)]">
+          {hostName} picks the mode.
+        </p>
+      )}
       <PrimaryButton onClick={onStart}>Start the match</PrimaryButton>
+    </div>
+  );
+}
+
+/**
+ * A matchmaking room before (or after) the match: who's here, the mode
+ * (fixed by its queue), the auto-start countdown, and the way out. With the
+ * other player gone, `onFindAnother` searches again.
+ */
+export function MatchLobby({
+  mode,
+  myName,
+  otherName,
+  status,
+  onFindAnother,
+  onLeave,
+}: {
+  mode: Mode;
+  myName: string;
+  otherName?: string;
+  status: string;
+  onFindAnother?: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-2xl bg-[var(--surface)] p-4 text-center">
+        <p className="m-0 text-[14px] font-medium uppercase tracking-[0.06em] text-[var(--muted)]">Matchmaking · {MODE_LABELS[mode].label}</p>
+        <p className={`${FONT} m-0 mt-2 text-[24px] font-extrabold`}>
+          {myName} <span className="text-[var(--muted)]">vs</span> {otherName ?? "…"}
+        </p>
+        <p aria-live="polite" className="m-0 mt-2 text-[16px] font-medium">
+          {status}
+        </p>
+      </div>
+      {onFindAnother ? <PrimaryButton onClick={onFindAnother}>Find another player</PrimaryButton> : null}
+      <SecondaryButton onClick={onLeave}>Leave room</SecondaryButton>
     </div>
   );
 }
@@ -217,7 +270,7 @@ export function MatchOver({
         <ol className="m-0 mt-3 grid list-none gap-1.5 p-0 text-left text-[14px]">
           {history.map((r, i) => (
             <li key={i} className="flex items-center gap-2.5 rounded-xl bg-[var(--surface-2)] px-3 py-2">
-              <span aria-hidden="true" className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: seatColor(r.winner) }} />
+              <PieceMark seat={r.winner} size={14} />
               <span className="flex-1">
                 Round {i + 1}: <b>{name(r.winner)}</b>
               </span>
@@ -257,8 +310,8 @@ const RESET_CONFIRM: RoomQuestion = {
 
 const linkClass = `cursor-pointer border-0 bg-transparent p-0 text-inherit underline ${FOCUS}`;
 
-/** Room code, then Reset game · New room · Leave room (or All games where there's no room to leave). */
-export function Footer({ room, roomName, onReset, onNewRoom, onLeave }: { room: string; roomName?: string; onReset?: () => unknown; onNewRoom: () => unknown; onLeave?: () => void }) {
+/** Room code, then Reset game · New room · Leave room (or All games where there's no room to leave). A matchmaking room has only Leave room. */
+export function Footer({ room, roomName, onReset, onNewRoom, onLeave }: { room: string; roomName?: string; onReset?: () => unknown; onNewRoom?: () => unknown; onLeave?: () => void }) {
   const [asking, setAsking] = useState<"reset" | "newRoom" | null>(null);
   const close = () => setAsking(null);
   return (
@@ -274,10 +327,14 @@ export function Footer({ room, roomName, onReset, onNewRoom, onLeave }: { room: 
             ·{" "}
           </>
         ) : null}
-        <button type="button" onClick={() => setAsking("newRoom")} className={linkClass}>
-          New room
-        </button>{" "}
-        ·{" "}
+        {onNewRoom ? (
+          <>
+            <button type="button" onClick={() => setAsking("newRoom")} className={linkClass}>
+              New room
+            </button>{" "}
+            ·{" "}
+          </>
+        ) : null}
         {onLeave ? (
           <button type="button" onClick={onLeave} className={linkClass}>
             Leave room
@@ -289,7 +346,7 @@ export function Footer({ room, roomName, onReset, onNewRoom, onLeave }: { room: 
         )}
       </p>
       {asking === "reset" && onReset ? <AskDialog question={RESET_CONFIRM} onCancel={close} onConfirm={onReset} onDone={close} /> : null}
-      {asking === "newRoom" ? <AskDialog question={NEW_ROOM_CONFIRM} onCancel={close} onConfirm={onNewRoom} onDone={close} /> : null}
+      {asking === "newRoom" && onNewRoom ? <AskDialog question={NEW_ROOM_CONFIRM} onCancel={close} onConfirm={onNewRoom} onDone={close} /> : null}
     </>
   );
 }

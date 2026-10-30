@@ -433,8 +433,21 @@ const LH_RIM = "#3D3266";
 const LH_P1: [string, string] = ["#FF8A4C", "#B4511E"];
 const LH_P2: [string, string] = ["#43D6B5", "#1D8A70"];
 
-/** A piece, as in the game: its color, a hard shadow below, a soft highlight. */
+/**
+ * A piece, as in the game: its color, a hard shadow below, a soft highlight.
+ * The tangerine side's pieces are rounded squares, the mint side's circles.
+ */
 function HopPiece({ cx, cy, r, colors }: { cx: number; cy: number; r: number; colors: [string, string] }) {
+  if (colors === LH_P1) {
+    const s = r * 0.9;
+    return (
+      <g>
+        <rect x={cx - s} y={cy - s + r * 0.28} width={s * 2} height={s * 2} rx={s * 0.48} fill={colors[1]} />
+        <rect x={cx - s} y={cy - s} width={s * 2} height={s * 2} rx={s * 0.48} fill={colors[0]} />
+        <circle cx={cx - s * 0.35} cy={cy - s * 0.4} r={s * 0.3} fill="#fff" opacity={0.3} />
+      </g>
+    );
+  }
   return (
     <g>
       <circle cx={cx} cy={cy + r * 0.28} r={r} fill={colors[1]} />
@@ -444,13 +457,14 @@ function HopPiece({ cx, cy, r, colors }: { cx: number; cy: number; r: number; co
   );
 }
 
+/** A well: a rounded square, as on the board. */
 function HopWell({ cx, cy, r, target }: { cx: number; cy: number; r: number; target?: boolean }) {
-  return <circle cx={cx} cy={cy} r={r} fill={LH_WELL} stroke={target ? "#FFE066" : LH_RIM} strokeWidth={2} strokeDasharray={target ? "4 3" : undefined} />;
+  return <rect x={cx - r} y={cy - r} width={r * 2} height={r * 2} rx={r * 0.6} fill={LH_WELL} stroke={target ? "#FFE066" : LH_RIM} strokeWidth={2} strokeDasharray={target ? "4 3" : undefined} />;
 }
 
 /**
- * The track mid-move: two tangerine pieces behind, one hopping over a mint
- * piece into the empty well beyond it, the rest of the mint side waiting.
+ * The track mid-move: two tangerine squares behind, one hopping over a mint
+ * circle into the empty well beyond it, the rest of the mint side waiting.
  */
 function LastHopArt({ mini }: { mini?: boolean }) {
   if (mini) {
