@@ -425,6 +425,67 @@ function BorderRunArt({ mini }: { mini?: boolean }) {
   );
 }
 
+// --- Last Hop ----------------------------------------------------------------
+
+const LH_STAGE = "#1E1733";
+const LH_WELL = "#140F26";
+const LH_RIM = "#3D3266";
+const LH_P1: [string, string] = ["#FF8A4C", "#B4511E"];
+const LH_P2: [string, string] = ["#43D6B5", "#1D8A70"];
+
+/** A piece, as in the game: its color, a hard shadow below, a soft highlight. */
+function HopPiece({ cx, cy, r, colors }: { cx: number; cy: number; r: number; colors: [string, string] }) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy + r * 0.28} r={r} fill={colors[1]} />
+      <circle cx={cx} cy={cy} r={r} fill={colors[0]} />
+      <circle cx={cx - r * 0.3} cy={cy - r * 0.35} r={r * 0.32} fill="#fff" opacity={0.3} />
+    </g>
+  );
+}
+
+function HopWell({ cx, cy, r, target }: { cx: number; cy: number; r: number; target?: boolean }) {
+  return <circle cx={cx} cy={cy} r={r} fill={LH_WELL} stroke={target ? "#FFE066" : LH_RIM} strokeWidth={2} strokeDasharray={target ? "4 3" : undefined} />;
+}
+
+/**
+ * The track mid-move: two tangerine pieces behind, one hopping over a mint
+ * piece into the empty well beyond it, the rest of the mint side waiting.
+ */
+function LastHopArt({ mini }: { mini?: boolean }) {
+  if (mini) {
+    return (
+      <Svg w={92} h={92}>
+        <rect width="92" height="92" fill={LH_STAGE} />
+        <path d="M18 62 Q46 8 74 62" fill="none" stroke="#FFF6EA" strokeWidth={2.5} strokeDasharray="0 6" strokeLinecap="round" opacity={0.7} />
+        {[18, 46, 74].map((cx, i) => (
+          <HopWell key={cx} cx={cx} cy={66} r={11} target={i === 2} />
+        ))}
+        <HopPiece cx={46} cy={64} r={9} colors={LH_P2} />
+        <HopPiece cx={46} cy={30} r={11} colors={LH_P1} />
+      </Svg>
+    );
+  }
+  const xs = [32, 68, 104, 140, 176, 212, 248];
+  const y = 112;
+  return (
+    <Svg w={280} h={168}>
+      <rect width="280" height="168" fill={LH_STAGE} />
+      <circle cx="140" cy="168" r="120" fill="#2B2247" />
+      <path d={`M104 ${y - 4} Q140 30 176 ${y - 4}`} fill="none" stroke="#FFF6EA" strokeWidth={2.5} strokeDasharray="0 7" strokeLinecap="round" opacity={0.7} />
+      {xs.map((cx, i) => (
+        <HopWell key={cx} cx={cx} cy={y} r={15} target={i === 4} />
+      ))}
+      <HopPiece cx={32} cy={y - 2} r={12} colors={LH_P1} />
+      <HopPiece cx={68} cy={y - 2} r={12} colors={LH_P1} />
+      <HopPiece cx={140} cy={y - 2} r={12} colors={LH_P2} />
+      <HopPiece cx={212} cy={y - 2} r={12} colors={LH_P2} />
+      <HopPiece cx={248} cy={y - 2} r={12} colors={LH_P2} />
+      <HopPiece cx={140} cy={58} r={14} colors={LH_P1} />
+    </Svg>
+  );
+}
+
 // --- Lookup ------------------------------------------------------------------
 
 const ART: Record<string, (props: { mini?: boolean }) => JSX.Element> = {
@@ -435,6 +496,7 @@ const ART: Record<string, (props: { mini?: boolean }) => JSX.Element> = {
   cocounsel: CoCounselArt,
   regions: CheckmateGridArt,
   borderrun: BorderRunArt,
+  lasthop: LastHopArt,
 };
 
 /** A game's art panel (`mini`: the compact card's 92px square), or nothing for a game without art yet. */

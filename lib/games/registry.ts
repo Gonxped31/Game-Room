@@ -96,6 +96,20 @@ export const ALL_GAMES: GameEntry[] = [
     bodyClassName: "font-[family-name:var(--font-nunito)]",
   },
   {
+    slug: "lasthop",
+    title: "Last Hop",
+    section: "anywhere",
+    description: "Slide or hop your pieces forward, on a track or a grid. Whoever can't move on their turn loses.",
+    shortDescription: "Hop forward. Make the last move.",
+    tags: ["2 players", "Track or Grid"],
+    maxPlayers: 2,
+    ink: "#1E1733",
+    textSecondary: "#544A70",
+    accentColor: "#FF8A4C",
+    titleClassName: "font-[family-name:var(--font-rubik)] font-extrabold tracking-[-0.01em]",
+    bodyClassName: "font-[family-name:var(--font-rubik)]",
+  },
+  {
     // Art, copy, chips and colors are placeholders until it has its own hub design.
     slug: "nighthighway",
     title: "Night Highway",

@@ -9,7 +9,8 @@ A small platform for private 2-player games played through a shared link.
   (`/buzzerquiz`, 2-4 players), **Word Scramble** (`/wordscramble`, 2 teams,
   2-8 players), **Checkmate Grid** (`/regions`, solo, with a daily puzzle; races
   at `/regions/race`) and **Border Run** (`/borderrun`, a geography race; plus
-  `/borderrun/solo` with a daily route). The two races (Challenge for 2-4
+  `/borderrun/solo` with a daily route) and **Last Hop** (`/lasthop`, a 1v1
+  hop-forward duel on a Track or a Grid). The two races (Challenge for 2-4
   players, Survival for 4-8) share one layer: `docs/race.md`.
 
 This file holds what must stay true on **every** change. Everything else loads on
@@ -25,6 +26,7 @@ demand:
 | Working on Checkmate Grid (chess-piece region puzzle: solo and daily, Challenge and Survival races), or the shared daily puzzles and their leaderboard | `checkmate-grid` skill; `docs/daily.md` |
 | The shared race layer (Challenge and Survival for solo games) | `docs/race.md` |
 | Working on Border Run (link two countries by land: solo and daily, Challenge and Survival races; map data, routes, EN/FR names) | `borderrun` skill; `docs/daily.md` |
+| Working on Last Hop (1v1 duel on a Track or Grid: board generator, chess clock, matches in pairs) | `lasthop` skill |
 | Adding (or removing) a game | `add-game` skill |
 | Changing, testing or deploying database rules; `permission_denied` errors | `database-rules` skill |
 | Any visual change: which spec applies, past UI pitfalls, phone/desktop screenshots | `ui-review` skill |

@@ -15,7 +15,7 @@
  */
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
-import { buzzerquizState, dbAs, wordscrambleState, ftwState, metaFor, ROOM, seed, seedRoom, setupEnv, TS } from "./helpers";
+import { buzzerquizState, dbAs, lasthopState, wordscrambleState, ftwState, metaFor, ROOM, seed, seedRoom, setupEnv, TS } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -38,7 +38,7 @@ function createUpdate(uid: string, opts: { room?: string; gameSlug?: string; max
     [g("meta", room)]: metaFor(uid, gameSlug, maxPlayers, name && nameKey ? { name, nameKey } : {}),
     [`users/${uid}/rooms/${room}`]: { gameSlug, addedAt: TS, createdByMe: true },
   };
-  if (gameSlug === "ftw" || gameSlug === "cocounsel" || gameSlug === "nighthighway" || gameSlug === "buzzerquiz" || gameSlug === "wordscramble") update[g(gameSlug, room)] = ftwOrCc(gameSlug);
+  if (gameSlug === "ftw" || gameSlug === "cocounsel" || gameSlug === "nighthighway" || gameSlug === "buzzerquiz" || gameSlug === "wordscramble" || gameSlug === "lasthop") update[g(gameSlug, room)] = ftwOrCc(gameSlug);
   if (nameKey) update[`roomsByName/${nameKey}`] = room;
   return update;
 }
@@ -46,6 +46,7 @@ function ftwOrCc(slug: string) {
   if (slug === "nighthighway") return { phase: "LOBBY", race: 0, wins: { p1: 0, p2: 0 } };
   if (slug === "buzzerquiz") return buzzerquizState();
   if (slug === "wordscramble") return wordscrambleState();
+  if (slug === "lasthop") return lasthopState();
   return slug === "ftw" ? ftwState() : { caseId: "ruined-birthday", partIndex: 0, attempts: 0, phase: "SELECTING" };
 }
 
@@ -125,7 +126,9 @@ describe("4. room codes", () => {
 });
 
 describe("5. maxPlayers", () => {
-  it("must be 2 for ftw, cocounsel and nighthighway", async () => {
+  it("must be 2 for ftw, cocounsel, nighthighway and lasthop", async () => {
+    await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "lasthop", maxPlayers: 3, room: "def567" })));
+    await assertSucceeds(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "lasthop", room: "def567" })));
     await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { maxPlayers: 3 })));
     await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "cocounsel", maxPlayers: 3 })));
     await assertFails(dbAs(env, "alice").ref().update(createUpdate("alice", { gameSlug: "nighthighway", maxPlayers: 3 })));

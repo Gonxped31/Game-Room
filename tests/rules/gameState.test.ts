@@ -17,9 +17,11 @@ import * as race from "@/lib/games/borderrun/race";
 import { shortestPath } from "@/lib/games/borderrun/route";
 import * as grid from "@/lib/games/regions/race";
 import { MARK, PIECE, type Move } from "@/lib/games/regions/play";
+import * as hop from "@/lib/games/lasthop/game";
+import { generateBoard, legalMoves } from "@/lib/games/lasthop/board";
 import { RESULT_MS as WS_RESULT_MS, SCOREBOARD_MS, START_LEAD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
-import { borderrunState, regionsState, buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
+import { borderrunState, lasthopState, regionsState, buzzerquizState, cocounselState, wordscrambleState, dbAs, ftwState, nighthighwayState, ROOM, seedRoom, setupEnv } from "./helpers";
 
 let env: RulesTestEnvironment;
 
@@ -184,6 +186,70 @@ describe("Night Highway", () => {
     ["a string circuit", nighthighwayState({ options: { rain: false, pickups: true, desert: "yes" } })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+});
+
+describe("Last Hop", () => {
+  const path = `games/${ROOM}/lasthop`;
+  beforeEach(async () => {
+    await seedRoom(env, { creator: "alice", seated: ["alice", "bob"], gameSlug: "lasthop" });
+  });
+
+  /** Plays the round out with random legal moves, a second apart. */
+  async function playRound(write: (s: hop.LastHopState) => Promise<hop.LastHopState>, state: hop.LastHopState): Promise<hop.LastHopState> {
+    let game = state;
+    while (game.phase === "playing") {
+      const moves = legalMoves(game.board!, game.turn);
+      const m = moves[Math.floor(Math.random() * moves.length)];
+      game = await write(hop.move(game, hop.moverOf(game), m.from, m.to, game.turnStartedAt! + 1000));
+    }
+    return game;
+  }
+
+  it("accepts every state of a real Track match and a Grid round lost on time", async () => {
+    const db = dbAs(env, "alice");
+    const write = (state: hop.LastHopState) => writeAndReadBack(db, path, state);
+    const now = Date.now();
+    let game = await write(hop.newGame());
+    game = await write(hop.startMatch(game, generateBoard("track", Math.random), "p2", now));
+    game = await playRound(write, game);
+    while (game.phase === "roundOver") {
+      game = await write(hop.nextRound(game, generateBoard("track", Math.random), game.nextAt!));
+      game = await playRound(write, game);
+    }
+    expect(game.phase).toBe("matchOver");
+    game = await write(hop.toLobby(game));
+    game = await write(hop.setMode(game, "grid"));
+    game = await write(hop.startMatch(game, generateBoard("grid", Math.random), "p1", now));
+    const m = legalMoves(game.board!, "A")[0];
+    game = await write(hop.move(game, "p1", m.from, m.to, now));
+    game = await write(hop.flag(game, hop.flagAt(game)!));
+    expect(game.history[0]).toMatchObject({ winner: "p1", reason: "time" });
+  });
+
+  it.each([
+    ["a bad phase", lasthopState({ phase: "paused" })],
+    ["a bad mode", lasthopState({ mode: "hex" })],
+    ["no clocks", (() => { const s: Record<string, unknown> = lasthopState(); delete s.clocks; return s; })()],
+    ["a third seat's clock", lasthopState({ clocks: { p1: 1, p2: 1, p3: 1 } })],
+    ["a negative clock", lasthopState({ clocks: { p1: -1, p2: 1 } })],
+    ["a bad first A", lasthopState({ firstA: "p3" })],
+    ["a bad turn", lasthopState({ turn: "C" })],
+    ["a bad cell", lasthopState({ board: { w: 3, h: 1, cells: "AXB" } })],
+    ["cells that don't fill the board", lasthopState({ board: { w: 4, h: 1, cells: "A.B" } })],
+    ["a board too wide", lasthopState({ board: { w: 13, h: 1, cells: "A...........B" } })],
+    ["a start of another size", lasthopState({ board: { w: 3, h: 1, cells: "A.B" }, start: "A..B" })],
+    ["a round past the last", lasthopState({ round: 11 })],
+    ["a bad winner", lasthopState({ history: [{ winner: "p3", reason: "time", aSeat: "p1", moves: 3 }] })],
+    ["a bad reason", lasthopState({ history: [{ winner: "p1", reason: "resign", aSeat: "p1", moves: 3 }] })],
+    ["an 11th round's result", lasthopState({ history: { 10: { winner: "p1", reason: "time", aSeat: "p1", moves: 3 } } })],
+    ["an unknown key", lasthopState({ cheats: true })],
+  ])("rejects %s", async (_, state) => {
+    await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+
+  it("refuses writes from someone not seated", async () => {
+    await assertFails(dbAs(env, "carol").ref(path).set(lasthopState()));
   });
 });
 

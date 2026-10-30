@@ -15,6 +15,7 @@ import {
   Nunito,
   Overpass,
   Overpass_Mono,
+  Rubik,
 } from "next/font/google";
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
@@ -131,6 +132,14 @@ const fraunces = Fraunces({
   weight: ["700", "800"],
 });
 
+// Last Hop's one face (components/lasthop/ui.ts): its rounded corners match the
+// round pieces. Also its hub card's title, so it preloads.
+const rubik = Rubik({
+  variable: "--font-rubik",
+  subsets: ["latin"],
+  weight: ["500", "700", "800"],
+});
+
 export const metadata: Metadata = {
   title: APP_TITLE,
   // Opened from the Home Screen, iOS runs it as a standalone app - whose
@@ -147,7 +156,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable} ${bagel.variable} ${dmSans.variable} ${kalam.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable} ${bagel.variable} ${dmSans.variable} ${kalam.variable} ${fraunces.variable} ${rubik.variable}`}>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
         {children}
         <LocalModeBanner />
