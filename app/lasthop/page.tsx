@@ -35,6 +35,7 @@ import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
 import RolePicker from "@/components/RolePicker";
 import Board from "@/components/lasthop/Board";
+import RulesButton from "@/components/lasthop/Rules";
 import { AskDialog, Footer, Header, Lobby, MatchLobby, MatchOver, Message, PlayerBar, RoundBanner } from "@/components/lasthop/Screens";
 import { FONT, THEME } from "@/components/lasthop/ui";
 import "@/components/lasthop/lasthop.css";
@@ -72,7 +73,7 @@ export default function LastHopPage() {
       const s = normalize(current);
       if (s.phase === "playing") return flag(s, serverNow());
       // Only a new pair needs a board: skip generating one otherwise.
-      const fresh = needsFreshBoard(s) ? generateBoard(s.mode, Math.random) : s.board!;
+      const fresh = needsFreshBoard(s) ? generateBoard(s.mode, Math.random, s.start) : s.board!;
       return nextRound(s, fresh, serverNow());
     }),
   );
@@ -93,7 +94,11 @@ export default function LastHopPage() {
   const onMove = (from: number, to: number) => {
     if (me) transact((current) => move(current, me, from, to, serverNow()));
   };
-  const onStart = () => transact((current) => startMatch(current, generateBoard(normalize(current).mode, Math.random), randomSeat(), serverNow()));
+  const onStart = () =>
+    transact((current) => {
+      const s = normalize(current);
+      return startMatch(s, generateBoard(s.mode, Math.random, s.start), randomSeat(), serverNow());
+    });
   const onReset = () => setGame(newGame(game?.mode));
 
   // A matchmaking room: its queue is its mode; no host, it starts by itself.
@@ -179,7 +184,7 @@ export default function LastHopPage() {
       />
     );
   } else if (game.phase === "lobby") {
-    screen = <Lobby mode={game.mode} onStart={isHost ? onStart : undefined} hostName={hostName} />;
+    screen = <Lobby mode={game.mode} onStart={isHost ? onStart : undefined} hostName={hostName} rules={<RulesButton me={me} variant="link" />} />;
   } else if (game.phase === "matchOver") {
     screen = (
       <MatchOver
@@ -198,7 +203,7 @@ export default function LastHopPage() {
                 mine: game.votes?.[me],
                 theirs: game.votes?.[other],
                 otherName: name(other),
-                onVote: (choice) => transact((st) => vote(st, me, choice, (mode) => generateBoard(mode, Math.random), randomSeat(), serverNow())),
+                onVote: (choice) => transact((st) => vote(st, me, choice, (mode) => generateBoard(mode, Math.random, st.start), randomSeat(), serverNow())),
                 onLeave: leave,
               }
             : undefined
@@ -271,7 +276,7 @@ export default function LastHopPage() {
     <div style={THEME} className={`${FONT} min-h-screen bg-[var(--stage)] font-medium text-[var(--text)]`}>
       <main className="mx-auto flex max-w-[560px] flex-col gap-3 px-4 pt-3 pb-6 min-[640px]:max-w-[840px] min-[640px]:gap-4 min-[640px]:pt-6">
         <InAppBrowserBanner />
-        <Header round={game && game.phase !== "lobby" ? game.round : undefined} score={score} />
+        <Header round={game && game.phase !== "lobby" ? game.round : undefined} score={score} rules={<RulesButton me={me} />} />
         {/* The board takes the page's width; the other screens stay a readable column. */}
         {midMatch && bothJoined ? screen : <div className="mx-auto w-full max-w-[560px]">{screen}</div>}
         {footer ? (

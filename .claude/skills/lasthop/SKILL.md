@@ -64,7 +64,7 @@ generator tests in `board.test.ts` check it.
 | `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (between matches), `vote` (matchmaking); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
 | `lib/games/lasthop/constants.ts` | Modes, clocks, delays, round limits |
 | `app/lasthop/page.tsx` | Session (`useGameSession`), deadlines (`flag` or `nextRound`), screens |
-| `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`), `lasthop.css` (board sizes, animation) |
+| `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`), `lasthop.css` (board sizes, animation), `Rules.tsx` (How to play) |
 | `database.rules.json` → `lasthop` | Validates the whole state; `maxPlayers` must be 2 |
 | `lib/games/matchGames.ts` → `LASTHOP_MATCH` | The two matchmaking queues |
 | `.claude/skills/live-test/scripts/last-hop.mjs` | Desktop host vs a phone (`[phoneProfile]`, default `iphone`): Start's mode, host-only mode, a whole Track match, a Grid round; then a matchmaking pair |
@@ -77,6 +77,8 @@ generator tests in `board.test.ts` check it.
   enough to solve whole (under ~40k positions).
 - **Grid**: too big to solve, so it keeps boards whose random games average at
   least `MIN_GRID_PLAYOUT` (20) moves.
+- `generateBoard(mode, random, avoid)` never deals `avoid` (the board just
+  played): Tracks are a small space, and a new pair once repeated the last.
 - The page generates the board in the transaction (`Math.random`); `nextRound`
   only uses it when a new pair starts (`needsFreshBoard` lets the device skip
   generating one).
@@ -101,6 +103,15 @@ generator tests in `board.test.ts` check it.
   bars show each side's available moves, so running out is visible.
 - The landing piece hops in from `last.from` (CSS vars `--d` or `--dx/--dy`,
   keyed on `moves`); off under reduced motion.
+
+## How to play
+
+`components/lasthop/Rules.tsx`: the full rules in a modal `<dialog>`, opened
+from the header's **?** (every screen) and the lobby's "Read the full rules"
+(the user asked for an explainer, 2026-10-30). Its drawings (slide, jump,
+blocked, the Grid's two directions) use the viewer's own shape and colour.
+Keep it in step with the rules here when they change (clocks come from
+`CLOCKS`).
 
 ## Gotchas
 
