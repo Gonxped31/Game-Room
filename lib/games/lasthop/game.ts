@@ -115,9 +115,10 @@ export function dueAt(state: LastHopState): number | undefined {
   return undefined;
 }
 
+/** The next match's mode: the room's mode is picked when it's created, and changes only between matches. */
 export function setMode(state: LastHopState, mode: Mode): LastHopState {
   const s = normalize(state);
-  if (s.phase !== "lobby") throw new Error("The mode is set in the lobby.");
+  if (s.phase !== "matchOver") throw new Error("The mode changes between matches.");
   if (!MODES.includes(mode)) throw new Error("Unknown mode.");
   return { ...s, mode, clocks: { p1: CLOCKS[mode].startMs, p2: CLOCKS[mode].startMs } };
 }
@@ -150,13 +151,6 @@ export function startMatch(state: LastHopState, board: Board, firstA: Role, now:
   checkBoard(board);
   const fresh = { ...s, firstA, score: { p1: 0, p2: 0 }, history: [] };
   return roundStart(fresh, 1, board, board.cells, now);
-}
-
-/** Back to the lobby to change the mode, after a match. */
-export function toLobby(state: LastHopState): LastHopState {
-  const s = normalize(state);
-  if (s.phase !== "matchOver") throw new Error("Only after a match.");
-  return { ...newGame(s.mode), names: s.names };
 }
 
 export function move(state: LastHopState, seat: Role, from: number, to: number, now: number): LastHopState {
