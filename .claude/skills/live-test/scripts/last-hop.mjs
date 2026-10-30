@@ -4,7 +4,7 @@
 // They play a Track match through - taps during "Get ready" that do nothing, a
 // reload mid-round, the Leave room question, a round lost on time, the pair's
 // second round on the same board with sides swapped, the match's end (also
-// after a reload). The guest only plays: only the host starts, switches the
+// after a reload), How to play from the header and the lobby. The guest only plays: only the host starts, switches the
 // next match to Grid, plays again and resets (Reset keeps Grid). Then
 // matchmaking: two strangers search Track, the match starts by itself; after
 // it they vote (a split vote waits, an agreed "Change to Grid" starts a Grid
@@ -70,6 +70,19 @@ try {
   }
   await shot(B, "lobby-iphone");
   log("Start asked for the mode; the lobby only shows it");
+
+  // How to play: from the header's ? (closed with Got it) and the lobby's link (closed with Escape).
+  await B.getByRole("button", { name: "How to play" }).click();
+  await B.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(B, "rules-iphone");
+  await B.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await B.getByRole("dialog").waitFor({ state: "detached" });
+  await A.getByRole("button", { name: "Read the full rules" }).click();
+  await A.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(A, "rules-desktop");
+  await A.keyboard.press("Escape");
+  await A.getByRole("dialog").waitFor({ state: "detached" });
+  log("How to play opens from the header and the lobby, and closes");
 
   const pageOf = (seat) => (seat === "p1" ? A : B);
   /** The mover plays one move through the board: a piece that can move, then a square to move to. */

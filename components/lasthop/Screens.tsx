@@ -9,20 +9,23 @@ import { CLOCKS, MODE_LABELS, MODES, type Mode } from "@/lib/games/lasthop/const
 import { otherMode, type RoundResult, type Vote } from "@/lib/games/lasthop/game";
 import { FOCUS, FONT, formatClock, PieceMark, PrimaryButton, SecondaryButton, seatColor } from "./ui";
 
-/** The page frame's title row: the wordmark, and the match so far. */
-export function Header({ round, score }: { round?: number; score?: ReactNode }) {
+/** The page frame's title row: the wordmark, the match so far, and the How to play button (`rules`). */
+export function Header({ round, score, rules }: { round?: number; score?: ReactNode; rules?: ReactNode }) {
   return (
     <header className="flex items-center justify-between gap-3">
       <p className={`${FONT} m-0 text-[22px] font-extrabold tracking-[-0.01em] min-[640px]:text-[28px]`}>
         Last <span className="text-[var(--p1)]">H</span>
         <span className="text-[var(--p2)]">o</span>p
       </p>
-      {round ? (
-        <p className="m-0 text-right text-[14px] font-medium text-[var(--muted)]">
-          Round {round}
-          {score ? <> · {score}</> : null}
-        </p>
-      ) : null}
+      <div className="flex items-center gap-3">
+        {round ? (
+          <p className="m-0 text-right text-[14px] font-medium text-[var(--muted)]">
+            Round {round}
+            {score ? <> · {score}</> : null}
+          </p>
+        ) : null}
+        {rules}
+      </div>
     </header>
   );
 }
@@ -136,7 +139,7 @@ function ModeInfo({ mode }: { mode: Mode }) {
  * (`onStart`; the guest waits for `hostName`). The mode was picked on the
  * hub's Start; here it only shows. The host changes it between matches.
  */
-export function Lobby({ mode, onStart, hostName }: { mode: Mode; onStart?: () => void; hostName: string }) {
+export function Lobby({ mode, onStart, hostName, rules }: { mode: Mode; onStart?: () => void; hostName: string; rules?: ReactNode }) {
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4">
@@ -146,6 +149,7 @@ export function Lobby({ mode, onStart, hostName }: { mode: Mode; onStart?: () =>
           <li>If it&apos;s your turn and you can&apos;t move, you lose the round. Rushing burns your moves.</li>
           <li>Each board is played twice, swapping sides. You each have a chess clock.</li>
         </ul>
+        {rules ? <div className="mt-3">{rules}</div> : null}
       </div>
       <div className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[var(--p1)] bg-[var(--surface-2)] p-3.5">
         <ModeInfo mode={mode} />

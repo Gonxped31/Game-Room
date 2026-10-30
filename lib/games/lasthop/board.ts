@@ -110,11 +110,13 @@ export const MIN_GRID_PLAYOUT = 20;
  * A fresh board for a round. Boards are never their own mirror image: on one
  * that is, the second player can copy every move turned half a turn and win
  * (each board is played twice instead, with the players swapping sides).
+ * `avoid` is a board's cells not to deal again.
  */
-export function generateBoard(mode: Mode, random: () => number): Board {
+export function generateBoard(mode: Mode, random: () => number, avoid?: string): Board {
   for (let tries = 0; tries < 500; tries++) {
     const board = mode === "track" ? randomTrack(random) : randomGrid(random);
-    if (board && playable(board, mode, random)) return board;
+    // `avoid`: the board just played, so a new pair never repeats it (Tracks are a small space).
+    if (board.cells !== avoid && playable(board, mode, random)) return board;
   }
   return FALLBACK[mode];
 }

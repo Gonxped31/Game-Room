@@ -97,6 +97,12 @@ describe("generateBoard", () => {
     });
   }
 
+  it("never deals the board it's told to avoid", () => {
+    const random = seededRandom(3);
+    const first = generateBoard("track", random);
+    for (let i = 0; i < 40; i++) expect(generateBoard("track", random, first.cells).cells).not.toBe(first.cells);
+  });
+
   it("keeps fallback boards that pass its own checks", () => {
     expect(playable(FALLBACK.track, "track", seededRandom(1))).toBe(true);
     expect(playable(FALLBACK.grid, "grid", seededRandom(1))).toBe(true);
