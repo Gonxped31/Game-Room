@@ -16,11 +16,12 @@ const MODES: readonly Mode[] = ["daily", "endless"];
  * The whole game, as the site shows it and as the offline download
  * (exports/borderrun/) does: plain CSS in borderrun.css rather than Tailwind
  * utilities, since the export compiles only Tailwind's base. `nav` is the
- * site's back link. `online` adds the daily route (the site only: it needs
+ * site's back link and `rules` its How to play (the site only: its Tailwind
+ * classes aren't in the export). `online` adds the daily route (the site only: it needs
  * the server); offline is Endless alone. The tab and the names' language
  * are remembered on this device.
  */
-export default function Stage({ nav, online = false }: { nav?: ReactNode; online?: boolean }) {
+export default function Stage({ nav, rules, online = false }: { nav?: ReactNode; rules?: ReactNode; online?: boolean }) {
   // Nothing mounts until the remembered tab and language are read: mounting Daily first would start its requests for nothing.
   const [mode, setMode] = useState<Mode | null>(null);
   const [lang, setLang] = useState<Lang>("en");
@@ -49,6 +50,7 @@ export default function Stage({ nav, online = false }: { nav?: ReactNode; online
             render={(l) => l.toUpperCase()}
             small
           />
+          {rules}
         </header>
         {online && mode ? (
           <Segmented

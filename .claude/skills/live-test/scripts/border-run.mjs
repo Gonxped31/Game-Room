@@ -2,7 +2,7 @@
 // Border Run's edge cases, past the basic path (live-test skill): names in both
 // languages, refused guesses, the suggestions, reloads and tab switches mid-route,
 // New route / Change / Show a route, best scores, and the daily's resume, penalty
-// and finished page. Needs the emulator dev server (dev-against-emulators.mjs).
+// and finished page, and How to play from the header. Needs the emulator dev server (dev-against-emulators.mjs).
 //
 //   node .claude/skills/live-test/scripts/border-run.mjs [baseUrl] [profile]
 //
@@ -72,6 +72,15 @@ const endless = () => page.evaluate(() => JSON.parse(localStorage.getItem("borde
 const name = (code, lang = "en") => COUNTRIES[code][lang];
 
 await page.goto(`${base}/borderrun/solo`);
+// How to play, from the header's ?: Got it closes it, and so does Escape.
+await page.getByRole("button", { name: "How to play" }).click();
+await page.getByRole("dialog").getByRole("heading", { name: "A route" }).waitFor();
+await page.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+await page.getByRole("dialog").waitFor({ state: "detached" });
+await page.getByRole("button", { name: "How to play" }).click();
+await page.keyboard.press("Escape");
+await page.getByRole("dialog").waitFor({ state: "detached" });
+check("How to play opens from the header and closes", true);
 await tab("Endless");
 await page.getByRole("radio", { name: "Europe", exact: true }).click();
 await button("Start").click();

@@ -6,7 +6,7 @@ players asked "so we just have to block the other player?".
 
 | Rule | Where it's enforced |
 | :--- | :--- |
-| Every game has `components/<slug>/Rules.tsx` | `lib/games/howToPlay.test.ts` fails without it (`PENDING` lists the games that predate the rule, one todo each; it only shrinks) |
+| Every game has `components/<slug>/Rules.tsx` | `lib/games/howToPlay.test.ts` fails without it |
 | Adding a game includes it | the `add-game` skill, step 3 |
 | A rules change updates it in the same change | this file, and each game's skill |
 
@@ -76,12 +76,16 @@ Use the sections that apply; skip the rest. Headings are short and plain
 - `ui-review` screenshots of the open dialog on a phone and on desktop.
 - When a rule changes: grep the game's `Rules.tsx` for it in the same change.
 
+## Offline downloads
+
+The offline exports (`exports/`, built by `scripts/export-solo.mjs`) compile
+only Tailwind's base, no utilities, so the dialog would show unstyled there.
+Keep How to play out of the components they render (each game's `Stage`):
+the site's pages place it (Checkmate Grid's and Border Run's `Stage` take a
+`rules` prop; Night Highway's solo ? sits in the page's own links).
+
 ## Status
 
-- **Last Hop** (`lasthop` branch, 2026-10-30) wrote the first one, with its
-  own dialog (`components/lasthop/Rules.tsx`); moving it onto
-  `components/HowToPlay.tsx` is T-7fm5, once both are on `main`.
-- Every other game: one todo each, tag `howtoplay` (Same Page T-9g78,
-  Co-Counsel T-5ztd, Night Highway T-z9k3, Buzzer Quiz T-mpr2, Word Scramble
-  T-u928, Checkmate Grid T-7n5b, Border Run T-ajxc). Each one takes its game
-  off `PENDING`.
+Every game has one, on the shared dialog (2026-11-01). Last Hop wrote the
+first (2026-10-30) and moved onto `components/HowToPlay.tsx` once it existed.
+Where each game places its ? and lobby link is in its skill.

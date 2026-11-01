@@ -8,6 +8,7 @@ import { MAP_CHOICES, MODES, PLAYERS, ROUND_COUNTS, type MapChoice, type Mode, t
 import { LANGS, type Lang } from "@/lib/games/shared/language";
 import { Segmented } from "../Controls";
 import "../borderrun.css";
+import RulesButton from "../Rules";
 
 /** Border Run's parts of a race room; the rest is components/race/Screens.tsx. */
 
@@ -25,6 +26,7 @@ export function RaceShell({ lang, onLang, children }: { lang: Lang; onLang: (lan
         <header className="br-header">
           <h1 className="br-title">{GAME_TITLE}</h1>
           <Segmented label="Country names" options={LANGS} value={lang} onChange={onLang} render={(l) => l.toUpperCase()} small />
+          <RulesButton />
         </header>
         {children}
       </main>
@@ -58,6 +60,7 @@ export function Settings({
           Map: {mapName(map)}
           {mode === "challenge" ? `, ${rounds} routes` : ""}
         </p>
+        <RulesButton variant="link" />
       </>
     );
   }
@@ -73,6 +76,7 @@ export function Settings({
           <Segmented label="Routes" options={ROUND_COUNTS.map(String)} value={String(rounds)} onChange={(n) => onRounds(Number(n) as RoundCount)} render={(n) => `${n} routes`} />
         </>
       ) : null}
+      <RulesButton variant="link" />
     </>
   );
 }
