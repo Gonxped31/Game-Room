@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
 import { MATCH_GAMES, MATCH_MODES } from "@/lib/games/matchGames";
 import { APP_TITLE, type GameEntry, gameBySlug, gamePath, roomHref } from "@/lib/games/registry";
 import GameCard, { SoloCard } from "./GameCard";
@@ -205,22 +205,22 @@ const TALK_STEPS = ["Start a call, or sit side by side.", "Each of you opens the
 /**
  * "Talk it out": the bright yellow block inside the Social folder, so the need
  * for a call is the most visible thing on the page. Laid out by the folder's
- * width (the outer div is the `@container`, as wide as CardGrid's):
- * - from 1530px: the heading, tag and steps in a column on the left (about a
- *   third), the two cards to their right, about as wide as the cards above;
- * - from 980px: the heading and tag on one line, the three steps in a row,
- *   then the cards;
- * - below: the steps listed, then the cards.
+ * width (the outer div is the `@container`, as wide as CardGrid's, so both
+ * switch together):
+ * - below 1300px: the heading, tag and steps on the left, the two 300px cards
+ *   to their right (or under them when there's no room);
+ * - from 1300px: the heading and tag on one line, the three steps in a row
+ *   under them, then the two wide cards side by side.
  * Mobile: stacked, without the steps.
  */
 function TalkPanel({ children }: { children: ReactNode }) {
   return (
     <div className="@container mt-1.5 min-[760px]:mt-2">
       <div
-        className="flex flex-col gap-3 rounded-[18px] px-2.5 pt-3.5 pb-3 shadow-[0_6px_0_rgba(0,0,0,.25)] min-[760px]:gap-6 min-[760px]:rounded-[26px] min-[760px]:px-[26px] min-[760px]:pt-[26px] min-[760px]:pb-[30px] @min-[1530px]:flex-row @min-[1530px]:items-center"
+        className="flex flex-wrap gap-3 rounded-[18px] px-2.5 pt-3.5 pb-3 shadow-[0_6px_0_rgba(0,0,0,.25)] min-[760px]:gap-[28px] min-[760px]:rounded-[26px] min-[760px]:px-[26px] min-[760px]:pt-[26px] min-[760px]:pb-[30px] @min-[1300px]:flex-col"
         style={{ backgroundColor: TALK }}
       >
-        <div className="flex min-w-0 flex-col gap-3 text-black min-[760px]:gap-y-4 @min-[980px]:@max-[1530px]:flex-row @min-[980px]:@max-[1530px]:flex-wrap @min-[980px]:@max-[1530px]:items-center @min-[980px]:@max-[1530px]:gap-x-5 @min-[1530px]:shrink-0 @min-[1530px]:basis-[32%]">
+        <div className="flex min-w-0 flex-[1_1_100%] flex-col gap-3 text-black min-[760px]:@max-[1300px]:flex-[1_1_260px] min-[760px]:@max-[1300px]:gap-4 @min-[1300px]:flex-none @min-[1300px]:flex-row @min-[1300px]:flex-wrap @min-[1300px]:items-center @min-[1300px]:gap-x-5 @min-[1300px]:gap-y-4">
           <div className="flex items-center gap-2.5">
             <span aria-hidden="true" className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-black min-[760px]:h-[38px] min-[760px]:w-[38px]" style={{ color: TALK }}>
               <SpeechIcon className="h-4 w-4 min-[760px]:h-5 min-[760px]:w-5" />
@@ -230,13 +230,13 @@ function TalkPanel({ children }: { children: ReactNode }) {
             </h3>
           </div>
           <p className="m-0 text-[15px] font-medium leading-[1.35] text-[#1A1A1A] min-[760px]:hidden">You&apos;ll need to talk to win. Get on a call or sit together.</p>
-          <span className="inline-flex h-[30px] items-center gap-1.5 self-start rounded-full bg-black px-3 text-[13px] font-semibold text-white @min-[980px]:@max-[1530px]:self-center">
+          <span className="inline-flex h-[30px] items-center gap-1.5 self-start rounded-full bg-black px-3 text-[13px] font-semibold text-white @min-[1300px]:self-center">
             <PhoneIcon />
             Call or same room
           </span>
-          <ol className="m-0 hidden list-none flex-col gap-2.5 p-0 min-[760px]:flex @min-[980px]:@max-[1530px]:basis-full @min-[980px]:@max-[1530px]:flex-row @min-[980px]:@max-[1530px]:gap-8">
+          <ol className="m-0 hidden list-none flex-col gap-2.5 p-0 min-[760px]:flex @min-[1300px]:basis-full @min-[1300px]:flex-row @min-[1300px]:gap-8">
             {TALK_STEPS.map((step, i) => (
-              <li key={step} className="flex items-start gap-2.5 text-base font-medium leading-[1.35] @min-[980px]:@max-[1530px]:flex-1">
+              <li key={step} className="flex items-start gap-2.5 text-base font-medium leading-[1.35] @min-[1300px]:flex-1">
                 <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-[13px] font-bold" style={{ color: TALK }}>
                   {i + 1}
                 </span>
@@ -245,40 +245,30 @@ function TalkPanel({ children }: { children: ReactNode }) {
             ))}
           </ol>
         </div>
-        {/* The cards: beside the steps from 1530px, under them below. */}
-        <div className="min-w-0 flex-1">
-          <CardGrid rows={1}>{children}</CardGrid>
+        {/* Desktop: the two cards beside the steps, or under them from 1300px; mobile: stacked under them. */}
+        <div className="flex w-full flex-col gap-2.5 min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:items-stretch min-[760px]:gap-[28px] min-[760px]:@max-[1300px]:w-auto">
+          {children}
         </div>
       </div>
     </div>
   );
 }
 
-/** How far a 14deg lean moves an edge sideways, per pixel of height (tan 14deg). */
-const LEAN = Math.tan((14 * Math.PI) / 180);
-/** About a desktop card's height: what CardGrid makes room for (a taller card only eats into the folder's own padding). */
-const CARD_HEIGHT = 300;
-
 /**
- * A folder's cards ("Play from anywhere", Talk it out, Solo): parallelograms
- * leaning 14deg (GameCard's SlantCard), set out by the grid's width (a
- * container query; the cards size themselves with the same one):
- * - from 1530px: three to a row, and the grid leans as a whole, so each row
- *   sits further left than the one above and the slanted edges run on from
- *   row to row. The lean moves the grid's top and bottom edges sideways by
- *   half its height x LEAN, which is its side padding, for `rows` rows (the
- *   same in every folder, so their cards are the same width);
- * - from 980px: two to a row; below, one. Each card leans on its own, so the
- *   side padding is half a card's height x LEAN.
+ * A folder's cards ("Play from anywhere", Solo) on desktop, by the folder's
+ * width (a container query; the cards switch shape with the same one):
+ * - from 1300px: the wide cards (art on the left), two to a row, each half
+ *   the row, so the rows fill the folder at any width;
+ * - below: 300px cards, 28px apart, at most three to a row (3 x 300 + 2 x 28),
+ *   then two, then one.
  * Rows are centered, so a short last row sits in the middle; each row's cards
- * share the tallest one's height. Mobile: a 14px stack of upright cards.
+ * share the tallest one's height. Mobile: a 14px stack.
  */
-function CardGrid({ rows, children }: { rows: number; children: ReactNode }) {
-  const stair = Math.ceil(((rows * (CARD_HEIGHT + 28) - 28) / 2) * LEAN);
+function CardGrid({ children }: { children: ReactNode }) {
   return (
     <div className="@container">
-      <div className="min-[760px]:@max-[1530px]:px-[38px] @min-[1530px]:px-[var(--stair)]" style={{ "--stair": `${stair}px` } as CSSProperties}>
-        <div className="flex flex-col gap-3.5 min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:justify-center min-[760px]:gap-[28px] @min-[1530px]:-skew-x-14">{children}</div>
+      <div className="mx-auto flex flex-col gap-3.5 min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:justify-center min-[760px]:gap-[28px] min-[760px]:@max-[1300px]:max-w-[956px]">
+        {children}
       </div>
     </div>
   );
@@ -344,8 +334,6 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   const anywhere = games.filter((game) => game.section === "anywhere");
   const talk = games.filter((game) => game.section === "talk");
   const solo = games.filter((game) => game.solo);
-  // Wide screens: three cards to a row; both folders make room for the longer grid, so their cards match.
-  const rows = Math.ceil(Math.max(anywhere.length, solo.length) / 3);
 
   const card = (game: GameEntry) => (
     <GameCard
@@ -402,7 +390,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         description="Two or more players, each on their own device."
       >
         <AnywhereHeading />
-        <CardGrid rows={rows}>{anywhere.map(card)}</CardGrid>
+        <CardGrid>{anywhere.map(card)}</CardGrid>
         <TalkPanel>{talk.map(card)}</TalkPanel>
       </Folder>
 
@@ -417,7 +405,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
           count={solo.length}
           description="Play on your own, anytime."
         >
-          <CardGrid rows={rows}>
+          <CardGrid>
             {solo.map((game) => (
               <SoloCard key={game.slug} game={game} />
             ))}

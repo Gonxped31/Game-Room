@@ -18,19 +18,20 @@ const PRESS = "transition-transform duration-[60ms] enabled:active:translate-y-1
 const PRESS_LINK = "transition-transform duration-[60ms] active:translate-y-1 active:shadow-none motion-reduce:transition-none";
 
 /**
- * The hub's cards are parallelograms leaning 14deg (Hub's CardGrid has the
- * layout). `SLANT` leans a box; `UPRIGHT` (inline) and `UPRIGHT_BLOCK` lean
- * its content back, so text and art stay straight. On the desktop card the
- * whole card leans, and the buttons and chips in it lean with it; on the
- * compact (mobile) card, which stays upright, they lean on their own. The
- * press and lift use `translate`, a separate property, so they still compose.
+ * Buttons and chips are parallelograms: the box leans 10deg (`SLANT`), its
+ * content leans back (`UPRIGHT`), so the text stays straight. The press and
+ * lift use `translate`, a separate property, so they still compose.
  */
-const SLANT = "-skew-x-14";
-const UPRIGHT = "inline-block skew-x-14";
-const UPRIGHT_BLOCK = "skew-x-14";
+const SLANT = "-skew-x-10";
+const UPRIGHT = "inline-block skew-x-10";
 
-/** Desktop buttons lean with their card; mobile ones lean on their own. */
-const buttonSize = (size: "desktop" | "mobile") => (size === "desktop" ? "h-12 text-[17px]" : `${SLANT} h-12 text-[17px]`);
+/**
+ * The art's slanted edge, leaning like the buttons: the wide card's art ends
+ * in a diagonal toward the text (24px across its 190px height); the 300px
+ * card's art has a gently rising bottom edge (14px across its width).
+ */
+const ART_SEAM_WIDE = "[clip-path:polygon(0_0,100%_0,calc(100%_-_24px)_100%,0_100%)]";
+const ART_SEAM_TALL = "[clip-path:polygon(0_0,100%_0,100%_calc(100%_-_14px),0_100%)]";
 
 interface GameCardProps {
   game: GameEntry;
@@ -48,12 +49,11 @@ interface GameCardProps {
   matchmakingOpen?: boolean;
 }
 
-/** The tags, as small parallelograms: leaning with the card, or on their own (`lean`) on the upright compact card. */
-function Chips({ game, tags, className, lean = false }: { game: GameEntry; tags: string[]; className: string; lean?: boolean }) {
+function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; className: string }) {
   return (
-    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0 pl-1">
+    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0 pl-0.5">
       {tags.map((tag) => (
-        <li key={tag} className={`${lean ? SLANT : ""} rounded-[6px] border-2 px-[11px] py-0.5 font-bold ${className}`} style={{ borderColor: game.ink, color: game.ink }}>
+        <li key={tag} className={`${SLANT} rounded-[6px] border-2 px-[11px] py-0.5 font-bold ${className}`} style={{ borderColor: game.ink, color: game.ink }}>
           <span className={UPRIGHT}>{tag}</span>
         </li>
       ))}
@@ -73,7 +73,9 @@ function StartJoin({
   className = "",
 }: GameCardProps & { size: "desktop" | "mobile"; className?: string }) {
   const starting = startingSlug === game.slug;
-  const base = `flex flex-1 cursor-pointer items-center justify-center rounded-[12px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${buttonSize(size)}`;
+  const base = `flex flex-1 cursor-pointer items-center justify-center ${SLANT} rounded-[12px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
+    size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
+  }`;
   return (
     <div className={`flex gap-2.5 ${className}`}>
       <button
@@ -117,7 +119,7 @@ function GlobeIcon() {
   );
 }
 
-/** "Matchmaking": under Start + Join (or beside them when there's room), ink fill with an accent shadow. */
+/** "Matchmaking": full width under Start + Join (or beside them on the wide card), ink fill with an accent shadow. */
 function Matchmaking({
   game,
   onMatchmaking,
@@ -133,10 +135,12 @@ function Matchmaking({
       aria-haspopup="dialog"
       aria-expanded={matchmakingOpen}
       onClick={(e) => onMatchmaking(game.slug, e.currentTarget)}
-      className={`flex ${className} cursor-pointer items-center justify-center rounded-[12px] border-2 text-white shadow-[0_4px_0_var(--accent)] ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${buttonSize(size)}`}
+      className={`flex ${className} cursor-pointer items-center justify-center ${SLANT} rounded-[12px] border-2 text-white shadow-[0_4px_0_var(--accent)] ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
+        size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
+      }`}
       style={{ backgroundColor: game.ink, borderColor: game.ink, "--accent": game.accentColor } as CSSProperties}
     >
-      <span className={`${UPRIGHT_BLOCK} inline-flex items-center gap-2`}>
+      <span className="inline-flex skew-x-10 items-center gap-2">
         <GlobeIcon />
         Matchmaking
       </span>
@@ -150,7 +154,7 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
     <a
       href={path}
       aria-label={`Play ${game.title} solo`}
-      className={`flex w-full items-center justify-center rounded-[12px] border-2 no-underline ${SHADOW} ${PRESS_LINK} ${FOCUS_RING} ${game.titleClassName} ${buttonSize(size)}`}
+      className={`flex w-full items-center justify-center ${SLANT} rounded-[12px] border-2 no-underline ${SHADOW} ${PRESS_LINK} ${FOCUS_RING} ${game.titleClassName} ${size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"}`}
       style={{ backgroundColor: game.accentColor, borderColor: game.ink, color: game.ink }}
     >
       <span className={UPRIGHT}>Play solo</span>
@@ -159,23 +163,31 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
 }
 
 /**
- * One game's card in the Social folder (references/game-room/game-room-ui-spec.md,
- * "Game card"): the parallelogram desktop card (art, title, description,
- * chips, Start + Join, and Matchmaking for games strangers can play) from
- * 760px, the compact card (mini art beside the text) below. Both are in the
- * DOM; CSS shows one.
+ * One game's card in a Social folder (references/game-room/game-room-ui-spec.md,
+ * "Game card"): the 300px desktop card (art panel, title, description, chips,
+ * Start + Join, and Matchmaking for games strangers can play) from 760px, the compact card (mini art beside the text) below.
+ * From a 1300px-wide container, the wide card takes the 300px card's place,
+ * so it must sit inside an `@container` (Hub's CardGrid, the Talk it out
+ * panel). All are in the DOM; CSS shows one.
  */
 export default function GameCard(props: GameCardProps) {
   const { game } = props;
+  const text = { game, description: game.description, tags: game.tags };
   return (
     <>
-      <SlantCard game={game} description={game.description} tags={game.tags}>
-        {/* One row when the text column has room (about 380px), else Matchmaking goes under Start + Join. */}
-        <div className="flex flex-wrap gap-2.5">
-          <StartJoin {...props} size="desktop" className="flex-[2_1_200px]" />
-          <Matchmaking {...props} size="desktop" className="flex-[1_1_170px]" />
+      <TallCard {...text}>
+        <div className="flex flex-col gap-2.5">
+          <StartJoin {...props} size="desktop" />
+          <Matchmaking {...props} size="desktop" />
         </div>
-      </SlantCard>
+      </TallCard>
+      <WideCard {...text}>
+        {/* One row when the text column has room (about 410px), else Matchmaking goes under Start + Join. */}
+        <div className="flex flex-wrap gap-2.5">
+          <StartJoin {...props} size="desktop" className="flex-[2_1_220px]" />
+          <Matchmaking {...props} size="desktop" className="flex-[1_1_180px]" />
+        </div>
+      </WideCard>
       <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
         <StartJoin {...props} size="mobile" />
         <Matchmaking {...props} size="mobile" />
@@ -186,35 +198,52 @@ export default function GameCard(props: GameCardProps) {
 
 const CARD_SHADOW = "shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)]";
 
+type CardText = { game: GameEntry; description: string; tags: string[]; children: ReactNode };
+
 /**
- * The desktop card (from 760px): a parallelogram, art on the left (the
- * square mini art, bleeding to the card's edges, its right edge slanted
- * too), then the title, description, chips and the buttons (`children`).
- * It must sit in Hub's CardGrid (an `@container`), which sets its width:
- * - from a 1530px-wide grid: a third of the row. The grid leans as a whole,
- *   so the card doesn't lean itself;
- * - from 980px: half the row; below, the whole row (at most 600px). Each card
- *   leans on its own.
+ * The 300px desktop card, below a 1300px-wide container (the wide card takes
+ * over from it): art on top, then the title, description, chips and the
+ * buttons (`children`).
  */
-function SlantCard({ game, description, tags, children }: { game: GameEntry; description: string; tags: string[]; children: ReactNode }) {
+function TallCard({ game, description, tags, children }: CardText) {
   return (
-    <article
-      className={`hidden min-w-0 max-w-[600px] shrink-0 grow-0 basis-full overflow-hidden rounded-[14px] bg-white ${CARD_SHADOW} min-[760px]:flex @min-[980px]:max-w-none @min-[980px]:basis-[calc((100%-28px)/2)] @min-[1530px]:basis-[calc((100%-56px)/3)] @max-[1530px]:-skew-x-14 ${LIFT}`}
-    >
-      <div aria-hidden="true" className="relative w-[38%] max-w-[220px] shrink-0 overflow-hidden">
-        {/* Upright, and wider than the panel, so it fills the slanted corners. */}
-        <div className={`absolute inset-y-0 -inset-x-10 ${UPRIGHT_BLOCK}`}>
-          <GameArt slug={game.slug} mini />
-        </div>
+    <article className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] ${CARD_SHADOW} min-[760px]:@max-[1300px]:flex ${LIFT}`}>
+      <div aria-hidden="true" className={`h-[168px] shrink-0 overflow-hidden rounded-xl ${ART_SEAM_TALL}`}>
+        <GameArt slug={game.slug} />
       </div>
-      <div className={`flex min-w-0 flex-1 flex-col gap-2 py-4 pr-6 pl-5 ${game.bodyClassName}`}>
-        <h4 className={`m-0 ${UPRIGHT_BLOCK} text-[24px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+      <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
+        <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
           {game.title}
         </h4>
-        <p className={`m-0 ${UPRIGHT_BLOCK} text-[14px] font-medium leading-[1.4]`} style={{ color: game.textSecondary }}>
+        <p className="m-0 min-h-[63px] text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
           {description}
         </p>
-        <Chips game={game} tags={tags} className="text-[12px]" />
+        <Chips game={game} tags={tags} className="text-[13px]" />
+        <div className="mt-auto pt-1.5">{children}</div>
+      </div>
+    </article>
+  );
+}
+
+/**
+ * The wide desktop card, from a 1300px-wide card grid: art on the left; the
+ * title, description, chips and buttons (`children`) on the right. Half the
+ * row, less the 28px gap, so two fill it; a card alone on its row is centered.
+ */
+function WideCard({ game, description, tags, children }: CardText) {
+  return (
+    <article className={`hidden max-w-[calc(50%-14px)] grow basis-[calc(50%-28px)] gap-5 rounded-[20px] bg-white p-2.5 ${CARD_SHADOW} @min-[1300px]:flex ${LIFT}`}>
+      <div aria-hidden="true" className={`h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl ${ART_SEAM_WIDE}`}>
+        <GameArt slug={game.slug} />
+      </div>
+      <div className={`flex min-w-0 flex-1 flex-col gap-2.5 py-2 pr-2.5 ${game.bodyClassName}`}>
+        <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+          {game.title}
+        </h4>
+        <p className="m-0 text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
+          {description}
+        </p>
+        <Chips game={game} tags={tags} className="text-[13px]" />
         <div className="mt-auto pt-1.5">{children}</div>
       </div>
     </article>
@@ -235,7 +264,7 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
           <p className="m-0 line-clamp-2 text-sm font-medium leading-[1.35]" style={{ color: game.textSecondary }}>
             {description}
           </p>
-          <Chips game={game} tags={[chip]} className="text-xs" lean />
+          <Chips game={game} tags={[chip]} className="text-xs" />
         </div>
       </div>
       {children}
@@ -245,17 +274,21 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
 
 /**
  * A game's card in the Solo folder, in Hub's card grid like the Social cards:
- * the parallelogram desktop card with one "Play solo" button, or the compact
- * card on mobile.
+ * the 300px card or the wide card (both with one "Play solo" button), or the
+ * compact card on mobile.
  */
 export function SoloCard({ game }: { game: GameEntry }) {
   const solo = game.solo;
   if (!solo) return null;
+  const text = { game, description: solo.description, tags: solo.tags };
   return (
     <>
-      <SlantCard game={game} description={solo.description} tags={solo.tags}>
+      <TallCard {...text}>
         <PlaySolo game={game} path={solo.path} size="desktop" />
-      </SlantCard>
+      </TallCard>
+      <WideCard {...text}>
+        <PlaySolo game={game} path={solo.path} size="desktop" />
+      </WideCard>
       <CompactCard game={game} description={solo.description} chip={solo.tags[0]}>
         <PlaySolo game={game} path={solo.path} size="mobile" />
       </CompactCard>
