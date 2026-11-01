@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import HowToPlay, { type HowToPlayLook } from "@/components/HowToPlay";
 import type { Role } from "@/lib/session/types";
 import { CLOCKS } from "@/lib/games/lasthop/constants";
 import type { Pawn } from "@/lib/games/lasthop/constants";
@@ -172,87 +173,33 @@ function RulesContent({ me, pawns }: { me: Role; pawns: Record<Role, Pawn> }) {
   );
 }
 
+/** Last Hop's look for the shared dialog: the violet surface, Rubik, the tangerine "Got it". */
+const LOOK: HowToPlayLook = {
+  iconClassName: `${FONT} flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-[var(--well-rim)] bg-[var(--surface)] text-[18px] font-bold text-[var(--text)] ${FOCUS}`,
+  linkClassName: `cursor-pointer border-0 bg-transparent p-0 text-[15px] font-bold text-[var(--p1)] underline ${FOCUS}`,
+  panelClassName: `${FONT} bg-[var(--surface)] text-[var(--text)]`,
+  headerClassName: "border-b-2 border-[var(--well)]",
+  titleClassName: "text-[22px] font-extrabold",
+  closeClassName: `flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--surface-2)] text-[20px] text-[var(--text)] ${FOCUS}`,
+  DoneButton: PrimaryButton,
+};
+
 /**
- * "How to play": a button that opens the full rules in a modal <dialog>
- * (Escape, the backdrop or Close shuts it). `variant` "icon" is the header's
- * round ? button, "link" a text button for the lobby.
+ * "How to play" (docs/how-to-play.md, on the shared components/HowToPlay.tsx):
+ * `variant` "icon" is the header's round ? button, "link" the lobby's "Read
+ * the full rules". The drawings use the viewer's own pawn and colour.
  */
 export default function RulesButton({ me, pawns, variant = "icon" }: { me: Role | null; pawns: Record<Role, Pawn>; variant?: "icon" | "link" }) {
-  const [open, setOpen] = useState(false);
   return (
-    <>
-      {variant === "icon" ? (
-        <button
-          type="button"
-          aria-label="How to play"
-          title="How to play"
-          onClick={() => setOpen(true)}
-          className={`${FONT} flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-[var(--well-rim)] bg-[var(--surface)] text-[18px] font-bold text-[var(--text)] ${FOCUS}`}
-        >
-          ?
-        </button>
-      ) : (
-        <button type="button" onClick={() => setOpen(true)} className={`cursor-pointer border-0 bg-transparent p-0 text-[15px] font-bold text-[var(--p1)] underline ${FOCUS}`}>
-          Read the full rules
-        </button>
-      )}
-      {open ? <RulesDialog me={me ?? "p1"} pawns={pawns} onClose={() => setOpen(false)} /> : null}
-    </>
-  );
-}
-
-function RulesDialog({ me, pawns, onClose }: { me: Role; pawns: Record<Role, Pawn>; onClose: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const body = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  useEffect(() => {
-    const dialog = ref.current;
-    dialog?.showModal();
-    // Focus the rules themselves (showModal picks Close), so they scroll with the keyboard.
-    body.current?.focus();
-    return () => dialog?.close();
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      aria-labelledby={titleId}
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      className="m-auto max-h-[min(88dvh,820px)] w-[min(40rem,calc(100%-2rem))] max-w-none overflow-hidden rounded-2xl border-0 bg-transparent p-0 backdrop:bg-black/60"
-    >
-      <div className={`${FONT} flex max-h-[min(88dvh,820px)] flex-col bg-[var(--surface)] text-[var(--text)]`}>
-        <svg aria-hidden="true" width="0" height="0" className="absolute">
-          <defs>
-            <marker id="lh-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M0 0L10 5L0 10z" fill="var(--target)" />
-            </marker>
-          </defs>
-        </svg>
-        <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--well)] px-5 py-3.5">
-          <h2 id={titleId} className="m-0 text-[22px] font-extrabold">
-            How to play
-          </h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--surface-2)] text-[20px] text-[var(--text)] ${FOCUS}`}
-          >
-            ×
-          </button>
-        </div>
-        <div ref={body} tabIndex={-1} className="overflow-y-auto px-5 py-4 outline-none">
-          <RulesContent me={me} pawns={pawns} />
-          <PrimaryButton className="mt-5" onClick={onClose}>
-            Got it
-          </PrimaryButton>
-        </div>
-      </div>
-    </dialog>
+    <HowToPlay look={LOOK} variant={variant} label="Read the full rules">
+      <svg aria-hidden="true" width="0" height="0" className="absolute">
+        <defs>
+          <marker id="lh-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" fill="var(--target)" />
+          </marker>
+        </defs>
+      </svg>
+      <RulesContent me={me ?? "p1"} pawns={pawns} />
+    </HowToPlay>
   );
 }
