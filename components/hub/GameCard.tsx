@@ -158,31 +158,24 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
  */
 export default function GameCard(props: GameCardProps) {
   const { game, wide = false } = props;
+  const text = { game, description: game.description, tags: game.tags };
   return (
     <>
-      <article
-        className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] ${
-          wide ? "min-[760px]:@max-[1300px]:flex" : "min-[760px]:flex"
-        } ${LIFT}`}
-      >
-        <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
-          <GameArt slug={game.slug} />
+      <TallCard {...text} className={wide ? TALL_IN_GRID : "min-[760px]:flex"}>
+        <div className="flex flex-col gap-2.5">
+          <StartJoin {...props} size="desktop" />
+          <Matchmaking {...props} size="desktop" />
         </div>
-        <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
-          <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
-            {game.title}
-          </h4>
-          <p className="m-0 min-h-[63px] text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
-            {game.description}
-          </p>
-          <Chips game={game} tags={game.tags} className="text-[13px]" />
-          <div className="mt-auto flex flex-col gap-2.5 pt-1.5">
-            <StartJoin {...props} size="desktop" />
-            <Matchmaking {...props} size="desktop" />
+      </TallCard>
+      {wide ? (
+        <WideCard {...text}>
+          {/* One row when the text column has room (about 410px), else Matchmaking goes under Start + Join. */}
+          <div className="flex flex-wrap gap-2.5">
+            <StartJoin {...props} size="desktop" className="flex-[2_1_220px]" />
+            <Matchmaking {...props} size="desktop" className="flex-[1_1_180px]" />
           </div>
-        </div>
-      </article>
-      {wide ? <WideCard {...props} /> : null}
+        </WideCard>
+      ) : null}
       <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
         <StartJoin {...props} size="mobile" />
         <Matchmaking {...props} size="mobile" />
@@ -191,16 +184,46 @@ export default function GameCard(props: GameCardProps) {
   );
 }
 
+const CARD_SHADOW = "shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)]";
+
 /**
- * The wide card, from a 1300px-wide container: the Solo card's shape (art on
- * the left, the text on the right), stretching to its grid column. Start,
- * Join and Matchmaking share one row when the text column has room for them
- * (about 410px), else Matchmaking goes under Start + Join.
+ * In the hub's card grid (an `@container`, Hub's CardGrid), the two desktop
+ * shapes take turns at a 1300px-wide grid: the 300px card below it, the wide
+ * card from it.
  */
-function WideCard(props: GameCardProps) {
-  const { game } = props;
+const TALL_IN_GRID = "min-[760px]:@max-[1300px]:flex";
+
+type CardText = { game: GameEntry; description: string; tags: string[]; children: ReactNode };
+
+/** The 300px desktop card: art on top, then the title, description, chips and the buttons (`children`). */
+function TallCard({ game, description, tags, children, className }: CardText & { className: string }) {
   return (
-    <article className={`hidden gap-5 rounded-[20px] bg-white p-2.5 shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] @min-[1300px]:flex ${LIFT}`}>
+    <article className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] ${CARD_SHADOW} ${className} ${LIFT}`}>
+      <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
+        <GameArt slug={game.slug} />
+      </div>
+      <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
+        <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+          {game.title}
+        </h4>
+        <p className="m-0 min-h-[63px] text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
+          {description}
+        </p>
+        <Chips game={game} tags={tags} className="text-[13px]" />
+        <div className="mt-auto pt-1.5">{children}</div>
+      </div>
+    </article>
+  );
+}
+
+/**
+ * The wide desktop card, from a 1300px-wide card grid: art on the left; the
+ * title, description, chips and buttons (`children`) on the right. Half the
+ * row, less the 28px gap, so two fill it; a card alone on its row is centered.
+ */
+function WideCard({ game, description, tags, children }: CardText) {
+  return (
+    <article className={`hidden max-w-[calc(50%-14px)] grow basis-[calc(50%-28px)] gap-5 rounded-[20px] bg-white p-2.5 ${CARD_SHADOW} @min-[1300px]:flex ${LIFT}`}>
       <div aria-hidden="true" className="h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl">
         <GameArt slug={game.slug} />
       </div>
@@ -209,13 +232,10 @@ function WideCard(props: GameCardProps) {
           {game.title}
         </h4>
         <p className="m-0 text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
-          {game.description}
+          {description}
         </p>
-        <Chips game={game} tags={game.tags} className="text-[13px]" />
-        <div className="mt-auto flex flex-wrap gap-2.5 pt-1.5">
-          <StartJoin {...props} size="desktop" className="flex-[2_1_220px]" />
-          <Matchmaking {...props} size="desktop" className="flex-[1_1_180px]" />
-        </div>
+        <Chips game={game} tags={tags} className="text-[13px]" />
+        <div className="mt-auto pt-1.5">{children}</div>
       </div>
     </article>
   );
@@ -244,32 +264,22 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
 }
 
 /**
- * A game's card in the Solo folder: the wide desktop card (art on the left,
- * text and one "Play solo" button on the right), or the compact card on
- * mobile.
+ * A game's card in the Solo folder, in Hub's card grid like the Social cards:
+ * the 300px card or the wide card (both with one "Play solo" button), or the
+ * compact card on mobile.
  */
 export function SoloCard({ game }: { game: GameEntry }) {
   const solo = game.solo;
   if (!solo) return null;
+  const text = { game, description: solo.description, tags: solo.tags };
   return (
     <>
-      <article className={`hidden w-[628px] max-w-full gap-5 rounded-[20px] bg-white p-2.5 shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT}`}>
-        <div aria-hidden="true" className="h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl">
-          <GameArt slug={game.slug} />
-        </div>
-        <div className={`flex min-w-0 flex-1 flex-col gap-2.5 py-2 pr-2.5 ${game.bodyClassName}`}>
-          <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
-            {game.title}
-          </h4>
-          <p className="m-0 text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
-            {solo.description}
-          </p>
-          <Chips game={game} tags={solo.tags} className="text-[13px]" />
-          <div className="mt-auto pt-1.5">
-            <PlaySolo game={game} path={solo.path} size="desktop" />
-          </div>
-        </div>
-      </article>
+      <TallCard {...text} className={TALL_IN_GRID}>
+        <PlaySolo game={game} path={solo.path} size="desktop" />
+      </TallCard>
+      <WideCard {...text}>
+        <PlaySolo game={game} path={solo.path} size="desktop" />
+      </WideCard>
       <CompactCard game={game} description={solo.description} chip={solo.tags[0]}>
         <PlaySolo game={game} path={solo.path} size="mobile" />
       </CompactCard>

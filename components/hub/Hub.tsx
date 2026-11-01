@@ -237,23 +237,20 @@ function TalkPanel({ children }: { children: ReactNode }) {
   );
 }
 
-/** Desktop rows of 300px cards with a 28px gap (wrapping); mobile, a 14px stack. */
-function CardRow({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-3.5 min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:items-stretch min-[760px]:gap-[28px]">{children}</div>;
-}
-
 /**
- * "Play from anywhere" on desktop, by the folder's width (a container query):
- * - from 1300px: the wide cards (GameCard `wide`), two to a row, each half
+ * A folder's cards ("Play from anywhere", Solo) on desktop, by the folder's
+ * width (a container query; the cards switch shape with the same one):
+ * - from 1300px: the wide cards (art on the left), two to a row, each half
  *   the row, so the rows fill the folder at any width;
- * - below: 300px cards, 28px apart, centered, at most three to a row so the
- *   rows stay even (six games: two rows of three), then two, then one.
- * Mobile: a 14px stack.
+ * - below: 300px cards, 28px apart, at most three to a row (3 x 300 + 2 x 28),
+ *   then two, then one.
+ * Rows are centered, so a short last row sits in the middle; each row's cards
+ * share the tallest one's height. Mobile: a 14px stack.
  */
-function AnywhereGrid({ children }: { children: ReactNode }) {
+function CardGrid({ children }: { children: ReactNode }) {
   return (
     <div className="@container">
-      <div className="flex flex-col gap-3.5 min-[760px]:grid min-[760px]:justify-center min-[760px]:gap-[28px] @min-[628px]:grid-cols-[repeat(2,300px)] @min-[956px]:grid-cols-[repeat(3,300px)] @min-[1300px]:grid-cols-[repeat(2,minmax(0,1fr))]">
+      <div className="mx-auto flex flex-col gap-3.5 min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:justify-center min-[760px]:gap-[28px] min-[760px]:@max-[1300px]:max-w-[956px]">
         {children}
       </div>
     </div>
@@ -377,7 +374,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         description="Two or more players, each on their own device."
       >
         <AnywhereHeading />
-        <AnywhereGrid>{anywhere.map((game) => card(game, true))}</AnywhereGrid>
+        <CardGrid>{anywhere.map((game) => card(game, true))}</CardGrid>
         <TalkPanel>{talk.map((game) => card(game))}</TalkPanel>
       </Folder>
 
@@ -392,14 +389,11 @@ export default function Hub({ games }: { games: GameEntry[] }) {
           count={solo.length}
           description="Play on your own, anytime."
         >
-          <CardRow>
+          <CardGrid>
             {solo.map((game) => (
               <SoloCard key={game.slug} game={game} />
             ))}
-            <div className="hidden min-h-[120px] min-w-[220px] flex-1 items-center justify-center rounded-[20px] border-[2.5px] border-dashed border-white/35 p-4 text-center text-base font-semibold text-white/75 min-[760px]:flex">
-              More solo games coming
-            </div>
-          </CardRow>
+          </CardGrid>
         </Folder>
       ) : null}
 
