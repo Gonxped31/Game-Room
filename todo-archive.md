@@ -51,3 +51,4 @@ T-g9zw | 2 | - | L | full-stack,borderrun,regions | Race layer for solo games: e
 T-hg4z | 3 | T-g9zw | M | full-stack,regions | Checkmate Grid multiplayer: Challenge (2-4) and Survival (up to 8) on the race layer | done 2026-10-26
 T-7nbm | 2 | - | S | test,nighthighway | Night Highway traffic.test 'never lets two vehicles overlap' times out when the machine is busy: give it a longer timeout or a lighter simulation | done 2026-11-01
 T-7fm5 | 2 | - | S | frontend,howtoplay,lasthop | Move Last Hop's How to play onto the shared components/HowToPlay.tsx dialog | done 2026-11-01
+T-mpr2 | 2 | - | M | frontend,howtoplay,buzzerquiz | How to play for Buzzer Quiz: components/buzzerquiz/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01

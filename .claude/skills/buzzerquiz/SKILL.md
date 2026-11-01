@@ -25,7 +25,7 @@ out for everyone and its player is locked out of that question. A right pick sco
 | `lib/games/buzzerquiz/questions.json` | The bank, one question per line; `choices[0]` is always right |
 | `lib/games/buzzerquiz/questions.test.ts` | Validates the bank (lengths, 20 per topic per language, French spacing) |
 | `app/buzzerquiz/page.tsx` | Session (`useSession`, 4 seats, min 2), timers, buzz and pick |
-| `components/buzzerquiz/` | `ui.tsx` (tokens, buzzer, tiles, scores), `Screens.tsx`, `QuestionScreen.tsx` |
+| `components/buzzerquiz/` | `ui.tsx` (tokens, buzzer, tiles, scores), `Screens.tsx`, `QuestionScreen.tsx`, `Rules.tsx` (How to play: the ? in every screen's title row, a link in the lobby; `docs/how-to-play.md`, so a rules change updates it too) |
 | `database.rules.json` → `buzzerquiz` | Validates the whole state; `maxPlayers` must be 4 |
 | `.claude/skills/live-test/scripts/buzzer-quiz.mjs` | 3 players, desktop + iPhone + Android |
 

@@ -23,6 +23,7 @@ import {
   TEXT,
   TimerRing,
 } from "./ui";
+import RulesButton from "./Rules";
 
 const LETTERS = ["A", "B", "C", "D"];
 
@@ -166,6 +167,7 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
           </span>
           <span className={`${LABEL} min-w-0 flex-1 truncate`}>{view.topic ? TOPIC_LABELS[view.topic].en : ""}</span>
           {phase !== "result" ? timer : null}
+          <RulesButton />
         </header>
         <div className="flex flex-col gap-3 min-[900px]:grid min-[900px]:grid-cols-[minmax(240px,300px)_1fr] min-[900px]:items-start min-[900px]:gap-6">
           <ScoreBoard rows={view.scores} />

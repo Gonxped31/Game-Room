@@ -20,6 +20,7 @@ import {
   TEXT,
   TOPIC_ICONS,
 } from "./ui";
+import RulesButton from "./Rules";
 
 /** Interface copy stays English; only the questions follow the room's language. */
 const topicLabel = (topic: TopicId) => TOPIC_LABELS[topic].en;
@@ -81,7 +82,10 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[440px] flex-col gap-5">
-        <h1 className={TITLE}>Buzzer Quiz</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className={TITLE}>Buzzer Quiz</h1>
+          <RulesButton />
+        </div>
         {free ? (
           <form
             className="flex flex-col gap-3 rounded-[20px] bg-[var(--surface)] p-5"
@@ -207,7 +211,10 @@ export function Setup({ settings, onLang, onTopic, onLength, onContinue, onLeave
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[1040px] flex-col gap-6">
-        <h1 className={TITLE}>New quiz</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className={TITLE}>New quiz</h1>
+          <RulesButton />
+        </div>
         <div className="flex flex-col gap-6 min-[900px]:grid min-[900px]:grid-cols-[minmax(300px,360px)_1fr] min-[900px]:gap-10">
           <div className="flex flex-col gap-6">
             {fields.language}
@@ -418,6 +425,7 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
         <div className="flex items-center gap-3">
           <h1 className={`${TITLE} flex-1`}>Waiting room</h1>
           <span className={`${DISPLAY} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[15px] font-extrabold tracking-[0.06em]`}>{room}</span>
+          <RulesButton />
         </div>
         <div className="flex flex-col gap-5 min-[900px]:grid min-[900px]:grid-cols-[1fr_320px] min-[900px]:gap-8">
           <section className="flex flex-col gap-2.5 min-[900px]:order-1">
@@ -427,6 +435,7 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
           <div className="flex flex-col gap-5 min-[900px]:order-2">
             {invite}
             {chips}
+            <RulesButton variant="link" />
             {start}
             {match ? null : <LeaveRoom onLeave={onLeave} />}
           </div>
@@ -445,6 +454,9 @@ export function Countdown({ seconds, index, total, topic, scores }: { seconds: n
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[1040px] flex-col items-center gap-6">
+        <div className="flex w-full justify-end">
+          <RulesButton />
+        </div>
         <div className="w-full max-w-[600px]">
           <ScoreBoard rows={scores} />
         </div>
@@ -484,7 +496,10 @@ export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics, on
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[640px] flex-col gap-6">
-        <span className={`${LABEL}`}>Final ranking</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className={`${LABEL}`}>Final ranking</span>
+          <RulesButton />
+        </div>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="text-[var(--points)]"><CrownIcon size={44} /></span>
           <div className="flex -space-x-4 min-[900px]:hidden">

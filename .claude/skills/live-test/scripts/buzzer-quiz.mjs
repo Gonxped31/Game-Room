@@ -3,7 +3,8 @@
 // iPhone and an Android player join, and the three play it through - a buzz
 // race decided by reaction time, a wrong answer struck out for everyone and
 // its player locked out, a right answer scored 2 - then the final ranking and
-// a rematch. About a minute.
+// a rematch, and How to play opened from the title row and the lobby. About
+// a minute.
 //
 //   node .claude/skills/live-test/scripts/buzzer-quiz.mjs [baseUrl] [screenshotDir]
 import { readFileSync } from "node:fs";
@@ -61,6 +62,18 @@ try {
   await shot(A, "lobby-desktop");
   await shot(B, "lobby-iphone");
   log("B and C joined the waiting room");
+  // How to play: the title row's ? comes first, the lobby's link last; closed with Got it, then Escape.
+  await B.getByRole("button", { name: "How to play" }).first().click();
+  await B.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(B, "rules-iphone");
+  await B.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await B.getByRole("dialog").waitFor({ state: "detached" });
+  await A.getByRole("button", { name: "How to play" }).last().click();
+  await A.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(A, "rules-desktop");
+  await A.keyboard.press("Escape");
+  await A.getByRole("dialog").waitFor({ state: "detached" });
+  log("How to play opens from the header and the lobby, and closes");
   await A.getByRole("button", { name: "Start with 3 players" }).click();
   await B.getByText("Thumb on the buzzer…").waitFor({ timeout: 10000 });
   await shot(B, "countdown-iphone");
