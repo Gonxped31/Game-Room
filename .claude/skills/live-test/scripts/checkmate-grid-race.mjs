@@ -8,6 +8,7 @@
 //   Auto ✕ locks; one solves, the other gives up, so the round ends early; the
 //   results show anyone's board, and the faint answer for an unsolved one; Undo
 //   takes a move back; 3 puzzles, the standings, back to the lobby, Leave room.
+//   How to play opens from the header and the lobby.
 // - Private Survival, 4 players: one goes out per round; the last one in wins.
 // - Matchmaking: Challenge and Survival are separate queues (4 and 8 seats); two
 //   Challenge searchers meet and the room starts by itself.
@@ -171,6 +172,17 @@ try {
   check("the guest sees the host's settings, and no switches", (await P.getByRole("radiogroup", { name: "Pieces" }).count()) === 0);
   await shot(H, "lobby-desktop");
   await shot(P, "lobby-iphone");
+  // How to play: the header's ? comes first, the lobby's link last; closed with Got it, then Escape.
+  await P.getByRole("button", { name: "How to play" }).first().click();
+  await P.getByRole("dialog").getByRole("heading", { name: "Racing others" }).waitFor();
+  await shot(P, "rules-iphone");
+  await P.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await P.getByRole("dialog").waitFor({ state: "detached" });
+  await H.getByRole("button", { name: "How to play" }).last().click();
+  await H.getByRole("dialog").getByRole("heading", { name: "Racing others" }).waitFor();
+  await H.keyboard.press("Escape");
+  await H.getByRole("dialog").waitFor({ state: "detached" });
+  check("How to play opens from the header and the lobby, and closes", true);
   await H.getByRole("button", { name: "Start the race" }).click();
 
   // Round 1: a tap during the countdown does nothing.

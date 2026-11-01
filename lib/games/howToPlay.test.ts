@@ -10,7 +10,7 @@ import { ALL_GAMES } from "./registry";
  * each (tag `howtoplay`); take a game off this list in the change that gives
  * it one. A new game never goes on it.
  */
-const PENDING = new Set(["regions", "borderrun"]);
+const PENDING = new Set(["borderrun"]);
 
 const rulesFile = (slug: string) => join(process.cwd(), "components", slug, "Rules.tsx");
 

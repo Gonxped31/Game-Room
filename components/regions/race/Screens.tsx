@@ -8,6 +8,7 @@ import { PIECE_CHOICES, type PieceChoice } from "@/lib/games/regions/race";
 import { GLYPH, VARIANT_NAME } from "@/lib/games/regions/theme";
 import { Segmented } from "../Controls";
 import "../regions.css";
+import RulesButton from "../Rules";
 
 /** Checkmate Grid's parts of a race room; the rest is components/race/Screens.tsx. */
 
@@ -26,6 +27,7 @@ export function RaceShell({ children }: { children: ReactNode }) {
       <main className="cg-main">
         <header className="cg-header">
           <h1 className="cg-title">{GAME_TITLE}</h1>
+          <RulesButton />
         </header>
         {children}
       </main>
@@ -59,6 +61,7 @@ export function Settings({
           Pieces: {pieces === "mixed" ? "a new one each puzzle" : VARIANT_NAME[pieces]}
           {mode === "challenge" ? `, ${rounds} puzzles` : ""}
         </p>
+        <RulesButton variant="link" />
       </>
     );
   }
@@ -87,6 +90,7 @@ export function Settings({
           <Segmented label="Puzzles" options={ROUND_COUNTS} value={rounds} onChange={onRounds} render={(n) => `${n} puzzles`} />
         </>
       ) : null}
+      <RulesButton variant="link" />
     </>
   );
 }

@@ -115,6 +115,7 @@ timing, scoring, how a round ends, the screens). Checkmate Grid's own parts:
 | `components/regions/Stage.tsx` | The page shell, mode tabs; `online` adds Daily (the site), off for the export |
 | `components/regions/Board.tsx` | The grid: tap cycles, drag from an empty cell paints ✕, arrow keys + Enter/Space |
 | `components/regions/EndlessGame.tsx`, `DailyGame.tsx` | The two modes |
+| `components/regions/Rules.tsx` | How to play (`docs/how-to-play.md`): the header's ? (Stage's `rules`, passed by the site's page, and the race shell) and a link in the race lobby's settings. Tailwind classes, so it stays out of the exported Stage. A rules change updates it too |
 | `components/regions/regions.css` | **All styles, plain CSS** (`cg-*`, plus the shared leaderboard's `daily-*`) |
 | `exports/regions/` | The offline single-file export (scripts/export-solo.mjs) |
 

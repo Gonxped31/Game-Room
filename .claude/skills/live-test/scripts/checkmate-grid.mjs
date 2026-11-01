@@ -4,7 +4,8 @@
 // its puzzle (New puzzle, Next puzzle, Change then Start all unlock it), a
 // reload or a tab switch keeps it, a puzzle being built never lands after
 // Change, a double New puzzle saves the board that is shown, and the Daily
-// lock is separate. Exits 1 if any check fails.
+// lock is separate. How to play opens from the header. Exits 1 if any check
+// fails.
 //
 //   node .claude/skills/live-test/scripts/checkmate-grid.mjs [baseUrl] [profile]
 //
@@ -54,6 +55,15 @@ const rookSolution = async () => {
 };
 
 await page.goto(`${BASE}/regions`);
+// How to play, from the header's ?: Got it closes it, and so does Escape.
+await page.getByRole("button", { name: "How to play" }).click();
+await page.getByRole("dialog").getByRole("heading", { name: "The pieces" }).waitFor();
+await page.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+await page.getByRole("dialog").waitFor({ state: "detached" });
+await page.getByRole("button", { name: "How to play" }).click();
+await page.keyboard.press("Escape");
+await page.getByRole("dialog").waitFor({ state: "detached" });
+check("How to play opens from the header and closes", true);
 await tab("Endless");
 await pick("Piece", /Rook/);
 await pick("Grid size", /^5/);
