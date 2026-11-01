@@ -2,6 +2,7 @@
 
 import { guestIdToken } from "@/lib/session/shared/auth";
 import type { Attempt, BoardEntry, DailyStatus } from "./service";
+import { appCheckToken } from "./appCheck";
 
 /** The daily routes' answers, as the page sees them (lib/daily/service.ts builds them). */
 export type { Attempt, BoardEntry, DailyStatus };
@@ -41,11 +42,12 @@ export async function dailyRequest<T>(slug: string, action?: "start" | "submit",
   } catch {
     throw new DailyRequestError("The daily puzzle needs a connection.", 0);
   }
+  const appCheck = await appCheckToken();
   let response: Response;
   try {
     response = await fetch(`/api/daily/${slug}${action ? `/${action}` : ""}`, {
       method: action ? "POST" : "GET",
-      headers: { Authorization: `Bearer ${token}`, ...(body ? { "Content-Type": "application/json" } : {}) },
+      headers: { Authorization: `Bearer ${token}`, ...(appCheck ? { "X-Firebase-AppCheck": appCheck } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
       body: body ? JSON.stringify(body) : undefined,
       cache: "no-store",
     });

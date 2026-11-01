@@ -54,3 +54,38 @@ export async function verifyGuestToken(token: string, keys: Parameters<typeof jw
     throw error;
   }
 }
+
+/** Firebase App Check's public keys, for the daily routes' App Check tokens; jose caches them too. */
+const APP_CHECK_KEYS = createRemoteJWKSet(new URL("https://firebaseappcheck.googleapis.com/v1/jwks"));
+
+/** The project's number: the second part of the web app's ID ("1:<number>:web:<hash>"). */
+function projectNumber(): string {
+  const number = process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.split(":")[1];
+  if (!number || !/^\d+$/.test(number)) throw new AdminConfigError("NEXT_PUBLIC_FIREBASE_APP_ID has no project number.");
+  return number;
+}
+
+/**
+ * Checks a Firebase App Check token (reCAPTCHA v3; docs/daily.md, "App
+ * Check"), as Firebase documents for a third-party JWT library: signed by App
+ * Check's keys (RS256, type JWT), issued for this project's number, with the
+ * project in its audience, not expired. Not firebase-admin/app-check, for the
+ * same reason as verifyGuestToken. `keys` is App Check's key set; tests pass
+ * their own.
+ */
+export async function verifyAppCheckToken(token: string, keys: Parameters<typeof jwtVerify>[1] = APP_CHECK_KEYS): Promise<boolean> {
+  const number = projectNumber();
+  try {
+    await jwtVerify(token, keys as Parameters<typeof jwtVerify>[1] & CryptoKey, {
+      issuer: `https://firebaseappcheck.googleapis.com/${number}`,
+      audience: `projects/${number}`,
+      algorithms: ["RS256"],
+      typ: "JWT",
+    });
+    return true;
+  } catch (error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string" && code !== "ERR_JWKS_TIMEOUT" && /^ERR_(JWT|JWS|JWK|JOSE)/.test(code)) return false;
+    throw error;
+  }
+}

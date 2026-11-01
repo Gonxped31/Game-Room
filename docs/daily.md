@@ -83,3 +83,29 @@ can show both; the too-fast check looks at the real time only.
   500. The emulator doesn't enforce indexes, so local tests can't catch this.
 - On the emulators (`dev-against-emulators.mjs`), the admin SDK's emulator
   hosts are set and a fixed development secret stands in.
+
+## App Check (optional hardening)
+
+reCAPTCHA v3 proves a daily request comes from the game's own page, not a
+script calling `/api/daily` directly. It's off until both settings below are
+set, and never runs on the emulators.
+
+- **Client** (`lib/daily/appCheck.ts`): with `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`,
+  the first daily request starts App Check on the page's Firebase app and every
+  daily request sends `X-Firebase-AppCheck`. A failure sends no token.
+- **Server** (`appCheckRefusal` in `lib/daily/server.ts`, `verifyAppCheckToken`
+  in `lib/daily/token.ts`): `DAILY_APP_CHECK=monitor` logs requests without a
+  valid token ("Daily: a request without an App Check token"),
+  `DAILY_APP_CHECK=enforce` refuses them (401). The token is checked with jose
+  against App Check's public keys, like the guest's ID token; the project
+  number comes from `NEXT_PUBLIC_FIREBASE_APP_ID`.
+
+**Turning it on** (in this order):
+1. Firebase console → App Check → register the web app with **reCAPTCHA v3**
+   (create the reCAPTCHA v3 key in the Google reCAPTCHA admin, with the site's
+   domains). Don't enforce App Check for the Realtime Database there: only the
+   daily page runs App Check, so every other page would be refused.
+2. Vercel (Production): `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (the site key) and
+   `DAILY_APP_CHECK=monitor`; redeploy.
+3. After a few days of play, if the logs show only the odd missing token:
+   `DAILY_APP_CHECK=enforce`.

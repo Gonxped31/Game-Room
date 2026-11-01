@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { AdminConfigError, adminDb } from "@/lib/admin/firebaseAdmin";
 import { DAILY_GAMES } from "./games";
 import { DailyError, type DailyContext, type DailyStore } from "./service";
-import { verifyGuestToken } from "./token";
+import { verifyAppCheckToken, verifyGuestToken } from "./token";
 
 /**
  * The daily routes' server side (app/api/daily/[slug]/): who's asking, the
@@ -67,8 +67,27 @@ export function adminStore(): DailyStore {
 }
 
 /**
+ * App Check (docs/daily.md, "App Check"): with `DAILY_APP_CHECK` "monitor", a
+ * request without a valid App Check token (header X-Firebase-AppCheck) is
+ * logged; with "enforce", refused. Unset, or on the emulators: no check.
+ * Returns the refusal's message, or null to go on.
+ */
+async function appCheckRefusal(request: Request): Promise<string | null> {
+  const mode = process.env.DAILY_APP_CHECK;
+  if ((mode !== "monitor" && mode !== "enforce") || process.env.FIREBASE_AUTH_EMULATOR_HOST) return null;
+  const token = request.headers.get("x-firebase-appcheck");
+  if (token && (await verifyAppCheckToken(token))) return null;
+  if (mode === "monitor") {
+    console.warn(`Daily: a request ${token ? "with an invalid" : "without an"} App Check token`);
+    return null;
+  }
+  return "The daily puzzle only answers the game's own page. Reload it and try again.";
+}
+
+/**
  * Runs a daily route: finds the game, checks the guest's ID token
- * (Authorization: Bearer …), and turns failures into JSON errors.
+ * (Authorization: Bearer …) and, when it's on, App Check, and turns failures
+ * into JSON errors.
  */
 export async function dailyRoute(request: Request, slug: string, run: (ctx: DailyContext) => Promise<unknown>) {
   const game = DAILY_GAMES[slug];
@@ -78,6 +97,8 @@ export async function dailyRoute(request: Request, slug: string, run: (ctx: Dail
   try {
     const uid = await verifyGuestToken(token);
     if (!uid) return NextResponse.json({ error: "Not signed in." }, { status: 401, headers: NO_STORE });
+    const refused = await appCheckRefusal(request);
+    if (refused) return NextResponse.json({ error: refused }, { status: 401, headers: NO_STORE });
     const body = await run({ store: adminStore(), game, seedFor, uid, now: Date.now() });
     return NextResponse.json(body, { headers: NO_STORE });
   } catch (error) {

@@ -1,6 +1,6 @@
 import { generateKeyPair, SignJWT, UnsecuredJWT } from "jose";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { verifyGuestToken } from "./token";
+import { verifyAppCheckToken, verifyGuestToken } from "./token";
 
 const PROJECT = "demo-project";
 let keys: Awaited<ReturnType<typeof generateKeyPair>>;
@@ -60,5 +60,38 @@ describe("verifyGuestToken", () => {
     expect(await verifyGuestToken(unsigned, keys.publicKey)).toBeNull();
     vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
     expect(await verifyGuestToken(unsigned, keys.publicKey)).toBe("emulator-uid");
+  });
+});
+
+const NUMBER = "123456789";
+
+/** A token shaped like App Check's (type JWT), signed with `key`; `claims` override the defaults. */
+function appCheckToken(claims: Record<string, unknown> = {}, key = keys.privateKey, typ = "JWT") {
+  return new SignJWT({
+    iss: `https://firebaseappcheck.googleapis.com/${NUMBER}`,
+    aud: [`projects/${NUMBER}`, `projects/${PROJECT}`],
+    sub: `1:${NUMBER}:web:abc`,
+    iat: now() - 60,
+    exp: now() + 3600,
+    ...claims,
+  })
+    .setProtectedHeader({ alg: "RS256", kid: "test", typ })
+    .sign(key);
+}
+
+describe("verifyAppCheckToken", () => {
+  it("accepts a signed App Check token for this project's number", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_APP_ID", `1:${NUMBER}:web:abc`);
+    expect(await verifyAppCheckToken(await appCheckToken(), keys.publicKey)).toBe(true);
+  });
+
+  it("refuses another signer, another project, an expired token, a wrong type and garbage", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_APP_ID", `1:${NUMBER}:web:abc`);
+    expect(await verifyAppCheckToken(await appCheckToken({}, otherKeys.privateKey), keys.publicKey)).toBe(false);
+    expect(await verifyAppCheckToken(await appCheckToken({ aud: ["projects/999"] }), keys.publicKey)).toBe(false);
+    expect(await verifyAppCheckToken(await appCheckToken({ iss: "https://firebaseappcheck.googleapis.com/999" }), keys.publicKey)).toBe(false);
+    expect(await verifyAppCheckToken(await appCheckToken({ exp: now() - 10 }), keys.publicKey)).toBe(false);
+    expect(await verifyAppCheckToken(await appCheckToken({}, keys.privateKey, "at+jwt"), keys.publicKey)).toBe(false);
+    expect(await verifyAppCheckToken("not.a.token", keys.publicKey)).toBe(false);
   });
 });

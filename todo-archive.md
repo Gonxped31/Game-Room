@@ -60,3 +60,4 @@ T-7n5b | 2 | - | M | frontend,howtoplay,regions | How to play for Checkmate Grid
 T-ajxc | 2 | - | M | frontend,howtoplay,borderrun | How to play for Border Run: components/borderrun/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
 T-p5bq | 2 | - | S | frontend,regions | Name Checkmate Grid for real: 'Checkmate Grid' is a working title (GAME_TITLE, registry title, export page title) | done 2026-11-01
 T-ajb4 | 2 | - | S | frontend,borderrun | Name Border Run for real: 'Border Run' is a working title (GAME_TITLE, registry title, export page title) | done 2026-11-01
+T-8ndb | 3 | - | M | full-stack,regions | Daily routes: Firebase App Check (reCAPTCHA v3) so scripts can't call /api/daily without the page | done 2026-11-01
