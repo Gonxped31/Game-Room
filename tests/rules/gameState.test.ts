@@ -362,13 +362,39 @@ describe("Buzzer Quiz", () => {
     ["a seat that doesn't exist", buzzerquizState({ buzzer: "p5" })],
     ["a negative reaction time", buzzerquizState({ buzzes: [{ seat: "p1", ms: -1 }] })],
     ["the right answer struck", buzzerquizState({ struck: [0] })],
-    ["too many points", buzzerquizState({ outcome: { kind: "right", seat: "p1", points: 4 } })],
+    ["too many points", buzzerquizState({ outcome: { kind: "right", seat: "p1", points: 7 } })],
+    ["Power cards switched off as false", buzzerquizState({ settings: { lang: "en", length: 10, cards: false } })],
+    ["an unknown card in a hand", buzzerquizState({ hands: { p1: ["joker"] } })],
+    ["a fourth card in a hand", buzzerquizState({ hands: { p1: ["freeze", "double", "steal", "shield"] } })],
+    ["a hand for a seat that does not exist", buzzerquizState({ hands: { p5: ["freeze"] } })],
+    ["an unknown card played", buzzerquizState({ played: { p1: "joker" } })],
     ["an outcome without its reason", buzzerquizState({ outcome: { kind: "none" } })],
     ["a negative score", buzzerquizState({ scores: { p1: -1 } })],
     ["a missing seed", { phase: "setup", settings: { lang: "en", length: 10 }, index: 0, round: 0 }],
     ["an unknown key", buzzerquizState({ host: "p1" })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
+  });
+
+  it("accepts a game with Power cards: the switch, the hands, a card played, a doubled score", async () => {
+    const db = dbAs(env, "bob");
+    const write = (state: quiz.QuizState) => writeAndReadBack(db, path, state);
+    const ids = Array.from({ length: 5 }, (_, i) => `sci-en-${i}`);
+    let t = 1_000_000;
+    let game = await write(quiz.toLobby(quiz.setCards(quiz.setLength(quiz.toggleTopic(quiz.newGame("en"), "science"), 5), true)));
+    const hands = { p1: ["freeze", "double", "steal"], p2: ["fifty", "steal", "shield"] } as const;
+    game = await write(quiz.start(game, { players: ["p1", "p2"], questionIds: ids, seed: 1, now: t, hands: { p1: [...hands.p1], p2: [...hands.p2] } }));
+    game = await write(quiz.playCard(game, "p1", "double", t + 100));
+    game = await write(quiz.playCard(game, "p2", "steal", t + 200));
+    t += COUNTDOWN_MS;
+    game = await write(quiz.reveal(game, t));
+    game = await write(quiz.resolveBuzz(await write(quiz.buzz(game, "p1", 2500, t + 2500)), t + 2500 + BUZZ_WINDOW_MS));
+    game = await write(quiz.pick(game, "p1", 0, t + 3000));
+    expect(game.outcome).toEqual({ kind: "right", seat: "p1", points: 5 });
+    expect(game.scores).toEqual({ p1: 5, p2: 1 });
+    game = await write(quiz.next(game, t + 3000 + RESULT_MS));
+    expect(quiz.normalize(game).hands).toEqual({ p1: ["freeze", "steal"], p2: ["fifty", "shield"] });
+    expect(quiz.normalize(game).played).toEqual({});
   });
 
   it("lets only the room's members write", async () => {

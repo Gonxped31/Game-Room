@@ -417,6 +417,7 @@
             ".validate": "newData.hasChildren(['lang', 'length'])",
             "lang": { ".validate": "newData.val() == 'en' || newData.val() == 'fr'" },
             "length": { ".validate": "newData.val() == 5 || newData.val() == 10 || newData.val() == 15 || newData.val() == 20" },
+            "cards": { ".validate": "newData.val() == true" },
             "topics": {
               "$i": { ".validate": "$i.matches(/^[0-5]$/) && (newData.val() == 'geography' || newData.val() == 'cinema' || newData.val() == 'science' || newData.val() == 'sport' || newData.val() == 'music' || newData.val() == 'history')" }
             },
@@ -461,12 +462,21 @@
             ".validate": "(newData.child('kind').val() == 'right' && newData.hasChildren(['seat', 'points'])) || (newData.child('kind').val() == 'none' && newData.hasChildren(['reason']))",
             "kind": { ".validate": "newData.val() == 'right' || newData.val() == 'none'" },
             "seat": { ".validate": "newData.isString() && newData.val().matches(/^p[1-4]$/)" },
-            "points": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+            "points": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6" },
             "reason": { ".validate": "newData.val() == 'one-left' || newData.val() == 'all-locked' || newData.val() == 'timeout'" },
             "$other": { ".validate": false }
           },
           "scores": {
             "$seat": { ".validate": "$seat.matches(/^p[1-4]$/) && newData.isNumber() && newData.val() >= 0" }
+          },
+          "hands": {
+            "$seat": {
+              ".validate": "$seat.matches(/^p[1-4]$/)",
+              "$i": { ".validate": "$i.matches(/^[0-2]$/) && (newData.val() == 'freeze' || newData.val() == 'double' || newData.val() == 'fifty' || newData.val() == 'steal' || newData.val() == 'shield')" }
+            }
+          },
+          "played": {
+            "$seat": { ".validate": "$seat.matches(/^p[1-4]$/) && (newData.val() == 'freeze' || newData.val() == 'double' || newData.val() == 'fifty' || newData.val() == 'steal' || newData.val() == 'shield')" }
           },
           "$other": { ".validate": false }
         },

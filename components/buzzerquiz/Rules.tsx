@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import HowToPlay, { type HowToPlayLook } from "@/components/HowToPlay";
-import { ANSWER_MS, BUZZ_WINDOW_MS, CHOICES, COUNTDOWN_MS, LENGTHS, MAX_PLAYERS, MIN_PLAYERS, QUESTION_MS, RESULT_MS, TOPICS } from "@/lib/games/buzzerquiz/constants";
+import { ANSWER_MS, BUZZ_WINDOW_MS, CARDS, CHOICES, COUNTDOWN_MS, HAND_SIZE, LENGTHS, MAX_PLAYERS, MIN_PLAYERS, QUESTION_MS, RESULT_MS, TOPICS } from "@/lib/games/buzzerquiz/constants";
+import { CARD_INFO } from "./PowerCards";
 import { pointsFor } from "@/lib/games/buzzerquiz/game";
 import { DISPLAY, FOCUS, PrimaryButton, TEXT } from "./ui";
 
@@ -121,6 +122,26 @@ function RulesContent() {
         </ul>
       </Section>
 
+      <Section title="Power cards (optional)">
+        <p className={P}>
+          When the host turns <b>Power cards</b> on, everyone is dealt {HAND_SIZE} different ones. Play at most one per question, during the countdown or before you
+          buzz; everyone sees who played what. Not in matchmaking.
+        </p>
+        <ul className="m-0 grid list-none gap-2 p-0">
+          {CARDS.map((card) => (
+            <li key={card} className="flex items-center gap-3 rounded-xl bg-[var(--surface-dim)] p-2.5">
+              <span aria-hidden="true" className={`${DISPLAY} flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--points)] text-[14px] font-extrabold text-[var(--ink)]`}>
+                {CARD_INFO[card].glyph}
+              </span>
+              <span className="text-[15px] leading-snug text-[var(--text-muted)]">
+                <b className="text-[var(--text)]">{CARD_INFO[card].name}</b>: {CARD_INFO[card].effect}.{card === "freeze" ? " Play it during the countdown." : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className={P}>Steal: each player who played it takes 1 point from whoever gets the question, while there are points to take.</p>
+      </Section>
+
       <Section title="Options">
         <ul className={LIST}>
           <li>
@@ -131,6 +152,9 @@ function RulesContent() {
           </li>
           <li>
             <b>Length:</b> {LENGTHS.join(", ")} questions ({shortest} is a quick round, {longest} a long game).
+          </li>
+          <li>
+            <b>Power cards:</b> on or off (off by default).
           </li>
         </ul>
       </Section>

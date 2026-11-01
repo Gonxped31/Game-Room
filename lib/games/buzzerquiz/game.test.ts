@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ANSWER_MS, BUZZ_WINDOW_MS, COUNTDOWN_MS, DEFAULT_LENGTH, QUESTION_MS, RESULT_MS, TOPICS } from "./constants";
+import { ANSWER_MS, BUZZ_WINDOW_MS, type Card, COUNTDOWN_MS, DEFAULT_LENGTH, FREEZE_MS, HAND_SIZE, QUESTION_MS, RESULT_MS, TOPICS } from "./constants";
 import {
   advance,
   answerTimeout,
@@ -7,13 +7,16 @@ import {
   buzz,
   choiceOrder,
   choicesLeft,
+  dealHands,
   dueAt,
+  fiftyHidden,
   newGame,
   newTopics,
   next,
   normalize,
   pick,
   pickQuestions,
+  playCard,
   pointsFor,
   publicGame,
   type Question,
@@ -23,6 +26,8 @@ import {
   rematch,
   resolveBuzz,
   reveal,
+  rightAnswer,
+  setCards,
   setLang,
   setLength,
   start,
@@ -352,5 +357,109 @@ describe("publicGame", () => {
     const game = publicGame("fr");
     expect(game.phase).toBe("lobby");
     expect(game.settings).toEqual({ lang: "fr", topics: [...TOPICS], length: DEFAULT_LENGTH });
+  });
+});
+
+describe("Power cards", () => {
+  const hands = { p1: ["freeze", "double", "steal"], p2: ["fifty", "steal", "shield"], p3: ["double", "shield", "freeze"] } as const;
+  const withCards = (): QuizState =>
+    start(setCards(lobby(), true), { players: ["p1", "p2", "p3"], questionIds: ids(5), seed: 7, now: T0, hands: { p1: [...hands.p1], p2: [...hands.p2], p3: [...hands.p3] } });
+  /** Plays cards during the countdown, then reveals the question at T0 + COUNTDOWN_MS. */
+  const openWith = (plays: [string, Card][]): { game: QuizState; at: number } => {
+    let game = withCards();
+    for (const [seat, card] of plays) game = playCard(game, seat, card, T0 + 100);
+    const at = T0 + COUNTDOWN_MS;
+    return { game: reveal(game, at), at };
+  };
+  const answer = (game: QuizState, at: number, seat: string, choice: number) => {
+    const turn = resolveBuzz(buzz(game, seat, 2500, at + 2500), at + 2500 + BUZZ_WINDOW_MS);
+    return pick(turn, seat, choice, at + 3000);
+  };
+
+  it("are off by default and in matchmaking, and the host switches them", () => {
+    expect(lobby().settings.cards).toBeUndefined();
+    expect(publicGame("en").settings.cards).toBeUndefined();
+    expect(setCards(lobby(), true).settings.cards).toBe(true);
+    expect(setCards(setCards(lobby(), true), false).settings).not.toHaveProperty("cards");
+    expect(() => setCards(started(), true)).toThrow();
+  });
+
+  it("deal 3 different cards to each player, and a game with cards on needs them", () => {
+    const dealt = dealHands(["p1", "p2"], () => 0.42);
+    for (const hand of Object.values(dealt)) {
+      expect(hand).toHaveLength(HAND_SIZE);
+      expect(new Set(hand).size).toBe(HAND_SIZE);
+    }
+    expect(withCards().hands.p1).toEqual(["freeze", "double", "steal"]);
+    expect(() => start(setCards(lobby(), true), { players: ["p1", "p2"], questionIds: ids(5), seed: 7, now: T0 })).toThrow("hand");
+    expect(started().hands).toEqual({});
+  });
+
+  it("one per question, from the hand, gone once played; none when cards are off", () => {
+    const game = playCard(withCards(), "p1", "double", T0 + 100);
+    expect(game.hands.p1).toEqual(["freeze", "steal"]);
+    expect(game.played).toEqual({ p1: "double" });
+    expect(() => playCard(game, "p1", "steal", T0 + 200)).toThrow("One card");
+    expect(() => playCard(game, "p2", "double", T0 + 200)).toThrow("Not in your hand");
+    expect(() => playCard(started(), "p1", "double", T0 + 100)).toThrow("off");
+  });
+
+  it("Freeze only during the countdown; nobody plays after buzzing or once locked out", () => {
+    const { game, at } = openWith([]);
+    expect(() => playCard(game, "p1", "freeze", at + 100)).toThrow("before the question");
+    const buzzed = buzz(game, "p2", 500, at + 500);
+    expect(() => playCard(buzzed, "p2", "steal", at + 600)).toThrow("Too late");
+    expect(playCard(buzzed, "p1", "double", at + 600).played.p1).toBe("double");
+  });
+
+  it("Freeze: the others can't buzz in the question's first 2 seconds; its player can", () => {
+    const { game, at } = openWith([["p1", "freeze"]]);
+    expect(() => buzz(game, "p2", FREEZE_MS - 1, at + 1000)).toThrow("Frozen");
+    expect(buzz(game, "p1", 300, at + 300).buzzes).toEqual([{ seat: "p1", ms: 300 }]);
+    expect(buzz(game, "p2", FREEZE_MS, at + FREEZE_MS).buzzes).toHaveLength(1);
+  });
+
+  it("Double doubles a right answer", () => {
+    const { game, at } = openWith([["p1", "double"]]);
+    const done = answer(game, at, "p1", 0);
+    expect(done.outcome).toEqual({ kind: "right", seat: "p1", points: 6 });
+    expect(done.scores.p1).toBe(6);
+  });
+
+  it("Steal takes 1 point from whoever is right, never from the stealer", () => {
+    const { game, at } = openWith([["p2", "steal"], ["p1", "steal"]]);
+    const done = answer(game, at, "p1", 0);
+    expect(done.outcome).toEqual({ kind: "right", seat: "p1", points: 2 });
+    expect(done.scores).toEqual({ p1: 2, p2: 1, p3: 0 });
+  });
+
+  it("steals stop when the points run out", () => {
+    const game = { ...openWith([["p2", "steal"]]).game, played: { p2: "steal", p3: "steal" } } as QuizState;
+    const struck = { ...game, struck: [1, 2] };
+    expect(rightAnswer(struck, "p1")).toEqual({ gain: 1, stealers: ["p2"] });
+  });
+
+  it("Shield: a wrong answer doesn't lock its player out", () => {
+    const { game, at } = openWith([["p2", "shield"]]);
+    const missed = answer(game, at, "p2", 1);
+    expect(missed.locked).toEqual([]);
+    expect(missed.struck).toEqual([1]);
+    expect(missed.phase).toBe("question");
+  });
+
+  it("50/50 hides two of the three wrong choices, the same on every device", () => {
+    const hidden = fiftyHidden(7, 2);
+    expect(hidden).toHaveLength(2);
+    expect(hidden).not.toContain(0);
+    expect(fiftyHidden(7, 2)).toEqual(hidden);
+  });
+
+  it("cards played clear at the next question; hands carry on", () => {
+    const { game, at } = openWith([["p1", "double"]]);
+    const done = answer(game, at, "p1", 0);
+    const nextOne = next(done, at + 3000 + RESULT_MS);
+    expect(nextOne.played).toEqual({});
+    expect(nextOne.hands.p1).toEqual(["freeze", "steal"]);
+    expect(normalize({ ...nextOne, hands: { p1: { 0: "freeze", 1: "steal" } } } as unknown as QuizState).hands.p1).toEqual(["freeze", "steal"]);
   });
 });

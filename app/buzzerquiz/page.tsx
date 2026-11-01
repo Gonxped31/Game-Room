@@ -8,22 +8,28 @@ import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { defaultLang } from "@/lib/games/shared/language";
 import { BUZZERQUIZ_MATCH } from "@/lib/games/matchGames";
-import { ANSWER_MS, COUNTDOWN_MS, GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
+import { ANSWER_MS, type Card, COUNTDOWN_MS, FREEZE_MS, GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
 import {
   advance,
   backToSetup,
   buzz,
   choiceOrder,
+  dealHands,
   dueAt,
+  fiftyHidden,
+  frozen,
   newGame,
   newTopics,
   normalize,
   pick,
   pickQuestions,
+  playCard,
   type QuizState,
   ranking,
   rematch,
   reveal,
+  rightAnswer,
+  setCards,
   setLang,
   setLength,
   start,
@@ -34,6 +40,7 @@ import { getQuestion, QUESTIONS } from "@/lib/games/buzzerquiz/questions";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import QuestionScreen, { type QuestionView } from "@/components/buzzerquiz/QuestionScreen";
 import { Countdown, Final, InviteCard, Lobby, Message, NameEntry, Setup } from "@/components/buzzerquiz/Screens";
+import { PlayedRow, PowerHand } from "@/components/buzzerquiz/PowerCards";
 import { THEME, type ScoreRow } from "@/components/buzzerquiz/ui";
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
@@ -75,16 +82,22 @@ export default function BuzzerQuizPage() {
   const onBuzz = useCallback(() => {
     if (!me || !roundKey || buzzedRound === roundKey) return;
     const ms = Math.min(QUESTION_MS, Math.max(0, Math.round(performance.now() - shownAt.current)));
+    // Frozen by someone else's Freeze: the state machine would refuse it, so don't count this round as buzzed.
+    if (game && frozen(game, me) && roundKey.endsWith(":0") && ms < FREEZE_MS) return;
     setBuzzedRound(roundKey);
     transact((current) => {
       const t = serverNow();
       const open = current.phase === "countdown" ? reveal(current, t) : current;
       return buzz(open, me, ms, t);
     });
-  }, [me, roundKey, buzzedRound, transact, serverNow]);
+  }, [me, roundKey, buzzedRound, transact, serverNow, game]);
 
   const onPick = useCallback((bank: number) => {
     if (me) transact((current) => pick(current, me, bank, serverNow()));
+  }, [me, transact, serverNow]);
+
+  const onPlay = useCallback((card: Card) => {
+    if (me) transact((current) => playCard(current, me, card, serverNow()));
   }, [me, transact, serverNow]);
 
   useEffect(() => {
@@ -95,7 +108,7 @@ export default function BuzzerQuizPage() {
     transact((current) => {
       const g = normalize(current);
       const players = startingSeats(session);
-      const opts = { players, questionIds: pickQuestions(QUESTIONS, g.settings, Math.random), seed: randomSeed(), now: serverNow() };
+      const opts = { players, questionIds: pickQuestions(QUESTIONS, g.settings, Math.random), seed: randomSeed(), now: serverNow(), hands: g.settings.cards ? dealHands(players, Math.random) : undefined };
       return fromFinal ? rematch(g, opts) : start(g, opts);
     });
 
@@ -129,6 +142,7 @@ export default function BuzzerQuizPage() {
         onLang={(lang) => transact((s) => setLang(s, lang))}
         onTopic={(topic) => transact((s) => toggleTopic(s, topic))}
         onLength={(length) => transact((s) => setLength(s, length))}
+        onCards={(on) => transact((s) => setCards(s, on))}
         onContinue={() => transact(toLobby)}
         onLeave={leave}
       />
@@ -180,6 +194,23 @@ export default function BuzzerQuizPage() {
       pop: pop?.seat === seat ? pop.points : undefined,
     }));
     const question = getQuestion(game.questionIds[game.index] ?? "");
+    // Power cards: what this player may do now, and what the others played.
+    const mine = me != null && game.players.includes(me) ? me : null;
+    const cardsOpen = game.phase === "countdown" || game.phase === "question" || game.phase === "buzzing";
+    const canPlay = mine != null && cardsOpen && !game.played[mine] && !game.locked.includes(mine) && !game.buzzes.some((b) => b.seat === mine) && !(roundKey != null && buzzedRound === roundKey);
+    const openedAt = game.phase === "countdown" ? game.deadline : game.openedAt;
+    const frozenMs = mine != null && game.round === 0 && frozen(game, mine) && openedAt != null && now != null ? openedAt + FREEZE_MS - now : 0;
+    const cardsView = game.settings.cards
+      ? {
+          hand: mine ? (game.hands[mine] ?? []) : [],
+          canPlay,
+          played: game.played,
+          players: game.players,
+          frozenSeconds: frozenMs > 0 ? Math.ceil(frozenMs / 1000) : 0,
+          hidden: mine && game.played[mine] === "fifty" ? fiftyHidden(game.seed, game.index) : [],
+          stealers: game.outcome?.kind === "right" ? rightAnswer(game, game.outcome.seat).stealers : [],
+        }
+      : undefined;
 
     if (game.phase === "final") {
       screen = (
@@ -195,7 +226,23 @@ export default function BuzzerQuizPage() {
       );
     } else if (game.phase === "countdown" && !revealed) {
       const t = now ?? (game.deadline ?? 0) - COUNTDOWN_MS;
-      screen = <Countdown seconds={secondsLeft(game.deadline ?? 0, t)} index={game.index} total={game.questionIds.length} topic={question?.topic} scores={scores} />;
+      screen = (
+        <Countdown
+          seconds={secondsLeft(game.deadline ?? 0, t)}
+          index={game.index}
+          total={game.questionIds.length}
+          topic={question?.topic}
+          scores={scores}
+          cards={
+            cardsView ? (
+              <>
+                <PlayedRow played={cardsView.played} players={cardsView.players} names={names} me={me} />
+                {mine ? <PowerHand hand={cardsView.hand} canPlay={cardsView.canPlay} freezeOk onPlay={onPlay} /> : null}
+              </>
+            ) : undefined
+          }
+        />
+      );
     } else {
       const t = now ?? 0;
       const phase = game.phase === "countdown" ? "question" : (game.phase as QuestionView["phase"]);
@@ -225,8 +272,9 @@ export default function BuzzerQuizPage() {
         answerFraction: answerLeftMs / ANSWER_MS,
         nextSeconds: game.phase === "result" && game.deadline != null ? Math.min(RESULT_MS / 1000, Math.max(1, secondsLeft(game.deadline, t))) : 0,
         buzzedHere: roundKey != null && buzzedRound === roundKey,
+        cards: cardsView,
       };
-      screen = <QuestionScreen view={view} onBuzz={onBuzz} onPick={onPick} />;
+      screen = <QuestionScreen view={view} onBuzz={onBuzz} onPick={onPick} onPlay={onPlay} />;
     }
   }
 

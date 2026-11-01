@@ -51,6 +51,25 @@ out for everyone and its player is locked out of that question. A right pick sco
 - `players` is fixed at Start (the seated guests then). Anyone else watches, and
   joins at the next Rematch.
 
+## Power cards (T-041)
+
+The host's switch (`settings.cards`, absent = off; never in matchmaking).
+At Start the page deals each player `HAND_SIZE` (3) different cards
+(`dealHands`, kept in `hands`); `playCard` plays one per question (`played`,
+cleared by `next`), during the countdown or before buzzing, not once buzzed or
+locked out; Freeze only during the countdown.
+- **Freeze**: the others' buzzes under `FREEZE_MS` (2 s) are refused on the
+  question's first round (`frozen`); the page shows their buzzer as frozen.
+- **Double**: a right answer scores double (up to 6: the rules allow it).
+- **50/50**: `fiftyHidden(seed, index)` picks the two wrong choices hidden on
+  that player's screen only (dimmed, not pickable, keys included); scoring
+  still counts the choices left for everyone.
+- **Steal**: `rightAnswer` gives each stealer 1 of the right answer's points,
+  in seat order, while any are left; `outcome.points` is the answerer's net.
+- **Shield**: a miss (wrong or out of time) doesn't lock its player out.
+UI: `PowerCards.tsx` (`PowerHand`, `PlayedRow`) on the countdown and question
+screens; the setup has the switch, the lobby a chip, How to play a section.
+
 ## Public rooms (matchmaking)
 
 Public ("Matchmaking") rooms (`meta.publicLang`, `docs/matchmaking.md`) start from
@@ -69,6 +88,7 @@ links back to `/`.
   shuffles them (`choiceOrder(seed, index)`). Rules refuse striking choice 0.
 - Interface copy is English. Only the questions follow the room's language.
 - The bank must keep ≥ 20 questions per topic per language, or a 20-question
-  single-topic game can't start (the test enforces it). Growing it is todo T-049.
+  single-topic game can't start (the test enforces it). It has 40 per topic per
+  language (2026-11-01).
 - Playwright: a `click()` on the buzzer waits while it's disabled. To race two
   players, dispatch `pointerdown` on both at once (see the live test).

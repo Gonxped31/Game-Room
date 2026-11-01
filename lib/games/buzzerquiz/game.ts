@@ -4,10 +4,14 @@ import type { Lang } from "@/lib/games/shared/language";
 import {
   ANSWER_MS,
   BUZZ_WINDOW_MS,
+  type Card,
+  CARDS,
   CHOICES,
   COUNTDOWN_MS,
   DEFAULT_LENGTH,
+  FREEZE_MS,
   type GameLength,
+  HAND_SIZE,
   LENGTHS,
   MAX_PLAYERS,
   MIN_PLAYERS,
@@ -33,6 +37,8 @@ export interface Settings {
   lang: Lang;
   topics: TopicId[];
   length: GameLength;
+  /** Power cards (constants.ts `CARDS`): on only when the host turns them on. */
+  cards?: boolean;
 }
 
 export interface Buzz {
@@ -73,6 +79,10 @@ export interface QuizState extends WithMultiplayerIdentity {
   lastPick?: { seat: SeatId; choice: number; right: boolean };
   outcome?: Outcome;
   scores: Partial<Record<SeatId, number>>;
+  /** Power cards still in each player's hand (a game with cards on). */
+  hands: Partial<Record<SeatId, Card[]>>;
+  /** The card each player played on this question, cleared at the next countdown. */
+  played: Partial<Record<SeatId, Card>>;
 }
 
 export interface Question {
@@ -96,6 +106,9 @@ export function normalize(game: QuizState): QuizState {
     struck: game.struck ?? [],
     locked: game.locked ?? [],
     scores: game.scores ?? {},
+    // A hand comes back from the database as an array or, with gaps, an object; an empty one doesn't come back at all.
+    hands: Object.fromEntries(Object.entries(game.hands ?? {}).map(([seat, hand]) => [seat, Object.values(hand ?? {})])),
+    played: game.played ?? {},
   };
 }
 
@@ -119,6 +132,8 @@ export function newGame(lang: Lang): QuizState {
     struck: [],
     locked: [],
     scores: {},
+    hands: {},
+    played: {},
     names: {},
   };
 }
@@ -158,6 +173,19 @@ export function setLength(state: QuizState, length: number): QuizState {
   return { ...game, settings: { ...game.settings, length: length as GameLength } };
 }
 
+/** The host's Power cards switch. */
+export function setCards(state: QuizState, on: boolean): QuizState {
+  const game = normalize(state);
+  if (game.phase !== "setup" && game.phase !== "lobby") throw new Error("Settings are locked.");
+  const { lang, topics, length } = game.settings;
+  return { ...game, settings: on ? { lang, topics, length, cards: true } : { lang, topics, length } };
+}
+
+/** Deals each player HAND_SIZE different cards at random, for a game with Power cards on. */
+export function dealHands(players: readonly SeatId[], random: () => number): Partial<Record<SeatId, Card[]>> {
+  return Object.fromEntries(players.map((seat) => [seat, shuffle(CARDS, random).slice(0, HAND_SIZE)]));
+}
+
 /** "Continue to the waiting room". */
 export function toLobby(state: QuizState): QuizState {
   const game = normalize(state);
@@ -173,13 +201,23 @@ export function backToSetup(state: QuizState): QuizState {
   return { ...game, phase: "setup" };
 }
 
-function startRun(game: QuizState, opts: { players: SeatId[]; questionIds: string[]; seed: number; now: number }): QuizState {
+type StartOpts = { players: SeatId[]; questionIds: string[]; seed: number; now: number; hands?: Partial<Record<SeatId, Card[]>> };
+
+function startRun(game: QuizState, opts: StartOpts): QuizState {
   const { players, questionIds, seed, now } = opts;
   if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) throw new Error(`Needs ${MIN_PLAYERS} to ${MAX_PLAYERS} players.`);
   if (new Set(players).size !== players.length) throw new Error("Duplicate player.");
   if (questionIds.length !== game.settings.length) throw new Error("Wrong number of questions.");
   const scores: Partial<Record<SeatId, number>> = {};
   for (const seat of players) scores[seat] = 0;
+  const hands: Partial<Record<SeatId, Card[]>> = {};
+  if (game.settings.cards) {
+    for (const seat of players) {
+      const hand = opts.hands?.[seat] ?? [];
+      if (hand.length !== HAND_SIZE || new Set(hand).size !== HAND_SIZE || !hand.every((card) => CARDS.includes(card))) throw new Error("Every player needs a hand of cards.");
+      hands[seat] = [...hand];
+    }
+  }
   return {
     ...without(game, "openedAt", "questionEnd", "timeLeft", "buzzer", "lastPick", "outcome"),
     phase: "countdown",
@@ -193,18 +231,20 @@ function startRun(game: QuizState, opts: { players: SeatId[]; questionIds: strin
     struck: [],
     locked: [],
     scores,
+    hands,
+    played: {},
   };
 }
 
-/** Start: the questions are drawn by the caller (`pickQuestions`) from the bank. */
-export function start(state: QuizState, opts: { players: SeatId[]; questionIds: string[]; seed: number; now: number }): QuizState {
+/** Start: the questions (`pickQuestions`) and, with Power cards on, the hands (`dealHands`) are drawn by the caller. */
+export function start(state: QuizState, opts: StartOpts): QuizState {
   const game = normalize(state);
   if (game.phase !== "lobby") throw new Error("Not in the lobby.");
   return startRun(game, opts);
 }
 
 /** Rematch from the final ranking: same settings, new questions, scores back to 0. */
-export function rematch(state: QuizState, opts: { players: SeatId[]; questionIds: string[]; seed: number; now: number }): QuizState {
+export function rematch(state: QuizState, opts: StartOpts): QuizState {
   const game = normalize(state);
   if (game.phase !== "final") throw new Error("The game isn't over.");
   return startRun(game, opts);
@@ -214,7 +254,7 @@ export function rematch(state: QuizState, opts: { players: SeatId[]; questionIds
 export function newTopics(state: QuizState): QuizState {
   const game = normalize(state);
   if (game.phase !== "final") throw new Error("The game isn't over.");
-  return { ...without(game, "deadline", "openedAt", "questionEnd", "timeLeft", "buzzer", "lastPick", "outcome"), phase: "setup", buzzes: [], struck: [], locked: [] };
+  return { ...without(game, "deadline", "openedAt", "questionEnd", "timeLeft", "buzzer", "lastPick", "outcome"), phase: "setup", buzzes: [], struck: [], locked: [], hands: {}, played: {} };
 }
 
 // ---- A question ---------------------------------------------------------------------
@@ -236,6 +276,29 @@ export function reveal(state: QuizState, now: number): QuizState {
   };
 }
 
+/** Someone else played Freeze on this question: `seat` can't buzz in its first FREEZE_MS. */
+export const frozen = (game: Pick<QuizState, "played">, seat: SeatId): boolean =>
+  Object.entries(game.played ?? {}).some(([other, card]) => card === "freeze" && other !== seat);
+
+/**
+ * A player plays a Power card: one per question, during the countdown or
+ * before buzzing (not once buzzed or locked out); Freeze only during the
+ * countdown, since it acts on the question's first seconds.
+ */
+export function playCard(state: QuizState, seat: SeatId, card: Card, now: number): QuizState {
+  const game = normalize(state);
+  if (!game.settings.cards) throw new Error("Power cards are off.");
+  if (!game.players.includes(seat)) throw new Error("Not playing.");
+  const countdown = game.phase === "countdown" && game.deadline != null && now < game.deadline;
+  if (!countdown && game.phase !== "question" && game.phase !== "buzzing") throw new Error("Too late to play a card.");
+  if (card === "freeze" && !countdown) throw new Error("Freeze is played before the question shows.");
+  if (game.locked.includes(seat) || game.buzzes.some((b) => b.seat === seat)) throw new Error("Too late to play a card.");
+  if (game.played[seat]) throw new Error("One card per question.");
+  const hand = game.hands[seat] ?? [];
+  if (!hand.includes(card)) throw new Error("Not in your hand.");
+  return { ...game, hands: { ...game.hands, [seat]: hand.filter((c) => c !== card) }, played: { ...game.played, [seat]: card } };
+}
+
 /** A player buzzes with their reaction time. The first buzz of a round opens the buzz window. */
 export function buzz(state: QuizState, seat: SeatId, ms: number, now: number): QuizState {
   const game = normalize(state);
@@ -244,6 +307,7 @@ export function buzz(state: QuizState, seat: SeatId, ms: number, now: number): Q
   if (game.locked.includes(seat)) throw new Error("Locked out.");
   if (game.buzzes.some((b) => b.seat === seat)) throw new Error("Already buzzed.");
   if (!Number.isInteger(ms) || ms < 0 || ms > QUESTION_MS) throw new Error("Bad reaction time.");
+  if (game.round === 0 && ms < FREEZE_MS && frozen(game, seat)) throw new Error("Frozen.");
   const buzzes = [...game.buzzes, { seat, ms }];
   if (game.phase === "buzzing") return { ...game, buzzes };
   return {
@@ -294,6 +358,21 @@ function afterMiss(game: QuizState, now: number): QuizState {
   };
 }
 
+/**
+ * A right answer's points: its value (pointsFor), doubled by the answerer's
+ * Double; then each other player who played Steal takes 1 of them, in seat
+ * order, while any are left.
+ */
+export function rightAnswer(game: Pick<QuizState, "struck" | "played" | "players">, seat: SeatId): { gain: number; stealers: SeatId[] } {
+  const base = pointsFor(choicesLeft(game));
+  const gain = game.played?.[seat] === "double" ? base * 2 : base;
+  const stealers = game.players.filter((other) => other !== seat && game.played?.[other] === "steal").slice(0, gain);
+  return { gain, stealers };
+}
+
+/** Locks a player out after a miss, unless they played Shield on this question. */
+const lockOut = (game: QuizState, seat: SeatId): SeatId[] => (game.played[seat] === "shield" ? game.locked : [...game.locked, seat]);
+
 /** The buzzer picks a choice (a bank index; 0 is right). */
 export function pick(state: QuizState, seat: SeatId, choice: number, now: number): QuizState {
   const game = normalize(state);
@@ -302,21 +381,19 @@ export function pick(state: QuizState, seat: SeatId, choice: number, now: number
   if (!Number.isInteger(choice) || choice < 0 || choice >= CHOICES) throw new Error("No such choice.");
   if (game.struck.includes(choice)) throw new Error("Already struck.");
   if (choice === 0) {
-    const points = pointsFor(choicesLeft(game));
-    const scores = { ...game.scores, [seat]: (game.scores[seat] ?? 0) + points };
-    return endQuestion({ ...game, scores, lastPick: { seat, choice, right: true } }, { kind: "right", seat, points }, now);
+    const { gain, stealers } = rightAnswer(game, seat);
+    const scores = { ...game.scores, [seat]: (game.scores[seat] ?? 0) + gain - stealers.length };
+    for (const thief of stealers) scores[thief] = (scores[thief] ?? 0) + 1;
+    return endQuestion({ ...game, scores, lastPick: { seat, choice, right: true } }, { kind: "right", seat, points: gain - stealers.length }, now);
   }
-  return afterMiss(
-    { ...game, struck: [...game.struck, choice], locked: [...game.locked, seat], lastPick: { seat, choice, right: false } },
-    now,
-  );
+  return afterMiss({ ...game, struck: [...game.struck, choice], locked: lockOut(game, seat), lastPick: { seat, choice, right: false } }, now);
 }
 
-/** The buzzer didn't pick in time: locked out, nothing struck. */
+/** The buzzer didn't pick in time: locked out (unless shielded), nothing struck. */
 export function answerTimeout(state: QuizState, now: number): QuizState {
   const game = normalize(state);
   assertDue(game, "answering", game.deadline, now);
-  return afterMiss({ ...without(game, "lastPick"), locked: [...game.locked, game.buzzer!] }, now);
+  return afterMiss({ ...without(game, "lastPick"), locked: lockOut(game, game.buzzer!) }, now);
 }
 
 /** Nobody buzzed before the question timer ran out. */
@@ -331,8 +408,8 @@ export function next(state: QuizState, now: number): QuizState {
   const game = normalize(state);
   assertDue(game, "result", game.deadline, now);
   const cleared = without(game, "lastPick", "outcome");
-  if (game.index + 1 >= game.questionIds.length) return { ...without(cleared, "deadline"), phase: "final", struck: [], locked: [], buzzes: [] };
-  return { ...cleared, phase: "countdown", index: game.index + 1, round: 0, deadline: now + COUNTDOWN_MS, struck: [], locked: [], buzzes: [] };
+  if (game.index + 1 >= game.questionIds.length) return { ...without(cleared, "deadline"), phase: "final", struck: [], locked: [], buzzes: [], played: {} };
+  return { ...cleared, phase: "countdown", index: game.index + 1, round: 0, deadline: now + COUNTDOWN_MS, struck: [], locked: [], buzzes: [], played: {} };
 }
 
 /** The deadline a device should be waiting on in this phase, if any. */
@@ -379,6 +456,11 @@ function shuffle<T>(items: readonly T[], random: () => number): T[] {
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
+}
+
+/** Fifty-fifty: the two wrong choices (bank indices) that disappear for whoever played it on question `index`. */
+export function fiftyHidden(seed: number, index: number): number[] {
+  return shuffle([1, 2, 3], seededRandom(seed * 17 + index + 7)).slice(0, 2);
 }
 
 /** The display order of question `index`'s choices, as bank indices (so the answer isn't always first). */

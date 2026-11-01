@@ -35,3 +35,18 @@ export const BUZZ_WINDOW_MS = 300;
 export const ANSWER_MS = 5000;
 /** How long the result of a question stays up before the next countdown. */
 export const RESULT_MS = 3000;
+
+/**
+ * Power cards (the host's switch, off by default; never in matchmaking):
+ * each player is dealt HAND_SIZE different ones per game and may play one
+ * per question, during the countdown or before buzzing.
+ * - freeze: the others can't buzz for the first FREEZE_MS of the question (countdown only);
+ * - double: a right answer scores double;
+ * - fifty: two wrong choices disappear, on that player's screen only;
+ * - steal: if someone else is right, take 1 of their points;
+ * - shield: a wrong answer (or running out of time) doesn't lock you out.
+ */
+export const CARDS = ["freeze", "double", "fifty", "steal", "shield"] as const;
+export type Card = (typeof CARDS)[number];
+export const HAND_SIZE = 3;
+export const FREEZE_MS = 2000;

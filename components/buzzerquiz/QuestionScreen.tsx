@@ -24,6 +24,8 @@ import {
   TimerRing,
 } from "./ui";
 import RulesButton from "./Rules";
+import { PlayedRow, PowerHand } from "./PowerCards";
+import type { Card } from "@/lib/games/buzzerquiz/constants";
 
 const LETTERS = ["A", "B", "C", "D"];
 
@@ -57,15 +59,33 @@ export interface QuestionView {
   nextSeconds: number;
   /** This device already buzzed this round (waiting for the window to close). */
   buzzedHere: boolean;
+  /** Power cards, when the host turned them on. */
+  cards?: CardsView;
 }
 
-export default function QuestionScreen({ view, onBuzz, onPick }: { view: QuestionView; onBuzz: () => void; onPick: (bank: number) => void }) {
+export interface CardsView {
+  /** This player's hand (empty for a spectator). */
+  hand: Card[];
+  /** They may play one now: none played yet this question, not buzzed, not locked out. */
+  canPlay: boolean;
+  played: Partial<Record<SeatId, Card>>;
+  players: SeatId[];
+  /** Seconds this player's buzzer stays frozen by someone else's Freeze (0: not frozen). */
+  frozenSeconds: number;
+  /** Wrong choices (bank indices) their 50/50 hides on this screen. */
+  hidden: number[];
+  /** On a right answer: who took a point from it with Steal. */
+  stealers: SeatId[];
+}
+
+export default function QuestionScreen({ view, onBuzz, onPick, onPlay }: { view: QuestionView; onBuzz: () => void; onPick: (bank: number) => void; onPlay: (card: Card) => void }) {
   const { phase, me, playing, names, buzzer, lastPick, outcome } = view;
   const name = (seat?: SeatId) => (seat ? (names[seat] ?? "Someone") : "Someone");
   const myTurn = phase === "answering" && buzzer === me;
   const lockedOut = me != null && view.locked.includes(me);
   const left = choicesLeft(view);
-  const canBuzz = playing && phase === "question" && !lockedOut && !view.buzzedHere;
+  const frozenFor = view.cards?.frozenSeconds ?? 0;
+  const canBuzz = playing && phase === "question" && !lockedOut && !view.buzzedHere && frozenFor === 0;
 
   // Desktop keys: Space buzzes, A-D or 1-4 picks.
   useEffect(() => {
@@ -81,11 +101,11 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
       const key = e.key.toUpperCase();
       const position = LETTERS.indexOf(key) >= 0 ? LETTERS.indexOf(key) : ["1", "2", "3", "4"].indexOf(key);
       const choice = view.choices[position];
-      if (choice && !view.struck.includes(choice.bank)) onPick(choice.bank);
+      if (choice && !view.struck.includes(choice.bank) && !(view.cards?.hidden ?? []).includes(choice.bank)) onPick(choice.bank);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canBuzz, myTurn, onBuzz, onPick, view.choices, view.struck]);
+  }, [canBuzz, myTurn, onBuzz, onPick, view.choices, view.struck, view.cards?.hidden]);
 
   // The "Worth" line.
   const worth =
@@ -110,7 +130,9 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
       </StatusBanner>
     );
   } else if (phase === "result" && outcome?.kind === "right") {
-    banner = <StatusBanner fill="var(--right)" color="var(--right-ink)" icon={<CheckIcon />} text={outcome.seat === me ? "You got it!" : `${name(outcome.seat)} got it!`} side={`+${outcome.points}`} />;
+    const thieves = view.cards?.stealers ?? [];
+    const stolen = thieves.length ? ` ${thieves.map((seat) => (seat === me ? "You" : name(seat))).join(" and ")} stole ${thieves.length === 1 ? "1 point" : "a point each"}.` : "";
+    banner = <StatusBanner fill="var(--right)" color="var(--right-ink)" icon={<CheckIcon />} text={`${outcome.seat === me ? "You got it!" : `${name(outcome.seat)} got it!`}${stolen}`} side={`+${outcome.points}`} />;
   } else if (phase === "result" && outcome?.kind === "none") {
     const answer = view.choices.find((c) => c.bank === 0)?.text ?? "";
     const why = outcome.reason === "timeout" ? `Time's up. The answer was ${answer}.` : outcome.reason === "one-left" ? `Only one choice was left. The answer was ${answer}.` : `Everyone is out. The answer was ${answer}.`;
@@ -124,12 +146,15 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
   }
 
   // Each choice's look.
+  const hidden = (bank: number) => (view.cards?.hidden ?? []).includes(bank);
   const lookOf = (bank: number): ChoiceLook => {
     if (view.struck.includes(bank)) return "struck";
     if (phase === "result") {
       if (outcome?.kind === "right") return bank === 0 ? "right" : "dimmed";
       return bank === 0 ? "answer" : "dimmed";
     }
+    // 50/50: gone from this screen (dimmed, and not pickable).
+    if (hidden(bank)) return "dimmed";
     return myTurn ? "pickable" : "default";
   };
   const struckBy = (bank: number) => (lastPick && lastPick.choice === bank ? (lastPick.seat === me ? "your pick" : name(lastPick.seat)) : undefined);
@@ -137,7 +162,10 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
   // The buzzer area.
   let buzzerState: BuzzerState = "ready";
   let caption = "Tap as soon as you know it";
-  if (lockedOut) {
+  if (frozenFor > 0 && phase === "question" && !lockedOut) {
+    buzzerState = "wait";
+    caption = `Frozen! ${frozenFor} s`;
+  } else if (lockedOut) {
     buzzerState = "locked";
     caption = "The others can still buzz";
   } else if (phase === "answering") {
@@ -177,6 +205,7 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
               <h1 className={`${DISPLAY} m-0 text-[24px] font-bold leading-[1.2] min-[900px]:text-[36px]`}>{view.question}</h1>
             </section>
             {banner}
+            {view.cards ? <PlayedRow played={view.cards.played} players={view.cards.players} names={names} me={me} /> : null}
             <ul className="m-0 grid list-none grid-cols-1 gap-2 p-0 min-[900px]:grid-cols-2 min-[900px]:gap-3.5">
               {view.choices.map((choice, i) => (
                 <li key={choice.bank}>
@@ -184,7 +213,7 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
                     letter={LETTERS[i]}
                     text={choice.text}
                     look={lookOf(choice.bank)}
-                    note={view.struck.includes(choice.bank) ? struckBy(choice.bank) : undefined}
+                    note={view.struck.includes(choice.bank) ? struckBy(choice.bank) : hidden(choice.bank) && phase !== "result" ? "50/50" : undefined}
                     myColor={me ? seatColor(me) : "var(--p1)"}
                     onPick={() => onPick(choice.bank)}
                     compact={banner != null}
@@ -198,6 +227,7 @@ export default function QuestionScreen({ view, onBuzz, onPick }: { view: Questio
               ) : playing ? (
                 <>
                   <Buzzer state={buzzerState} caption={caption} onBuzz={onBuzz} small={banner != null} />
+                  {view.cards ? <PowerHand hand={view.cards.hand} canPlay={view.cards.canPlay} freezeOk={false} onPlay={onPlay} /> : null}
                   <p className={`${TEXT} m-0 hidden items-center gap-2 text-[14px] text-[var(--text-muted)] min-[900px]:flex`}>
                     Press <kbd className="rounded-md border-2 border-[var(--text-muted)] px-1.5 font-bold">Space</kbd> or click to buzz · Then pick with{" "}
                     <kbd className="rounded-md border-2 border-[var(--text-muted)] px-1.5 font-bold">A–D</kbd>

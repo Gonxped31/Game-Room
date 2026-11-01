@@ -4,7 +4,7 @@ import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { SeatId } from "@/lib/session/types";
 import { LANG_LABELS, LANGS, type Lang } from "@/lib/games/shared/language";
-import { LENGTHS, MIN_PLAYERS, TOPIC_LABELS, TOPICS, type TopicId } from "@/lib/games/buzzerquiz/constants";
+import { HAND_SIZE, LENGTHS, MIN_PLAYERS, TOPIC_LABELS, TOPICS, type TopicId } from "@/lib/games/buzzerquiz/constants";
 import type { Settings } from "@/lib/games/buzzerquiz/game";
 import {
   Avatar,
@@ -134,11 +134,12 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
 
 // ---- Setup (host) -----------------------------------------------------------------------
 
-function settingsFields({ settings, onLang, onTopic, onLength }: {
+function settingsFields({ settings, onLang, onTopic, onLength, onCards }: {
   settings: Settings;
   onLang: (lang: Lang) => void;
   onTopic: (topic: TopicId) => void;
   onLength: (length: number) => void;
+  onCards: (on: boolean) => void;
 }) {
   const count = settings.topics.length;
   return {
@@ -187,18 +188,36 @@ function settingsFields({ settings, onLang, onTopic, onLength }: {
         <Segmented label="Questions" options={LENGTHS.map((n) => ({ value: n, label: String(n) }))} value={settings.length} onChange={onLength} />
       </section>
     ),
+    cards: (
+      <section className="flex flex-col gap-2.5">
+        <h2 className={LABEL}>Power cards</h2>
+        <Segmented
+          label="Power cards"
+          options={[
+            { value: "off", label: "Off" },
+            { value: "on", label: "On" },
+          ]}
+          value={settings.cards ? "on" : "off"}
+          onChange={(value) => onCards(value === "on")}
+        />
+        <p className={`${TEXT} m-0 text-[14px] leading-snug text-[var(--text-muted)]`}>
+          Everyone gets {HAND_SIZE} of Freeze, Double, 50/50, Steal and Shield, one per question at most.
+        </p>
+      </section>
+    ),
   };
 }
 
-export function Setup({ settings, onLang, onTopic, onLength, onContinue, onLeave }: {
+export function Setup({ settings, onLang, onTopic, onLength, onCards, onContinue, onLeave }: {
   settings: Settings;
   onLang: (lang: Lang) => void;
   onTopic: (topic: TopicId) => void;
   onLength: (length: number) => void;
+  onCards: (on: boolean) => void;
   onContinue: () => void;
   onLeave: () => void;
 }) {
-  const fields = settingsFields({ settings, onLang, onTopic, onLength });
+  const fields = settingsFields({ settings, onLang, onTopic, onLength, onCards });
   const cta = (
     <div className="flex flex-col gap-2.5">
       <PrimaryButton disabled={!settings.topics.length} onClick={onContinue}>
@@ -219,6 +238,7 @@ export function Setup({ settings, onLang, onTopic, onLength, onContinue, onLeave
           <div className="flex flex-col gap-6">
             {fields.language}
             {fields.length}
+            {fields.cards}
             <ScoringNote />
           </div>
           <div className="flex flex-col gap-6">
@@ -397,6 +417,7 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
           <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>{LANG_LABELS[settings.lang]}</li>
           <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>{settings.length} questions</li>
+          {settings.cards ? <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>Power cards</li> : null}
           {settings.topics.map((topic) => (
             <li key={topic} className={`${TEXT} rounded-full border-2 border-[var(--points)] px-3 py-1 text-[14px] font-bold text-[var(--points)]`}>
               {topicLabel(topic)}
@@ -447,7 +468,7 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
 
 // ---- Countdown --------------------------------------------------------------------------
 
-export function Countdown({ seconds, index, total, topic, scores }: { seconds: number; index: number; total: number; topic?: TopicId; scores: ScoreRow[] }) {
+export function Countdown({ seconds, index, total, topic, scores, cards }: { seconds: number; index: number; total: number; topic?: TopicId; scores: ScoreRow[]; cards?: ReactNode }) {
   const size = 230;
   const r = (size - 14) / 2;
   const c = 2 * Math.PI * r;
@@ -474,6 +495,7 @@ export function Countdown({ seconds, index, total, topic, scores }: { seconds: n
           </span>
         </div>
         <p className={`${TEXT} m-0 text-[17px] text-[var(--text-muted)]`}>Thumb on the buzzer…</p>
+        {cards}
       </div>
     </div>
   );

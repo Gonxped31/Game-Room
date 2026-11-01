@@ -3,8 +3,9 @@
 // iPhone and an Android player join, and the three play it through - a buzz
 // race decided by reaction time, a wrong answer struck out for everyone and
 // its player locked out, a right answer scored 2 - then the final ranking and
-// a rematch, and How to play opened from the title row and the lobby. About
-// a minute.
+// a rematch, and How to play opened from the title row and the lobby. Power
+// cards are on: everyone is dealt 3, and a card played shows on every screen.
+// About a minute.
 //
 //   node .claude/skills/live-test/scripts/buzzer-quiz.mjs [baseUrl] [screenshotDir]
 import { readFileSync } from "node:fs";
@@ -47,7 +48,8 @@ try {
   await A.getByRole("button", { name: "Science" }).click();
   await A.getByRole("button", { name: "Music" }).click();
   await A.getByRole("radio", { name: "5", exact: true }).click();
-  await until(async () => (await state())?.settings?.topics?.length === 2 && (await state()).settings.length === 5, "the settings");
+  await A.getByRole("radiogroup", { name: "Power cards" }).getByRole("radio", { name: "On" }).click();
+  await until(async () => { const s = (await state())?.settings; return s?.topics?.length === 2 && s.length === 5 && s.cards === true; }, "the settings");
   await shot(A, "setup-desktop");
   await A.getByRole("button", { name: "Continue to the waiting room" }).click();
   await A.getByRole("heading", { name: "Waiting room" }).waitFor();
@@ -84,11 +86,25 @@ try {
   if (q1.lang !== "fr" || !["science", "music"].includes(q1.topic)) throw new Error(`unexpected question ${q1.id}`);
   for (const page of [A, B, C]) await page.getByRole("heading", { name: q1.question }).waitFor({ timeout: 10000 });
   log("question 1 on all three:", q1.question);
+
+  // Power cards: everyone was dealt 3 different ones. A plays one that can't change this question's scripted
+  // outcome (B or C buzzes first and is wrong, then A gets it right): Steal, 50/50 or Shield, never Freeze
+  // or Double; a hand of 3 always holds one of them. Everyone sees it played.
+  const hands = (await state()).hands ?? {};
+  for (const seat of ["p1", "p2", "p3"]) if (new Set(hands[seat] ?? []).size !== 3) throw new Error(`${seat} wasn't dealt 3 cards: ${JSON.stringify(hands)}`);
+  const CARD_NAME = { steal: "Steal", fifty: "50/50", shield: "Shield" };
+  const safe = ["steal", "fifty", "shield"].find((card) => hands.p1.includes(card));
+  await A.getByRole("button", { name: new RegExp(`^Play ${CARD_NAME[safe]}:`) }).click();
+  await until(async () => (await state())?.played?.p1 === safe, "A's card in the state");
+  for (const page of [B, C]) await page.getByText(`Sam played ${CARD_NAME[safe]}`).waitFor({ timeout: 10000 });
+  if ((await state()).hands.p1.length !== 2) throw new Error("the card played is still in A's hand");
+  await shot(B, "power-card-played-iphone");
+  log(`power cards: 3 each; A played ${CARD_NAME[safe]}, and B and C see it`);
   await shot(C, "question-android");
 
   // B and C buzz together: the lower reaction time wins, whoever's buzz arrived first.
   // Both press at once (a raw pointerdown: a click would wait while the button is disabled).
-  await Promise.all([B, C].map((p) => p.getByRole("button", { name: "Buzz" }).dispatchEvent("pointerdown", { button: 0 })));
+  await Promise.all([B, C].map((p) => p.getByRole("button", { name: "Buzz", exact: true }).dispatchEvent("pointerdown", { button: 0 })));
   const answering = await until(async () => { const s = await state(); return s?.phase === "answering" ? s : null; }, "someone to answer");
   const buzzes = answering.buzzes ?? [];
   if (buzzes.length !== 2) throw new Error(`expected both buzzes in the window, got ${JSON.stringify(buzzes)}`);
@@ -110,9 +126,9 @@ try {
   log("wrong answer struck on all three, picker locked out");
 
   // A buzzes and answers right with 3 choices left: 2 points.
-  await A.getByRole("button", { name: "Buzz" }).click();
+  await A.getByRole("button", { name: "Buzz", exact: true }).click();
   await A.getByText("Your turn! Pick an answer").waitFor();
-  await A.keyboard.press(String.fromCharCode(65 + (await A.evaluate((text) => [...document.querySelectorAll("main li")].findIndex((li) => li.textContent.includes(text)), q1.choices[0]))));
+  await A.keyboard.press(String.fromCharCode(65 + (await A.evaluate((text) => [...[...document.querySelectorAll("main ul")].find((ul) => ul.children.length === 4).children].findIndex((li) => li.textContent.includes(text)), q1.choices[0]))));
   await until(async () => (await state())?.outcome?.kind === "right", "the right answer");
   const after1 = await state();
   if (after1.scores.p1 !== 2) throw new Error(`expected 2 points, got ${JSON.stringify(after1.scores)}`);
@@ -125,7 +141,7 @@ try {
     const s = await until(async () => { const v = await state(); return v?.index === i && v.phase === "question" ? v : null; }, `question ${i + 1}`, 20000);
     const q = BANK.find((x) => x.id === s.questionIds[i]);
     await A.getByRole("heading", { name: q.question }).waitFor();
-    await A.getByRole("button", { name: "Buzz" }).click();
+    await A.getByRole("button", { name: "Buzz", exact: true }).click();
     await A.getByText("Your turn! Pick an answer").waitFor();
     await A.getByRole("button", { name: q.choices[0], exact: true }).click();
     await until(async () => (await state())?.outcome?.kind === "right", `question ${i + 1}'s answer`);
