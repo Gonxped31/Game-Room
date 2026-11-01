@@ -243,15 +243,17 @@ function CardRow({ children }: { children: ReactNode }) {
 }
 
 /**
- * "Play from anywhere" on desktop: 300px cards, at most three to a row, so the
- * rows stay even (six games: two rows of three), 28px apart, the grid centered
- * in the folder. As the folder narrows, two columns (2 x 300 + 28), then one.
+ * "Play from anywhere" on desktop, by the folder's width (a container query):
+ * - from 1300px: the wide cards (GameCard `wide`), two to a row, each half
+ *   the row, so the rows fill the folder at any width;
+ * - below: 300px cards, 28px apart, centered, at most three to a row so the
+ *   rows stay even (six games: two rows of three), then two, then one.
  * Mobile: a 14px stack.
  */
 function AnywhereGrid({ children }: { children: ReactNode }) {
   return (
     <div className="@container">
-      <div className="flex flex-col gap-3.5 min-[760px]:grid min-[760px]:justify-center min-[760px]:gap-[28px] @min-[628px]:grid-cols-[repeat(2,300px)] @min-[956px]:grid-cols-[repeat(3,300px)]">
+      <div className="flex flex-col gap-3.5 min-[760px]:grid min-[760px]:justify-center min-[760px]:gap-[28px] @min-[628px]:grid-cols-[repeat(2,300px)] @min-[956px]:grid-cols-[repeat(3,300px)] @min-[1300px]:grid-cols-[repeat(2,minmax(0,1fr))]">
         {children}
       </div>
     </div>
@@ -319,10 +321,11 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   const talk = games.filter((game) => game.section === "talk");
   const solo = games.filter((game) => game.solo);
 
-  const card = (game: GameEntry) => (
+  const card = (game: GameEntry, wide = false) => (
     <GameCard
       key={game.slug}
       game={game}
+      wide={wide}
       startingSlug={startingSlug}
       joinOpen={open?.kind === "join" && open.slug === game.slug}
       startOpen={open?.kind === "start" && open.slug === game.slug}
@@ -374,8 +377,8 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         description="Two or more players, each on their own device."
       >
         <AnywhereHeading />
-        <AnywhereGrid>{anywhere.map(card)}</AnywhereGrid>
-        <TalkPanel>{talk.map(card)}</TalkPanel>
+        <AnywhereGrid>{anywhere.map((game) => card(game, true))}</AnywhereGrid>
+        <TalkPanel>{talk.map((game) => card(game))}</TalkPanel>
       </Folder>
 
       {solo.length ? (

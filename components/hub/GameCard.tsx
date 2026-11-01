@@ -31,6 +31,11 @@ interface GameCardProps {
   onMatchmaking?: (slug: string, button: HTMLButtonElement) => void;
   /** Whether this card's Matchmaking panel is open (for aria-expanded). */
   matchmakingOpen?: boolean;
+  /**
+   * In a grid that's an `@container` (the hub's "Play from anywhere"): from a
+   * 1300px-wide container, the wide card replaces the 300px one.
+   */
+  wide?: boolean;
 }
 
 function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; className: string }) {
@@ -46,13 +51,22 @@ function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; cla
 }
 
 /** Start (accent fill) and Join (white), side by side. */
-function StartJoin({ game, startingSlug, joinOpen, startOpen = false, onStart, onJoin, size }: GameCardProps & { size: "desktop" | "mobile" }) {
+function StartJoin({
+  game,
+  startingSlug,
+  joinOpen,
+  startOpen = false,
+  onStart,
+  onJoin,
+  size,
+  className = "",
+}: GameCardProps & { size: "desktop" | "mobile"; className?: string }) {
   const starting = startingSlug === game.slug;
   const base = `flex flex-1 cursor-pointer items-center justify-center rounded-[14px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
     size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
   }`;
   return (
-    <div className="flex gap-2.5">
+    <div className={`flex gap-2.5 ${className}`}>
       <button
         type="button"
         aria-label={`Start a ${game.title} room`}
@@ -94,8 +108,14 @@ function GlobeIcon() {
   );
 }
 
-/** "Matchmaking": full width under Start + Join, ink fill with an accent shadow. */
-function Matchmaking({ game, onMatchmaking, matchmakingOpen = false, size }: GameCardProps & { size: "desktop" | "mobile" }) {
+/** "Matchmaking": full width under Start + Join (or beside them on the wide card), ink fill with an accent shadow. */
+function Matchmaking({
+  game,
+  onMatchmaking,
+  matchmakingOpen = false,
+  size,
+  className = "w-full",
+}: GameCardProps & { size: "desktop" | "mobile"; className?: string }) {
   if (!onMatchmaking) return null;
   return (
     <button
@@ -104,7 +124,7 @@ function Matchmaking({ game, onMatchmaking, matchmakingOpen = false, size }: Gam
       aria-haspopup="dialog"
       aria-expanded={matchmakingOpen}
       onClick={(e) => onMatchmaking(game.slug, e.currentTarget)}
-      className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-[14px] border-2 text-white shadow-[0_4px_0_var(--accent)] ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
+      className={`flex ${className} cursor-pointer items-center justify-center gap-2 rounded-[14px] border-2 text-white shadow-[0_4px_0_var(--accent)] ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
         size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
       }`}
       style={{ backgroundColor: game.ink, borderColor: game.ink, "--accent": game.accentColor } as CSSProperties}
@@ -133,13 +153,18 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
  * One game's card in a Social folder (references/game-room/game-room-ui-spec.md,
  * "Game card"): the 300px desktop card (art panel, title, description, chips,
  * Start + Join, and Matchmaking for games strangers can play) from 760px, the compact card (mini art beside the text) below.
- * Both are in the DOM; CSS shows one.
+ * With `wide`, the wide card takes the 300px card's place in a wide enough
+ * container. All are in the DOM; CSS shows one.
  */
 export default function GameCard(props: GameCardProps) {
-  const { game } = props;
+  const { game, wide = false } = props;
   return (
     <>
-      <article className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] min-[760px]:flex ${LIFT}`}>
+      <article
+        className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] ${
+          wide ? "min-[760px]:@max-[1300px]:flex" : "min-[760px]:flex"
+        } ${LIFT}`}
+      >
         <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
           <GameArt slug={game.slug} />
         </div>
@@ -157,11 +182,42 @@ export default function GameCard(props: GameCardProps) {
           </div>
         </div>
       </article>
+      {wide ? <WideCard {...props} /> : null}
       <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
         <StartJoin {...props} size="mobile" />
         <Matchmaking {...props} size="mobile" />
       </CompactCard>
     </>
+  );
+}
+
+/**
+ * The wide card, from a 1300px-wide container: the Solo card's shape (art on
+ * the left, the text on the right), stretching to its grid column. Start,
+ * Join and Matchmaking share one row when the text column has room for them
+ * (about 410px), else Matchmaking goes under Start + Join.
+ */
+function WideCard(props: GameCardProps) {
+  const { game } = props;
+  return (
+    <article className={`hidden gap-5 rounded-[20px] bg-white p-2.5 shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)] @min-[1300px]:flex ${LIFT}`}>
+      <div aria-hidden="true" className="h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl">
+        <GameArt slug={game.slug} />
+      </div>
+      <div className={`flex min-w-0 flex-1 flex-col gap-2.5 py-2 pr-2.5 ${game.bodyClassName}`}>
+        <h4 className={`m-0 text-[28px] leading-[1.05] ${game.titleClassName}`} style={{ color: game.ink }}>
+          {game.title}
+        </h4>
+        <p className="m-0 text-[15px] font-medium leading-[1.4]" style={{ color: game.textSecondary }}>
+          {game.description}
+        </p>
+        <Chips game={game} tags={game.tags} className="text-[13px]" />
+        <div className="mt-auto flex flex-wrap gap-2.5 pt-1.5">
+          <StartJoin {...props} size="desktop" className="flex-[2_1_220px]" />
+          <Matchmaking {...props} size="desktop" className="flex-[1_1_180px]" />
+        </div>
+      </div>
+    </article>
   );
 }
 
