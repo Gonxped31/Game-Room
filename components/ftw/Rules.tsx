@@ -27,7 +27,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const P = "m-0 text-[15px] leading-snug text-[var(--muted)] [&_b]:text-[var(--ink)]";
-const LIST = `${P} grid gap-1.5 pl-5`;
+const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc`;
 
 /** The worked example: the same five items, as the ranker and the guesser numbered them. */
 const ITEMS = ["Pizza", "Tacos", "Sushi", "Curry", "Salad"];

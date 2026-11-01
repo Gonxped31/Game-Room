@@ -91,6 +91,12 @@
   white-space: nowrap;
 }
 
+/* A phone's header holds the back link, the sign, the EN/FR switch and How to play's ?: tighten it so the sign stays whole. */
+@media (max-width: 420px) {
+  .br-page .br-header { gap: 8px; }
+  .br-page .br-title { padding: 6px 10px 4px; font-size: 22px; }
+}
+
 /* Switches: the mode tabs, the map picker and the EN/FR names switch. */
 .br-page .br-seg {
   display: flex;

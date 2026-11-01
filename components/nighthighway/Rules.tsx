@@ -35,7 +35,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const P = "m-0 text-[15px] leading-snug text-[var(--ink-dim)] [&_b]:text-[var(--ink)]";
-const LIST = `${P} grid gap-1.5 pl-5`;
+const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc`;
 
 /** A key, as on the title card. */
 const Key = ({ children }: { children: ReactNode }) => <kbd className="nh-rules-key">{children}</kbd>;

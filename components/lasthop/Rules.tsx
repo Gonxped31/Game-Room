@@ -93,7 +93,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const LIST = "m-0 grid gap-1.5 pl-5 text-[15px] leading-snug text-[var(--muted)] [&_b]:text-[var(--text)]";
+const LIST = "m-0 grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc text-[15px] leading-snug text-[var(--muted)] [&_b]:text-[var(--text)]";
 
 /** The rules, in full, with drawings in the viewer's own shape and colour. */
 function RulesContent({ me, pawns }: { me: Role; pawns: Record<Role, Pawn> }) {

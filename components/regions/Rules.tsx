@@ -43,7 +43,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const P = "m-0 text-[15px] leading-snug text-[var(--cg-ink-soft)] [&_b]:text-[var(--cg-ink)]";
-const LIST = `${P} grid gap-1.5 pl-5`;
+const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc`;
 
 /** The squares a piece in the middle of a 5×5 board attacks, besides its row and column (which every puzzle rules out anyway). */
 function attacked(piece: Piece, r: number, c: number): boolean {

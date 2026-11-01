@@ -49,7 +49,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const P = "m-0 text-[15px] leading-snug text-[var(--br-ink-soft)] [&_b]:text-[var(--br-ink)]";
-const LIST = `${P} grid gap-1.5 pl-5`;
+const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc`;
 
 /** A start and an end, a closed border between them, and a route around it: the guesses graded by colour. */
 function RoutePicture() {

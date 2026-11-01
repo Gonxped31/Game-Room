@@ -49,7 +49,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const P = "m-0 text-[16px] font-semibold leading-snug text-[var(--muted)] [&_b]:text-[var(--ink)]";
-const LIST = `${P} grid gap-1.5 pl-5`;
+const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc`;
 
 /** The scrambled tiles, and the answer with one hint letter placed. */
 function Board() {

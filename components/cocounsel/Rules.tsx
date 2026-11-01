@@ -36,7 +36,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const P = "m-0 text-[15px] leading-snug text-[var(--cc-text2)] [&_b]:text-[var(--cc-ink)]";
-const LIST = `${P} grid gap-1.5 pl-5`;
+const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc`;
 
 /** One player's hand of three cards, `picked` lifted and outlined in yellow. */
 function Hand({ color, picked, label }: { color: string; picked: number; label: string }) {
@@ -46,7 +46,7 @@ function Hand({ color, picked, label }: { color: string; picked: number; label: 
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="flex h-14 w-10 flex-col gap-1 rounded-md border-2 p-1.5"
+            className="flex h-12 w-8 flex-col gap-1 rounded-md border-2 p-1 min-[480px]:h-14 min-[480px]:w-10 min-[480px]:p-1.5"
             style={{
               backgroundColor: COLOR.white,
               borderColor: i === picked ? COLOR.yellow : color,
@@ -93,7 +93,7 @@ function RulesContent() {
       </Section>
 
       <Section title="A Part">
-        <div aria-hidden="true" className="flex items-end justify-center gap-6 rounded-xl px-3 pt-5 pb-3" style={{ backgroundColor: COLOR.white }}>
+        <div aria-hidden="true" className="flex items-end justify-center gap-3 rounded-xl px-3 pt-5 pb-3 min-[480px]:gap-6" style={{ backgroundColor: COLOR.white }}>
           <Hand color={COLOR.investigator} picked={1} label="Investigator" />
           <span className="pb-8 text-[22px] font-extrabold">+</span>
           <Hand color={COLOR.defendant} picked={2} label="Defendant" />

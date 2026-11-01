@@ -30,7 +30,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const P = "m-0 text-[15px] leading-snug text-[var(--text-muted)] [&_b]:text-[var(--text)]";
-const LIST = `${P} grid gap-1.5 pl-5`;
+const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc`;
 
 /** Four choices, the first `struck` crossed out, and what a right answer is worth then. */
 function ScoreLine({ struck }: { struck: number }) {
