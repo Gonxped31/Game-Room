@@ -4,7 +4,8 @@
 // fourth joins; a 3-turns-per-team game is played with tiles - a wrong
 // arrangement in the feed for both teams, a hint, a mouse drag, words tapped
 // in and confirmed, a Team B turn timed out - then
-// the end screen and a rematch. About a minute and a half.
+// the end screen and a rematch; How to play opened from the title row and the
+// lobby. About a minute and a half.
 //
 //   node .claude/skills/live-test/scripts/word-scramble.mjs [baseUrl] [screenshotDir]
 import { readFileSync } from "node:fs";
@@ -80,6 +81,18 @@ try {
   await until(async () => (await state())?.settings?.turnsPerTeam === 3, "3 turns per team");
   await shot(A, "lobby-desktop");
   await shot(B, "lobby-iphone");
+  // How to play: the title row's ? comes first, the lobby's link last; closed with Got it, then Escape.
+  await B.getByRole("button", { name: "How to play" }).first().click();
+  await B.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(B, "rules-iphone");
+  await B.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await B.getByRole("dialog").waitFor({ state: "detached" });
+  await A.getByRole("button", { name: "How to play" }).last().click();
+  await A.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(A, "rules-desktop");
+  await A.keyboard.press("Escape");
+  await A.getByRole("dialog").waitFor({ state: "detached" });
+  log("How to play opens from the title row and the lobby, and closes");
   await A.getByRole("button", { name: "Start", exact: true }).click();
   await B.getByText(/starts/).waitFor({ timeout: 10000 });
   log("started");

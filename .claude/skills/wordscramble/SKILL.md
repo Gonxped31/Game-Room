@@ -25,7 +25,7 @@ score (20/30/40).
 | `lib/games/wordscramble/words.json` | The lists, one word per line, real spelling |
 | `lib/games/wordscramble/words.test.ts` | Validates them: 4–8 letters, no œ/æ, **no two words with the same letters** |
 | `app/wordscramble/page.tsx` | Session (`useSession`, 8 seats, min 2), timers, guesses, hints, typing |
-| `components/wordscramble/` | `ui.tsx` (tokens, tiles, buttons), `Screens.tsx` (lobby, scoreboard, end), `TurnScreen.tsx`, `TileBoard.tsx` (drag and drop) |
+| `components/wordscramble/` | `ui.tsx` (tokens, tiles, buttons), `Screens.tsx` (lobby, scoreboard, end), `TurnScreen.tsx`, `TileBoard.tsx` (drag and drop), `Rules.tsx` (How to play: the ? in every screen's top row, a link in the lobby; `docs/how-to-play.md`, so a rules change updates it too) |
 | `database.rules.json` → `wordscramble`, `wordscrambleTyping` | The state (`maxPlayers` must be 8); each seat's typing signal |
 | `.claude/skills/live-test/scripts/word-scramble.mjs` | 2v2: desktop + two iPhones + Android |
 

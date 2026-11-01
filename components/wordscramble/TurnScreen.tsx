@@ -20,6 +20,7 @@ import {
 } from "./ui";
 import { SCREEN } from "./Screens";
 import TileBoard from "./TileBoard";
+import RulesButton from "./Rules";
 
 /** Everything a turn shows, derived by the page from the game state and the clock. */
 export interface TurnView {
@@ -248,6 +249,7 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
           <span className={`${TEXT} flex-1 text-center text-[14px] font-extrabold text-[var(--muted)]`}>{view.turnLabel}</span>
           <ScorePill team="B" score={view.scores.B} glow={(right && team === "B") || (stolenRight && thief === "B")} />
           {!done ? <TimerRing seconds={view.seconds} fraction={view.fraction} team={clockTeam} size={46} label={`${view.seconds} seconds left`} /> : null}
+          <RulesButton />
         </header>
         {banner}
         <div className="flex flex-col gap-4 min-[900px]:grid min-[900px]:grid-cols-[1fr_minmax(260px,340px)] min-[900px]:items-start min-[900px]:gap-6">

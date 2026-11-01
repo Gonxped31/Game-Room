@@ -25,6 +25,7 @@ import {
   TimerRing,
   TurnProgress,
 } from "./ui";
+import RulesButton from "./Rules";
 
 export const SCREEN = "min-h-screen bg-[var(--table)] px-4 pb-10 pt-4 text-[var(--ink)] min-[900px]:px-8 min-[900px]:pt-8";
 export const TITLE = `${DISPLAY} m-0 text-[30px] leading-tight min-[900px]:text-[44px]`;
@@ -66,7 +67,10 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[440px] flex-col gap-5">
-        <h1 className={TITLE}>Word Scramble</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className={TITLE}>Word Scramble</h1>
+          <RulesButton />
+        </div>
         {free ? (
           <form
             className="flex flex-col gap-3 rounded-[22px] border-[3px] border-[var(--ink)] bg-white p-5 shadow-[0_6px_0_var(--ink)]"
@@ -306,8 +310,10 @@ export function Lobby({ room, seats, joined, names, teams, me, hostSeat, isHost,
         <div className="flex flex-wrap items-center gap-3">
           <h1 className={`${TITLE} flex-1`}>Pick a team</h1>
           <span className={`${DISPLAY} rounded-full border-2 border-[var(--ink)] bg-white px-3 py-1 text-[16px] tracking-[0.06em]`}>{room}</span>
+          <RulesButton />
         </div>
         {invite}
+        <RulesButton variant="link" />
         <div className="grid grid-cols-2 gap-3 min-[900px]:gap-5">{TEAMS.map(column)}</div>
         {problem && joined.length > 0 && !match ? (
           <p role="status" className={`${TEXT} m-0 rounded-2xl border-2 border-[var(--warn-edge)] bg-[var(--warn)] px-4 py-3 text-[15px] font-bold text-[var(--warn-ink)]`}>
@@ -367,7 +373,10 @@ export function Scoreboard({ turn, total, totalLabel, scores, teamNames, history
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[960px] flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <p className={`${DISPLAY} m-0 text-[24px]`}>{totalLabel}</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className={`${DISPLAY} m-0 text-[24px]`}>{totalLabel}</p>
+            <RulesButton />
+          </div>
           {total ? <TurnProgress total={total} played={turn + 1} /> : null}
         </div>
         <div className="grid grid-cols-1 items-center gap-3 min-[600px]:grid-cols-[1fr_auto_1fr]">
@@ -388,7 +397,10 @@ export function Scoreboard({ turn, total, totalLabel, scores, teamNames, history
 /** Before the first word: who starts. */
 export function GetReady({ team, seconds, mine }: { team: Team; seconds: number; mine: boolean }) {
   return (
-    <div className={`${SCREEN} flex flex-col items-center justify-center gap-5 text-center`}>
+    <div className={`${SCREEN} relative flex flex-col items-center justify-center gap-5 text-center`}>
+      <div className="absolute top-4 right-4 min-[900px]:top-8 min-[900px]:right-8">
+        <RulesButton />
+      </div>
       <TimerRing seconds={seconds} fraction={seconds / 3} team={team} size={120} label={`Starting in ${seconds} seconds`} />
       <p className={`${DISPLAY} m-0 text-[32px]`}>{mine ? "Your team starts!" : `Team ${team} starts`}</p>
       <p className={`${TEXT} m-0 text-[17px] font-bold text-[var(--muted)]`}>{mine ? "Get ready to unscramble." : `You play the next word.`}</p>
@@ -414,6 +426,9 @@ export function End({ winner, scores, teamNames, found, summary, canRematch, onR
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[900px] flex-col gap-5">
+        <div className="flex justify-end">
+          <RulesButton />
+        </div>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="text-[var(--warn-edge)]">
             <CrownIcon size={40} />
