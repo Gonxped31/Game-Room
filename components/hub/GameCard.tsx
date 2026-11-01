@@ -17,6 +17,22 @@ const SHADOW = "shadow-[0_4px_0_currentColor]";
 const PRESS = "transition-transform duration-[60ms] enabled:active:translate-y-1 enabled:active:shadow-none motion-reduce:transition-none";
 const PRESS_LINK = "transition-transform duration-[60ms] active:translate-y-1 active:shadow-none motion-reduce:transition-none";
 
+/**
+ * Buttons and chips are parallelograms: the box leans 10deg (`SLANT`), its
+ * content leans back (`UPRIGHT`), so the text stays straight. The press and
+ * lift use `translate`, a separate property, so they still compose.
+ */
+const SLANT = "-skew-x-10";
+const UPRIGHT = "inline-block skew-x-10";
+
+/**
+ * The art's slanted edge, leaning like the buttons: the wide card's art ends
+ * in a diagonal toward the text (24px across its 190px height); the 300px
+ * card's art has a gently rising bottom edge (14px across its width).
+ */
+const ART_SEAM_WIDE = "[clip-path:polygon(0_0,100%_0,calc(100%_-_24px)_100%,0_100%)]";
+const ART_SEAM_TALL = "[clip-path:polygon(0_0,100%_0,100%_calc(100%_-_14px),0_100%)]";
+
 interface GameCardProps {
   game: GameEntry;
   /** Which game's Start is in progress, if any - every Start is disabled meanwhile, to prevent double rooms. */
@@ -31,19 +47,14 @@ interface GameCardProps {
   onMatchmaking?: (slug: string, button: HTMLButtonElement) => void;
   /** Whether this card's Matchmaking panel is open (for aria-expanded). */
   matchmakingOpen?: boolean;
-  /**
-   * In a grid that's an `@container` (the hub's "Play from anywhere"): from a
-   * 1300px-wide container, the wide card replaces the 300px one.
-   */
-  wide?: boolean;
 }
 
 function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; className: string }) {
   return (
-    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0 pl-0.5">
       {tags.map((tag) => (
-        <li key={tag} className={`rounded-full border-2 px-[11px] py-0.5 font-bold ${className}`} style={{ borderColor: game.ink, color: game.ink }}>
-          {tag}
+        <li key={tag} className={`${SLANT} rounded-[6px] border-2 px-[11px] py-0.5 font-bold ${className}`} style={{ borderColor: game.ink, color: game.ink }}>
+          <span className={UPRIGHT}>{tag}</span>
         </li>
       ))}
     </ul>
@@ -62,7 +73,7 @@ function StartJoin({
   className = "",
 }: GameCardProps & { size: "desktop" | "mobile"; className?: string }) {
   const starting = startingSlug === game.slug;
-  const base = `flex flex-1 cursor-pointer items-center justify-center rounded-[14px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
+  const base = `flex flex-1 cursor-pointer items-center justify-center ${SLANT} rounded-[12px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
     size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
   }`;
   return (
@@ -82,7 +93,7 @@ function StartJoin({
           cursor: starting ? "progress" : undefined,
         }}
       >
-        {starting ? "Starting…" : "Start"}
+        <span className={UPRIGHT}>{starting ? "Starting…" : "Start"}</span>
       </button>
       <button
         type="button"
@@ -93,7 +104,7 @@ function StartJoin({
         className={`${base} bg-white ${SHADOW}`}
         style={{ borderColor: game.ink, color: game.ink }}
       >
-        Join
+        <span className={UPRIGHT}>Join</span>
       </button>
     </div>
   );
@@ -124,13 +135,15 @@ function Matchmaking({
       aria-haspopup="dialog"
       aria-expanded={matchmakingOpen}
       onClick={(e) => onMatchmaking(game.slug, e.currentTarget)}
-      className={`flex ${className} cursor-pointer items-center justify-center gap-2 rounded-[14px] border-2 text-white shadow-[0_4px_0_var(--accent)] ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
+      className={`flex ${className} cursor-pointer items-center justify-center ${SLANT} rounded-[12px] border-2 text-white shadow-[0_4px_0_var(--accent)] ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
         size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
       }`}
       style={{ backgroundColor: game.ink, borderColor: game.ink, "--accent": game.accentColor } as CSSProperties}
     >
-      <GlobeIcon />
-      Matchmaking
+      <span className="inline-flex skew-x-10 items-center gap-2">
+        <GlobeIcon />
+        Matchmaking
+      </span>
     </button>
   );
 }
@@ -141,10 +154,10 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
     <a
       href={path}
       aria-label={`Play ${game.title} solo`}
-      className={`flex w-full items-center justify-center rounded-[14px] border-2 no-underline ${SHADOW} ${PRESS_LINK} ${FOCUS_RING} ${game.titleClassName} ${size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"}`}
+      className={`flex w-full items-center justify-center ${SLANT} rounded-[12px] border-2 no-underline ${SHADOW} ${PRESS_LINK} ${FOCUS_RING} ${game.titleClassName} ${size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"}`}
       style={{ backgroundColor: game.accentColor, borderColor: game.ink, color: game.ink }}
     >
-      Play solo
+      <span className={UPRIGHT}>Play solo</span>
     </a>
   );
 }
@@ -153,29 +166,28 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
  * One game's card in a Social folder (references/game-room/game-room-ui-spec.md,
  * "Game card"): the 300px desktop card (art panel, title, description, chips,
  * Start + Join, and Matchmaking for games strangers can play) from 760px, the compact card (mini art beside the text) below.
- * With `wide`, the wide card takes the 300px card's place in a wide enough
- * container. All are in the DOM; CSS shows one.
+ * From a 1300px-wide container, the wide card takes the 300px card's place,
+ * so it must sit inside an `@container` (Hub's CardGrid, the Talk it out
+ * panel). All are in the DOM; CSS shows one.
  */
 export default function GameCard(props: GameCardProps) {
-  const { game, wide = false } = props;
+  const { game } = props;
   const text = { game, description: game.description, tags: game.tags };
   return (
     <>
-      <TallCard {...text} className={wide ? TALL_IN_GRID : "min-[760px]:flex"}>
+      <TallCard {...text}>
         <div className="flex flex-col gap-2.5">
           <StartJoin {...props} size="desktop" />
           <Matchmaking {...props} size="desktop" />
         </div>
       </TallCard>
-      {wide ? (
-        <WideCard {...text}>
-          {/* One row when the text column has room (about 410px), else Matchmaking goes under Start + Join. */}
-          <div className="flex flex-wrap gap-2.5">
-            <StartJoin {...props} size="desktop" className="flex-[2_1_220px]" />
-            <Matchmaking {...props} size="desktop" className="flex-[1_1_180px]" />
-          </div>
-        </WideCard>
-      ) : null}
+      <WideCard {...text}>
+        {/* One row when the text column has room (about 410px), else Matchmaking goes under Start + Join. */}
+        <div className="flex flex-wrap gap-2.5">
+          <StartJoin {...props} size="desktop" className="flex-[2_1_220px]" />
+          <Matchmaking {...props} size="desktop" className="flex-[1_1_180px]" />
+        </div>
+      </WideCard>
       <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
         <StartJoin {...props} size="mobile" />
         <Matchmaking {...props} size="mobile" />
@@ -186,20 +198,17 @@ export default function GameCard(props: GameCardProps) {
 
 const CARD_SHADOW = "shadow-[0_5px_0_rgba(0,0,0,.25),0_14px_26px_rgba(0,0,0,.2)]";
 
-/**
- * In the hub's card grid (an `@container`, Hub's CardGrid), the two desktop
- * shapes take turns at a 1300px-wide grid: the 300px card below it, the wide
- * card from it.
- */
-const TALL_IN_GRID = "min-[760px]:@max-[1300px]:flex";
-
 type CardText = { game: GameEntry; description: string; tags: string[]; children: ReactNode };
 
-/** The 300px desktop card: art on top, then the title, description, chips and the buttons (`children`). */
-function TallCard({ game, description, tags, children, className }: CardText & { className: string }) {
+/**
+ * The 300px desktop card, below a 1300px-wide container (the wide card takes
+ * over from it): art on top, then the title, description, chips and the
+ * buttons (`children`).
+ */
+function TallCard({ game, description, tags, children }: CardText) {
   return (
-    <article className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] ${CARD_SHADOW} ${className} ${LIFT}`}>
-      <div aria-hidden="true" className="h-[168px] shrink-0 overflow-hidden rounded-xl">
+    <article className={`hidden w-[300px] flex-col rounded-[20px] bg-white px-2.5 pt-2.5 pb-[18px] ${CARD_SHADOW} min-[760px]:@max-[1300px]:flex ${LIFT}`}>
+      <div aria-hidden="true" className={`h-[168px] shrink-0 overflow-hidden rounded-xl ${ART_SEAM_TALL}`}>
         <GameArt slug={game.slug} />
       </div>
       <div className={`flex flex-1 flex-col gap-2.5 px-2 pt-4 ${game.bodyClassName}`}>
@@ -224,7 +233,7 @@ function TallCard({ game, description, tags, children, className }: CardText & {
 function WideCard({ game, description, tags, children }: CardText) {
   return (
     <article className={`hidden max-w-[calc(50%-14px)] grow basis-[calc(50%-28px)] gap-5 rounded-[20px] bg-white p-2.5 ${CARD_SHADOW} @min-[1300px]:flex ${LIFT}`}>
-      <div aria-hidden="true" className="h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl">
+      <div aria-hidden="true" className={`h-[190px] w-[290px] shrink-0 overflow-hidden rounded-xl ${ART_SEAM_WIDE}`}>
         <GameArt slug={game.slug} />
       </div>
       <div className={`flex min-w-0 flex-1 flex-col gap-2.5 py-2 pr-2.5 ${game.bodyClassName}`}>
@@ -274,7 +283,7 @@ export function SoloCard({ game }: { game: GameEntry }) {
   const text = { game, description: solo.description, tags: solo.tags };
   return (
     <>
-      <TallCard {...text} className={TALL_IN_GRID}>
+      <TallCard {...text}>
         <PlaySolo game={game} path={solo.path} size="desktop" />
       </TallCard>
       <WideCard {...text}>

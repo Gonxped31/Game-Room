@@ -202,37 +202,54 @@ function AnywhereHeading() {
 
 const TALK_STEPS = ["Start a call, or sit side by side.", "Each of you opens the room on your own phone.", "Talk it through. The game won't tell you everything."];
 
-/** "Talk it out": the bright yellow block inside the Social folder, so the need for a call is the most visible thing on the page. */
+/**
+ * "Talk it out": the bright yellow block inside the Social folder, so the need
+ * for a call is the most visible thing on the page. Laid out by the folder's
+ * width (the outer div is the `@container`, as wide as CardGrid's, so both
+ * switch together):
+ * - below 1300px: the heading, tag and steps on the left, the two 300px cards
+ *   to their right (or under them when there's no room);
+ * - from 1300px: the heading and tag on one line, the three steps in a row
+ *   under them, then the two wide cards side by side.
+ * Mobile: stacked, without the steps.
+ */
 function TalkPanel({ children }: { children: ReactNode }) {
   return (
-    <div className="mt-1.5 flex flex-wrap gap-3 rounded-[18px] px-2.5 pt-3.5 pb-3 shadow-[0_6px_0_rgba(0,0,0,.25)] min-[760px]:mt-2 min-[760px]:rounded-[26px] min-[760px]:px-[26px] min-[760px]:pt-[26px] min-[760px]:gap-[28px] min-[760px]:pb-[30px]" style={{ backgroundColor: TALK }}>
-      <div className="flex min-w-0 flex-[1_1_100%] flex-col gap-3 text-black min-[760px]:flex-[1_1_260px] min-[760px]:gap-4">
-        <div className="flex items-center gap-2.5">
-          <span aria-hidden="true" className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-black min-[760px]:h-[38px] min-[760px]:w-[38px]" style={{ color: TALK }}>
-            <SpeechIcon className="h-4 w-4 min-[760px]:h-5 min-[760px]:w-5" />
+    <div className="@container mt-1.5 min-[760px]:mt-2">
+      <div
+        className="flex flex-wrap gap-3 rounded-[18px] px-2.5 pt-3.5 pb-3 shadow-[0_6px_0_rgba(0,0,0,.25)] min-[760px]:gap-[28px] min-[760px]:rounded-[26px] min-[760px]:px-[26px] min-[760px]:pt-[26px] min-[760px]:pb-[30px] @min-[1300px]:flex-col"
+        style={{ backgroundColor: TALK }}
+      >
+        <div className="flex min-w-0 flex-[1_1_100%] flex-col gap-3 text-black min-[760px]:@max-[1300px]:flex-[1_1_260px] min-[760px]:@max-[1300px]:gap-4 @min-[1300px]:flex-none @min-[1300px]:flex-row @min-[1300px]:flex-wrap @min-[1300px]:items-center @min-[1300px]:gap-x-5 @min-[1300px]:gap-y-4">
+          <div className="flex items-center gap-2.5">
+            <span aria-hidden="true" className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-black min-[760px]:h-[38px] min-[760px]:w-[38px]" style={{ color: TALK }}>
+              <SpeechIcon className="h-4 w-4 min-[760px]:h-5 min-[760px]:w-5" />
+            </span>
+            <h3 id={SECTION_IDS.talk} className="m-0 scroll-mt-[70px] text-[20px] font-bold text-black min-[760px]:text-[26px]">
+              Talk it out
+            </h3>
+          </div>
+          <p className="m-0 text-[15px] font-medium leading-[1.35] text-[#1A1A1A] min-[760px]:hidden">You&apos;ll need to talk to win. Get on a call or sit together.</p>
+          <span className="inline-flex h-[30px] items-center gap-1.5 self-start rounded-full bg-black px-3 text-[13px] font-semibold text-white @min-[1300px]:self-center">
+            <PhoneIcon />
+            Call or same room
           </span>
-          <h3 id={SECTION_IDS.talk} className="m-0 scroll-mt-[70px] text-[20px] font-bold text-black min-[760px]:text-[26px]">
-            Talk it out
-          </h3>
+          <ol className="m-0 hidden list-none flex-col gap-2.5 p-0 min-[760px]:flex @min-[1300px]:basis-full @min-[1300px]:flex-row @min-[1300px]:gap-8">
+            {TALK_STEPS.map((step, i) => (
+              <li key={step} className="flex items-start gap-2.5 text-base font-medium leading-[1.35] @min-[1300px]:flex-1">
+                <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-[13px] font-bold" style={{ color: TALK }}>
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
         </div>
-        <p className="m-0 text-[15px] font-medium leading-[1.35] text-[#1A1A1A] min-[760px]:hidden">You&apos;ll need to talk to win. Get on a call or sit together.</p>
-        <span className="inline-flex h-[30px] items-center gap-1.5 self-start rounded-full bg-black px-3 text-[13px] font-semibold text-white">
-          <PhoneIcon />
-          Call or same room
-        </span>
-        <ol className="m-0 hidden list-none flex-col gap-2.5 p-0 min-[760px]:flex">
-          {TALK_STEPS.map((step, i) => (
-            <li key={step} className="flex items-start gap-2.5 text-base font-medium leading-[1.35]">
-              <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-[13px] font-bold" style={{ color: TALK }}>
-                {i + 1}
-              </span>
-              {step}
-            </li>
-          ))}
-        </ol>
+        {/* Desktop: the two cards beside the steps, or under them from 1300px; mobile: stacked under them. */}
+        <div className="flex w-full flex-col gap-2.5 min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:items-stretch min-[760px]:gap-[28px] min-[760px]:@max-[1300px]:w-auto">
+          {children}
+        </div>
       </div>
-      {/* Desktop: the two cards to the right of the steps; mobile: stacked under them. */}
-      <div className="flex w-full flex-col gap-2.5 min-[760px]:mt-0 min-[760px]:w-auto min-[760px]:flex-row min-[760px]:flex-wrap min-[760px]:items-stretch min-[760px]:gap-[28px]">{children}</div>
     </div>
   );
 }
@@ -318,11 +335,10 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   const talk = games.filter((game) => game.section === "talk");
   const solo = games.filter((game) => game.solo);
 
-  const card = (game: GameEntry, wide = false) => (
+  const card = (game: GameEntry) => (
     <GameCard
       key={game.slug}
       game={game}
-      wide={wide}
       startingSlug={startingSlug}
       joinOpen={open?.kind === "join" && open.slug === game.slug}
       startOpen={open?.kind === "start" && open.slug === game.slug}
@@ -374,8 +390,8 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         description="Two or more players, each on their own device."
       >
         <AnywhereHeading />
-        <CardGrid>{anywhere.map((game) => card(game, true))}</CardGrid>
-        <TalkPanel>{talk.map((game) => card(game))}</TalkPanel>
+        <CardGrid>{anywhere.map(card)}</CardGrid>
+        <TalkPanel>{talk.map(card)}</TalkPanel>
       </Folder>
 
       {solo.length ? (
