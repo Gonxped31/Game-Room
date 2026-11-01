@@ -4,6 +4,7 @@ import { memo, type ReactNode, useEffect, useRef } from "react";
 import type { Engine } from "./engine/engine";
 import "./nighthighway.css";
 import "./screens.css";
+import RulesButton from "./Rules";
 
 interface StageProps {
   /** "solo": the original title and results screens. "race": the page draws its own screens as `children`. */
@@ -151,6 +152,9 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
                 <button type="button" role="switch" aria-checked="false" className="nh-switch" id="optDesert">
                   Desert
                 </button>
+              </div>
+              <div className="row">
+                <RulesButton variant="link" />
               </div>
               <dl className="keys">
                 {[

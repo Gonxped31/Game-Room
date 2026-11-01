@@ -3367,8 +3367,10 @@ const KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', Arr
 const HOTKEYS = ['KeyV', 'KeyC', 'KeyL', 'KeyM', 'KeyH', 'KeyP', 'Escape', 'KeyR', 'KeyF', 'Enter', 'NumpadEnter'];
 // Game Room: the page has text fields (the name, the room name) - keys typed
 // there are text, not driving or hotkeys, and must keep their default action.
+// So do keys pressed in an open dialog (How to play): Escape closes it, Enter
+// mustn't start a run behind it.
 function isTyping(target) {
-  return !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+  return !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || !!target.closest?.('dialog[open]'));
 }
 listen(window, 'keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;

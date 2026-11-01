@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import type { Role } from "@/lib/session/types";
 import type { GameState, RaceOptions, RunResult } from "@/lib/games/nighthighway/game";
+import RulesButton from "./Rules";
 
 /**
  * The race page's own screens, drawn over the road in the original title
@@ -16,7 +17,8 @@ const fmt = (n: number) => Math.floor(n).toLocaleString("en-US");
 /**
  * A title-card screen. Room screens have no back link: their way out is
  * "Leave room". Only `back` cards (no room to leave: an error, an unknown room)
- * get the link to the hub in the top corner.
+ * get the link to the hub in the top corner; every other card has How to play's
+ * ? in the opposite corner.
  */
 export function Card({ children, back = false }: { children: ReactNode; back?: boolean }) {
   return (
@@ -25,7 +27,11 @@ export function Card({ children, back = false }: { children: ReactNode; back?: b
         <Link href="/" className="nh-back" aria-label="Back to all games">
           ←
         </Link>
-      ) : null}
+      ) : (
+        <span className="nh-rules">
+          <RulesButton />
+        </span>
+      )}
       <div className="card">{children}</div>
     </section>
   );
@@ -252,6 +258,9 @@ export function Lobby({
         ))}
       </div>
       <div className="row">
+        <RulesButton variant="link" />
+      </div>
+      <div className="row">
         <button className="cta" type="button" onClick={() => onReady(!iAmReady)} aria-pressed={iAmReady}>
           {iAmReady ? "Not ready" : last ? "Race again" : "Ready"}
         </button>
@@ -362,7 +371,8 @@ export function MatchLobby({
         ·{" "}
         <button type="button" className="nh-linkbtn" onClick={onSolo}>
           Drive solo
-        </button>
+        </button>{" "}
+        · <RulesButton variant="link" />
       </p>
     </Card>
   );

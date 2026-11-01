@@ -55,3 +55,4 @@ T-mpr2 | 2 | - | M | frontend,howtoplay,buzzerquiz | How to play for Buzzer Quiz
 T-u928 | 2 | - | M | frontend,howtoplay,wordscramble | How to play for Word Scramble: components/wordscramble/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
 T-9g78 | 2 | - | M | frontend,howtoplay,ftw | How to play for Same Page: components/ftw/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
 T-5ztd | 2 | - | M | frontend,howtoplay,cocounsel | How to play for Co-Counsel: components/cocounsel/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
+T-z9k3 | 2 | - | M | frontend,howtoplay,nighthighway | How to play for Night Highway: components/nighthighway/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01

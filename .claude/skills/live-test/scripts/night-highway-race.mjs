@@ -5,7 +5,9 @@
 //   node .claude/skills/live-test/scripts/night-highway-race.mjs [baseUrl] [screenshotDir]
 //
 // Checks, in order:
-// - Solo: the title screen's Drive button starts a run.
+// - Solo: How to play opens from the corner and the title card (Enter inside
+//   it doesn't start a run); the title screen's Drive button starts a run.
+// - How to play opens from a race card's corner and the lobby.
 // - A creates a room and waits with the invite link; B joins by the link.
 // - A switches Rain on in the lobby and B switches Desert on: each sees the
 //   other's switch, and both race in the rain, in the desert, where the
@@ -47,6 +49,19 @@ async function player(profile, label) {
 try {
   const solo = await player("desktop", "solo (desktop)");
   await solo.goto(`${BASE}/nighthighway/solo`);
+  await solo.getByRole("button", { name: /Drive/ }).waitFor();
+  // How to play: the corner ? (Enter inside it must not start a run behind it; Escape closes it), then the title card's link.
+  await solo.getByRole("button", { name: "How to play" }).first().click();
+  await solo.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await solo.keyboard.press("Enter");
+  await solo.waitForTimeout(300);
+  if (await solo.evaluate(() => window.NightHighway?.G.state !== "title")) throw new Error("Enter in How to play started a run");
+  await solo.keyboard.press("Escape");
+  await solo.getByRole("dialog").waitFor({ state: "detached" });
+  await solo.getByRole("button", { name: "How to play" }).last().click();
+  await solo.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await solo.getByRole("dialog").waitFor({ state: "detached" });
+  log("solo: How to play opens from the corner and the title card; its keys stay in it");
   await solo.getByRole("button", { name: /Drive/ }).click();
   await until(() => solo.evaluate(() => window.NightHighway?.G.state === "countdown" || window.NightHighway?.G.state === "drive"), "a solo run to start");
   await solo.close();
@@ -71,6 +86,18 @@ try {
   await B.getByRole("button", { name: "Ready" }).waitFor();
   log("both in the lobby");
   await shot(B, "2-lobby-iphone");
+  // How to play: the card's corner ? comes first, the lobby's link last; closed with Got it, then Escape.
+  await B.getByRole("button", { name: "How to play" }).first().click();
+  await B.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(B, "2-rules-iphone");
+  await B.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await B.getByRole("dialog").waitFor({ state: "detached" });
+  await A.getByRole("button", { name: "How to play" }).last().click();
+  await A.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await shot(A, "2-rules-desktop");
+  await A.keyboard.press("Escape");
+  await A.getByRole("dialog").waitFor({ state: "detached" });
+  log("How to play opens from the card's corner and the lobby, and closes");
 
   // Options: A turns rain on; B's switch follows (pickups stay on by default).
   await A.getByRole("switch", { name: "Rain" }).click();
