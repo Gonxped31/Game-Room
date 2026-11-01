@@ -1,5 +1,6 @@
 import { GAME_TITLE } from "@/lib/games/ftw/constants";
 import { DISPLAY, PlayerSquare, TEXT } from "./ui";
+import RulesButton from "./Rules";
 
 export interface ScorePlayer {
   name: string;
@@ -51,7 +52,10 @@ export function GameHeader({ round, players, roomLabel }: { round?: number; play
           ))}
         </div>
       ) : null}
-      <p className={`${TEXT} m-0 hidden min-w-0 truncate text-[15px] font-bold text-[var(--ink)] opacity-80 min-[900px]:block`}>{roomLabel}</p>
+      <div className="flex min-w-0 items-center gap-3">
+        <p className={`${TEXT} m-0 hidden min-w-0 truncate text-[15px] font-bold text-[var(--ink)] opacity-80 min-[900px]:block`}>{roomLabel}</p>
+        <RulesButton />
+      </div>
     </header>
   );
 }

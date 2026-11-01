@@ -27,6 +27,7 @@ import { GameHeader, ScoreCard, type ScorePlayer } from "@/components/ftw/Scoreb
 import SessionRecap from "@/components/ftw/SessionRecap";
 import TopicPicker from "@/components/ftw/TopicPicker";
 import { CREATOR_COLOR, PARTNER_COLOR, TEXT, THEME } from "@/components/ftw/ui";
+import RulesButton from "@/components/ftw/Rules";
 
 /**
  * Same Page (formerly First to Worst): references/ftw/first-to-worst-game-design.md.
@@ -110,6 +111,9 @@ export default function SamePagePage() {
               accentColor="#1D2240"
               accentShadowColor="#0A0C22"
             />
+            <div className="mt-3 flex justify-center">
+              <RulesButton variant="link" />
+            </div>
           </div>
         ) : (
           <RoundBoard

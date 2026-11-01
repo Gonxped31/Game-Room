@@ -44,6 +44,8 @@ and scored. Roles swap every round.
     laid out by `Frame`; `Sheet` (lined paper); `Scoreboard` (`GameHeader`
     with score chips, the desktop `ScoreCard`, the `Wordmark`).
   - `CustomPromptForm`, `TopicPicker`, `SessionRecap`.
+  - `Rules` - How to play (`docs/how-to-play.md`): the ? in `GameHeader` (every
+    screen) and a link on the waiting screen. A rules change updates it too.
 - `app/same-page/page.tsx` - wires `useGameSession({ gameSlug: "ftw" })` to all
   of the above.
 

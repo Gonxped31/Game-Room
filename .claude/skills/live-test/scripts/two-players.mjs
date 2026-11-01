@@ -11,7 +11,8 @@
 // - Same Page (slug ftw): create, name the room, join it by name through the
 //   hub card's Join panel, play a full round (the guesser watching the
 //   ranker's notes appear face down, the ranker watching the guess count) and
-//   start round 2. The old /ftw route still opens the room.
+//   start round 2. The old /ftw route still opens the room. How to play opens
+//   from the header and the waiting screen, and closes.
 // - Presence: closing one player shows "can play later" on the other.
 // - A third guest can read the room but not take a seat.
 // - "Your rooms" and the Continue chip list the room, also after a reload;
@@ -124,6 +125,16 @@ try {
   await nameField.blur();
   await until(async () => (await adminRead(`roomsByName/crew-${code}`)) === code, "room name saved");
   log(`A named the room "${roomName}"`);
+  // How to play: the header's ? comes first, the waiting screen's link last; closed with Got it, then Escape.
+  await A.page.getByRole("button", { name: "How to play" }).first().click();
+  await A.page.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await A.page.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await A.page.getByRole("dialog").waitFor({ state: "detached" });
+  await A.page.getByRole("button", { name: "How to play" }).last().click();
+  await A.page.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await A.page.keyboard.press("Escape");
+  await A.page.getByRole("dialog").waitFor({ state: "detached" });
+  log("Same Page: How to play opens from the header and the waiting screen, and closes");
 
   await B.page.goto(BASE);
   await joinFromHub(B.page, "name", roomName.toLowerCase());
