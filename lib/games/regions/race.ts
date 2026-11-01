@@ -5,7 +5,7 @@ import { generate, type Generated } from "./generate";
 import { EMPTY, MARK, newPlay, PIECE, piecesOf, setMark, status, type Move, type Play } from "./play";
 
 /**
- * Checkmate Grid with others (`/regions/race#room`): everyone solves the same
+ * Rank & File with others (`/regions/race#room`): everyone solves the same
  * puzzle at the same moment, round after round, in Challenge or Survival
  * (lib/games/race/race.ts). The state holds only the round's seed: every
  * device builds the puzzle from it (`generate` is the same in every engine).

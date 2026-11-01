@@ -15,7 +15,7 @@ function DoneButton({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButton
 const FOCUS = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[var(--cg-ink)]";
 
 /**
- * Checkmate Grid's look for the shared dialog: the cream card, Fraunces
+ * Rank & File's look for the shared dialog: the cream card, Fraunces
  * headings, the mint Got it. Its classes are Tailwind utilities, which the
  * offline download doesn't compile: so How to play is only ever placed by
  * the site's pages (Stage's `rules`, the race shell), never inside the
@@ -178,7 +178,7 @@ function RulesContent() {
 }
 
 /**
- * Checkmate Grid's How to play (docs/how-to-play.md, on the shared
+ * Rank & File's How to play (docs/how-to-play.md, on the shared
  * components/HowToPlay.tsx): `variant` "icon" is the ? at the right of the
  * header (solo page and race rooms), "link" the race lobby's "How to play".
  */

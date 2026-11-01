@@ -4,7 +4,7 @@ import { addGuess, newPlay, status, type Guess, type Play } from "./play";
 import { closenessOf, generateRoute, type Route } from "./route";
 
 /**
- * Border Run with others (`/borderrun#room`): everyone races the same route
+ * Detour with others (`/borderrun#room`): everyone races the same route
  * at the same moment, round after round, in Challenge or Survival
  * (lib/games/race/race.ts). Each player's guesses go to
  * `borderrunRuns/{seat}`.

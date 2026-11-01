@@ -1,7 +1,7 @@
 import type { SeatId, WithMultiplayerIdentity } from "@/lib/session/types";
 
 /**
- * Racing others in a solo game (Border Run, Checkmate Grid): everyone plays
+ * Racing others in a solo game (Detour, Rank & File): everyone plays
  * the same round at the same moment, round after round.
  *
  * - **Challenge** (2-4 players): a set number of rounds; the lowest total

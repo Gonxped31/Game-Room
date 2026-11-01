@@ -154,8 +154,8 @@ describe("autoStart", () => {
 });
 
 describe.each([
-  ["Border Run", "borderrun", newBorderRun],
-  ["Checkmate Grid", "regions", newGridRace],
+  ["Detour", "borderrun", newBorderRun],
+  ["Rank & File", "regions", newGridRace],
 ] as const)("%s's public rooms", (_, slug, newRace) => {
   const publicRoom = (mode: string, opts: { maxPlayers?: number; stateMode?: "challenge" | "survival" } = {}) =>
     createRoomUpdate({

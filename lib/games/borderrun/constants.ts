@@ -1,5 +1,5 @@
-/** The working title shown in the UI and the browser tab (the name isn't final yet). */
-export const GAME_TITLE = "Border Run";
+/** The name shown in the UI and the browser tab (the slug stays `borderrun`). */
+export const GAME_TITLE = "Detour";
 
 /** Each guess beyond the par adds this to the time (the user's call, 2026-10-26). */
 export const PENALTY_MS = 15_000;

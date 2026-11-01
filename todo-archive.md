@@ -58,3 +58,5 @@ T-5ztd | 2 | - | M | frontend,howtoplay,cocounsel | How to play for Co-Counsel: 
 T-z9k3 | 2 | - | M | frontend,howtoplay,nighthighway | How to play for Night Highway: components/nighthighway/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
 T-7n5b | 2 | - | M | frontend,howtoplay,regions | How to play for Checkmate Grid: components/regions/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
 T-ajxc | 2 | - | M | frontend,howtoplay,borderrun | How to play for Border Run: components/borderrun/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
+T-p5bq | 2 | - | S | frontend,regions | Name Checkmate Grid for real: 'Checkmate Grid' is a working title (GAME_TITLE, registry title, export page title) | done 2026-11-01
+T-ajb4 | 2 | - | S | frontend,borderrun | Name Border Run for real: 'Border Run' is a working title (GAME_TITLE, registry title, export page title) | done 2026-11-01

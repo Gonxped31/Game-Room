@@ -1,11 +1,12 @@
 ---
 name: checkmate-grid
-description: Reference for working on Checkmate Grid (slug regions), the Queens-style region-logic puzzle with chess pieces - solo (endless and daily) and as a race with others (Challenge, Survival, matchmaking by mode) - its rules and pieces, the solver and seeded generator, the board UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/regions/, components/regions/ or app/regions/, or answering questions about how Checkmate Grid plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
+description: Reference for working on Rank & File (formerly Checkmate Grid, slug regions), the Queens-style region-logic puzzle with chess pieces - solo (endless and daily) and as a race with others (Challenge, Survival, matchmaking by mode) - its rules and pieces, the solver and seeded generator, the board UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/regions/, components/regions/ or app/regions/, or answering questions about how Rank & File plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
 ---
 
-# Checkmate Grid
+# Rank & File
 
-A puzzle (the title is a working name; the slug stays `regions`). An N×N
+A puzzle, named Rank & File on 2026-11-01 (it was Checkmate Grid, a working
+title; the slug stays `regions`, like `/regions` and its rooms). An N×N
 grid (5–9) is split into N coloured regions. Place N chess pieces, **one per
 row, per column and per region**, with **no piece attacking another by its
 own moves**. Played two ways:
@@ -72,7 +73,7 @@ doesn't use it, and it isn't needed at this size (the user offered it,
 ## Racing others (`lib/games/regions/race.ts`, `app/regions/race/page.tsx`)
 
 Challenge and Survival run on the shared race layer (`docs/race.md`: modes,
-timing, scoring, how a round ends, the screens). Checkmate Grid's own parts:
+timing, scoring, how a round ends, the screens). Rank & File's own parts:
 - **Rounds are puzzles**: one piece for every round, or "mixed" (rook, king,
   knight, queen, mix in turn); the grid grows from 6×6 by one every two
   rounds, up to 9×9, and from the third round the logic must reach level 2

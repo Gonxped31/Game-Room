@@ -8,7 +8,7 @@ const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 f
 
 interface StartPanelProps {
   modes: GameMode[];
-  /** e.g. "Border Run" - the panel is titled "Start a Border Run room". */
+  /** e.g. "Detour" - the panel is titled "Start a Detour room". */
   gameTitle: string;
   /** id for the heading, so the surrounding dialog can be labelled by it. */
   headingId: string;

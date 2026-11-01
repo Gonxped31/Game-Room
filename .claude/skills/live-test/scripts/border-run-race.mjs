@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Border Run with others (lib/games/borderrun/race.ts), against a dev server on
+// Detour with others (lib/games/borderrun/race.ts), against a dev server on
 // the emulators (dev-against-emulators.mjs). About four minutes.
 //
 // - Private Challenge, desktop host + iPhone: Start asks for a mode first; the
@@ -104,7 +104,7 @@ async function takeSeat(page, name) {
 /** From the hub: Start → pick a mode → Start room. Resolves with the new room's code once the link is clean. */
 async function startRoom(page, mode) {
   await page.goto(BASE);
-  await page.getByRole("button", { name: "Start a Border Run room" }).click();
+  await page.getByRole("button", { name: "Start a Detour room" }).click();
   const dialog = page.getByRole("dialog");
   const startButton = dialog.getByRole("button", { name: "Start room" });
   check(`Start (${mode}): nothing picked, Start room waits`, await startButton.isDisabled());
@@ -241,7 +241,7 @@ try {
   // ---- Matchmaking by mode ---------------------------------------------------------------
   const search = async (page, mode, name) => {
     await page.goto(BASE);
-    await page.getByRole("button", { name: "Matchmaking for Border Run: play with other players" }).click();
+    await page.getByRole("button", { name: "Matchmaking for Detour: play with other players" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Your name").fill(name);
     check(`Matchmaking (${mode}): Find players waits for a mode`, await dialog.getByRole("button", { name: "Find players" }).isDisabled());

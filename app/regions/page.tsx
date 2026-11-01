@@ -2,7 +2,7 @@ import Link from "next/link";
 import Stage from "@/components/regions/Stage";
 import RulesButton from "@/components/regions/Rules";
 
-/** Checkmate Grid: a solo puzzle, no room. */
+/** Rank & File: a solo puzzle, no room. */
 export default function RegionsPage() {
   return (
     <Stage

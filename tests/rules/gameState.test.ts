@@ -469,7 +469,7 @@ describe("Word Scramble", () => {
   });
 });
 
-describe("Border Run", () => {
+describe("Detour", () => {
   const path = `games/${ROOM}/borderrun`;
   const runPath = (seat: string) => `games/${ROOM}/borderrunRuns/${seat}`;
   const UIDS = ["alice", "bob", "carol", "dave", "erin"];
@@ -533,7 +533,7 @@ describe("Border Run", () => {
   });
 });
 
-describe("Checkmate Grid's race", () => {
+describe("Rank & File's race", () => {
   const path = `games/${ROOM}/regions`;
   const runPath = (seat: string) => `games/${ROOM}/regionsRuns/${seat}`;
   const UIDS = ["alice", "bob", "carol", "dave", "erin"];

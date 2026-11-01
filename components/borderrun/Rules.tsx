@@ -21,7 +21,7 @@ function DoneButton({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButton
 }
 
 /**
- * Border Run's look for the shared dialog: the warm card, the green road-sign
+ * Detour's look for the shared dialog: the warm card, the green road-sign
  * title, the yellow Got it. Its classes are Tailwind utilities, which the
  * offline download doesn't compile: so How to play is only ever placed by
  * the site's pages (Stage's `rules`, the race shell), never inside the
@@ -173,7 +173,7 @@ function RulesContent() {
 }
 
 /**
- * Border Run's How to play (docs/how-to-play.md, on the shared
+ * Detour's How to play (docs/how-to-play.md, on the shared
  * components/HowToPlay.tsx): `variant` "icon" is the ? at the right of the
  * header (solo page and race rooms), "link" the race lobby's "How to play".
  */

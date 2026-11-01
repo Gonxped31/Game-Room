@@ -9,7 +9,7 @@ const run = (at: number, moves: Move[], gaveUp = false): Run => ({ at, moves, ga
 /** The solution placed one piece a second, from `from` ms. */
 const solve = (state: GridRaceState, from = 1000): Move[] => puzzleOf(state).solution.map((cell, i) => ({ cell, to: PIECE, t: from + i * 1000 }));
 
-describe("Checkmate Grid's race", () => {
+describe("Rank & File's race", () => {
   it("climbs from 6×6 to 9×9 and goes through the pieces when mixed", () => {
     expect([0, 1, 2, 3, 4, 5, 6, 7].map((round) => roundSpec("mixed", round).size)).toEqual([6, 6, 7, 7, 8, 8, 9, 9]);
     expect([0, 1, 2, 3, 4, 5].map((round) => roundSpec("mixed", round).variant)).toEqual(["rook", "king", "knight", "queen", "mix", "rook"]);

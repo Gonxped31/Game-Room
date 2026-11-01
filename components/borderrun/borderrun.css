@@ -1,4 +1,4 @@
-/* Border Run: a road atlas - warm paper, navy ink, a green highway sign for the title.
+/* Detour: a road atlas - warm paper, navy ink, a green highway sign for the title.
    Plain CSS (not Tailwind utilities) so the offline export (exports/borderrun/) gets it too.
    Every rule sits under .br-page, so the shared daily-* classes don't clash with another game's.
    Colors match lib/games/borderrun/theme.ts. */

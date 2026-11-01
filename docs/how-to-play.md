@@ -81,7 +81,7 @@ Use the sections that apply; skip the rest. Headings are short and plain
 The offline exports (`exports/`, built by `scripts/export-solo.mjs`) compile
 only Tailwind's base, no utilities, so the dialog would show unstyled there.
 Keep How to play out of the components they render (each game's `Stage`):
-the site's pages place it (Checkmate Grid's and Border Run's `Stage` take a
+the site's pages place it (Rank & File's and Detour's `Stage` take a
 `rules` prop; Night Highway's solo ? sits in the page's own links).
 
 ## Status

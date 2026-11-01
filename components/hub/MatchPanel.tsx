@@ -70,7 +70,7 @@ function LangSwitch({ lang, onChange, disabled }: { lang: Lang; onChange: (lang:
 interface MatchPanelProps {
   /** The game's one matchmaking setup, or... */
   game?: MatchGame;
-  /** ...its modes, one queue each (Border Run): the player picks one first, nothing picked by default. */
+  /** ...its modes, one queue each (Detour): the player picks one first, nothing picked by default. */
   modes?: (GameMode & { game: MatchGame })[];
   /** e.g. "Buzzer Quiz" - the panel is titled "Buzzer Quiz matchmaking". */
   gameTitle: string;

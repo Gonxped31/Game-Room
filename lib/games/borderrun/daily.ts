@@ -20,7 +20,7 @@ export const scheduleFor = (day: string) => SCHEDULE[weekdayOf(day)];
 
 const MAX_GUESSES = 300;
 
-/** Border Run's daily route, for the shared daily system (lib/daily/). */
+/** Detour's daily route, for the shared daily system (lib/daily/). */
 export const borderrunDaily: DailyGame<Route> = {
   slug: "borderrun",
   title: GAME_TITLE,

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Border Run's edge cases, past the basic path (live-test skill): names in both
+// Detour's edge cases, past the basic path (live-test skill): names in both
 // languages, refused guesses, the suggestions, reloads and tab switches mid-route,
 // New route / Change / Show a route, best scores, and the daily's resume, penalty
 // and finished page, and How to play from the header. Needs the emulator dev server (dev-against-emulators.mjs).

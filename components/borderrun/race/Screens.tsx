@@ -10,7 +10,7 @@ import { Segmented } from "../Controls";
 import "../borderrun.css";
 import RulesButton from "../Rules";
 
-/** Border Run's parts of a race room; the rest is components/race/Screens.tsx. */
+/** Detour's parts of a race room; the rest is components/race/Screens.tsx. */
 
 export const MODE_LINE: Record<Mode, string> = {
   challenge: `${PLAYERS.challenge.min}–${PLAYERS.challenge.max} players. The lowest total time wins.`,

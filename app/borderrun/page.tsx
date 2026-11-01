@@ -20,7 +20,7 @@ import { startingSeats } from "@/lib/session/usePublicRoom";
 const { backToLobby, decided, ranking, setMode, setRounds, standings, total } = race;
 
 /**
- * Border Run with others (lib/games/borderrun/race.ts, on the shared race
+ * Detour with others (lib/games/borderrun/race.ts, on the shared race
  * layer: lib/games/race/, components/race/): Challenge or Survival, in a
  * private room or a matchmade one. The room's state is
  * `games/{room}/borderrun`; each player's guesses go to `borderrunRuns/{seat}`.
@@ -39,7 +39,7 @@ export default function BorderRunRoomPage() {
   }, []);
 
   useEffect(() => {
-    document.title = "Border Run";
+    document.title = "Detour";
   }, []);
 
   // My guesses go to my own run, timed on the server's clock from the round's start.

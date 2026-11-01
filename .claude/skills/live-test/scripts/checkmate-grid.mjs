@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checkmate Grid (/regions) edge cases, on one device profile, against the
+// Rank & File (/regions) edge cases, on one device profile, against the
 // emulator dev server (dev-against-emulators.mjs): the Auto ✕ lock belongs to
 // its puzzle (New puzzle, Next puzzle, Change then Start all unlock it), a
 // reload or a tab switch keeps it, a puzzle being built never lands after

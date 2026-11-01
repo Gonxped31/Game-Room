@@ -304,7 +304,7 @@ function CoCounselArt({ mini }: { mini?: boolean }) {
   );
 }
 
-// --- Checkmate Grid ----------------------------------------------------------
+// --- Rank & File ----------------------------------------------------------
 
 /** A solved 5x5 board: each cell's region, and the pieces (cell → glyph) - one per row, column and region. */
 const CG_REGIONS = [0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 2, 2, 4, 3, 3, 2, 4, 4, 3, 3, 2, 4, 4, 4, 3];
@@ -364,7 +364,7 @@ function CheckmateGridArt({ mini }: { mini?: boolean }) {
   );
 }
 
-// --- Border Run --------------------------------------------------------------
+// --- Detour --------------------------------------------------------------
 
 const BR_INK = "#1D2733";
 const BR_SIGN = "#176B4B";

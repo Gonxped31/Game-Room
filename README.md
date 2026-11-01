@@ -48,14 +48,14 @@ Auth; there is no sign-in screen). It holds your seat in each room and backs the
   unscrambling a word against a 30-second clock, in English or French.
   - Anyone on the playing team can guess; the other team watches.
   - A word is worth its letters; each hint places a letter but costs a point.
-- **Checkmate Grid** (`/regions`, solo; races for 2-8 players at `/regions/race`) - place one chess piece in every row,
+- **Rank & File** (`/regions`, solo; races for 2-8 players at `/regions/race`) - place one chess piece in every row,
   column and coloured region, with none attacking another.
   - Pieces: rooks, kings, knights, queens, or a mix where each region shows its
     own piece.
   - **Daily puzzle**: the same grid for everyone, timed by the server, with a
     global leaderboard (see `docs/daily.md`). **Endless**: as many as you like,
     any piece and size.
-- **Border Run** (`/borderrun`, 2-8 players; solo at `/borderrun/solo`) - link two countries by land, naming the
+- **Detour** (`/borderrun`, 2-8 players; solo at `/borderrun/solo`) - link two countries by land, naming the
   countries in between (in English or French), around a closed border or two.
   - Each guess is graded: on a shortest route, close, or off; every guess past
     the par adds 15 seconds.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checkmate Grid with others (lib/games/regions/race.ts), against a dev server on
+// Rank & File with others (lib/games/regions/race.ts), against a dev server on
 // the emulators (dev-against-emulators.mjs). About four minutes.
 //
 // - Private Challenge, desktop host + iPhone: Start asks for a mode first and opens
@@ -139,7 +139,7 @@ const resultsOf = (room, round) =>
 /** From the hub: Start → pick a mode → Start room. */
 async function startRoom(page, mode) {
   await page.goto(BASE);
-  await page.getByRole("button", { name: "Start a Checkmate Grid room" }).click();
+  await page.getByRole("button", { name: "Start a Rank & File room" }).click();
   const dialog = page.getByRole("dialog");
   const startButton = dialog.getByRole("button", { name: "Start room" });
   check(`Start (${mode}): nothing picked, Start room waits`, await startButton.isDisabled());
@@ -280,7 +280,7 @@ try {
   // ---- Matchmaking by mode ---------------------------------------------------------------
   const search = async (page, mode, name) => {
     await page.goto(BASE);
-    await page.getByRole("button", { name: "Matchmaking for Checkmate Grid: play with other players" }).click();
+    await page.getByRole("button", { name: "Matchmaking for Rank & File: play with other players" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Your name").fill(name);
     check(`Matchmaking (${mode}): Find players waits for a mode`, await dialog.getByRole("button", { name: "Find players" }).isDisabled());

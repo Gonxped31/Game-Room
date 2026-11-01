@@ -2,7 +2,7 @@ import Link from "next/link";
 import Stage from "@/components/borderrun/Stage";
 import RulesButton from "@/components/borderrun/Rules";
 
-/** Border Run solo: the daily route and Endless, no room. */
+/** Detour solo: the daily route and Endless, no room. */
 export default function BorderRunSoloPage() {
   return (
     <Stage

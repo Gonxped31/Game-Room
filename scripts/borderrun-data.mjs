@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds Border Run's map data from public sources, once; the output is
+// Builds Detour's map data from public sources, once; the output is
 // committed, so neither the build nor the app fetches anything:
 //   lib/games/borderrun/countries.json  names (EN, FR, aliases), land borders and capitals, for the game logic (server and client)
 //   lib/games/borderrun/shapes.json     simplified outlines, for the map (client only)

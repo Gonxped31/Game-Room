@@ -64,7 +64,7 @@ const bigShoulders = Big_Shoulders({
 const overpass = Overpass({
   variable: "--font-overpass",
   subsets: ["latin"],
-  // 500 and 700 for Border Run.
+  // 500 and 700 for Detour.
   weight: ["400", "500", "600", "700", "800"],
   preload: false,
 });
@@ -125,7 +125,7 @@ const kalam = Kalam({
   preload: false,
 });
 
-// Checkmate Grid's title face (components/regions/regions.css), also its hub card's title.
+// Rank & File's title face (components/regions/regions.css), also its hub card's title.
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],

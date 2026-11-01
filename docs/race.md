@@ -1,6 +1,6 @@
 # Races: solo games played against others
 
-Border Run and Checkmate Grid are solo games that can also be raced (the user's
+Detour and Rank & File are solo games that can also be raced (the user's
 design, 2026-10-26): everyone plays the same round at the same moment, round
 after round. The race is one shared layer; each game plugs in what a round is
 and how a player's moves score.
@@ -17,7 +17,7 @@ and how a player's moves score.
 
 - **Challenge**, 2-4 players: 3 or 5 rounds (matchmade: 3); the lowest total
   wins. A round's score is the finish time plus the game's penalty
-  (`penaltyMs` per `extra`: Border Run's guesses past the par; Checkmate Grid
+  (`penaltyMs` per `extra`: Detour's guesses past the par; Rank & File
   has none). Not finishing counts as the slowest finish (at least the time
   limit) plus 30 s, so it never beats a finish (`roundPoints`).
 - **Survival**, 4-8 players: after each round the slowest go out, **two while

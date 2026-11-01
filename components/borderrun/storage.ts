@@ -5,7 +5,7 @@ import { shortestPath, type Route } from "@/lib/games/borderrun/route";
 import type { Lang } from "@/lib/games/shared/language";
 
 /**
- * What this device remembers for Border Run, so a reload loses nothing: the
+ * What this device remembers for Detour, so a reload loses nothing: the
  * tab, the names' language, the Endless route in progress and today's Daily
  * guesses. Every read and write is wrapped in try/catch (storage can be
  * blocked) and only ever runs in effects or handlers, never during render.

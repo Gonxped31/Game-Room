@@ -22,7 +22,7 @@ const AUTO_MARK_KEY = "checkmate-grid:auto-mark:race";
 const NO_MOVES: never[] = [];
 
 /**
- * Checkmate Grid with others (lib/games/regions/race.ts, on the shared race
+ * Rank & File with others (lib/games/regions/race.ts, on the shared race
  * layer: lib/games/race/, components/race/): Challenge or Survival, in a
  * private room or a matchmade one, at `/regions/race#room` (the solo game
  * keeps `/regions`). The room's state is `games/{room}/regions`; each

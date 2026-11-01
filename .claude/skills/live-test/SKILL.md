@@ -125,7 +125,7 @@ match starts by itself; after it they vote (a split vote waits; agreeing on
 "Change to Grid" starts a Grid match); one leaves mid-match and the other is
 offered "Find another player".
 
-**Checkmate Grid's races** (`/regions/race`) have their own check (about four minutes):
+**Rank & File's races** (`/regions/race`) have their own check (about four minutes):
 
 ```bash
 node .claude/skills/live-test/scripts/checkmate-grid-race.mjs [baseUrl] [screenshotDir]
@@ -139,7 +139,7 @@ anyone's board and the faint answer; Undo; 3 puzzles, the standings, back to
 the lobby, Leave room. Then a 4-player Survival down to a winner, and
 matchmaking by mode.
 
-**Checkmate Grid** (solo, `/regions`) has an edge-case check (about two minutes per
+**Rank & File** (solo, `/regions`) has an edge-case check (about two minutes per
 profile; run it on `iphone-se` and `desktop` at least):
 
 ```bash
@@ -156,7 +156,7 @@ It goes past the basic path:
 
 It exits 1 on any failure. Add a case here for every new interaction.
 
-**Border Run's races** (`/borderrun`) have their own check (about four minutes):
+**Detour's races** (`/borderrun`) have their own check (about four minutes):
 
 ```bash
 node .claude/skills/live-test/scripts/border-run-race.mjs [baseUrl] [screenshotDir]
@@ -170,7 +170,7 @@ room. Then a private Survival with 4 players down to a winner, and matchmaking:
 Challenge and Survival are separate queues (4 and 8 seats), and two Challenge
 searchers meet and start by themselves.
 
-**Border Run solo** (`/borderrun/solo`) has an edge-case check (about a minute per profile; run it on
+**Detour solo** (`/borderrun/solo`) has an edge-case check (about a minute per profile; run it on
 `iphone-se` and `desktop` at least):
 
 ```bash

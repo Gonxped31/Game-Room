@@ -1,11 +1,12 @@
 ---
 name: borderrun
-description: Reference for working on Border Run (slug borderrun), the geography game - link two countries by land around closed borders - solo (daily and endless) and as a race with others (Challenge, Survival, matchmaking by mode); its map data and how it's built, the route generator, guess grading and penalty, the EN/FR names, endless and daily modes, the map UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/borderrun/, components/borderrun/ or app/borderrun/, rebuilding the map data (scripts/borderrun-data.mjs), or answering questions about how Border Run plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
+description: Reference for working on Detour (formerly Border Run, slug borderrun), the geography game - link two countries by land around closed borders - solo (daily and endless) and as a race with others (Challenge, Survival, matchmaking by mode); its map data and how it's built, the route generator, guess grading and penalty, the EN/FR names, endless and daily modes, the map UI, the offline export and gotchas. Use whenever changing or debugging anything under lib/games/borderrun/, components/borderrun/ or app/borderrun/, rebuilding the map data (scripts/borderrun-data.mjs), or answering questions about how Detour plays. For the shared daily system (lib/daily/, app/api/daily/), also read docs/daily.md.
 ---
 
-# Border Run
+# Detour
 
-A geography game (the title is a working name; the slug stays `borderrun`).
+A geography game, named Detour on 2026-11-01 (it was Border Run, a working
+title; the slug stays `borderrun`, like `/borderrun` and its rooms).
 Based on Travle, with closed borders as the twist (the user's picks,
 2026-10-26). Played two ways:
 - **Solo** at `/borderrun/solo`: the daily route and Endless (below).
@@ -43,7 +44,7 @@ route that never reached the server is sent on resume).
 ## Racing others (`lib/games/borderrun/race.ts`, `app/borderrun/page.tsx`)
 
 Challenge and Survival run on the shared race layer (`docs/race.md`: modes,
-timing, scoring, how a round ends, the screens). Border Run's own parts:
+timing, scoring, how a round ends, the screens). Detour's own parts:
 - **Rounds are routes**: the map is one area or "mixed" (Europe, the
   Americas, Africa, Asia, Europe and Asia, the world in turn), and the par
   climbs through the area's range as rounds go on (`routeFor`). The route
@@ -195,10 +196,10 @@ secret seed on the server; `crypto.randomUUID()` in Endless), a few ms.
 ## Gotchas
 
 - **Plain CSS under `.br-page`**: the export compiles only Tailwind's base,
-  and the shared `daily-*` classes are also styled by Checkmate Grid's CSS,
+  and the shared `daily-*` classes are also styled by Rank & File's CSS,
   so every rule is scoped to this page.
 - **The map never changes size** within a route (the user's rule for
-  Checkmate Grid's board, kept here): its aspect comes from the map's view
+  Rank & File's board, kept here): its aspect comes from the map's view
   box, not from what's drawn.
 - **Suggestions keep the input's focus** (`onPointerDown` preventDefault), so
   a phone's keyboard stays up between guesses. The first suggestion is
@@ -207,7 +208,7 @@ secret seed on the server; `crypto.randomUUID()` in Endless), a few ms.
 - **Guess times never go backwards** (`addGuess` refuses them, so does the
   daily check): the daily takes the max of the server-offset clock and the
   last guess.
-- **Overpass weights**: the site loads 400-800 for Border Run (app/layout.tsx).
+- **Overpass weights**: the site loads 400-800 for Detour (app/layout.tsx).
 
 ## Verifying
 

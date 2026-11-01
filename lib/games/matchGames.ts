@@ -36,8 +36,8 @@ export const WORDSCRAMBLE_MATCH: MatchGame = {
 export const NIGHTHIGHWAY_MATCH: MatchGame = { gameSlug: NIGHTHIGHWAY, maxPlayers: 2, lobbyPhase: "LOBBY", languages: false, publicState: () => newRace() };
 
 /**
- * The races (lib/games/race/) queue by mode, not language (Border Run's names
- * show in each player's own language; Checkmate Grid has no words): a public
+ * The races (lib/games/race/) queue by mode, not language (Detour's names
+ * show in each player's own language; Rank & File has no words): a public
  * room is a Challenge (4 seats) or a Survival (8), and stays one; changing
  * means leaving and searching the other queue.
  */

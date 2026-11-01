@@ -1,4 +1,4 @@
-/** Border Run's colours (they match components/borderrun/borderrun.css): a road atlas, with a green highway sign for the title. */
+/** Detour's colours (they match components/borderrun/borderrun.css): a road atlas, with a green highway sign for the title. */
 export const PAPER = "#F4F0E6";
 export const INK = "#1D2733";
 export const SIGN = "#176B4B";

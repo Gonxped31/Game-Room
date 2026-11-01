@@ -3,7 +3,7 @@ import { MAX_SIZE, MIN_SIZE, VARIANTS } from "@/lib/games/regions/constants";
 import type { Move } from "@/lib/games/regions/play";
 
 /**
- * What this device remembers for Checkmate Grid, so a reload doesn't lose
+ * What this device remembers for Rank & File, so a reload doesn't lose
  * anything (the user's call, 2026-10-26): the tab, the Endless puzzle in
  * progress, and today's Daily moves. Every read and write is wrapped in
  * try/catch (storage can be blocked) and only ever runs in effects or

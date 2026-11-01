@@ -21,7 +21,7 @@ export const scheduleFor = (day: string) => SCHEDULE[weekdayOf(day)];
 
 const MAX_MOVES = 5000;
 
-/** Checkmate Grid's daily puzzle, for the shared daily system (lib/daily/). */
+/** Rank & File's daily puzzle, for the shared daily system (lib/daily/). */
 export const regionsDaily: DailyGame<Puzzle> = {
   slug: "regions",
   title: GAME_TITLE,

@@ -1,5 +1,5 @@
-/** The working title shown in the UI and the browser tab (the name isn't final yet). */
-export const GAME_TITLE = "Checkmate Grid";
+/** The name shown in the UI and the browser tab (the slug stays `regions`). */
+export const GAME_TITLE = "Rank & File";
 
 /** Every chess piece a region can hold. */
 export const PIECES = ["rook", "king", "knight", "bishop", "queen"] as const;

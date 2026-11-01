@@ -198,7 +198,7 @@ describe("daily service", () => {
   });
 });
 
-describe("a penalty from the game (Border Run)", () => {
+describe("a penalty from the game (Detour)", () => {
   const ctx = (store: DailyStore, uid: string, now = NOW): DailyContext => ({ ...ctxFor(store, uid, now), game: borderrunDaily });
   const guesses = (route: Route, wasted: number) => {
     const path = shortestPath(route)!;
