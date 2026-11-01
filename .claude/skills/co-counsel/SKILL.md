@@ -170,6 +170,10 @@ The page renders the first state that applies:
   - `ThemeToggle` and `BackLink` sit **inline** in each of the three header shapes
     (`Wordmark`, `HeaderBand`, `ResultsHeader`). Nothing is `position: fixed` at
     the top, so the full-bleed bands start flush with the viewport.
+  - **How to play** (`Rules.tsx`, `docs/how-to-play.md`): its ? sits beside
+    `ThemeToggle` in all three headers, and `CasePicker` has a link. Its colours
+    are the `--cc-*` variables, so it follows dark mode. A rules change (misses,
+    Trust/Focus) updates it too.
 - **Layout and animation**:
   - `CONTAINER_MAX_WIDTH_CLASS` (480px → 720px at `lg`) is applied to both the
     page and `PartScreen`'s fixed bottom bar.

@@ -3,6 +3,7 @@ import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import BackLink from "./BackLink";
 import PartProgress from "./PartProgress";
 import ThemeToggle from "./ThemeToggle";
+import RulesButton from "./Rules";
 
 interface HeaderBandProps {
   role: "investigator" | "defendant";
@@ -45,7 +46,10 @@ export default function HeaderBand({
           narrow viewports. */}
       <div className="mb-2 flex items-center justify-between">
         {onBack ? <BackLink onBack={onBack} /> : null}
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        <div className="ml-auto flex items-center gap-2">
+          <RulesButton />
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
       </div>
       <div className="mb-2">
         <PartProgress totalParts={totalParts} currentPartIndex={currentPartIndex} attemptsUsed={attemptsUsed} maxAttempts={maxAttempts} tone="onColor" />

@@ -3,6 +3,7 @@ import { GAME_TITLE } from "@/lib/games/cocounsel/constants";
 import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import BackLink from "./BackLink";
 import ThemeToggle from "./ThemeToggle";
+import RulesButton from "./Rules";
 
 interface WordmarkProps {
   size?: "sm" | "lg";
@@ -37,7 +38,10 @@ export default function Wordmark({ size = "sm", onBack, theme, onToggleTheme }: 
           {GAME_TITLE}
         </span>
       </div>
-      <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      <div className="flex items-center gap-2">
+        <RulesButton />
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
     </div>
   );
 }

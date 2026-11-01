@@ -22,7 +22,8 @@
 // - Leave room (no back link in a room): it asks first while both are
 //   seated, gives up the seat and drops the room from "Your rooms"; Start
 //   then opens a fresh room.
-// - Co-Counsel: the creator picks a case and Defendant, the joiner is
+// - Co-Counsel: How to play opens from the header and the case picker. The
+//   creator picks a case and Defendant, the joiner is
 //   auto-assigned, then "Switch role instead" swaps both seats; Part 1 is
 //   solved and "Continue to Part 2" advances. The owner switches case from
 //   the picker mid-game (both devices follow); three misses adjourn it, the
@@ -240,6 +241,16 @@ try {
   const D = await newPlayer("desktop", "D (desktop)");
   const E = await newPlayer("iphone-se", "E (iPhone SE)");
   await D.page.goto(`${BASE}/cocounsel`);
+  // How to play: the header's ? comes first, the case picker's link last; closed with Got it, then Escape.
+  await D.page.getByRole("button", { name: "How to play" }).first().click();
+  await D.page.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await D.page.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
+  await D.page.getByRole("dialog").waitFor({ state: "detached" });
+  await D.page.getByRole("button", { name: "How to play" }).last().click();
+  await D.page.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
+  await D.page.keyboard.press("Escape");
+  await D.page.getByRole("dialog").waitFor({ state: "detached" });
+  log("Co-Counsel: How to play opens from the header and the case picker, and closes");
   await D.page.getByRole("button", { name: "Choose The Case of the Missed Arrival" }).click();
   await D.page.getByRole("button", { name: "I'm the Defendant" }).click();
   await D.page.getByText("Copy invite link").waitFor();

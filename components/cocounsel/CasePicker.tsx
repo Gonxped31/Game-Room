@@ -4,6 +4,7 @@ import { COLOR } from "@/lib/games/cocounsel/theme";
 import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import Wordmark from "./Wordmark";
+import RulesButton from "./Rules";
 
 interface CasePickerProps {
   /** The case the room's game is on right now, marked on its card. */
@@ -40,6 +41,9 @@ export default function CasePicker({ currentCaseId, currentStatus, onChoose, onB
       <p className="mt-1 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.text2 }}>
         You both play the case you choose here. Best played on a call with your partner.
       </p>
+      <div className="mt-2 flex">
+        <RulesButton variant="link" />
+      </div>
 
       {casesByTier()
         .filter(({ cases }) => cases.length > 0)

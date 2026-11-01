@@ -54,3 +54,4 @@ T-7fm5 | 2 | - | S | frontend,howtoplay,lasthop | Move Last Hop's How to play on
 T-mpr2 | 2 | - | M | frontend,howtoplay,buzzerquiz | How to play for Buzzer Quiz: components/buzzerquiz/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
 T-u928 | 2 | - | M | frontend,howtoplay,wordscramble | How to play for Word Scramble: components/wordscramble/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
 T-9g78 | 2 | - | M | frontend,howtoplay,ftw | How to play for Same Page: components/ftw/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01
+T-5ztd | 2 | - | M | frontend,howtoplay,cocounsel | How to play for Co-Counsel: components/cocounsel/Rules.tsx on the shared HowToPlay dialog, per docs/how-to-play.md | done 2026-11-01

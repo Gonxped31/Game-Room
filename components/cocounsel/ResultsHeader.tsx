@@ -2,6 +2,7 @@ import { COLOR } from "@/lib/games/cocounsel/theme";
 import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import BackLink from "./BackLink";
 import ThemeToggle from "./ThemeToggle";
+import RulesButton from "./Rules";
 
 interface ResultsHeaderProps {
   investigatorName: string;
@@ -24,7 +25,8 @@ export default function ResultsHeader({ investigatorName, defendantName, onBack,
         <div className="font-[family-name:var(--font-archivo)] text-sm font-bold opacity-90">Investigator</div>
       </div>
       <div className="flex-1 px-4 py-5 text-right text-white" style={{ backgroundColor: COLOR.defendant }}>
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex justify-end gap-2">
+          <RulesButton />
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
         <div className="font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-none">{defendantName}</div>
