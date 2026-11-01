@@ -161,9 +161,10 @@ function RulesContent() {
 /**
  * Night Highway's How to play (docs/how-to-play.md, on the shared
  * components/HowToPlay.tsx): `variant` "icon" is the round ? in the top
- * corner of every race card and of the solo page, "link" the race lobby's and
- * the solo title card's "How to play". Wrap it in `.nh-rules` (screens.css),
- * which turns pointer events back on: the page's layers turn them off.
+ * corner of every race card and of the solo page, "link" the two lobbies' "How
+ * to play". Wrap the icon in `.nh-rules` (screens.css), which turns pointer
+ * events back on: the page's layers turn them off. It stays out of `Stage`, so
+ * the offline download (no Tailwind utilities) doesn't get it.
  */
 export default function RulesButton({ variant = "icon" }: { variant?: "icon" | "link" }) {
   return (

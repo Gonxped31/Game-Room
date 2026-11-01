@@ -46,8 +46,9 @@ single-file game (visuals, controls, physics, scoring).
   waiting for the other driver, lobby/results, waiting for their result, "Get
   ready"), in the reference's title-card style. Every card but an error has
   How to play's ? in its top corner (`Rules.tsx`, `docs/how-to-play.md`; the
-  lobby, the matchmaking lobby and the solo title card have a link, the solo
-  page's ? sits in its top links). The engine ignores keys pressed in an open
+  lobby and the matchmaking lobby have a link, and the solo page's ? sits in
+  its top links, outside `Stage`, so the offline download, which compiles no
+  Tailwind utilities, leaves it out). The engine ignores keys pressed in an open
   dialog. A rules change (scoring, controls, options) updates `Rules.tsx` too.
 - `app/nighthighway/page.tsx` (race), `app/nighthighway/solo/page.tsx` (solo),
   `app/nighthighway/layout.tsx` (title, dark theme colour).

@@ -5,8 +5,8 @@
 //   node .claude/skills/live-test/scripts/night-highway-race.mjs [baseUrl] [screenshotDir]
 //
 // Checks, in order:
-// - Solo: How to play opens from the corner and the title card (Enter inside
-//   it doesn't start a run); the title screen's Drive button starts a run.
+// - Solo: How to play opens from the corner (Enter inside it doesn't start a
+//   run); the title screen's Drive button starts a run.
 // - How to play opens from a race card's corner and the lobby.
 // - A creates a room and waits with the invite link; B joins by the link.
 // - A switches Rain on in the lobby and B switches Desert on: each sees the
@@ -50,18 +50,18 @@ try {
   const solo = await player("desktop", "solo (desktop)");
   await solo.goto(`${BASE}/nighthighway/solo`);
   await solo.getByRole("button", { name: /Drive/ }).waitFor();
-  // How to play: the corner ? (Enter inside it must not start a run behind it; Escape closes it), then the title card's link.
-  await solo.getByRole("button", { name: "How to play" }).first().click();
+  // How to play: the corner ? (Enter inside it must not start a run behind it; Escape closes it, then Got it).
+  await solo.getByRole("button", { name: "How to play" }).click();
   await solo.getByRole("dialog").getByRole("heading", { name: "How to play" }).waitFor();
   await solo.keyboard.press("Enter");
   await solo.waitForTimeout(300);
   if (await solo.evaluate(() => window.NightHighway?.G.state !== "title")) throw new Error("Enter in How to play started a run");
   await solo.keyboard.press("Escape");
   await solo.getByRole("dialog").waitFor({ state: "detached" });
-  await solo.getByRole("button", { name: "How to play" }).last().click();
+  await solo.getByRole("button", { name: "How to play" }).click();
   await solo.getByRole("dialog").getByRole("button", { name: "Got it" }).click();
   await solo.getByRole("dialog").waitFor({ state: "detached" });
-  log("solo: How to play opens from the corner and the title card; its keys stay in it");
+  log("solo: How to play opens from the corner, and its keys stay in it");
   await solo.getByRole("button", { name: /Drive/ }).click();
   await until(() => solo.evaluate(() => window.NightHighway?.G.state === "countdown" || window.NightHighway?.G.state === "drive"), "a solo run to start");
   await solo.close();
