@@ -101,7 +101,7 @@ try {
   await shot(B, answering.buzzer === "p2" ? "answering-iphone" : "watching-answer-iphone");
 
   // A wrong pick: struck out everywhere, the picker locked out.
-  await winner.getByRole("button", { name: q1.choices[3] }).click();
+  await winner.getByRole("button", { name: q1.choices[3], exact: true }).click();
   await until(async () => (await state())?.struck?.length === 1, "the strike");
   for (const page of [A, B, C]) await page.getByLabel(`${q1.choices[3]}, struck out`).waitFor();
   await winner.getByText("Wrong. You're out for this one.").waitFor();
@@ -127,7 +127,7 @@ try {
     await A.getByRole("heading", { name: q.question }).waitFor();
     await A.getByRole("button", { name: "Buzz" }).click();
     await A.getByText("Your turn! Pick an answer").waitFor();
-    await A.getByRole("button", { name: q.choices[0] }).click();
+    await A.getByRole("button", { name: q.choices[0], exact: true }).click();
     await until(async () => (await state())?.outcome?.kind === "right", `question ${i + 1}'s answer`);
   }
   await until(async () => (await state())?.phase === "final", "the final ranking", 20000);
