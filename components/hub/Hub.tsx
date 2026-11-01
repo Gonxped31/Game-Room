@@ -243,6 +243,22 @@ function CardRow({ children }: { children: ReactNode }) {
 }
 
 /**
+ * "Play from anywhere" on desktop: 300px cards, at most three to a row, so the
+ * rows stay even (six games: two rows of three). The row's spare width goes
+ * between the columns, so the cards span the folder. As the folder narrows,
+ * two columns (2 x 300 + 28), then one. Mobile: a 14px stack.
+ */
+function AnywhereGrid({ children }: { children: ReactNode }) {
+  return (
+    <div className="@container">
+      <div className="flex flex-col gap-3.5 min-[760px]:grid min-[760px]:justify-between min-[760px]:gap-[28px] @min-[628px]:grid-cols-[repeat(2,300px)] @min-[956px]:grid-cols-[repeat(3,300px)]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
  * The Game Room hub (references/game-room/game-room-ui-spec.md, v2 sections):
  * - Header: title, subtitle, and a Continue chip for the latest room; on
  *   desktop the Your rooms button sits top right. On mobile, jump buttons
@@ -358,7 +374,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         description="Two or more players, each on their own device."
       >
         <AnywhereHeading />
-        <CardRow>{anywhere.map(card)}</CardRow>
+        <AnywhereGrid>{anywhere.map(card)}</AnywhereGrid>
         <TalkPanel>{talk.map(card)}</TalkPanel>
       </Folder>
 
