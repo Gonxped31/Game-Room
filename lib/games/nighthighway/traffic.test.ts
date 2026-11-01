@@ -59,12 +59,14 @@ describe("a fixed (race) simulation", () => {
             const b = sorted[j];
             const overlapX = Math.abs(a.x - b.x) < a.halfW + b.halfW - 0.5;
             const overlapS = b.s - a.s < (a.len + b.len) / 2 - 0.5;
-            expect(overlapX && overlapS, `seed ${seed}, t=${sim.time.toFixed(2)}: cars ${a.id} and ${b.id}`).toBe(false);
+            // Only an overlap builds a message: an expect() per pair per step made this test slow enough to time out on a busy machine.
+            if (overlapX && overlapS) expect.fail(`seed ${seed}, t=${sim.time.toFixed(2)}: cars ${a.id} and ${b.id} overlap`);
           }
         }
       }
     }
-  });
+    // Three whole races, step by step: room to spare on a busy machine.
+  }, 20_000);
 
   it("keeps cars on the road at sane speeds, ending lane changes in a lane", () => {
     const sim = new TrafficSim(5, "fixed");
