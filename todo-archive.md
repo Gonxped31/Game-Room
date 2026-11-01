@@ -61,3 +61,4 @@ T-ajxc | 2 | - | M | frontend,howtoplay,borderrun | How to play for Border Run: 
 T-p5bq | 2 | - | S | frontend,regions | Name Checkmate Grid for real: 'Checkmate Grid' is a working title (GAME_TITLE, registry title, export page title) | done 2026-11-01
 T-ajb4 | 2 | - | S | frontend,borderrun | Name Border Run for real: 'Border Run' is a working title (GAME_TITLE, registry title, export page title) | done 2026-11-01
 T-8ndb | 3 | - | M | full-stack,regions | Daily routes: Firebase App Check (reCAPTCHA v3) so scripts can't call /api/daily without the page | done 2026-11-01
+T-049 | 3 | T-040 | L | content,buzzerquiz | Grow the Buzzer Quiz bank from 20 toward ~40 questions per topic per language (~480), fact-checked | done 2026-11-01
