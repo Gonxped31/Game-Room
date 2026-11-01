@@ -102,6 +102,7 @@ White, 300 px wide, 20 px radius, `padding: 10px 10px 18px`, `--card-shadow`.
    - **Title (`<h4>`):** the game's title font, 28 px, line height 1.05.
    - **Description:** 15 px, weight 500, line height 1.4, description color, min height 3 lines (63 px) so the buttons line up.
    - **Chips:** outlined parallelograms, 2 px ink border, 6 px radius, `padding: 2px 11px`, 13 px weight 700, 6 px gap.
+   - **Best on a computer:** a game too heavy for phones (registry `bestOnComputer`: Night Highway) ends its chips with a filled one: ink fill, white text, a 15 px screen icon, "Best on a computer". Same on the wide card and the Solo card.
    - **Buttons:** pushed to the bottom (`margin-top: auto`). Start and Join side by side, 10 px gap, 50 px tall, 2 px ink border, 12 px radius, hard shadow `0 4px 0` ink, title font at 18 px. Start uses the accent fill, Join is white. Games strangers can play add Matchmaking, full width under them: ink fill, white text, globe icon, `0 4px 0` accent shadow. Solo cards have one full-width "Play solo" in the accent fill.
 
 ### Game card (desktop, wide)
@@ -113,6 +114,7 @@ The same content in a wider shape (the Solo card's), from a 1300 px folder: half
 ### Game card (mobile, compact)
 White, 18 px radius, `padding: 10px 10px 14px`, shadow `0 4px 0 rgba(0,0,0,.22)`, 12 px gap. The card stays upright; its chip and buttons lean like the desktop ones.
 - **Top row:** a 92 px square mini art (12 px radius) and, 12 px to its right: title 22 px, short description 14 px (2 lines max), one chip (12 px, the player count).
+- **Best on a computer** (a `bestOnComputer` game): under the top row, a notice instead of the chip, since phones are where it lags: `#FFF1C7` fill, `#5C3A00` text, 13 px, 12 px radius, `padding: 8px 12px`, the screen icon, "**Best on a computer.** On a phone it may lag." The game repeats it on its own first screens for phone players who arrive by link.
 - **Bottom row:** Start and Join, 48 px tall, 17 px text, then Matchmaking for games that have it. Solo card: one "Play solo" button.
 - Cards stack with a 14 px gap (10 px inside the yellow panel).
 
@@ -226,6 +228,7 @@ Switch: `role="radiogroup"`, `aria-label="Join with"`, track `#E9EEEF`, 34 px se
 | Talk it out steps | Start a call, or sit side by side. · Each of you opens the room on your own phone. · Talk it through. The game won't tell you everything. |
 | Solo folder | Solo games (mobile: Solo) · {n} game(s) · Play on your own, anytime. |
 | Card buttons | Start · Join · Matchmaking · Play solo · Starting… |
+| Best on a computer | Best on a computer (desktop tag) · Best on a computer. On a phone it may lag. (phone notice) |
 | Footer | No accounts. Send the link and everyone's in. |
 | Your rooms | Your rooms · Yours · Rooms active in the last 30 days, saved on this device. |
 | Join | Join a {game} room · Code / Name · Enter its code (name) to jump back in. · Join · Joining… · We can't find that room. Check the code (name) and try again. |

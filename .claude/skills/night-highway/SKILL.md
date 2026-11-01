@@ -273,6 +273,15 @@ single-file game (visuals, controls, physics, scoring).
   player's car in their paint with their name above it, and the HUD shows their
   score and the gap.
 
+## Best on a computer
+
+The registry marks Night Highway `bestOnComputer` (heavy 3D: phones may lag), so
+the hub's cards carry a "Best on a computer" tag (a notice on the phone card).
+Phone players who arrive by a room link never see the hub, so the game says it
+too: `PhoneNote` on the name entry, waiting and matchmaking cards, and the same
+line on the solo title card, shown by CSS on a coarse pointer only
+(`.nh-phone-note` in screens.css), never by reading the device in render.
+
 ## Matchmaking (`docs/matchmaking.md`)
 
 - Hub "Matchmaking" pairs two strangers in a public room (`NIGHTHIGHWAY_MATCH` in

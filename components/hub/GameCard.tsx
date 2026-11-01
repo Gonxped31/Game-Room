@@ -49,7 +49,22 @@ interface GameCardProps {
   matchmakingOpen?: boolean;
 }
 
-function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; className: string }) {
+/** A computer screen: the "Best on a computer" tag and notice. */
+function ComputerIcon() {
+  return (
+    <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M8 20h8M12 16v4" />
+    </svg>
+  );
+}
+
+/**
+ * The tags, as outlined parallelograms; a game that plays best on a computer
+ * (`bestOnComputer`) adds a filled one, unless `computer` is off (the compact
+ * card spells it out in a notice instead).
+ */
+function Chips({ game, tags, className, computer = true }: { game: GameEntry; tags: string[]; className: string; computer?: boolean }) {
   return (
     <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0 pl-0.5">
       {tags.map((tag) => (
@@ -57,6 +72,14 @@ function Chips({ game, tags, className }: { game: GameEntry; tags: string[]; cla
           <span className={UPRIGHT}>{tag}</span>
         </li>
       ))}
+      {computer && game.bestOnComputer ? (
+        <li className={`${SLANT} rounded-[6px] border-2 px-[11px] py-0.5 font-bold ${className}`} style={{ borderColor: game.ink, backgroundColor: game.ink, color: "#FFFFFF" }}>
+          <span className="inline-flex skew-x-10 items-center gap-1.5">
+            <ComputerIcon />
+            Best on a computer
+          </span>
+        </li>
+      ) : null}
     </ul>
   );
 }
@@ -264,9 +287,17 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
           <p className="m-0 line-clamp-2 text-sm font-medium leading-[1.35]" style={{ color: game.textSecondary }}>
             {description}
           </p>
-          <Chips game={game} tags={[chip]} className="text-xs" />
+          <Chips game={game} tags={[chip]} className="text-xs" computer={false} />
         </div>
       </div>
+      {game.bestOnComputer ? (
+        <p className={`m-0 flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold leading-snug ${game.bodyClassName}`} style={{ backgroundColor: "#FFF1C7", color: "#5C3A00" }}>
+          <ComputerIcon />
+          <span>
+            <b>Best on a computer.</b> On a phone it may lag.
+          </span>
+        </p>
+      ) : null}
       {children}
     </article>
   );

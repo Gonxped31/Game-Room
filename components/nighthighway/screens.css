@@ -100,3 +100,10 @@
 .nh .nh-rules-h3 { margin: 0; font: 800 20px/1.1 var(--font-display); letter-spacing: 0.04em; text-transform: uppercase; }
 .nh .nh-rules-key { padding: 3px 5px 2px; border: 1px solid var(--rule); border-radius: 3px; color: var(--ink); font: 600 12px/1 var(--font-mono); }
 .nh .nh-rules-done { width: 100%; justify-content: center; }
+
+/* Phones and tablets (a coarse pointer): Night Highway is heavy 3D and plays best on a computer (Screens.tsx's PhoneNote). */
+.nh .nh-phone-note {
+  display: none; margin: 0; max-width: 40ch; padding: 8px 12px 6px; border: 1px solid rgba(255, 211, 106, 0.45); border-radius: 3px;
+  background: var(--veil-soft); color: #ffd36a; font: 700 13px/1.4 var(--font-body);
+}
+@media (pointer: coarse) { .nh .nh-phone-note { display: block; } }

@@ -49,6 +49,12 @@ export interface GameEntry {
   /** Also listed in the Solo folder, with a "Play solo" button that opens this page (no room). */
   solo?: { path: string; description: string; tags: string[] };
   /**
+   * Heavy enough (3D) that it plays best on a computer: on a phone it may lag.
+   * The hub's cards say so (a filled "Best on a computer" tag, and a notice
+   * on the phone card); the game itself tells phone players too.
+   */
+  bestOnComputer?: boolean;
+  /**
    * Leave the game off the hub's cards while keeping it fully playable by
    * link. Hidden games still get their title, colors and tile in "Your rooms"
    * and the Continue chip, since a guest may have rooms of them.
@@ -127,6 +133,7 @@ export const ALL_GAMES: GameEntry[] = [
     accentColor: "#FFD34D",
     titleClassName: "font-[family-name:var(--font-fredoka)] font-bold",
     bodyClassName: "font-[family-name:var(--font-fredoka)]",
+    bestOnComputer: true,
     solo: {
       path: "/nighthighway/solo",
       description: "Just you and the road. Beat your own best distance.",

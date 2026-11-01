@@ -37,6 +37,15 @@ export function Card({ children, back = false }: { children: ReactNode; back?: b
   );
 }
 
+/**
+ * Phones and tablets only (screens.css shows it on a coarse pointer, so
+ * nothing reads the device during render): Night Highway is heavy 3D, and
+ * plays best on a computer (the registry's `bestOnComputer`).
+ */
+export function PhoneNote() {
+  return <p className="nh-phone-note">Best on a computer: on a phone, Night Highway may lag.</p>;
+}
+
 function Wordmark() {
   return (
     <h1 className="wordmark nh-wordmark">
@@ -89,6 +98,7 @@ export function NameEntry({
     <Card>
       <p className="kicker">60 seconds · one road · two drivers</p>
       <Wordmark />
+      <PhoneNote />
       {open ? (
         <>
           <p className="lede">
@@ -156,6 +166,7 @@ export function WaitingForDriver({ invite, onLeave }: { invite: ReactNode; onLea
     <Card>
       <p className="kicker">Waiting for the other driver</p>
       <Wordmark />
+      <PhoneNote />
       <p className="lede">Send them the link. You race the same road at the same time, and each of you sees the other as a ghost car.</p>
       <div className="nh-invite">{invite}</div>
       <p className="note">
@@ -347,6 +358,7 @@ export function MatchLobby({
     <Card>
       <p className="kicker">{otherName ? `Matchmaking · ${myName} vs ${otherName}` : "Matchmaking"}</p>
       <Wordmark />
+      <PhoneNote />
       <p className="lede">
         {left
           ? "The other driver left the room."

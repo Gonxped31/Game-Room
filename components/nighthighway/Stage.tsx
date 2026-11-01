@@ -134,6 +134,8 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
                 <span className="hot">Highway</span>
               </h1>
               <p className="lede">Weave through late traffic, chain near misses for points, and see how far one minute takes you.</p>
+              {/* Phones and tablets only (screens.css): the race page's PhoneNote, as static markup. */}
+              <p className="nh-phone-note">Best on a computer: on a phone, Night Highway may lag.</p>
               <div className="row">
                 <button className="cta" id="startBtn" type="button">
                   Drive <kbd>Enter</kbd>
