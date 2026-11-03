@@ -1,4 +1,4 @@
-import type { Role, WithIdentity } from "@/lib/session/types";
+import type { Role } from "@/lib/session/types";
 import { ITEMS_PER_ROUND } from "./constants";
 import { matchCount } from "./scoring";
 
@@ -26,7 +26,7 @@ export interface CurrentRound {
   placed?: string[];
 }
 
-export interface GameState extends WithIdentity {
+export interface GameState {
   round: number;
   totals: Record<Role, number>;
   current: CurrentRound;
@@ -85,7 +85,7 @@ function isValidOrder(order: string[] | undefined, items: RoundItem[]): order is
 }
 
 export function newGame(firstRound: CurrentRound, topics: string[] = []): GameState {
-  const game: GameState = { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], names: {}, history: [] };
+  const game: GameState = { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], history: [] };
   return topics.length ? { ...game, topics } : game;
 }
 
@@ -186,16 +186,14 @@ export function nextRound(game: GameState, round: CurrentRound): GameState {
   if (game.current.status !== "REVEALED") {
     throw new Error(`Cannot advance to the next round while status is ${game.current.status}.`);
   }
-  // Every field is named explicitly, so each must have a value: `names` is
-  // always empty now (it lives at the room level) and Firebase drops empty
-  // objects and arrays, so they read back missing - and Firebase refuses to
-  // write an explicit `undefined`.
+  // Every field is named explicitly, so each must have a value: Firebase
+  // drops empty arrays, so `history` can read back missing - and Firebase
+  // refuses to write an explicit `undefined`.
   const next: GameState = {
     round: game.round + 1,
     totals: game.totals,
     current: round,
     usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt),
-    names: game.names ?? {},
     history: game.history ?? [],
   };
   return game.topics?.length ? { ...next, topics: game.topics } : next;

@@ -37,7 +37,7 @@ export interface Run extends RunCore {
 export type Runs = RaceRuns<Run>;
 
 export function newRace(mode: Mode): RaceState {
-  return { names: {}, phase: "lobby", mode, map: "mixed", rounds: 3, players: [], alive: [], round: 0, route: null, startsAt: 0, endsAt: 0, nextAt: 0, results: [] };
+  return { phase: "lobby", mode, map: "mixed", rounds: 3, players: [], alive: [], round: 0, route: null, startsAt: 0, endsAt: 0, nextAt: 0, results: [] };
 }
 
 /** The Realtime Database drops empty arrays and objects: put them back. */

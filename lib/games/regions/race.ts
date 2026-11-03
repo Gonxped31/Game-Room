@@ -36,7 +36,7 @@ export interface Run extends RunCore {
 export type Runs = RaceRuns<Run>;
 
 export function newRace(mode: Mode): GridRaceState {
-  return { names: {}, phase: "lobby", mode, pieces: "mixed", rounds: 3, players: [], alive: [], round: 0, seed: "", startsAt: 0, endsAt: 0, nextAt: 0, results: [] };
+  return { phase: "lobby", mode, pieces: "mixed", rounds: 3, players: [], alive: [], round: 0, seed: "", startsAt: 0, endsAt: 0, nextAt: 0, results: [] };
 }
 
 export const normalize = (state: GridRaceState): GridRaceState => {

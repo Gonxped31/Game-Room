@@ -7,7 +7,7 @@ import { betterRoom, nextAutoStart, type Queue, QUEUE_REFRESH_MS, queuePath } fr
 import { useDeadline } from "./shared/serverClock";
 import { leaveRoomUpdate, queueEntryUpdate, queueRemoveUpdate, room as roomPath } from "./shared/updates";
 import type { Session } from "./useSession";
-import type { SeatId, WithMultiplayerIdentity } from "./types";
+import type { SeatId } from "./types";
 
 /** How often a player waiting alone looks for another waiting room to join. */
 const MERGE_CHECK_MS = 8_000;
@@ -27,7 +27,7 @@ export interface PublicRoom {
 
 /** What the hook needs from a session: `useSession`'s, or the 1v1 `useGameSession`'s. */
 export type PublicRoomSession = Pick<
-  Session<WithMultiplayerIdentity>,
+  Session<unknown>,
   "room" | "me" | "uid" | "publicLang" | "onlineSeats" | "joinedSeats" | "names" | "leave" | "roomClosed"
 >;
 

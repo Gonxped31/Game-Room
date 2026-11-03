@@ -73,7 +73,6 @@
   - **Seats survive `setGame()` resets.**
   - `releaseAllIdentities` means "switch role": a swap, or a move to the empty
     seat.
-- **`lib/session/types.ts`** - `Role` (`"p1"|"p2"`, never renamed per game),
-  `SeatId`/`seatIds`, and `WithIdentity` (1v1) / `WithMultiplayerIdentity`, which
-  every game state must extend. Their `names` field is always `{}`: names live in
-  `players`.
+- **`lib/session/types.ts`** - `Role` (`"p1"|"p2"`, never renamed per game) and
+  `SeatId`/`seatIds`. A game's state holds no seats or names: those live in the
+  room's `seats` and `players`.

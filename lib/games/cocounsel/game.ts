@@ -1,4 +1,4 @@
-import type { Role, WithIdentity } from "@/lib/session/types";
+import type { Role } from "@/lib/session/types";
 import { DEFENDANT, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "./constants";
 import type { CaseCard, CaseDefinition, CasePart, CaseScreen } from "./caseTypes";
 
@@ -30,7 +30,7 @@ export interface RevealInfo {
   solvedOnFirstTry?: boolean;
 }
 
-export interface GameState extends WithIdentity {
+export interface GameState {
   caseId: string;
   partIndex: number;
   /** Misses so far across the WHOLE case - carries over between Parts, never resets until a new game. */
@@ -55,12 +55,7 @@ function otherRoleOf(role: Role): Role {
 // moment where they were empty. Every read goes through this so the rest of
 // this file never has to special-case "undefined vs empty".
 function normalizeGame(game: GameState): GameState {
-  // `names` is always empty now (seats and names live at the room level), so
-  // Firebase never stores it and it reads back missing. Normalizing it matters
-  // because continueAfterReveal names every field explicitly: a missing
-  // `names` would otherwise become an explicit `names: undefined`, which
-  // Firebase refuses to write.
-  return { ...game, locks: game.locks ?? {}, log: game.log ?? [], names: game.names ?? {} };
+  return { ...game, locks: game.locks ?? {}, log: game.log ?? [] };
 }
 
 function currentPart(caseDef: CaseDefinition, game: GameState): CasePart {
@@ -72,7 +67,7 @@ function currentPart(caseDef: CaseDefinition, game: GameState): CasePart {
 }
 
 export function newGame(caseId: string): GameState {
-  return { caseId, partIndex: 0, attempts: 0, phase: "SELECTING", locks: {}, log: [], names: {} };
+  return { caseId, partIndex: 0, attempts: 0, phase: "SELECTING", locks: {}, log: [] };
 }
 
 /** Which fact IDs a played card contradicts, and what flag (if any) that raises for `holder`. */
@@ -209,7 +204,6 @@ export function continueAfterReveal(rawGame: GameState, caseDef: CaseDefinition)
     phase: game.phase,
     locks: game.locks,
     log: game.log,
-    names: game.names,
   };
 
   if (lastReveal.outcome === "retry") {

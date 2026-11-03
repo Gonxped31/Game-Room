@@ -1,4 +1,4 @@
-import type { SeatId, WithMultiplayerIdentity } from "@/lib/session/types";
+import type { SeatId } from "@/lib/session/types";
 import { assertDue } from "@/lib/session/shared/deadline";
 import type { Lang } from "@/lib/games/shared/language";
 import {
@@ -51,7 +51,7 @@ export interface Played {
   steal?: number;
 }
 
-export interface ScrambleState extends WithMultiplayerIdentity {
+export interface ScrambleState {
   phase: Phase;
   settings: Settings;
   teams: Teams;
@@ -108,7 +108,6 @@ export const playingTeam = (turn: number): Team => (turn % 2 === 0 ? "A" : "B");
 export function normalize(game: ScrambleState): ScrambleState {
   return {
     ...game,
-    names: game.names ?? {},
     teams: game.teams ?? {},
     guesses: game.guesses ?? [],
     history: game.history ?? [],
@@ -136,7 +135,6 @@ export function newGame(lang: Lang): ScrambleState {
     scores: { A: 0, B: 0 },
     history: [],
     usedWordIds: [],
-    names: {},
   };
 }
 

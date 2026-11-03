@@ -1,4 +1,4 @@
-import type { Role, WithIdentity } from "@/lib/session/types";
+import type { Role } from "@/lib/session/types";
 import { assertDue } from "@/lib/session/shared/deadline";
 import { applyMove, type Board, type Colour, findMove, legalMoves, opponent } from "./board";
 import { BETWEEN_MS, CLOCKS, DEFAULT_PAWNS, MAX_ROUNDS, MIN_ROUNDS, type Mode, MODES, type Pawn, PAWNS, START_DELAY_MS } from "./constants";
@@ -25,7 +25,7 @@ export interface RoundResult {
   moves: number;
 }
 
-export interface LastHopState extends WithIdentity {
+export interface LastHopState {
   phase: Phase;
   mode: Mode;
   /** 1-based; 0 in the lobby. */
@@ -60,7 +60,6 @@ export function otherSeat(seat: Role): Role {
 export function newGame(mode: Mode = "track", pawns?: Partial<Record<Role, Pawn>>): LastHopState {
   return {
     ...(pawns && Object.keys(pawns).length ? { pawns } : {}),
-    names: {},
     phase: "lobby",
     mode,
     round: 0,
@@ -77,7 +76,6 @@ export function newGame(mode: Mode = "track", pawns?: Partial<Record<Role, Pawn>
 export function normalize(state: LastHopState): LastHopState {
   return {
     ...state,
-    names: state.names ?? {},
     history: state.history ?? [],
     score: { p1: state.score?.p1 ?? 0, p2: state.score?.p2 ?? 0 },
     clocks: { p1: state.clocks?.p1 ?? 0, p2: state.clocks?.p2 ?? 0 },

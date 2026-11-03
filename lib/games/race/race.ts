@@ -1,4 +1,4 @@
-import type { SeatId, WithMultiplayerIdentity } from "@/lib/session/types";
+import type { SeatId } from "@/lib/session/types";
 
 /**
  * Racing others in a solo game (Detour, Rank & File): everyone plays
@@ -60,7 +60,7 @@ export interface RoundResult {
 export type Phase = "lobby" | "round" | "results" | "over";
 
 /** What every race's state has; each game adds its settings and its round's content. */
-export interface RaceCore extends WithMultiplayerIdentity {
+export interface RaceCore {
   phase: Phase;
   mode: Mode;
   rounds: RoundCount;
@@ -110,7 +110,7 @@ const SEATS: readonly SeatId[] = [];
 /** The core fields the Realtime Database drops when empty. */
 export function normalizeCore<S extends RaceCore>(state: S): S {
   const results = (state.results ?? []).map((result) => ({ scores: result?.scores ?? {}, out: result?.out ?? SEATS }));
-  return { ...state, names: state.names ?? {}, players: state.players ?? [], alive: state.alive ?? [], results };
+  return { ...state, players: state.players ?? [], alive: state.alive ?? [], results };
 }
 
 /** This round's run, or undefined for one from another round. */

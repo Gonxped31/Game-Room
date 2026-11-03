@@ -108,7 +108,7 @@ single-file game (visuals, controls, physics, scoring).
 ## Race state (`game.ts`) and timing
 
 - `GameState`: `phase` (`LOBBY | RACING | DONE`), `race` (count), `ready`, `seed`,
-  `startAt`, `results`, `wins`, `history`, plus the always-empty `names`.
+  `startAt`, `results`, `wins`, `history`.
 - `setReady(game, role, ready, now, seed)` - the second Ready starts a race:
   `startAt = now + RACE_START_DELAY_MS` (server time), a fresh `seed`.
 - `submitResult` - one per seat; both in → `DONE`, winner (ties are `"tie"`),

@@ -43,9 +43,8 @@ game"); the folder counts and card rows follow the registry on their own.
 - A pure state machine in `game.ts`. Every transition takes the state and returns
   a new one; it **throws on an invalid move** (the store turns a throw into a safe
   no-op) and never mutates.
-- The state type `extends WithIdentity` (`lib/session/types.ts`) for 1v1 games, or
-  `WithMultiplayerIdentity` for 3+. The initial state includes `names: {}`. Seats
-  and display names are handled by the session layer, not the game.
+- The state holds only the game: seats and display names live in the room
+  (`seats`, `players`) and come from the session layer (`me`, `names`).
 - **Plan for Realtime Database data shapes from day one:**
   - Empty arrays/objects are dropped on write, so normalize every array/object
     field on read (`value ?? []`), e.g. a `normalizeGame()` at the top of each

@@ -28,7 +28,7 @@ describe("screenOfRole", () => {
 });
 
 describe("newGame", () => {
-  it("starts Part 1, SELECTING, zero attempts, empty locks/log/names", () => {
+  it("starts Part 1, SELECTING, zero attempts, empty locks/log", () => {
     const game = fresh();
     expect(game.caseId).toBe("ruined-birthday");
     expect(game.partIndex).toBe(0);
@@ -36,7 +36,6 @@ describe("newGame", () => {
     expect(game.phase).toBe("SELECTING");
     expect(game.locks).toEqual({});
     expect(game.log).toEqual([]);
-    expect(game.names).toEqual({});
   });
 });
 
@@ -299,7 +298,7 @@ describe("every shipped case", () => {
 
 describe("writes Firebase accepts", () => {
   // Each transition gets the state as Firebase hands it back (empty objects
-  // and arrays dropped, so `names`, `locks` and `log` can read back missing).
+  // and arrays dropped, so `locks` and `log` can read back missing).
   // A result with an explicit `undefined` makes the real write throw, and the
   // move silently does nothing - this is how "Continue to Part 2" once broke.
   const asStored = (state: GameState): GameState => pruneLikeFirebase(state) as GameState;

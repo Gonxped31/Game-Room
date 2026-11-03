@@ -1,4 +1,4 @@
-import type { Role, WithIdentity } from "@/lib/session/types";
+import type { Role } from "@/lib/session/types";
 import { COUNTDOWN_SECONDS, RACE_START_DELAY_MS, RESULT_GRACE_MS, RUN_SECONDS } from "./constants";
 
 /**
@@ -52,7 +52,7 @@ export interface RaceRecord {
   winner: Winner;
 }
 
-export interface GameState extends WithIdentity {
+export interface GameState {
   phase: Phase;
   /** How many races have started in this room. */
   race: number;
@@ -73,7 +73,7 @@ export interface GameState extends WithIdentity {
 const ROLES: Role[] = ["p1", "p2"];
 
 export function newGame(): GameState {
-  return { phase: "LOBBY", race: 0, ready: {}, results: {}, wins: { p1: 0, p2: 0 }, history: [], options: { ...DEFAULT_OPTIONS }, names: {} };
+  return { phase: "LOBBY", race: 0, ready: {}, results: {}, wins: { p1: 0, p2: 0 }, history: [], options: { ...DEFAULT_OPTIONS } };
 }
 
 /**
@@ -84,7 +84,6 @@ export function newGame(): GameState {
 export function normalizeGame(game: GameState): GameState {
   return {
     ...game,
-    names: game.names ?? {},
     ready: game.ready ?? {},
     results: game.results ?? {},
     wins: { p1: game.wins?.p1 ?? 0, p2: game.wins?.p2 ?? 0 },

@@ -69,8 +69,6 @@ and scored. Roles swap every round.
   5 placed". `RoundBoard` reports
   changes; `setPlaced(game, phase, ids)` refuses a placement from a phase that
   already ended, and `lockIn`/`submitGuess` drop the field.
-  It also carries `names: {}`, which `WithIdentity` requires but the session layer
-  doesn't use (names live in the room's `players` node).
 - **Its shape is validated by `database.rules.json`** (the `ftw` node).
   - If you add or rename a field, update the rules **and** the cases in
     `tests/rules/gameState.test.ts`, then run `npm run test:rules`. Otherwise the

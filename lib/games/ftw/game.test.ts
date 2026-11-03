@@ -46,24 +46,9 @@ describe("newGame", () => {
     expect(game.usedPrompts).toEqual(["Pizza toppings"]);
   });
 
-  it("starts with no names set", () => {
-    const game = freshGame();
-    expect(game.names).toEqual({});
-  });
-
   it("starts with empty history", () => {
     const game = freshGame();
     expect(game.history).toEqual([]);
-  });
-});
-
-describe("names", () => {
-  it("survives a round transition", () => {
-    const game = { ...freshGame(), names: { p1: "Sam", p2: "Alex" } };
-    const order = game.current.items.map((i) => i.id);
-    const revealed = submitGuess(lockIn(game, order), order);
-    const round2 = nextRound(revealed, makeRound("Vacation spots", ["Beach", "Mountains", "Big city", "Countryside", "Cruise"]));
-    expect(round2.names).toEqual({ p1: "Sam", p2: "Alex" });
   });
 });
 
@@ -200,7 +185,7 @@ describe("nextRound", () => {
 
 describe("writes Firebase accepts", () => {
   // Each transition gets the state as Firebase hands it back (empty objects
-  // and arrays dropped, so `names` reads back missing). A result with an
+  // and arrays dropped, so `history` reads back missing). A result with an
   // explicit `undefined` makes the real write throw, and the move silently
   // does nothing - local mode and JSON round-trips hide this.
   const asStored = <T,>(state: T): T => pruneLikeFirebase(state) as T;

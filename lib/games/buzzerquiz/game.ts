@@ -1,4 +1,4 @@
-import type { SeatId, WithMultiplayerIdentity } from "@/lib/session/types";
+import type { SeatId } from "@/lib/session/types";
 import { assertDue } from "@/lib/session/shared/deadline";
 import type { Lang } from "@/lib/games/shared/language";
 import {
@@ -51,7 +51,7 @@ export type Outcome =
   | { kind: "right"; seat: SeatId; points: number }
   | { kind: "none"; reason: "one-left" | "all-locked" | "timeout" };
 
-export interface QuizState extends WithMultiplayerIdentity {
+export interface QuizState {
   phase: Phase;
   settings: Settings;
   /** Who plays this game, fixed at Start (in seat order). Anyone else watches. */
@@ -98,7 +98,6 @@ export interface Question {
 export function normalize(game: QuizState): QuizState {
   return {
     ...game,
-    names: game.names ?? {},
     settings: { ...game.settings, topics: game.settings?.topics ?? [] },
     players: game.players ?? [],
     questionIds: game.questionIds ?? [],
@@ -134,7 +133,6 @@ export function newGame(lang: Lang): QuizState {
     scores: {},
     hands: {},
     played: {},
-    names: {},
   };
 }
 

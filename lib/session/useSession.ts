@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 import type { Store } from "@/lib/store";
 import { useRoom } from "./shared/useRoom";
-import { seatIds, type SeatId, type WithMultiplayerIdentity } from "./types";
+import { seatIds, type SeatId } from "./types";
 
-export interface Session<TState extends WithMultiplayerIdentity> {
+export interface Session<TState> {
   room: string;
   /** null while signing in or before the room has delivered a value ("Connecting to the room…"). */
   game: TState | null;
@@ -81,7 +81,7 @@ export interface Session<TState extends WithMultiplayerIdentity> {
  * database, not just this hook). 1v1 games use the `useGameSession` wrapper,
  * which narrows this to the two `Role`s.
  */
-export function useSession<TState extends WithMultiplayerIdentity>(opts: {
+export function useSession<TState>(opts: {
   gameSlug: string;
   /** Fixed per game - how many seats it has. */
   maxPlayers: number;

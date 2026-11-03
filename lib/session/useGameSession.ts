@@ -1,10 +1,10 @@
 "use client";
 
 import type { Store } from "@/lib/store";
-import type { Role, WithIdentity } from "./types";
+import type { Role } from "./types";
 import { useSession } from "./useSession";
 
-export interface GameSession<TState extends WithIdentity> {
+export interface GameSession<TState> {
   room: string;
   /** null while signing in or before the room has delivered a value ("Connecting to the room…"). */
   game: TState | null;
@@ -76,10 +76,9 @@ const asRole = (seat: string | null): Role | null => (seat === "p1" || seat === 
  *
  * Seats live at the room level (`games/{room}/seats`, keyed to guest IDs),
  * not in the game's own state, so a game resetting itself ("Reset game",
- * "Rematch") never unseats anyone. The `names` field every game state still
- * carries (WithIdentity) isn't used by this layer.
+ * "Rematch") never unseats anyone. Display names live there too (`players`).
  */
-export function useGameSession<TState extends WithIdentity>(opts: {
+export function useGameSession<TState>(opts: {
   gameSlug: string;
   createInitialState: () => TState;
 }): GameSession<TState> {

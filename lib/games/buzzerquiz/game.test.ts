@@ -301,7 +301,7 @@ describe("advance", () => {
 describe("normalize", () => {
   it("restores the arrays and objects the database drops", () => {
     const stored = { phase: "setup", settings: { lang: "en", length: 10 }, seed: 0, index: 0, round: 0 } as unknown as QuizState;
-    expect(normalize(stored)).toMatchObject({ players: [], questionIds: [], buzzes: [], struck: [], locked: [], scores: {}, names: {}, settings: { topics: [] } });
+    expect(normalize(stored)).toMatchObject({ players: [], questionIds: [], buzzes: [], struck: [], locked: [], scores: {}, settings: { topics: [] } });
   });
 });
 

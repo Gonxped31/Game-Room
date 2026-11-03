@@ -367,7 +367,7 @@ describe("advance", () => {
 describe("normalize", () => {
   it("restores what the database drops", () => {
     const stored = { phase: "lobby", settings: newGame("en").settings, turn: 0, seed: 0, hints: 0, scores: { A: 0 } } as unknown as ScrambleState;
-    expect(normalize(stored)).toMatchObject({ teams: {}, guesses: [], history: [], usedWordIds: [], scores: { A: 0, B: 0 }, names: {} });
+    expect(normalize(stored)).toMatchObject({ teams: {}, guesses: [], history: [], usedWordIds: [], scores: { A: 0, B: 0 } });
   });
 });
 

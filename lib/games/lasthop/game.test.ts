@@ -58,7 +58,7 @@ function playMatch(winners: Role[]): LastHopState {
 describe("newGame and setMode", () => {
   it("starts in the lobby with full clocks and no score", () => {
     const game = newGame();
-    expect(game).toMatchObject({ names: {}, phase: "lobby", mode: "track", round: 0, score: { p1: 0, p2: 0 }, history: [] });
+    expect(game).toMatchObject({ phase: "lobby", mode: "track", round: 0, score: { p1: 0, p2: 0 }, history: [] });
     expect(game.clocks.p1).toBe(CLOCKS.track.startMs);
   });
 
@@ -82,8 +82,7 @@ describe("newGame and setMode", () => {
   it("normalizes what the database drops", () => {
     const stored = { ...newGame() } as Partial<LastHopState>;
     delete stored.history;
-    delete stored.names;
-    expect(normalize(stored as LastHopState)).toMatchObject({ history: [], names: {} });
+    expect(normalize(stored as LastHopState)).toMatchObject({ history: [] });
   });
 });
 

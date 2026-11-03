@@ -12,17 +12,3 @@ export type SeatId = string;
 export function seatIds(maxPlayers: number): SeatId[] {
   return Array.from({ length: maxPlayers }, (_, i) => `p${i + 1}`);
 }
-
-/**
- * Every 1v1 game's state type extends this. Its `names` field is always `{}`:
- * seats and display names live at the room level (`players`), not in the
- * game's own state.
- */
-export interface WithIdentity {
-  names: Partial<Record<Role, string>>;
-}
-
-/** The same for a game with more than 2 seats (`useSession`), keyed by the open `SeatId`. */
-export interface WithMultiplayerIdentity {
-  names: Partial<Record<SeatId, string>>;
-}
