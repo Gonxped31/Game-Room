@@ -31,7 +31,10 @@ const nextConfig: NextConfig = {
   // still open, since browsers carry the #code across a redirect. Temporary, so
   // browsers don't cache it forever.
   async redirects() {
-    return [{ source: "/ftw", destination: "/same-page", permanent: false }];
+    return [
+      { source: "/ftw", destination: "/same-page", permanent: false },
+      { source: "/fr/ftw", destination: "/fr/same-page", permanent: false },
+    ];
   },
   // The solo games' offline HTML files (scripts/export-solo.mjs), read from
   // disk by the admin route that serves them: shipped with it.

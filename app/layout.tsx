@@ -19,6 +19,10 @@ import {
 } from "next/font/google";
 import type { ReactNode } from "react";
 import { APP_TITLE } from "@/lib/games/registry";
+import { LANG_HEAD_SCRIPT } from "@/lib/i18n/headScript";
+import { SITE_URL } from "@/lib/site";
+import LangFromPath from "@/components/LangFromPath";
+import SourceCapture from "@/components/SourceCapture";
 import LocalModeBanner from "@/components/LocalModeBanner";
 import ConnectionBanner from "@/components/ConnectionBanner";
 import "./globals.css";
@@ -141,6 +145,8 @@ const rubik = Rubik({
 });
 
 export const metadata: Metadata = {
+  // Link previews need absolute image URLs (lib/site.ts).
+  metadataBase: new URL(SITE_URL),
   title: APP_TITLE,
   // Opened from the Home Screen, iOS runs it as a standalone app - whose
   // storage (the guest ID, the room list) Safari doesn't wipe after 7 days.
@@ -156,11 +162,20 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable} ${bagel.variable} ${dmSans.variable} ${kalam.variable} ${fraunces.variable} ${rubik.variable}`}>
+    // lang: "en" in the HTML; the head script makes it "fr" on /fr pages before
+    // they paint (docs/i18n.md), hence suppressHydrationWarning on <html> alone.
+    <html lang="en" suppressHydrationWarning className={`${fredoka.variable} ${archivo.variable} ${archivoNarrow.variable} ${courierPrime.variable} ${bigShoulders.variable} ${overpass.variable} ${overpassMono.variable} ${bricolage.variable} ${atkinson.variable} ${lilita.variable} ${nunito.variable} ${bagel.variable} ${dmSans.variable} ${kalam.variable} ${fraunces.variable} ${rubik.variable}`}>
+      <head>
+        {/* Before paint: the guest's language (lib/i18n/headScript.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: LANG_HEAD_SCRIPT }} />
+      </head>
       <body className="min-h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-[family-name:var(--font-fredoka)] font-medium">
-        {children}
-        <LocalModeBanner />
-        <ConnectionBanner />
+        <LangFromPath>
+          {children}
+          <LocalModeBanner />
+          <ConnectionBanner />
+          <SourceCapture />
+        </LangFromPath>
       </body>
     </html>
   );

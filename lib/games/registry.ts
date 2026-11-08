@@ -1,5 +1,7 @@
-/** The platform's overall brand - shown on the picker and in the browser tab there. */
-export const APP_TITLE = "Game Room";
+import { type Lang, localizePath } from "@/lib/i18n/lang";
+
+/** The platform's brand (formerly Game Room), the same in every language: the picker, the browser tab, link previews. */
+export const APP_TITLE = "Partyfox";
 
 /**
  * Where a game sits in the hub's Social folder
@@ -229,12 +231,15 @@ export function gameBySlug(slug: string): GameEntry | undefined {
   return ALL_GAMES.find((game) => game.slug === slug);
 }
 
-/** A game's page route: `/same-page` for the `ftw` slug, `/<slug>` otherwise (also for unknown slugs). */
-export function gamePath(slug: string): string {
-  return gameBySlug(slug)?.path ?? `/${slug}`;
+/**
+ * A game's page route: `/same-page` for the `ftw` slug, `/<slug>` otherwise
+ * (also for unknown slugs); under `/fr` in French.
+ */
+export function gamePath(slug: string, lang: Lang = "en"): string {
+  return localizePath(gameBySlug(slug)?.path ?? `/${slug}`, lang);
 }
 
-/** The link to a room: `/<route>#<code>`. */
-export function roomHref(slug: string, code: string): string {
-  return `${gamePath(slug)}#${code}`;
+/** The link to a room: `/<route>#<code>`, under `/fr` in French. */
+export function roomHref(slug: string, code: string, lang: Lang = "en"): string {
+  return `${gamePath(slug, lang)}#${code}`;
 }

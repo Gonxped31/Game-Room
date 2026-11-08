@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import type { Lang } from "@/lib/i18n/lang";
 import { hasFirebaseConfig } from "@/lib/store/config";
 
 /**
@@ -113,4 +114,11 @@ export async function guestIdToken(): Promise<string> {
   return user.getIdToken();
 }
 
-export const CONNECTION_ERROR_MESSAGE = "Can't connect right now. Check your connection and reload.";
+/** Shown instead of a page when the guest can't be signed in (never a silent fallback to local mode). */
+export const CONNECTION_ERROR_TEXT: Record<Lang, string> = {
+  en: "Can't connect right now. Check your connection and reload.",
+  fr: "Connexion impossible pour le moment. Vérifie ta connexion et recharge la page.",
+};
+
+/** The English one; pages pass their language to `CONNECTION_ERROR_TEXT[lang]`. */
+export const CONNECTION_ERROR_MESSAGE = CONNECTION_ERROR_TEXT.en;
