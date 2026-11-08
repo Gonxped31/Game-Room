@@ -1,6 +1,6 @@
 ---
 name: buzzerquiz
-description: Reference for working on Buzzer Quiz, the 2-4 player buzzer quiz - its rules, state machine, fair buzz resolution, server-clock timing, question bank (EN/FR), page flow and gotchas. Use whenever changing or debugging anything under lib/games/buzzerquiz/, components/buzzerquiz/ or app/buzzerquiz/, editing questions.json, or answering questions about how Buzzer Quiz plays.
+description: Buzzer Quiz, the 2-4 player buzz-in quiz - rules, state machine, fair buzz resolution, timing, EN/FR questions.json. Use when changing or debugging lib/games/buzzerquiz/, components/buzzerquiz/, app/buzzerquiz/, or asked how it plays.
 ---
 
 # Buzzer Quiz

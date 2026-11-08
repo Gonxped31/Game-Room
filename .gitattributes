@@ -1,1 +1,5 @@
+* text=auto
+# sh can't run a hook with CRLF line endings, so hooks stay LF on every OS.
+.githooks/* text eol=lf
+# Two branches that both finish todos keep both archive lines.
 todo-archive.md merge=union

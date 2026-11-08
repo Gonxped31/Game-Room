@@ -1,15 +1,14 @@
 ---
 name: wordscramble
-description: Reference for working on Word Scramble, the 2-8 player team word game - its rules, team lobby, state machine, scrambling, server-clock timing, the typing signal, word lists (EN/FR), page flow and gotchas. Use whenever changing or debugging anything under lib/games/wordscramble/, components/wordscramble/ or app/wordscramble/, editing words.json, or answering questions about how Word Scramble plays.
+description: Word Scramble, the 2-8 player team word game - rules, team lobby, state machine, timing, EN/FR words.json. Use when changing or debugging lib/games/wordscramble/, components/wordscramble/, app/wordscramble/, or asked how it plays.
 ---
 
 # Word Scramble
 
-Two teams of equal size (1v1 to 4v4) take turns unscrambling a word against a 30 s
-clock (`/wordscramble#room`). Anyone on the playing team can guess, and the other
-team watches. A word is worth its letters minus 1 per hint. The host (the room's
-creator) sets the language (EN/FR) and the length: turns per team (3–10) or a target
-score (20/30/40).
+Two teams of equal size (1v1 to 4v4) take turns unscrambling a word against a 30 s clock
+(`/wordscramble#room`). Anyone on the playing team can guess, and the other team watches.
+A word is worth its letters minus 1 per hint. The host (the room's creator) sets the
+language (EN/FR) and the length: turns per team (3–10) or a target score (20/30/40).
 
 **Source of truth**:
 - `references/scramble/word-scramble-game-design.md` - rules, flow, timing, content.

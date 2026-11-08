@@ -2,10 +2,14 @@
 
 Habits that keep sessions cheap and focused.
 
-- **One todo per session.** Take `todo next`, finish it, `todo done`, stop.
+- **One task per session.** `todo next`, finish it, `todo done`, stop.
 - **`/clear` between unrelated tasks.** Old context costs tokens on every turn.
-- **`/compact` with focus instructions** when a long task must continue, e.g. `/compact keep the failing test names and the files changed`.
-- **`/context` and `/cost`** show what is actually using the window and the money (MCP servers, skills, big reads) before guessing.
-- **Don't edit CLAUDE.md or MCP config mid-session.** Either change breaks prompt caching for the rest of the session; make them between sessions.
-- **Read narrowly.** Use Grep, or Read with `offset`/`limit`; a hook blocks whole-file reads over 1500 lines.
-- **Run `./scripts/check`** instead of raw lint/test output.
+- **`/compact` with a focus** when a long task must go on, e.g.
+  `/compact keep the failing test names and the files changed`.
+- **`/context` and `/cost`** show what's using the window, and the money, before you
+  guess.
+- **Change `CLAUDE.md` and MCP config between sessions**, not in the middle of one:
+  either change breaks prompt caching for the rest of the session.
+- **Read narrowly.** Grep, or Read with `offset` and `limit`; a hook refuses
+  whole-file reads over 1500 lines.
+- **Run `node scripts/check.mjs`** instead of reading raw test or lint output.

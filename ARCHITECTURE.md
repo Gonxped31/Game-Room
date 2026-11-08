@@ -2,6 +2,21 @@
 
 Next.js app (App Router) on Firebase Realtime Database with invisible Anonymous Auth. Players' clients talk to the database directly, guarded by `database.rules.json`. The only server code is the owner's `/admin` dashboard: `app/api/admin/*` route handlers using `firebase-admin` (which bypasses the rules) behind a password cookie.
 
+## Games
+
+| Game | Route | Slug | Players and modes |
+| :--- | :--- | :--- | :--- |
+| Same Page (formerly First to Worst) | `/same-page` (`/ftw` redirects) | `ftw` | 2, a ranking game |
+| Co-Counsel | `/cocounsel` | `cocounsel` | 2, cooperative deduction |
+| Night Highway | `/nighthighway`, plus `/nighthighway/solo` | `nighthighway` | 2-player 3D race, or solo |
+| Buzzer Quiz | `/buzzerquiz` | `buzzerquiz` | 2-4, buzz in |
+| Word Scramble | `/wordscramble` | `wordscramble` | 2 teams, 2-8 players |
+| Rank & File (formerly Checkmate Grid) | `/regions` (solo, with a daily puzzle); races at `/regions/race` | `regions` | solo, or Challenge/Survival races |
+| Detour (formerly Border Run) | `/borderrun` (a geography race), plus `/borderrun/solo` with a daily route | `borderrun` | solo, or Challenge/Survival races |
+| Last Hop | `/lasthop` | `lasthop` | 1v1 hop-forward duel on a Track or a Grid |
+
+The two races (Challenge for 2-4 players, Survival for 4-8) share one layer: `docs/race.md`.
+
 ## Directories
 
 | Path | Purpose |
@@ -21,7 +36,7 @@ Next.js app (App Router) on Firebase Realtime Database with invisible Anonymous 
 | `references/` | Original specs and mockups |
 | `.claude/skills/` | Per-game and per-task guides |
 | `scripts/` | `check`, `build`, `test-rules` wrappers; `export-solo.mjs` (runs before `next build`) |
-| `docs/` | Longer reference (`architecture.md`: data model, environment) |
+| `docs/` | Longer reference (`architecture.md`: data model, environment, hub components; `session.md`: the session code map) |
 
 ## Entry points
 

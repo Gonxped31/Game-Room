@@ -1,0 +1,29 @@
+{
+  "steps": [
+    {
+      "name": "doctor",
+      "run": "node scripts/doctor.mjs"
+    },
+    {
+      "name": "types",
+      "run": "npx tsc --noEmit",
+      "format": "tsc"
+    },
+    {
+      "name": "lint",
+      "run": "npm run lint",
+      "format": "eslint"
+    },
+    {
+      "name": "test",
+      "run": "npm test",
+      "slow": true,
+      "format": "vitest"
+    },
+    {
+      "name": "rules",
+      "run": "npm run test:rules",
+      "flag": "--rules"
+    }
+  ]
+}

@@ -49,3 +49,9 @@ next-env.d.ts
 firebase-debug.log
 database-debug.log
 ui-debug.log
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.local

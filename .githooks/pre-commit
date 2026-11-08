@@ -1,0 +1,8 @@
+#!/bin/sh
+# Refuses commits on main (except a repo's very first commit), then runs the fast checks.
+# Turned on once per clone: git config core.hooksPath .githooks
+if git rev-parse -q --verify HEAD >/dev/null && [ "$(git symbolic-ref --short -q HEAD)" = "main" ]; then
+  echo "pre-commit: no commits on main. Work on a branch; main moves through node scripts/merge.mjs (git skill)." >&2
+  exit 1
+fi
+exec node scripts/check.mjs --fast

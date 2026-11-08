@@ -6,7 +6,7 @@
 //   next                                              best eligible line, or "none"
 //   list [-p N] [--tag X] [--all]                     eligible items; --all adds blocked (*)
 //   set T-XXX [-p N] [--dep T-A,T-B|-] [--size S|M|L|-]   change priority, deps or size
-//   detail T-XXX "text" | --file path [--append]       write the item's detail text
+//   detail T-XXX "text" | --file path|- [--append]     write the item's detail text ("-": stdin)
 //   edit T-XXX "new text"                             replace an item's description
 //   tag T-XXX a,b                                     replace an item's tags ("-" clears)
 //   show T-XXX                                        the line, then the detail text if any
@@ -536,11 +536,12 @@ function detail(argv) {
   const { flags, pos } = parseArgs(argv, ["--file"], ["--append"]);
   const item = find(loadItems(), pos[0]);
   let text;
-  if (flags["--file"]) {
+  if (flags["--file"] === "-") text = fs.readFileSync(0, "utf8"); // stdin, e.g. a heredoc
+  else if (flags["--file"]) {
     if (!fs.existsSync(flags["--file"])) die(`no such file '${flags["--file"]}'`);
     text = fs.readFileSync(flags["--file"], "utf8");
   } else text = pos.slice(1).join(" ");
-  if (!text.trim()) die('usage: detail T-XXX "text" | --file path [--append]');
+  if (!text.trim()) die("usage: detail T-XXX 'text' | --file path|- [--append]");
   const old = flags["--append"] ? bodyOf(item.id) : "";
   writeItem(item, old ? `${old}\n${text.trimEnd()}` : text);
 }
@@ -815,7 +816,7 @@ commands:
   add "text" [-p 1-3] [--dep T-A,T-B] [--size S|M|L] [--tag a,b]   prints the new ID
   next | list [-p N] [--tag X] [--all] | show T-XXX
   set T-XXX [-p N] [--dep ...|-] [--size S|M|L|-] | edit T-XXX "text" | tag T-XXX a,b
-  detail T-XXX "text" | --file path [--append]
+  detail T-XXX "text" | --file path|- [--append]   ("-" reads stdin)
   done T-XXX | rm T-XXX
   migrate                      convert an old todo.md into one file per todo
   stats | graph | html [--out file]

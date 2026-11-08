@@ -1,6 +1,6 @@
 # Game Room reference: data model and environment notes
 
-Moved out of CLAUDE.md to keep it short. The code map lives in nested CLAUDE.md files (lib/session, lib/store, lib/games, components).
+The data model, environment notes and the hub's components. The rules and code map live in the nested CLAUDE.md files (lib/session, lib/store, lib/games, components); the session's longer code map is `docs/session.md`.
 
 ## Room data model (`database.rules.json` is the source of truth)
 
@@ -38,3 +38,18 @@ analytics/statsSince: <ms>                                                 // wh
   need `https://*.vercel.app/*`.
 - **A dev server returning 500 with a Turbopack panic** means the dev cache is
   corrupted: stop dev servers and delete `.next/dev`.
+
+## Hub components (`components/hub/`)
+
+The rules for them (leaving, dialogs, room links) are in `components/CLAUDE.md`.
+
+- Hub (`components/hub/`): `Hub` (header, Continue chip, Your rooms button
+  or floating pill, mobile jump buttons, the Social folder with "Play from
+  anywhere" and the yellow "Talk it out" panel, the Solo folder),
+  `GameCard` (desktop card + compact mobile card, Start + Join, plus
+  Matchmaking on matchmaking games; `SoloCard` with Play solo),
+  `HubOverlay` (one shared popover on desktop / bottom sheet on mobile),
+  `JoinPanel`, `MatchPanel` (Matchmaking: name, language, Find players),
+  `YourRoomsList` (+ `HomeScreenTip`),
+  `useSavedRooms`. Art (`HubArt`: 168px panel + 92px mini per game) and
+  list tiles (`GameTile`) live in `components/gameRoom/`.

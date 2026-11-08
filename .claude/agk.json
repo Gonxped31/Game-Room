@@ -1,0 +1,22 @@
+{
+  "about": "Written by agk setup and agk update: the kit's files as it wrote them, so agk update can tell the ones you changed.",
+  "version": "0.5.0",
+  "stack": "node",
+  "files": {
+    ".claude/settings.json": "07785c08a6d8240767aca6968c6991a8e34de5f5e75de1a1c73695868c7c81b3",
+    ".claude/skills/agent-setup/SKILL.md": "f509af1293c815fb55dcbb2d1355f3daf0c6c4fe01981f32ffc216544e3541a7",
+    ".claude/skills/git/SKILL.md": "5394b40daeeeb5d66ed25efd475b6de091651cfa86ade488b660c87e7ca6414d",
+    ".claude/skills/todo/SKILL.md": "2bf0a702cc2f77dff4c9a1b1633c80510b46fbd2daf3747818b708b8538dcbf4",
+    ".claude/skills/todo/scripts/todo.mjs": "f15e76a1b8d255af72c51f10af2577d9b5d294af26ebd8f8115adf14d5b79cb5",
+    ".gitattributes": "e306ec8b5e3bc553ffe2db27043aa6d8fa6d158a6b528397f57465072b8e1aa0",
+    ".githooks/pre-commit": "5803bb5aff8b963e6d376bd7ef6770eeb1b8b92e452a99c84078abb094fe3fea",
+    "CLAUDE.md": "7ff1d3abcd4cd9bec62ad24dd4c81b0172ede9fd7305347b224f0dea6ffecfa7",
+    "docs/workflow.md": "121c0f40e298229995995fa0ee538c852bc0de4e8bfb89c7f0fa1834083f1890",
+    "scripts/check.json": "a8fdfe351c4e8f19c4ea547cf7f1e2fceeee1ac29b64cf349df726d63c7d116d",
+    "scripts/check.mjs": "79c046e8305a60149ffda294b8dbaa077cf980ea7d449ab89eac657b22850f5c",
+    "scripts/doctor.mjs": "7e2bef65362ab9c2f0b7e25702e21ad78c58b03867bfbc8f6c62e3ee0775fd30",
+    "scripts/hooks/block-big-read.mjs": "463be960d034f8cf8bcc40104fb2d6b169a2cee1a19998c624d72e1d747c5090",
+    "scripts/hooks/guard-commands.mjs": "bae6639f327c1e90e4fc16e7cf46d16e57d222078f669483112e7cac4956e50e",
+    "scripts/merge.mjs": "47c542e77738c65c42a47e7fc057c027447f410444f23de2fbcc0e411d1d6555"
+  }
+}

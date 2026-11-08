@@ -1,6 +1,6 @@
 ---
 name: night-highway
-description: Reference for working on Night Highway, the 3D night-freeway racing game - its engine port (three.js r128), the deterministic shared traffic, the race state machine and server-clock timing, the live ghost car channel, curves, pickups, rain, the desert circuit and its hills, and the race options, solo mode, and gotchas. Use whenever changing or debugging anything under lib/games/nighthighway/, components/nighthighway/ or app/nighthighway/, or answering questions about how Night Highway plays.
+description: Night Highway, the 3D racing game - three.js r128 engine, deterministic traffic, server-clock timing, ghost car, curves, pickups, rain, desert, solo. Use when changing or debugging lib/games/nighthighway/, components/nighthighway/, app/nighthighway/.
 ---
 
 # Night Highway
@@ -16,289 +16,52 @@ near misses for points (combo up to ×9), and see how far one minute takes you.
   card, remembered per device): **Pickups** (on by default), **Rain** (off) and
   **Desert** (off: the city at night).
 
-**Source of truth**: `references/night-highway/Night Highway.html`, the original
+**Source of truth**: `references/night-highway/` (`Night Highway.html`), the original
 single-file game (visuals, controls, physics, scoring).
 
-## Files
+## Reference, next to this file
 
-- `components/nighthighway/engine/engine.js` - **the engine: a port of the
-  reference's script**, kept as close to it as possible (so it stays plain
-  JavaScript; `engine.d.ts` types its API). Every change from the original is
-  marked `Game Room:`.
-  - **It's generated, but kept in git.** A port script built it from the
-    reference and the changes since are small edits; edit the file directly now,
-    keeping the `Game Room:` markers so the two stay comparable.
-  - `createEngine(root, { mode, fonts, ... })` boots on the stage markup and returns
-    `{ startSolo, startRace, stopRace, setOpponent, trafficChecksum,
-    raceTrafficChecksum, destroy }`.
-  - Uses `three@0.128.0` from npm (the reference's version). Don't upgrade
-    casually: r128 APIs it relies on (`WebGLMultisampleRenderTarget`,
-    `sRGBEncoding`) were removed later.
-- `components/nighthighway/Stage.tsx` - the full-screen stage: the reference's
-  markup as JSX, **memoized so it never re-renders** (the engine writes into it
-  every frame). Boots the engine in an effect via a dynamic import, so three.js
-  never loads on the server. React StrictMode mounts twice; `destroy()` must
-  leave nothing behind (listeners, rAF, the WebGL context).
-- `components/nighthighway/nighthighway.css` - the reference's stylesheet, scoped
-  under `.nh` (keyframes prefixed `nh-`). `screens.css` - the race page's own
-  screens.
-- `components/nighthighway/Screens.tsx` - the race page's screens (name entry,
-  waiting for the other driver, lobby/results, waiting for their result, "Get
-  ready"), in the reference's title-card style. Every card but an error has
-  How to play's ? in its top corner (`Rules.tsx`, `docs/how-to-play.md`; the
-  lobby and the matchmaking lobby have a link, and the solo page's ? sits in
-  its top links, outside `Stage`, so the offline download, which compiles no
-  Tailwind utilities, leaves it out). The engine ignores keys pressed in an open
-  dialog. A rules change (scoring, controls, options) updates `Rules.tsx` too.
-- `app/nighthighway/page.tsx` (race), `app/nighthighway/solo/page.tsx` (solo),
-  `app/nighthighway/layout.tsx` (title, dark theme colour).
-- `lib/games/nighthighway/`:
-  - `traffic.ts` - `TrafficSim`, the same-direction traffic (see below).
-  - `sand.ts` - the desert's deep sand layout (see the desert circuit).
-  - `game.ts` - the race state machine, plus the scoring rules the engine uses
-    (`nearMissPoints`, `MAX_COMBO`, `COMBO_SECONDS`, `NEAR_MISS_*`).
-  - `live.ts` - `LiveCar` and `GhostTrack` (interpolating the other car).
-  - `pickups.ts` - the pickup layout and constants (see below).
-  - `road.ts` - the curves (see below).
-  - `useRace.ts` - `useServerClock`, `useLiveCars`, `useTicker`.
-  - `constants.ts` - `RUN_SECONDS` (60), `COUNTDOWN_SECONDS` (3),
-    `COUNTDOWN_SPEED`, `RACE_START_DELAY_MS`, `RESULT_GRACE_MS`,
-    `LIVE_INTERVAL_MS`, `LANES`, `START_LANE`.
-- Fonts (`app/layout.tsx`): Big Shoulders (variable, `opsz` axis - Google's
-  current name for "Big Shoulders Display"; it's also the hub card's title),
-  Overpass, Overpass Mono. The engine draws canvas text with the real family
-  stacks, which `Stage` reads from the CSS variables.
+| File | What's there |
+| :--- | :--- |
+| `engine.md` | Every file: the engine port and its API, `Stage`, the CSS, the race screens, `lib/games/nighthighway/`, fonts; the offline download |
+| `race.md` | Shared traffic, race state and timing, the live ghost car, "Best on a computer", matchmaking and leaving |
+| `circuits.md` | Options, pickups, curves (the vertex-shader bend), the desert circuit and its hills, rain |
 
-## The offline download (`exports/nighthighway/`)
+## Rules that hold on every change
 
-- Solo, as one HTML file that plays offline (/admin, "Download a solo game"):
-  `main.tsx` renders this same `Stage` in solo mode; `scripts/export-solo.mjs`
-  bundles it with Vite (React, three.js, the engine, `lib/games/nighthighway`)
-  and inlines the JS, CSS, Tailwind's base (`tailwind.css`: preflight is what
-  hides `[hidden]`) and the fonts. Runs before every `next build`.
-- So **the engine must never fetch anything at play time** (no URLs, workers or
-  files): the file plays from disk, with no network.
-- Check after a change: `npm run export:solo`, then open
-  `downloads/nighthighway.html` from disk with the network off.
-
-## Shared traffic (`traffic.ts`)
-
-- **A race's traffic must be identical on both devices**, so the "fixed" mode is
-  fully deterministic:
-  - a seeded generator (mulberry32, integer ops only), fixed 1/30 s steps;
-  - **only arithmetic every JS engine computes identically**: `+ - * /`,
-    comparisons, `Math.imul/min/max/abs/floor/round`. **Never `Math.exp`, `sin`,
-    `pow`** (their last bits can differ between Safari and Chrome); the original's
-    `damp()` factors are precomputed constants (`EASE_BRAKE`, `EASE_CRUISE`);
-  - it never looks at the players, so nothing a player does can make copies drift.
-  - Cars are spread over the whole road a race can reach (`FIXED_ROAD_START` to
-    `FIXED_ROAD_END`), with the start grid clear.
-- "recycle" mode (solo and the cinematic title screen) keeps 16 cars around the
-  player and respawns them ahead, like the original.
-- **The engine maps sim cars onto instanced slots every frame** (`syncTraffic`,
-  `z = dist - s`), nearest first. `dist` is the player's distance down the road.
-- **Traffic can't be shoved any more** (both racers must keep identical traffic):
-  rear-ending a car drops the player behind it; a car catching up nudges the
-  player ahead. Oncoming traffic never meets the player, so it stays local and
-  random.
-- Tests: `traffic.test.ts` (same seed → same state however it's stepped, no lane
-  overlaps through a whole race, coverage). The live check compares V8 and
-  JavaScriptCore directly (`raceTrafficChecksum`).
-
-## Race state (`game.ts`) and timing
-
-- `GameState`: `phase` (`LOBBY | RACING | DONE`), `race` (count), `ready`, `seed`,
-  `startAt`, `results`, `wins`, `history`.
-- `setReady(game, role, ready, now, seed)` - the second Ready starts a race:
-  `startAt = now + RACE_START_DELAY_MS` (server time), a fresh `seed`.
-- `submitResult` - one per seat; both in → `DONE`, winner (ties are `"tie"`),
-  `wins`, `history`.
-- `giveUpOnMissingResults(game, now)` - after `RESULT_GRACE_MS` past the race's
-  end, a missing result (that tab closed) is given up on; the finisher wins.
-- **Normalize on read**: `normalizeGame()` runs in every transition and once on
-  every snapshot in the page, because RTDB drops the empty `ready`/`results`/
-  `history`.
-- **Timing comes from the server's clock** (`useServerClock` →
-  `watchServerTimeOffset`), never a device's own: race time `rt = serverNow -
-  startAt`. Before 0: "Get ready". 0-3 s: a scripted countdown, both cars side by
-  side in their `START_LANE` at `COUNTDOWN_SPEED`. 3-63 s: driving. At 63 s each
-  device submits its result.
-- **Slow frames are made up in a race** (50 ms sub-steps, up to 0.25 s per frame);
-  solo keeps the original's 50 ms cap. Without this, a device drawing under 20 fps
-  covers less road in its 60 seconds.
-- A device that reloads mid-race rejoins where the countdown would have put it,
-  with a fresh score. The engine never restarts a race number it finished.
-- No pause/restart in a race (the clock is shared).
+- **The engine** (`components/nighthighway/engine/engine.js`) is a port of the
+  reference's script, kept as close to it as possible. It's generated but kept in
+  git: edit it directly, and mark every change from the original `Game Room:`.
+  It uses `three@0.128.0`: don't upgrade casually (r128 APIs it relies on were removed).
+- **`Stage` is memoized so it never re-renders** (the engine writes into it every
+  frame), boots the engine in an effect, and `destroy()` must leave nothing behind:
+  StrictMode mounts twice.
+- **The engine must never fetch anything at play time** (no URLs, workers or files):
+  the offline download plays from disk. Check with `npm run export:solo`.
+- **A race's traffic must be identical on both devices**: a seeded generator, fixed
+  steps, and **only arithmetic every JS engine computes identically** (never
+  `Math.exp`, `sin`, `pow`). It never looks at the players, so traffic can't be shoved.
+  Pickups and deep sand use integer-op randomness from the seed too.
+- **Timing comes from the server's clock** (`useServerClock`), never a device's own.
+- **Normalize on read**: `normalizeGame()` in every transition and on every snapshot
+  (RTDB drops the empty `ready`/`results`/`history`).
 - **The sound is set up at the first click or key press**, never in the frame a
-  countdown starts: creating the `AudioContext` blocks for ~200 ms, which froze
-  every race's start (and a rejoin). Under software WebGL (headless Playwright,
-  ~2 fps) that freeze was even captured as a black frame.
-
-## Options (`GameState.options`)
-
-- `{ rain, pickups, desert }`, defaults `DEFAULT_OPTIONS` (pickups on, rain and
-  desert off).
-  `normalizeGame` fills them in for a room made before they existed.
-- `setOptions(game, change)` - either player, in the lobby only (refused mid-race),
-  and it **clears both Readys** so nobody races with switches they didn't see.
-- A race passes them to the engine in `startRace` (`race.options`); between races
-  the page previews them with `engine.setOptions` (rain falls in the lobby). Solo
-  keeps its own, in localStorage `night-highway:options`, flipped by the title
-  card's switches (`#optPickups`/`#optRain`/`#optDesert`, wired by the engine).
-- The engine shows the switches of whatever the road is showing (`shownOptions()`:
-  the race's while one runs, otherwise the lobby's or solo's), so flipping Desert
-  in the lobby swaps the circuit behind the card.
-
-## Pickups (`pickups.ts`)
-
-- Three kinds: **nitro** (+50% nitro), **phase** (5 s see-through: drive through
-  traffic, the combo can't break or time out), **shield** (absorbs the next crash:
-  it breaks into 0.8 s of phasing, so no speed or combo is lost).
-- Laid out from the run's seed in 220 m segments (1-2 per segment, never two in
-  one lane, none before 160 m), so both racers meet the same ones. Each collects
-  in their own world. Integer-op randomness only, like the traffic.
-- Driving *through* a car while phasing is not a near miss (overlap gap < 0).
-- Solo runs lay pickups out from where the run starts (`pickupBase`), since the
-  car's road position doesn't reset in solo.
-- The engine fades the player's car while phasing, so **the ghost car has its own
-  copies of every material** (it used to share them, so it would fade too).
-
-## Curves (`road.ts`) - always on
-
-- **The game stays a straight road**: traffic, pickups, collisions and the race
-  sync all live in road coordinates. The curves are drawn by **bending the world
-  sideways in the vertex shaders** by distance ahead (like OutRun), from a table
-  (`nhBend`, 34 samples from -96 m to 1488 m) refilled every frame by
-  `fillBendTable`.
-  - Built-in materials get the bend in `onBeforeCompile` (`bendMaterial`, applied
-    to everything in the scene just before boot, plus the motion-blur mask). The
-    custom shaders (glow, buildings) include `BEND_GLSL` themselves. Sprites
-    don't go through it (the ghost's name label is offset by hand).
-  - Long road pieces (road, walkways, barriers, ground) are subdivided along their
-    length so they can bend. Culling is off, since objects draw away from where
-    three thinks they are.
-  - The drawn bend is exaggerated (`BEND_EXAGGERATION`, ×3): at true scale it
-    flattens into the horizon.
-- **Bends push the car outward**: lateral speed = curvature × speed² ×
-  `CENTRIFUGAL`, so you steer into them. Uses the real curvature, not the
-  exaggerated picture.
-- A race's curves come from its seed; solo and the title screen roll their own.
-- New materials added later must go through `bendMaterial` (or include
-  `BEND_GLSL`), or they won't follow the road.
-
-## The desert circuit (an option)
-
-- **A dirt track through a red-rock canyon at sunset** (reference:
-  `references/night-highway/desert-canyon-road.png`, its shapes, not its light):
-  - Sunset: a low sun ahead-left (`SUN_DIR`, drawn in the sky shader), an
-    orange-to-violet sky, warm fog, a warm grade, sunset reflections (a second env
-    map), mesas on the horizon instead of the skyline.
-  - A single track, still 4 lanes wide (same invisible lanes, so traffic and the
-    race sync don't change): packed dirt with ruts and no paint
-    (`makeRoadTextures(true)`, fully matte). No oncoming road, barriers or
-    oncoming cars (`highwayOnly`, hidden in `writeTraffic`/`updateStreaks`).
-  - The road edges wander: sand drifts in over the outer lanes (`sandSpill`) and a
-    low rocky bank bulges in and out behind it (`edges`/`updateEdge`, strips rebuilt
-    each frame like the walls). A picture only: the car still stops at `LIM` and
-    scrapes along the bank. Loose stones lie on the track (visual).
-  - Canyon walls (`canyonWall`/`updateWall`): one strip per side, rebuilt every
-    frame from the world distance (`wallNoise`), so they wind, step and rise as
-    you drive; 10 m rows so they follow the hills. Layered strata texture.
-  - Boulders, scrub and a few saguaros on the canyon floor (`scatter`); `offRoad`
-    mirrors about the track and keeps a piece's whole radius off it.
-  - The title kicker swaps per circuit (`.nh-city-only` / `.nh-desert-only`).
-  - The player drives an off-road trophy truck (`orBody` + `orWheels`, built
-    beside the car in the same chassis and swapped by `showVehicle`, for the
-    ghost too). It shares the car's paint, lamps and nitro flame, and its hitbox,
-    so racing doesn't change. Lamps move with it (`LAMPS`); no neon underglow
-    there (`UNDERGLOW_DESERT`).
-- **Desert traffic**: jeeps and pickups (by the car's id: even a jeep, odd a
-  pickup) and dusty tipper haulers, in dusty colours, from their own instanced
-  meshes (`TRAFFIC_SETS`, picked in `trafficMeshes`). Same lengths, widths and
-  light positions as the city's, so the traffic plays the same. Test hook:
-  `traffic()` lists the same-direction traffic in sight.
-- **Boot compiles both circuits' shaders** (everything hidden is shown for one
-  `renderer.compile`), so the first switch doesn't stall a frame.
-- **Driving on dirt** (desert only, same for both racers):
-  - Loose grip: sideways speed settles slowly after steering (`drive()`: settle
-    rate 3.2 vs the car's 7, 1.6 when wet too) and bends push 1.2x harder. Measured:
-    0.3 s after letting go, 33% of the slide is left vs 9% in the city.
-  - Bumpy ride: `dirtBump(s)` (washboard, rolling, the odd stone; a picture only)
-    moves the truck's wheels exactly and its body softly, and jolts the camera,
-    which also rumbles with speed.
-  - Deep sand (`sand.ts`): drifts of soft sand across one or two lanes, 18-40 m
-    long, never on the start and always leaving a lane free; laid out from the
-    run's seed (mixed from the pickups', integer-op randomness only), so both
-    racers meet the same ones. In one, the car slows by `SAND_DRAG * v²` - about
-    40% of its speed across an average drift, at any speed - slides like in
-    rain, and throws a plume. Drawn opaque (`sandPatchMat`): faded in at soft
-    edges, they vanished against the dirt. Test hook: `sand()`.
-  - Dust (`updateDust`): puffs from the player's wheels (more when sliding or on
-    nitro), the traffic and the ghost. Each starts with its vehicle's speed
-    (`carry`) and slows, or it would vanish behind the camera at once.
-- **Built beside the city, swapped by `setCircuit()`** (called every frame from
-  the shown switch; it only does work when the circuit changes). `CIRCUITS` holds
-  each one's look; `cityObjs`/`desertObjs` are hidden and shown. Any new
-  look-dependent value belongs in `CIRCUITS`.
-- **Hills** (`road.ts`: `heightAt`, `fillHillTable`): drawn like the curves - a
-  second table (`nhHill`) on the same grid lifts every vertex in the shaders
-  (`nhBendXY`). Picture only: traffic, pickups and the race sync don't change.
-  Each 260 m segment is flat or one crest/dip of 6-18 m (from the race's seed).
-  The camera rides them (`updateCamera`); sprites are lifted by hand (the
-  ghost's label). Zeros in the city.
-  - **Anything long must be subdivided** (~10 m rows) or its straight segments
-    cut through the road on a dip: the big ground plane had 100 m rows and showed
-    as an orange band over the road.
-- **The screens and HUD get a deeper veil and a text shadow** over the bright
-  sky (`.nh.nh-desert`, toggled on the stage root by `setCircuit`).
-
-## Rain (an option)
-
-- **Driving**: sideways speed settles slowly (the car slides after you let go of
-  the steering), steering builds up more slowly, braking is weaker (21 vs 32
-  m/s²), and bends push 1.5× harder.
-- **Look and sound**: falling rain as instanced thin quads (WebGL lines are always
-  1 px and vanish at low resolution and under the motion blur), denser fog, a
-  shinier road and longer reflections, and a hiss. It eases in and out
-  (`rainK`).
-
-## The live ghost car (`live.ts`)
-
-- Each racer `set()`s its car to `games/{room}/nighthighwayCars/{seat}` every
-  `LIVE_INTERVAL_MS` (100 ms): `{ race, t, s, x, v, score, paint }`. A plain set at
-  its own path, not the game state: no transaction contention, and the rules let
-  only the seat's holder write it.
-- `GhostTrack` buffers the other's samples and interpolates 150 ms behind real
-  time (extrapolating briefly if samples stop). The engine draws a clone of the
-  player's car in their paint with their name above it, and the HUD shows their
-  score and the gap.
-
-## Best on a computer
-
-The registry marks Night Highway `bestOnComputer` (heavy 3D: phones may lag), so
-the hub's cards carry a "Best on a computer" tag (a notice on the phone card).
-Phone players who arrive by a room link never see the hub, so the game says it
-too: `PhoneNote` on the name entry, waiting and matchmaking cards, and the same
-line on the solo title card, shown by CSS on a coarse pointer only
-(`.nh-phone-note` in screens.css), never by reading the device in render.
-
-## Matchmaking (`docs/matchmaking.md`)
-
-- Hub "Matchmaking" pairs two strangers in a public room (`NIGHTHIGHWAY_MATCH` in
-  `lib/games/matchGames.ts`): one queue for everyone (`publicLang: "any"`, no
-  language), default switches.
-- The page runs `usePublicRoom`: once both are online, the first race starts by
-  itself 5 s later (`startRace`, which throws outside `LOBBY`, so only the first
-  device's commit counts). After that it's Ready as usual.
-- Screens: `MatchLobby` (waiting for a driver, the countdown, or "the other driver
-  left" with Find another driver), and `MatchLinks` (Leave room) under the results
-  instead of `RoomLinks`.
-- The browser's Back button is Leave room in the lobby and on the results
-  (`leaveOnBack`), never mid-race. "Drive solo" leaves the room first
-  (`leaveTo`).
-- **Leaving** (any room): no corner ← on room screens (`Card`'s `back`, set only
-  on `Message`). Name entry, waiting for the driver, `RoomLinks` and the match
-  screens each have a "Leave room" link. The solo page keeps its ←.
+  countdown starts (creating the `AudioContext` froze every race's start).
+- **`setOptions` clears both Readys** and is refused mid-race, so nobody races with
+  switches they didn't see.
+- **New materials must go through `bendMaterial`** (or include `BEND_GLSL`), or they
+  won't follow the curves. **Anything long must be subdivided** (~10 m rows), or it
+  cuts through the road on a hill's dip.
+- **Any new look-dependent value belongs in `CIRCUITS`** (`setCircuit()` swaps them).
+- **The ghost car has its own copies of every material** (it would fade with the
+  player's car while phasing).
+- **The live car is a plain `set` at `nighthighwayCars/{seat}`**, never in the game
+  state: no transaction contention, and only the seat's holder writes it.
+- **"Best on a computer"** on phones is shown by CSS on a coarse pointer, never by
+  reading the device in render.
+- **Leaving**: no corner ← on room screens; each has a "Leave room" link. The solo
+  page keeps its ←. Back is Leave room in the lobby and on the results, never mid-race.
+- A rules change (scoring, controls, options) updates `Rules.tsx` (How to play) too.
 
 ## Rules
 

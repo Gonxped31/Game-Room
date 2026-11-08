@@ -1,6 +1,6 @@
 ---
 name: add-game
-description: Step-by-step checklist for adding a new game to the Game Room platform - registry entry, state machine, components, page, database rules and their tests, and verification. Use when creating a new game, adding a new game slug, or wiring a game onto useGameSession or useSession. Also use (in reverse) when removing a game.
+description: Checklist for adding a game to Game Room - registry, state machine, components, page, database rules and tests, verification. Use when creating, removing or hiding a game, or wiring useGameSession/useSession.
 ---
 
 # Adding a game to Game Room
@@ -10,33 +10,18 @@ root `CLAUDE.md`). A new game only adds its own pieces. Skipping step 4 is the
 classic failure: the game works in local mode, then every write is refused on
 Firebase.
 
+`reference.md` (next to this file): every registry field and the art, the session hook call, How to play, the five rules steps, and removing a game.
+
 ## 1. Register it
 
-Add a `GameEntry` to `ALL_GAMES` in `lib/games/registry.ts`:
-- `slug` - becomes the route and the database key. `path` only if the route
-  must differ (Same Page: `/same-page`, slug `ftw`); links go through
-  `roomHref`/`gamePath`.
-- `section` - the hub folder: `"anywhere"` (the game shows everyone what's
-  happening) or `"talk"` (needs a call or the same room). `solo` too if it
-  has a solo page (adds a Play solo card to the Solo folder). A solo game also
-  needs `exports/<slug>/` (`index.html` + `main.tsx`, like Night Highway's): the
-  offline HTML file /admin offers for download. A test fails without it.
-  A **solo-only** game (no rooms, like Rank & File) uses `section: "solo"`
-  plus `solo`, and skips steps 2's state machine rules, 3's session hook and
-  4 entirely. A daily puzzle: `docs/daily.md`.
-- `title`, `description` (3 lines at 300px), `shortDescription` (2 lines on
-  the mobile card), `tags` (the first, the player count, is the mobile chip).
-- `maxPlayers` - only for a game that isn't 1v1.
-- The card colors and fonts: `ink`, `textSecondary`, `accentColor`
-  (`continueColor` if the Continue square differs), `titleClassName`,
-  `bodyClassName`. Check the Start fill against the ink at 4.5:1.
-
-Then draw the game's art in code in `components/gameRoom/HubArt.tsx`: a
-280x168 panel and a 92px mini, added to its `ART` lookup. Also add a 40px list
-tile for "Your rooms" in `components/gameRoom/GameTile.tsx` (without one, a
-game gets a generic tile in its accent color).
-The hub layout follows `references/game-room/game-room-ui-spec.md` ("Adding a
-game"); the folder counts and card rows follow the registry on their own.
+- A `GameEntry` in `ALL_GAMES` (`lib/games/registry.ts`): `slug` (the route and
+  the database key; `path` only if the route differs), `section`, `title`,
+  descriptions, `tags`, `maxPlayers` (only if not 1v1), card colors and fonts.
+- Its art in `components/gameRoom/HubArt.tsx` and its "Your rooms" tile in
+  `components/gameRoom/GameTile.tsx`.
+- A solo game also needs `exports/<slug>/` (a test fails without it). A
+  **solo-only** game (no rooms, like Rank & File) skips step 2's state machine
+  rules, step 3's session hook and step 4 entirely. A daily puzzle: `docs/daily.md`.
 
 ## 2. Write the game logic: `lib/games/<slug>/`
 
@@ -54,20 +39,12 @@ game"); the folder counts and card rows follow the registry on their own.
 - Content that someone might hand-edit (prompts, cases) goes in one JSON file with
   a validator test (see `lib/games/ftw/prompts.json`,
   `lib/games/cocounsel/cases.json`).
-- Vitest coverage for every transition and edge case (`*.test.ts` next to the
-  code).
+- Vitest coverage for every transition and edge case (`*.test.ts` next to the code).
 
 ## 3. Write the UI: `components/<slug>/` and `app/<slug>/page.tsx`
 
-- The page is a client component that calls the session hook once:
-  ```ts
-  const createInitialState = useCallback(() => newGame(...), []); // must be stable
-  const session = useGameSession({ gameSlug: "<slug>", createInitialState });
-  ```
-  For a game with more than 2 players, use `useSession({ gameSlug, maxPlayers,
-  minPlayers, createInitialState })` instead (`lib/session/useSession.ts`). It has
-  `seats`, `joinedSeats`, `enoughJoined`, `isHost` and `moveToSeat`. `RolePicker`
-  takes a `seats` list for N players; `Header` is 2-player only.
+- The page is a client component that calls `useGameSession` (1v1) or
+  `useSession` (more than 2 players) once, with a stable `createInitialState`.
 - **Handle the session states in this order** before any game screen:
   `session.connectionError` (show `CONNECTION_ERROR_MESSAGE`),
   `session.roomMissing` (`ROOM_MISSING_MESSAGE`), `!game` ("Connecting…"),
@@ -77,12 +54,8 @@ game"); the folder counts and card rows follow the registry on their own.
 - Apply game moves with `transact((s) => transition(s, ...))`. Reset with
   `setGame(newGame(...))`, which keeps everyone seated.
 - Add `<InAppBrowserBanner />` at the top of the page, as both existing games do.
-- **Write its How to play**: `components/<slug>/Rules.tsx`, the full rules on
-  the shared `components/HowToPlay.tsx` dialog, opened from a **?** in the
-  game's header on every screen and a "How to play" button in its lobby or
-  setup screen. What it must say, in what order, and how it looks:
-  `docs/how-to-play.md`. A test (`lib/games/howToPlay.test.ts`) fails without
-  it.
+- **Write its How to play** (`components/<slug>/Rules.tsx`, `docs/how-to-play.md`);
+  `lib/games/howToPlay.test.ts` fails without it.
 - Reuse `Header`, `Footer`, `RoleStickers` and `Button` where the look fits.
   Otherwise give the game its own components; visuals are per game.
 - **No back link to the hub in a room**: each room screen's way out is "Leave
@@ -96,26 +69,11 @@ game"); the folder counts and card rows follow the registry on their own.
 
 ## 4. Add the database rules: `database.rules.json`
 
-The rules are deny-by-default, so without these steps the game can't write
-anything on Firebase. Use the `database-rules` skill for the edit, test and deploy
-workflow.
-1. Add the slug to `games/$room/meta/gameSlug`'s `.validate`.
-   - If it's a 1v1 game, also add it to the `maxPlayers` check that forces 2.
-   - Otherwise `maxPlayers` may be 2–8.
-2. Add a `games/$room/<slug>` node with the same `.write` as `ftw`, swapping the
-   slug: a member of the room, or the creating write.
-3. Write its `.validate` rules from the TypeScript state type:
-   - allowed keys only, with `"$other": { ".validate": false }` at every level;
-   - a type for every field;
-   - enums checked with `==`;
-   - length caps on free text, matching the UI's limits;
-   - array key ranges (arrays are stored as objects keyed `0..n`).
-4. Add valid and invalid state tests to `tests/rules/gameState.test.ts`. Build the
-   valid states by playing the real state machine, as the existing tests do.
-5. **Data that changes many times a second** (positions in a real-time game) does
-   not belong in the game state, where every write is a transaction both players
-   contend over. Give it a sibling node that each seat writes only for itself, like
-   Night Highway's `nighthighwayCars/{seat}` (see the `night-highway` skill).
+Deny-by-default, so without them the game can't write on Firebase (`database-rules`
+skill for edit, test, deploy): the slug in `meta/gameSlug`'s `.validate`, a
+`games/$room/<slug>` node with `ftw`'s `.write`, `.validate` rules from the state
+type, valid and invalid state tests, and a per-seat sibling node for data that
+changes many times a second. The five steps: `reference.md`.
 
 ## 5. Verify
 
@@ -128,21 +86,14 @@ workflow.
 ## 6. Document it
 
 - Check the todos (`todo` skill, `list --all`) for items this new game triggers.
-  Do them, or tell the user they're now due.
-- Tag new todos for the game with its slug (e.g. `--tag frontend,<slug>`).
-- Create a `.claude/skills/<slug>/SKILL.md` reference for the game. Follow the
+  Do them, or tell the user they're now due. Tag new ones with its slug (`--tag frontend,<slug>`).
+- Create a `.claude/skills/<slug>/SKILL.md` reference for the game (≤100 lines,
+  longer reference in files next to it; `agent-setup` skill). Follow the
   `first-to-worst` or `co-counsel` skill: rules, files, state, page flow and
   gotchas. Point it at the game's `Rules.tsx`, which changes with the rules.
-- Add the game to the list of games in the root `CLAUDE.md` and in `README.md`
-  ("The games").
+- Add the game to the list of games in the root `CLAUDE.md`, `ARCHITECTURE.md`
+  ("Games") and `README.md` ("The games").
 
-## Removing a game
+## Removing or hiding a game
 
-Reverse the steps:
-- Delete `lib/games/<slug>/`, `components/<slug>/` (its How to play with it) and `app/<slug>/`.
-- Remove the registry entry and the art.
-- Remove the rules node, the slug from `meta/gameSlug`, and its rules tests.
-- Remove its skill.
-
-To only *hide* a game from the hub, set `hidden: true` on its registry entry. It
-stays playable by link and keeps its name and tile in "Your rooms".
+Reverse the steps, or only hide it from the hub with `hidden: true`: `reference.md`.

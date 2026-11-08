@@ -4,14 +4,29 @@
       "Bash(node .claude/skills/todo/scripts/todo.mjs:*)",
       "Bash(./scripts/check:*)",
       "Bash(./scripts/build:*)",
-      "Bash(./scripts/test-rules:*)"
+      "Bash(./scripts/test-rules:*)",
+      "Bash(node scripts/check.mjs:*)",
+      "Bash(node scripts/doctor.mjs:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [
       "Read(./package-lock.json)",
       "Read(./node_modules/**)",
       "Read(./.next/**)",
       "Read(./*.log)",
-      "Read(./tsconfig.tsbuildinfo)"
+      "Read(./tsconfig.tsbuildinfo)",
+      "Read(./todos/**)",
+      "Edit(./todos/**)",
+      "Write(./todos/**)",
+      "Read(./todo-archive.md)",
+      "Edit(./todo-archive.md)",
+      "Write(./todo-archive.md)",
+      "Read(./dist/**)",
+      "Read(./build/**)",
+      "Read(./coverage/**)",
+      "Read(./.env)"
     ]
   },
   "hooks": {
@@ -22,6 +37,15 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/block-big-read.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/guard-commands.mjs\""
           }
         ]
       }

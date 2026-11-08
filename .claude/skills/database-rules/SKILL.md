@@ -1,6 +1,6 @@
 ---
 name: database-rules
-description: How to change, test and deploy the Firebase Realtime Database security rules (database.rules.json) for Game Room, including the emulator test workflow, the rules-language limits, and the safe deploy order. Use whenever editing database.rules.json, adding fields to any game state or room node, debugging "permission_denied" errors, or deploying rules.
+description: Changing, testing and deploying the Firebase rules, database.rules.json - emulator tests, rules-language limits, deploy order. Use when editing them, adding game-state or room fields, debugging permission_denied, or deploying.
 ---
 
 # Database rules: change, test, deploy
@@ -9,46 +9,18 @@ description: How to change, test and deploy the Firebase Realtime Database secur
 match it exactly. Every room/seat write the app makes is built in
 `lib/session/shared/updates.ts`, and game state is validated per game.
 
-## The model in one screen
+## The model
 
-```
-games/{roomCode}/
-  meta        write-once, except name/nameKey (creator only); gameSlug + maxPlayers required
-  seats       { pN: uid }      -- always written together with members, in ONE update
-  members     { uid: "pN" }    -- reverse index: "is this uid in the room?" in one lookup
-  players     { pN: { name } } -- only the seat's holder writes it
-  presence    { uid: { online, lastSeen } } -- own entry only, members only
-  lastActive  members only
-  activeMinutes { n, at }      -- play time: members only, n +1 with at == now, refused within 50 s of the last count
-  ftw | cocounsel | nighthighway -- members of a room of that gameSlug (or the creating write); fully .validate'd
-  nighthighwayCars/{pN}        -- Night Highway's live cars: only the uid seated in pN writes it
-  buzzerquiz                   -- Buzzer Quiz (maxPlayers must be 4): the whole game, buzzes included
-  wordscramble, wordscrambleTyping/{pN} -- Word Scramble (maxPlayers must be 8); each seat's own typing signal
-  borderrun, borderrunRuns/{pN} -- Detour's races (maxPlayers 8, or 4 for a public Challenge); each seat's own guesses
-  lasthop                      -- Last Hop (maxPlayers must be 2): the whole match, board as a cells string; a public room's mode == its queue while in the lobby; votes and pawns per seat
-  regions, regionsRuns/{pN}     -- Rank & File's races (same seats); each seat's own moves, appended one by one
-  meta/publicLang, autoStart   -- public (matchmade) rooms: a language (buzzerquiz/wordscramble), `any` (nighthighway) or a mode (borderrun/regions: challenge/survival; lasthop: track/grid); autoStart members only (docs/matchmaking.md)
-queue/{slug}/{lang}/{room}     -- matchmaking queue: listable per slug+lang; members write; anyone deletes a stale (60 s) entry
-  closedAt    no client writes it (/admin sets it via firebase-admin); once set, every node's .validate
-              refuses changes except presence, so guests can still go offline
-roomsByName/{nameKey}: code    -- unique; only the room's creator can claim or delete it
-users/{uid}/rooms/{code}       -- only that uid reads or writes; fixed fields
-users/{uid}/visits/{day}/{code} -- own only, while seated in that room: { gameSlug (the room's), at (server time, last 48 h) }
-analytics/archive/{code}       -- deleted rooms' summaries, written by /admin (firebase-admin); no rule, so clients are refused
-analytics/statsSince           -- when /admin last cleared the stats; same: admin only
-```
-
-Reads: any signed-in guest can read one room or one name entry. Nobody can read
-`/games`, `/roomsByName` or another uid's `/users`.
+Every node and who may write it, in one screen: `model.md` (next to this file). Reads: any
+signed-in guest can read one room or one name entry. Nobody can read `/games`,
+`/roomsByName` or another uid's `/users`.
 
 ## Making a change
 
 1. **Write the test first** in `tests/rules/`:
    - `rooms.test.ts` - room, seat, name and user behavior;
-   - `gameState.test.ts` - per-game state shapes, with valid states built by
-     playing the real state machine;
-   - `sessionUpdates.test.ts` - the app's own update builders sent through the
-     rules;
+   - `gameState.test.ts` - per-game state shapes, valid states built by the real state machine;
+   - `sessionUpdates.test.ts` - the app's own update builders sent through the rules;
    - `matchmaking.test.ts` - public rooms, the queue and `autoStart`.
 
    Use `assertSucceeds`/`assertFails` from `@firebase/rules-unit-testing`, and the
