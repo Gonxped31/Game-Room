@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { GAME_TITLE } from "@/lib/games/nighthighway/constants";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = { title: GAME_TITLE };
+// Its tab title and link preview, in English (lib/seo, docs/link-previews.md).
+export const metadata: Metadata = pageMetadata("/nighthighway", "en");
 
 // The game is one dark world: the browser chrome should match the night sky.
 export const viewport: Viewport = { themeColor: "#04070f" };
