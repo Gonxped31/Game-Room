@@ -17,10 +17,11 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#0F7983",
     theme_color: "#0F7983",
+    // The fox-bubble app icon (public/brand/README.md); the maskable one keeps the fox in Android's safe zone.
     icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/brand/favicon/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/brand/favicon/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/brand/favicon/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminLogin from "@/components/admin/AdminLogin";
@@ -42,7 +43,7 @@ export default function AdminPage() {
     return (
       <Shell wide>
         <header className="flex items-center justify-between gap-3">
-          <h1 className="m-0 text-2xl font-bold text-white">{APP_TITLE} admin</h1>
+          <h1 className="m-0 flex items-center gap-3 text-2xl font-bold text-white"><Image src="/brand/svg/partyfox-logo-white.svg" alt={APP_TITLE} width={1740} height={480} priority unoptimized className="block h-8 w-auto" /> admin</h1>
           <Button variant="sm" className="mt-0 mr-0" onClick={() => void logOut()}>
             Log out
           </Button>
@@ -62,7 +63,7 @@ export default function AdminPage() {
 
   return (
     <Shell>
-      <h1 className="m-0 text-center text-2xl font-bold text-white">{APP_TITLE} admin</h1>
+      <h1 className="m-0 flex items-center justify-center gap-3 text-2xl font-bold text-white"><Image src="/brand/svg/partyfox-logo-white.svg" alt={APP_TITLE} width={1740} height={480} priority unoptimized className="block h-8 w-auto" /> admin</h1>
       <Card>
         {view.kind === "loading" ? (
           <p className="m-0">Loading…</p>

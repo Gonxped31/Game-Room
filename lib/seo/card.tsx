@@ -360,8 +360,22 @@ function themeOf(slug: string | undefined): Theme {
 /** Fredoka has no narrow no-break space (French "?", "!"): a plain no-break one stands in. */
 const typeset = (text: string) => text.replace(/ /g, " ");
 
+/** The Partyfox logo (public/brand/png, 1740x480) as data URIs satori can draw: for light backgrounds, and white for teal. */
+interface Logos {
+  onLight: string;
+  onTeal: string;
+}
+const LOGO_RATIO = 480 / 1740;
+
+async function loadLogos(): Promise<Logos> {
+  const [onLight, onTeal] = await Promise.all(
+    ["partyfox-logo.png", "partyfox-logo-white.png"].map(async (file) => `data:image/png;base64,${(await readFile(join(process.cwd(), "public/brand/png", file))).toString("base64")}`),
+  );
+  return { onLight, onTeal };
+}
+
 /** The card, as satori elements. */
-function Card({ preview, theme }: { preview: Preview; theme: Theme }) {
+function Card({ preview, theme, logos }: { preview: Preview; theme: Theme; logos: Logos }) {
   const hub = preview.kind === "hub";
   return (
     <div style={{ width: CARD_SIZE.width, height: CARD_SIZE.height, display: "flex", position: "relative", alignItems: "center", justifyContent: "center", background: theme.background, fontFamily: "Fredoka", overflow: "hidden" }}>
@@ -369,28 +383,37 @@ function Card({ preview, theme }: { preview: Preview; theme: Theme }) {
       <div style={box(0, 0, CARD_SIZE.width, CARD_SIZE.height)}>{theme.motif()}</div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 660, paddingBottom: preview.slug === "lasthop" || preview.slug === "nighthighway" ? 90 : 0 }}>
         {hub ? null : (
-          <div style={{ display: "flex", background: "#FFFFFF", color: "#000000", fontWeight: 700, fontSize: 38, lineHeight: 1, padding: "12px 24px", borderRadius: 12, transform: "rotate(-2deg)", boxShadow: "0 4px 10px rgba(0,0,0,.28)" }}>{APP_TITLE}</div>
+          // The logo on a white badge, so it reads on every game's colors.
+          <div style={{ display: "flex", background: "#FFFFFF", padding: "12px 20px", borderRadius: 12, transform: "rotate(-2deg)", boxShadow: "0 4px 10px rgba(0,0,0,.28)" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- satori draws plain <img> */}
+            <img src={logos.onLight} alt={APP_TITLE} width={210} height={Math.round(210 * LOGO_RATIO)} />
+          </div>
         )}
         {preview.badge ? (
           <div style={{ display: "flex", marginTop: 30, background: theme.pill, color: theme.pillText, fontWeight: 700, fontSize: 32, lineHeight: 1, padding: "12px 26px", borderRadius: 40 }}>{typeset(preview.badge)}</div>
         ) : null}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            textAlign: "center",
-            marginTop: hub ? 0 : 22,
-            fontFamily: FONTS[theme.font].name,
-            fontWeight: FONTS[theme.font].weight,
-            fontSize: theme.titleSize,
-            lineHeight: 1,
-            color: theme.title,
-            ...(hub ? { background: "#FFFFFF", padding: "22px 44px", borderRadius: 28, transform: "rotate(-2deg)", boxShadow: "0 8px 20px rgba(0,0,0,.3)" } : {}),
-            ...theme.titleStyle,
-          }}
-        >
-          {hub ? APP_TITLE : (gameBySlug(preview.slug ?? "")?.title ?? preview.title)}
-        </div>
+        {hub ? (
+          // The hub's card is the logo itself, white on the hub's teal.
+          // eslint-disable-next-line @next/next/no-img-element -- satori draws plain <img>
+          <img src={logos.onTeal} alt={APP_TITLE} width={760} height={Math.round(760 * LOGO_RATIO)} />
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              textAlign: "center",
+              marginTop: 22,
+              fontFamily: FONTS[theme.font].name,
+              fontWeight: FONTS[theme.font].weight,
+              fontSize: theme.titleSize,
+              lineHeight: 1,
+              color: theme.title,
+              ...theme.titleStyle,
+            }}
+          >
+            {gameBySlug(preview.slug ?? "")?.title ?? preview.title}
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "center", textAlign: "center", marginTop: hub ? 44 : 26, fontWeight: 600, fontSize: hub ? 44 : 40, lineHeight: 1.2, color: theme.text, textWrap: "balance" }}>{typeset(preview.tagline)}</div>
       </div>
     </div>
@@ -402,6 +425,9 @@ export async function renderCard(route: string, lang: Lang): Promise<ImageRespon
   const preview = previewFor(route, lang);
   const theme = themeOf(preview.slug);
   const keys = [...new Set<FontKey>(["fredoka600", "fredoka700", theme.font])];
-  const fonts = await Promise.all(keys.map(async (key) => ({ name: FONTS[key].name, weight: FONTS[key].weight, style: "normal" as const, data: await fontData(key) })));
-  return new ImageResponse(<Card preview={preview} theme={theme} />, { ...CARD_SIZE, fonts });
+  const [fonts, logos] = await Promise.all([
+    Promise.all(keys.map(async (key) => ({ name: FONTS[key].name, weight: FONTS[key].weight, style: "normal" as const, data: await fontData(key) }))),
+    loadLogos(),
+  ]);
+  return new ImageResponse(<Card preview={preview} theme={theme} logos={logos} />, { ...CARD_SIZE, fonts });
 }

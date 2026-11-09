@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
 import { MATCH_GAMES, MATCH_MODES } from "@/lib/games/matchGames";
 import { APP_TITLE, type GameEntry, gameBySlug, gamePath, gameText, roomHref } from "@/lib/games/registry";
@@ -363,8 +364,9 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         <div className="flex min-w-0 flex-col gap-4">
           {/* The brand, with the EN/FR switch beside it (docs/i18n.md): the same size in both languages, so no shift. */}
           <div className="flex items-center gap-3">
-            <h1 className="m-0 -rotate-2 rounded-[9px] bg-white px-3.5 py-2 text-[26px] font-bold leading-none text-black shadow-[0_3px_8px_rgba(0,0,0,.3)] min-[760px]:px-4 min-[760px]:py-2.5 min-[760px]:text-[30px]">
-              {APP_TITLE}
+            {/* The fox-bubble logo for teal backgrounds (public/brand/README.md); its alt is the page's heading. */}
+            <h1 className="m-0">
+              <Image src="/brand/svg/partyfox-logo-white.svg" alt={APP_TITLE} width={1740} height={480} priority unoptimized className="block h-11 w-auto min-[760px]:h-14" />
             </h1>
             <LangSwitch className={`h-11 w-12 shrink-0 cursor-pointer rounded-full border-2 border-white/80 bg-black/20 text-[15px] font-bold leading-none tracking-[0.04em] text-white transition-transform duration-[60ms] hover:bg-black/30 active:translate-y-0.5 motion-reduce:transition-none ${FOCUS_RING_ON_DARK}`} />
           </div>
