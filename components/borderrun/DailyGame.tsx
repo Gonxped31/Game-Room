@@ -5,15 +5,21 @@ import Countdown from "@/components/daily/Countdown";
 import Leaderboard, { formatBoardTime } from "@/components/daily/Leaderboard";
 import { dailyRequest, DailyRequestError, type Attempt, type BoardEntry, type DailyStatus, type StartResponse, type SubmitResponse } from "@/lib/daily/client";
 import { MAX_NAME_LENGTH } from "@/lib/daily/service";
+import { AREA_NAME } from "@/lib/games/borderrun/areas";
 import { GAME_TITLE, PENALTY_MS } from "@/lib/games/borderrun/constants";
+import { scheduleFor } from "@/lib/games/borderrun/daily";
 import { addGuess, newPlay, replay, status, type Play } from "@/lib/games/borderrun/play";
 import { closenessOf, type Route } from "@/lib/games/borderrun/route";
 import { SHARE_SQUARE } from "@/lib/games/borderrun/theme";
-import type { Lang } from "@/lib/games/shared/language";
+import type { Lang } from "@/lib/i18n/lang";
+import { dailyShareUrl } from "@/lib/share";
 import { CapitalLine, formatTime, GuessInput, GuessList, PathLine, PlayMap, RouteHeader, Toolbar } from "./Controls";
 import { DAILY_GUESSES_KEY, DAILY_KEY, isRoute, readJson, removeKey, writeJson, type SavedDailyGuesses } from "./storage";
+import { TEXT } from "./text";
 
 const SLUG = "borderrun";
+/** Where the daily route lives (the solo page): what Share links to. */
+const DAILY_PATH = "/borderrun/solo";
 
 interface Info {
   day: string;
@@ -35,24 +41,23 @@ type Phase =
   | { kind: "playing"; info: Info; play: Play; startedAt: number; offset: number; submitting: boolean; error?: string }
   | { kind: "done"; info: Info; result: Result; play: Play | null };
 
-const UNRANKED: Record<string, string> = {
-  connection: "Not ranked: someone on this connection already played today's ranked route.",
-  "too-fast": "Not ranked: that was faster than a person can type.",
-  regular: "Not ranked: those guesses didn't look like a person playing.",
-};
-
 /** The guesses saved on this device, if they're `day`'s. */
 function savedGuesses(day: string): SavedDailyGuesses | null {
   const saved = readJson(DAILY_GUESSES_KEY) as SavedDailyGuesses | null;
   return saved?.day === day && Array.isArray(saved.guesses) && isRoute(saved.route) ? saved : null;
 }
 
+/** The day's map in `lang` (the server's `label` is the English one, from the same schedule). */
+const mapOf = (info: Info, lang: Lang) => AREA_NAME[scheduleFor(info.day).area][lang];
+
 /**
  * The daily route: the same two countries and closed borders for everyone
  * today, timed by the server from Start to the guess that completes it, plus
  * 15 s per guess past the par, on a global board (lib/daily/service.ts).
+ * The server records the finished game, so this page doesn't report it.
  */
 export default function DailyGame({ lang }: { lang: Lang }) {
+  const t = TEXT[lang];
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [name, setName] = useState<string | null>(null);
   const [now, setNow] = useState(0);
@@ -168,31 +173,34 @@ export default function DailyGame({ lang }: { lang: Lang }) {
   };
 
   if (phase.kind === "loading" || name === null) {
-    return phase.kind === "error" ? <ErrorCard message={phase.message} onRetry={phase.retry ? load : undefined} /> : <p className="br-status">Loading today&apos;s route…</p>;
+    return phase.kind === "error" ? <ErrorCard lang={lang} message={phase.message} onRetry={phase.retry ? load : undefined} /> : <p className="br-status">{t.loadingDaily}</p>;
   }
-  if (phase.kind === "error") return <ErrorCard message={phase.message} onRetry={phase.retry ? load : undefined} />;
+  if (phase.kind === "error") return <ErrorCard lang={lang} message={phase.message} onRetry={phase.retry ? load : undefined} />;
 
   if (phase.kind === "ready") {
     const { info, status: today, busy } = phase;
     return (
       <>
         <section className="br-card" aria-labelledby="daily-title">
-          <p className="br-kicker">Daily #{info.number}</p>
+          <p className="br-kicker">{t.daily(info.number)}</p>
           <h2 id="daily-title" className="br-card-title">
-            {info.label}
+            {mapOf(info, lang)}
           </h2>
-          <p className="br-note">Two countries, a border or two closed. Link them by land: {PENALTY_MS / 1000} s added for each guess past the par.</p>
+          <p className="br-note">{t.dailyIntro(PENALTY_MS / 1000)}</p>
           <label className="br-field">
-            <span>Your name on the board</span>
-            <input className="br-input" value={name} maxLength={MAX_NAME_LENGTH} placeholder="Anonymous" autoComplete="nickname" onChange={(event) => updateName(event.target.value)} />
+            <span>{t.boardName}</span>
+            <input className="br-input" value={name} maxLength={MAX_NAME_LENGTH} placeholder={t.anonymous} autoComplete="nickname" onChange={(event) => updateName(event.target.value)} />
           </label>
           <button type="button" className="br-button br-button-primary br-button-wide" disabled={busy} onClick={() => void begin(info, today)}>
-            {busy ? "Starting…" : "Start"}
+            {busy ? t.starting : t.start}
           </button>
-          <p className="br-note">The clock starts when you press Start. One try a day.{today.streak ? ` Streak: ${today.streak} 🔥` : ""}</p>
+          <p className="br-note">
+            {t.dailyNote}
+            {today.streak ? t.streakShort(today.streak) : ""}
+          </p>
         </section>
-        <section aria-label="Today's board">
-          <h3 className="br-section-title">Today&apos;s board</h3>
+        <section aria-label={t.todaysBoard}>
+          <h3 className="br-section-title">{t.todaysBoard}</h3>
           <Leaderboard board={today.board} rank={today.rank} players={today.players} />
         </section>
       </>
@@ -214,13 +222,13 @@ export default function DailyGame({ lang }: { lang: Lang }) {
     };
     return (
       <>
-        <RouteHeader play={play} lang={lang} kicker={`Daily #${info.number} · ${info.label} · `} />
+        <RouteHeader play={play} lang={lang} kicker={`${t.daily(info.number)} · ${mapOf(info, lang)} · `} />
         <div aria-live="polite">
           {result.complete ? (
             <div className="br-done">
               <div>
-                <p className="br-done-title">{submitting ? "Checking…" : "Route complete"}</p>
-                <p className="br-done-note">{error ?? formatTime(elapsed + result.penaltyMs)}</p>
+                <p className="br-done-title">{submitting ? t.checking : t.complete}</p>
+                <p className="br-done-note">{error ? t.serverError(error) : formatTime(elapsed + result.penaltyMs)}</p>
               </div>
               {error ? (
                 <button
@@ -231,7 +239,7 @@ export default function DailyGame({ lang }: { lang: Lang }) {
                     void submit(info, play);
                   }}
                 >
-                  Try again
+                  {t.tryAgain}
                 </button>
               ) : null}
             </div>
@@ -249,16 +257,16 @@ export default function DailyGame({ lang }: { lang: Lang }) {
   const { info, result, play } = phase;
   const { attempt, streak, board, rank, players } = result;
   const squares = play ? play.guesses.map((guess) => SHARE_SQUARE[closenessOf(play.route, guess.code)]).join("") : "";
-  const shareText = `${GAME_TITLE} #${info.number} · ${info.label}\n${squares ? `${squares}\n` : ""}${formatBoardTime(attempt.ms ?? 0)}${rank ? ` · #${rank} of ${players}` : ""}${streak > 1 ? ` · ${streak} days 🔥` : ""}`;
+  const shareText = `${GAME_TITLE} #${info.number} · ${mapOf(info, lang)}\n${squares ? `${squares}\n` : ""}${formatBoardTime(attempt.ms ?? 0)}${rank ? t.shareRank(rank, players) : ""}${streak > 1 ? t.shareStreak(streak) : ""}`;
   const share = async () => {
-    const url = `${window.location.origin}/borderrun`;
+    const url = dailyShareUrl(window.location.origin, SLUG, DAILY_PATH, lang);
     try {
       if (navigator.share) {
         await navigator.share({ text: shareText, url });
         return;
       }
       await navigator.clipboard.writeText(`${shareText}\n${url}`);
-      setShared("Copied. Paste it anywhere.");
+      setShared(t.copied);
     } catch {
       // Closing the share sheet rejects too: nothing to say.
     }
@@ -268,22 +276,14 @@ export default function DailyGame({ lang }: { lang: Lang }) {
     <>
       <section className="br-card" aria-live="polite">
         <p className="br-kicker">
-          Daily #{info.number} · {info.label}
+          {t.daily(info.number)} · {mapOf(info, lang)}
         </p>
-        <h2 className="br-card-title">Done in {formatBoardTime(attempt.ms ?? 0)}</h2>
-        {attempt.penaltyMs ? (
-          <p className="br-note">
-            {formatBoardTime((attempt.ms ?? 0) - attempt.penaltyMs)} + {attempt.penaltyMs / 1000} s for guesses past the par
-          </p>
-        ) : null}
-        <p className="br-place">{attempt.ranked && rank ? `#${rank} of ${players} today` : UNRANKED[attempt.unranked ?? "connection"]}</p>
-        {streak ? (
-          <p className="br-note">
-            Streak: {streak} {streak === 1 ? "day" : "days"} 🔥
-          </p>
-        ) : null}
+        <h2 className="br-card-title">{t.doneIn(formatBoardTime(attempt.ms ?? 0))}</h2>
+        {attempt.penaltyMs ? <p className="br-note">{t.penaltyNote(formatBoardTime((attempt.ms ?? 0) - attempt.penaltyMs), attempt.penaltyMs / 1000)}</p> : null}
+        <p className="br-place">{attempt.ranked && rank ? t.rankToday(rank, players) : t.unranked[attempt.unranked ?? "connection"]}</p>
+        {streak ? <p className="br-note">{t.streak(streak)}</p> : null}
         <button type="button" className="br-button br-button-primary br-button-wide" onClick={() => void share()}>
-          Share
+          {t.share}
         </button>
         <p className="br-note" aria-live="polite">
           {shared}
@@ -297,26 +297,28 @@ export default function DailyGame({ lang }: { lang: Lang }) {
           <CapitalLine play={play} lang={lang} />
         </>
       ) : null}
-      <section aria-label="Today's board">
-        <h3 className="br-section-title">Today&apos;s board</h3>
+      <section aria-label={t.todaysBoard}>
+        <h3 className="br-section-title">{t.todaysBoard}</h3>
         <Leaderboard board={board} rank={rank} players={players} />
       </section>
     </>
   );
 }
 
-function ErrorCard({ message, onRetry }: { message: string; onRetry?: () => void }) {
+function ErrorCard({ lang, message, onRetry }: { lang: Lang; message: string; onRetry?: () => void }) {
+  const t = TEXT[lang];
   return (
     <div className="br-card" role="alert">
-      <p className="br-place">{message}</p>
+      <p className="br-place">{t.serverError(message)}</p>
       {onRetry ? (
         <button type="button" className="br-button" onClick={onRetry}>
-          Try again
+          {t.tryAgain}
         </button>
       ) : null}
-      <p className="br-note">Endless routes still work: switch to Endless above.</p>
+      <p className="br-note">{t.endlessStillWorks}</p>
     </div>
   );
 }
 
+/** The error's message, in English (TEXT's `serverError` gives it in the page's language). */
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : "Something went wrong. Try again.");

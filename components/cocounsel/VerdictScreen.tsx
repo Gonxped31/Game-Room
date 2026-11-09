@@ -5,6 +5,8 @@ import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import ResultsHeader from "./ResultsHeader";
 import Stamp from "./Stamp";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface VerdictScreenProps {
   investigatorName: string;
@@ -61,6 +63,7 @@ export default function VerdictScreen({
   theme,
   onToggleTheme,
 }: VerdictScreenProps) {
+  const t = useText(CC_TEXT);
   return (
     <div>
       <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
@@ -75,27 +78,27 @@ export default function VerdictScreen({
           {verdict.text}
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4">
-          <ScoreBar label="Focus" sub="How well you remembered" value={focus} />
-          <ScoreBar label="Trust" sub="How well you listened" value={trust} />
+          <ScoreBar label={t.focus} sub={t.focusSub} value={focus} />
+          <ScoreBar label={t.trust} sub={t.trustSub} value={trust} />
         </div>
         <div className="mt-6 flex items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: COLOR.ink }}>
-          <span className="font-[family-name:var(--font-archivo)] text-sm text-white">Your duo</span>
+          <span className="font-[family-name:var(--font-archivo)] text-sm text-white">{t.yourDuo}</span>
           <span className="font-[family-name:var(--font-archivo-narrow)] text-2xl font-bold" style={{ color: COLOR.yellow }}>
-            {duo}
+            {t.duo[duo]}
           </span>
         </div>
         <p className="mt-4 font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-          {attempts} attempts across {totalParts} Parts
+          {t.attemptsAcross(attempts, totalParts)}
         </p>
         <div className="mt-6 flex flex-col gap-3">
-          <Button onClick={onSeeRecap}>See the full case file</Button>
-          {onPickAnotherCase ? <Button onClick={onPickAnotherCase}>Pick another case</Button> : null}
+          <Button onClick={onSeeRecap}>{t.seeCaseFile}</Button>
+          {onPickAnotherCase ? <Button onClick={onPickAnotherCase}>{t.pickAnotherCase}</Button> : null}
           <Button variant="secondary" onClick={onRematch}>
-            Rematch with swapped roles
+            {t.rematch}
           </Button>
           {onPickAnotherCase ? null : (
             <p aria-live="polite" className="text-center font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-              Or wait for your partner to pick another case.
+              {t.orWait}
             </p>
           )}
         </div>

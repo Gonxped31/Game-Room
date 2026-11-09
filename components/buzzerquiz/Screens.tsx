@@ -1,11 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { SeatId } from "@/lib/session/types";
 import { LANG_LABELS, LANGS, type Lang } from "@/lib/games/shared/language";
-import { HAND_SIZE, LENGTHS, MIN_PLAYERS, TOPIC_LABELS, TOPICS, type TopicId } from "@/lib/games/buzzerquiz/constants";
+import { GAME_SLUG, GAME_TITLE, HAND_SIZE, LENGTHS, MIN_PLAYERS, TOPIC_LABELS, TOPICS, type TopicId } from "@/lib/games/buzzerquiz/constants";
 import type { Settings } from "@/lib/games/buzzerquiz/game";
+import { roomHref } from "@/lib/games/registry";
+import { useLang, useText } from "@/lib/i18n/useLang";
+import { inviteUrl } from "@/lib/share";
+import LocalLink from "@/components/LocalLink";
 import {
   Avatar,
   CrownIcon,
@@ -21,18 +24,23 @@ import {
   TOPIC_ICONS,
 } from "./ui";
 import RulesButton from "./Rules";
+import { WORDS } from "./text";
 
-/** Interface copy stays English; only the questions follow the room's language. */
-const topicLabel = (topic: TopicId) => TOPIC_LABELS[topic].en;
+/** A topic's name in the page's language (the questions follow the room's language instead). */
+function useTopicLabel(): (topic: TopicId) => string {
+  const lang = useLang();
+  return (topic) => TOPIC_LABELS[topic][lang];
+}
 
 const SCREEN = "min-h-screen bg-[var(--stage)] px-4 pb-10 pt-4 text-[var(--text)] min-[900px]:px-8 min-[900px]:pt-8";
 const TITLE = `${DISPLAY} m-0 text-[28px] font-extrabold leading-tight min-[900px]:text-[40px]`;
 
 /** A room's only way out (no back link): gives up the seat and goes to the hub. */
 function LeaveRoom({ onLeave }: { onLeave: () => void }) {
+  const t = useText(WORDS);
   return (
     <button type="button" onClick={onLeave} className={`${TEXT} ${FOCUS} cursor-pointer self-center border-0 bg-transparent p-0 font-bold text-[var(--text-muted)] underline`}>
-      Leave room
+      {t.leaveRoom}
     </button>
   );
 }
@@ -40,12 +48,13 @@ function LeaveRoom({ onLeave }: { onLeave: () => void }) {
 // ---- Message (connection error, missing room, connecting) -------------------------------
 
 export function Message({ text }: { text: string }) {
+  const t = useText(WORDS);
   return (
     <div className={`${SCREEN} flex flex-col items-center justify-center gap-4 text-center`}>
       <p className={`${TEXT} m-0 max-w-[420px] text-[18px] font-bold`}>{text}</p>
-      <Link href="/" className={`${TEXT} ${FOCUS} font-bold text-[var(--text-muted)] underline`}>
-        Back to Game Room
-      </Link>
+      <LocalLink href="/" className={`${TEXT} ${FOCUS} font-bold text-[var(--text-muted)] underline`}>
+        {t.backToHub}
+      </LocalLink>
     </div>
   );
 }
@@ -65,6 +74,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
   watching?: () => void;
   onLeave: () => void;
 }) {
+  const t = useText(WORDS);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const free = seats.find((seat) => !names[seat]);
@@ -73,7 +83,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
   const submit = () => {
     const name = draft.trim();
     if (!name) {
-      setError("Enter your name to continue.");
+      setError(t.nameRequired);
       return;
     }
     if (free) onPick(free, name);
@@ -83,7 +93,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[440px] flex-col gap-5">
         <div className="flex items-center justify-between gap-3">
-          <h1 className={TITLE}>Buzzer Quiz</h1>
+          <h1 className={TITLE}>{GAME_TITLE}</h1>
           <RulesButton />
         </div>
         {free ? (
@@ -95,7 +105,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
             }}
           >
             <label htmlFor="bq-name" className={`${DISPLAY} text-[22px] font-extrabold`}>
-              What&apos;s your name?
+              {t.namePrompt}
             </label>
             <input
               id="bq-name"
@@ -103,7 +113,7 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
               onChange={(e) => setDraft(e.target.value)}
               maxLength={24}
               autoComplete="nickname"
-              placeholder="Your name"
+              placeholder={t.namePlaceholder}
               className={`${TEXT} ${FOCUS} h-14 rounded-2xl border-0 bg-[var(--text)] px-4 text-[18px] font-bold text-[var(--ink)] placeholder:text-[#6b6590]`}
             />
             {error ? (
@@ -111,19 +121,19 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
                 {error}
               </p>
             ) : null}
-            <PrimaryButton type="submit">Continue</PrimaryButton>
+            <PrimaryButton type="submit">{t.continue}</PrimaryButton>
           </form>
         ) : (
           <div className="flex flex-col gap-3 rounded-[20px] bg-[var(--surface)] p-5">
             <p className={`${TEXT} m-0 text-[17px] font-bold`}>
-              {takeable.length ? "Welcome back! Which one are you on this device?" : "All 4 seats are taken. A seat frees up 2 minutes after its player goes offline."}
+              {takeable.length ? t.welcomeBack : t.roomFull}
             </p>
             {takeable.map((seat) => (
               <SecondaryButton key={seat} onClick={() => onPick(seat, names[seat]!)}>
-                I&apos;m {names[seat]}
+                {t.iAm(names[seat]!)}
               </SecondaryButton>
             ))}
-            {watching ? <SecondaryButton onClick={watching}>Just watch</SecondaryButton> : null}
+            {watching ? <SecondaryButton onClick={watching}>{t.justWatch}</SecondaryButton> : null}
           </div>
         )}
         <LeaveRoom onLeave={onLeave} />
@@ -134,7 +144,9 @@ export function NameEntry({ seats, names, canTakeOver, onPick, watching, onLeave
 
 // ---- Setup (host) -----------------------------------------------------------------------
 
-function settingsFields({ settings, onLang, onTopic, onLength, onCards }: {
+function settingsFields({ t, topicLabel, settings, onLang, onTopic, onLength, onCards }: {
+  t: (typeof WORDS)[Lang];
+  topicLabel: (topic: TopicId) => string;
   settings: Settings;
   onLang: (lang: Lang) => void;
   onTopic: (topic: TopicId) => void;
@@ -145,15 +157,15 @@ function settingsFields({ settings, onLang, onTopic, onLength, onCards }: {
   return {
     language: (
       <section className="flex flex-col gap-2.5">
-        <h2 className={LABEL}>Language</h2>
-        <Segmented label="Language" options={LANGS.map((lang) => ({ value: lang, label: LANG_LABELS[lang] }))} value={settings.lang} onChange={onLang} />
+        <h2 className={LABEL}>{t.language}</h2>
+        <Segmented label={t.language} options={LANGS.map((lang) => ({ value: lang, label: LANG_LABELS[lang] }))} value={settings.lang} onChange={onLang} />
       </section>
     ),
     topics: (
       <section className="flex flex-col gap-2.5">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className={LABEL}>Topics</h2>
-          <span className={`${TEXT} text-[14px] text-[var(--text-muted)]`}>{count === 0 ? "Pick at least one" : `${count} picked${count > 1 ? ", mixed" : ""}`}</span>
+          <h2 className={LABEL}>{t.topics}</h2>
+          <span className={`${TEXT} text-[14px] text-[var(--text-muted)]`}>{count === 0 ? t.pickOne : t.picked(count)}</span>
         </div>
         <div className="grid grid-cols-2 gap-2.5 min-[900px]:grid-cols-3">
           {TOPICS.map((topic) => {
@@ -184,24 +196,24 @@ function settingsFields({ settings, onLang, onTopic, onLength, onCards }: {
     ),
     length: (
       <section className="flex flex-col gap-2.5">
-        <h2 className={LABEL}>Questions</h2>
-        <Segmented label="Questions" options={LENGTHS.map((n) => ({ value: n, label: String(n) }))} value={settings.length} onChange={onLength} />
+        <h2 className={LABEL}>{t.questions}</h2>
+        <Segmented label={t.questions} options={LENGTHS.map((n) => ({ value: n, label: String(n) }))} value={settings.length} onChange={onLength} />
       </section>
     ),
     cards: (
       <section className="flex flex-col gap-2.5">
-        <h2 className={LABEL}>Power cards</h2>
+        <h2 className={LABEL}>{t.powerCards}</h2>
         <Segmented
-          label="Power cards"
+          label={t.powerCards}
           options={[
-            { value: "off", label: "Off" },
-            { value: "on", label: "On" },
+            { value: "off", label: t.off },
+            { value: "on", label: t.on },
           ]}
           value={settings.cards ? "on" : "off"}
           onChange={(value) => onCards(value === "on")}
         />
         <p className={`${TEXT} m-0 text-[14px] leading-snug text-[var(--text-muted)]`}>
-          Everyone gets {HAND_SIZE} of Freeze, Double, 50/50, Steal and Shield, one per question at most.
+          {t.cardsBlurb(HAND_SIZE)}
         </p>
       </section>
     ),
@@ -217,13 +229,15 @@ export function Setup({ settings, onLang, onTopic, onLength, onCards, onContinue
   onContinue: () => void;
   onLeave: () => void;
 }) {
-  const fields = settingsFields({ settings, onLang, onTopic, onLength, onCards });
+  const t = useText(WORDS);
+  const topicLabel = useTopicLabel();
+  const fields = settingsFields({ t, topicLabel, settings, onLang, onTopic, onLength, onCards });
   const cta = (
     <div className="flex flex-col gap-2.5">
       <PrimaryButton disabled={!settings.topics.length} onClick={onContinue}>
-        Continue to the waiting room
+        {t.toWaitingRoom}
       </PrimaryButton>
-      <p className={`${TEXT} m-0 text-center text-[15px] text-[var(--text-muted)]`}>Next you&apos;ll get a link to send to your friends.</p>
+      <p className={`${TEXT} m-0 text-center text-[15px] text-[var(--text-muted)]`}>{t.linkNext}</p>
       <LeaveRoom onLeave={onLeave} />
     </div>
   );
@@ -231,7 +245,7 @@ export function Setup({ settings, onLang, onTopic, onLength, onCards, onContinue
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[1040px] flex-col gap-6">
         <div className="flex items-center justify-between gap-3">
-          <h1 className={TITLE}>New quiz</h1>
+          <h1 className={TITLE}>{t.newQuiz}</h1>
           <RulesButton />
         </div>
         <div className="flex flex-col gap-6 min-[900px]:grid min-[900px]:grid-cols-[minmax(300px,360px)_1fr] min-[900px]:gap-10">
@@ -252,11 +266,11 @@ export function Setup({ settings, onLang, onTopic, onLength, onCards, onContinue
 }
 
 function ScoringNote() {
+  const t = useText(WORDS);
   return (
     <div className={`${TEXT} hidden rounded-2xl bg-[var(--surface)] p-4 text-[15px] leading-relaxed text-[var(--text-muted)] min-[900px]:block`}>
-      <p className={`${DISPLAY} m-0 mb-1.5 text-[17px] font-extrabold text-[var(--text)]`}>How scoring works</p>
-      Buzz, then pick. Right with 4 choices left scores 3, with 3 left 2, with 2 left 1. A wrong pick is struck out for everyone, and you&apos;re out until
-      the next question.
+      <p className={`${DISPLAY} m-0 mb-1.5 text-[17px] font-extrabold text-[var(--text)]`}>{t.scoringTitle}</p>
+      {t.scoringBody}
     </div>
   );
 }
@@ -265,11 +279,18 @@ function ScoringNote() {
 
 const noSubscribe = () => () => {};
 
-/** "Invite friends": the room link, a Copy button, and (creator only) the room's name. */
+/**
+ * "Invite friends": the room's link, a Copy button, and (creator only) the
+ * room's name. Copy hands out the invite link (`inviteUrl`: its link preview,
+ * the sharer's language, the source tag); the card shows the plain room link,
+ * which works too when copied by hand.
+ */
 export function InviteCard({ room, roomName, onRename, nameError }: { room: string; roomName?: string; onRename?: (name: string) => void; nameError: string | null }) {
-  // The link needs the page's origin, which the server render doesn't have.
+  const lang = useLang();
+  const t = WORDS[lang];
+  // The shown link needs the page's origin, which the server render doesn't have.
   const origin = useSyncExternalStore(noSubscribe, () => window.location.origin, () => "");
-  const link = `${origin}/buzzerquiz#${room}`;
+  const link = `${origin}${roomHref(GAME_SLUG, room, lang)}`;
   const [copied, setCopied] = useState(false);
   const [draft, setDraft] = useState(roomName ?? "");
   const nameRef = useRef<HTMLInputElement>(null);
@@ -281,7 +302,7 @@ export function InviteCard({ room, roomName, onRename, nameError }: { room: stri
   }, [roomName]);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(inviteUrl(window.location.origin, GAME_SLUG, room, lang));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -293,7 +314,7 @@ export function InviteCard({ room, roomName, onRename, nameError }: { room: stri
   };
   return (
     <section className="flex flex-col gap-3 rounded-[20px] bg-[var(--surface)] p-4">
-      <h2 className={LABEL}>Invite friends</h2>
+      <h2 className={LABEL}>{t.inviteFriends}</h2>
       <div className="flex items-center gap-2">
         <span className={`${TEXT} min-w-0 flex-1 truncate rounded-xl bg-[var(--surface-dim)] px-3 py-3 text-[15px] text-[var(--text-muted)]`}>{link.replace(/^https?:\/\//, "")}</span>
         <button
@@ -301,15 +322,15 @@ export function InviteCard({ room, roomName, onRename, nameError }: { room: stri
           onClick={copy}
           className={`${DISPLAY} ${FOCUS} h-12 shrink-0 cursor-pointer rounded-xl border-2 border-[var(--ink)] bg-[var(--buzz)] px-4 text-[17px] font-extrabold text-[var(--ink)] shadow-[0_4px_0_var(--buzz-ring)] active:translate-y-1 active:shadow-none`}
         >
-          {copied ? "Copied!" : "Copy"}
+          {copied ? t.copied : t.copy}
         </button>
       </div>
       <p aria-live="polite" className="sr-only">
-        {copied ? "Link copied" : ""}
+        {copied ? t.linkCopied : ""}
       </p>
       {onRename ? (
         <label className={`${TEXT} flex flex-col gap-1.5 text-[14px] font-bold text-[var(--text-muted)]`}>
-          Name this room (optional)
+          {t.nameRoom}
           <input
             ref={nameRef}
             value={draft}
@@ -345,14 +366,15 @@ export interface MatchLobby {
 }
 
 function MatchStatus({ status, onLeave }: MatchLobby) {
+  const t = useText(WORDS);
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-[var(--surface)] p-4">
-      <h2 className={LABEL}>Playing online</h2>
+      <h2 className={LABEL}>{t.playingOnline}</h2>
       <p role="status" aria-live="polite" className={`${DISPLAY} m-0 text-[22px] font-extrabold`}>
         {status}
       </p>
-      <p className={`${TEXT} m-0 text-[15px] text-[var(--text-muted)]`}>The quiz starts by itself once enough players are here.</p>
-      <SecondaryButton onClick={onLeave}>Leave room</SecondaryButton>
+      <p className={`${TEXT} m-0 text-[15px] text-[var(--text-muted)]`}>{t.startsBySelf}</p>
+      <SecondaryButton onClick={onLeave}>{t.leaveRoom}</SecondaryButton>
     </section>
   );
 }
@@ -374,6 +396,8 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
   onStart: () => void;
   onLeave: () => void;
 }) {
+  const t = useText(WORDS);
+  const topicLabel = useTopicLabel();
   const joined = seats.filter((seat) => names[seat]);
   const hostName = hostSeat ? names[hostSeat] : undefined;
   const player = (seat: SeatId) => {
@@ -381,7 +405,7 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
     if (!name) {
       return (
         <li key={seat} className={`${TEXT} flex h-[58px] items-center rounded-2xl border-2 border-dashed border-[var(--line-dashed)] px-4 text-[16px] text-[var(--text-muted)] min-[900px]:h-[120px] min-[900px]:justify-center`}>
-          Waiting for a player…
+          {t.waitingForPlayer}
         </li>
       );
     }
@@ -391,11 +415,11 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
         <span className="hidden min-[900px]:block"><Avatar seat={seat} name={name} size={60} /></span>
         <span className={`${DISPLAY} min-w-0 flex-1 truncate text-[18px] font-extrabold min-[900px]:flex-none`}>
           {name}
-          {seat === me ? <span className={`${TEXT} ml-1.5 text-[14px] font-bold text-[var(--text-muted)]`}>(you)</span> : null}
+          {seat === me ? <span className={`${TEXT} ml-1.5 text-[14px] font-bold text-[var(--text-muted)]`}>{t.youTag}</span> : null}
         </span>
         {seat === hostSeat ? (
           <span className={`${TEXT} flex items-center gap-1 text-[14px] font-bold text-[var(--points)]`}>
-            <CrownIcon size={18} /> Host
+            <CrownIcon size={18} /> {t.host}
           </span>
         ) : null}
       </li>
@@ -404,20 +428,20 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
   const chips = (
     <section className="flex flex-col gap-2.5">
       <div className="flex items-baseline justify-between">
-        <h2 className={LABEL}>The quiz</h2>
+        <h2 className={LABEL}>{t.theQuiz}</h2>
         {isHost ? (
           <button type="button" onClick={onEdit} className={`${TEXT} ${FOCUS} cursor-pointer border-0 bg-transparent p-0 text-[15px] font-bold text-[var(--points)] underline`}>
-            Edit
+            {t.edit}
           </button>
         ) : null}
       </div>
       {inSetup ? (
-        <p className={`${TEXT} m-0 text-[16px] text-[var(--text-muted)]`}>{hostName ?? "The host"} is choosing the topics…</p>
+        <p className={`${TEXT} m-0 text-[16px] text-[var(--text-muted)]`}>{t.choosingTopics(hostName)}</p>
       ) : (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
           <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>{LANG_LABELS[settings.lang]}</li>
-          <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>{settings.length} questions</li>
-          {settings.cards ? <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>Power cards</li> : null}
+          <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>{t.questionCount(settings.length)}</li>
+          {settings.cards ? <li className={`${TEXT} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-bold`}>{t.powerCards}</li> : null}
           {settings.topics.map((topic) => (
             <li key={topic} className={`${TEXT} rounded-full border-2 border-[var(--points)] px-3 py-1 text-[14px] font-bold text-[var(--points)]`}>
               {topicLabel(topic)}
@@ -432,25 +456,25 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
   ) : isHost ? (
     <div className="flex flex-col gap-2">
       <PrimaryButton disabled={joined.length < MIN_PLAYERS || inSetup} onClick={onStart}>
-        {joined.length < MIN_PLAYERS ? `Needs ${MIN_PLAYERS} players` : `Start with ${joined.length} players`}
+        {joined.length < MIN_PLAYERS ? t.needsPlayers(MIN_PLAYERS) : t.startWith(joined.length)}
       </PrimaryButton>
     </div>
   ) : (
     <p className={`${TEXT} m-0 rounded-2xl bg-[var(--surface)] p-4 text-center text-[16px] font-bold text-[var(--text-muted)]`}>
-      Waiting for {hostName ?? "the host"} to start
+      {t.waitingForHost(hostName)}
     </p>
   );
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[1040px] flex-col gap-5">
         <div className="flex items-center gap-3">
-          <h1 className={`${TITLE} flex-1`}>Waiting room</h1>
+          <h1 className={`${TITLE} flex-1`}>{t.waitingRoom}</h1>
           <span className={`${DISPLAY} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[15px] font-extrabold tracking-[0.06em]`}>{room}</span>
           <RulesButton />
         </div>
         <div className="flex flex-col gap-5 min-[900px]:grid min-[900px]:grid-cols-[1fr_320px] min-[900px]:gap-8">
           <section className="flex flex-col gap-2.5 min-[900px]:order-1">
-            <h2 className={LABEL}>Players · {joined.length} of {seats.length}</h2>
+            <h2 className={LABEL}>{t.playersOf(joined.length, seats.length)}</h2>
             <ul className="m-0 flex list-none flex-col gap-2 p-0 min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:gap-3">{seats.map(player)}</ul>
           </section>
           <div className="flex flex-col gap-5 min-[900px]:order-2">
@@ -469,6 +493,8 @@ export function Lobby({ room, seats, names, me, hostSeat, isHost, settings, inSe
 // ---- Countdown --------------------------------------------------------------------------
 
 export function Countdown({ seconds, index, total, topic, scores, cards }: { seconds: number; index: number; total: number; topic?: TopicId; scores: ScoreRow[]; cards?: ReactNode }) {
+  const t = useText(WORDS);
+  const topicLabel = useTopicLabel();
   const size = 230;
   const r = (size - 14) / 2;
   const c = 2 * Math.PI * r;
@@ -482,10 +508,10 @@ export function Countdown({ seconds, index, total, topic, scores, cards }: { sec
           <ScoreBoard rows={scores} />
         </div>
         <p className={`${DISPLAY} m-0 text-[20px] font-extrabold`}>
-          Question {index + 1} of {total}
+          {t.questionOf(index + 1, total)}
         </p>
         {topic ? <p className={`${LABEL} -mt-4`}>{topicLabel(topic)}</p> : null}
-        <div role="timer" aria-label={`Starting in ${seconds} seconds`} className="relative" style={{ width: size, height: size }}>
+        <div role="timer" aria-label={t.startingInSeconds(seconds)} className="relative" style={{ width: size, height: size }}>
           <svg aria-hidden="true" width={size} height={size} className="-rotate-90">
             <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--surface-2)" strokeWidth={14} fill="none" />
             <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--buzz)" strokeWidth={14} fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - seconds / 3)} />
@@ -494,7 +520,7 @@ export function Countdown({ seconds, index, total, topic, scores, cards }: { sec
             {Math.max(1, seconds)}
           </span>
         </div>
-        <p className={`${TEXT} m-0 text-[17px] text-[var(--text-muted)]`}>Thumb on the buzzer…</p>
+        <p className={`${TEXT} m-0 text-[17px] text-[var(--text-muted)]`}>{t.thumbReady}</p>
         {cards}
       </div>
     </div>
@@ -512,14 +538,14 @@ export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics, on
   onNewTopics: () => void;
   onLeave: () => void;
 }) {
+  const t = useText(WORDS);
   const winners = rows.filter((row) => row.rank === 1);
-  const title = winners.length === 1 ? `${winners[0].name} wins!` : `${winners.map((w) => w.name).slice(0, -1).join(", ")} and ${winners.at(-1)?.name} win!`;
-  const ordinal = (n: number) => ["1st", "2nd", "3rd", "4th"][n - 1] ?? `${n}th`;
+  const title = t.wins(winners.map((w) => w.name));
   return (
     <div className={SCREEN}>
       <div className="mx-auto flex max-w-[640px] flex-col gap-6">
         <div className="flex items-center justify-between gap-3">
-          <span className={`${LABEL}`}>Final ranking</span>
+          <span className={`${LABEL}`}>{t.finalRanking}</span>
           <RulesButton />
         </div>
         <div className="flex flex-col items-center gap-3 text-center">
@@ -543,13 +569,13 @@ export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics, on
                 className={`flex items-center gap-3 rounded-2xl px-3.5 ${first ? "h-16" : "h-[58px]"}`}
                 style={{ background: first ? `var(--${row.seat})` : "var(--surface)", color: first ? "var(--ink)" : "var(--text)" }}
               >
-                <span className={`${DISPLAY} w-11 text-[18px] font-extrabold`}>{ordinal(row.rank)}</span>
+                <span className={`${DISPLAY} w-11 text-[18px] font-extrabold`}>{t.ordinal(row.rank)}</span>
                 <span className={`rounded-full ${first ? "ring-2 ring-[var(--ink)]" : ""}`}>
                   <Avatar seat={row.seat} name={row.name} size={36} />
                 </span>
                 <span className={`${DISPLAY} min-w-0 flex-1 truncate text-[19px] font-extrabold`}>
                   {row.name}
-                  {row.seat === me ? <span className={`${TEXT} ml-1.5 text-[14px] font-bold opacity-75`}>(you)</span> : null}
+                  {row.seat === me ? <span className={`${TEXT} ml-1.5 text-[14px] font-bold opacity-75`}>{t.youTag}</span> : null}
                 </span>
                 <span className={`${DISPLAY} text-[24px] font-extrabold`}>{row.score}</span>
               </li>
@@ -557,8 +583,8 @@ export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics, on
           })}
         </ol>
         <div className="flex flex-col gap-3 min-[600px]:flex-row">
-          {canRematch ? <PrimaryButton onClick={onRematch}>Rematch</PrimaryButton> : null}
-          {isHost ? <SecondaryButton onClick={onNewTopics}>New topics</SecondaryButton> : null}
+          {canRematch ? <PrimaryButton onClick={onRematch}>{t.rematch}</PrimaryButton> : null}
+          {isHost ? <SecondaryButton onClick={onNewTopics}>{t.newTopics}</SecondaryButton> : null}
         </div>
         <LeaveRoom onLeave={onLeave} />
       </div>
@@ -566,10 +592,9 @@ export function Final({ rows, me, canRematch, isHost, onRematch, onNewTopics, on
   );
 }
 
-const ORDINALS = ["1st", "2nd", "3rd", "4th"];
-
 /** Desktop: 2nd, 1st and 3rd as podium steps, a 4th player as a row below. */
 function Podium({ rows }: { rows: { seat: SeatId; name: string; score: number; rank: number }[] }) {
+  const t = useText(WORDS);
   const [first, second, third, fourth] = rows;
   const step = (row: (typeof rows)[number] | undefined, height: number) =>
     row ? (
@@ -581,7 +606,7 @@ function Podium({ rows }: { rows: { seat: SeatId; name: string; score: number; r
           style={{ height, background: row.rank === 1 ? `var(--${row.seat})` : "var(--surface)", color: row.rank === 1 ? "var(--ink)" : "var(--text)" }}
         >
           <span className={`${DISPLAY} text-[30px] font-extrabold leading-none`}>{row.score}</span>
-          <span className={`${TEXT} text-[14px] font-bold opacity-75`}>{ORDINALS[row.rank - 1]}</span>
+          <span className={`${TEXT} text-[14px] font-bold opacity-75`}>{t.ordinal(row.rank)}</span>
         </div>
       </li>
     ) : null;
@@ -594,7 +619,7 @@ function Podium({ rows }: { rows: { seat: SeatId; name: string; score: number; r
       </ol>
       {fourth ? (
         <p className={`${TEXT} m-0 flex w-full items-center gap-3 rounded-2xl bg-[var(--surface)] px-4 py-3 text-[17px] font-bold`}>
-          <span className="w-10">{ORDINALS[fourth.rank - 1]}</span>
+          <span className="w-10">{t.ordinal(fourth.rank)}</span>
           <Avatar seat={fourth.seat} name={fourth.name} size={32} />
           <span className="flex-1">{fourth.name}</span>
           <span className={`${DISPLAY} text-[22px] font-extrabold`}>{fourth.score}</span>

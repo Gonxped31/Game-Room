@@ -1,17 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import type { Role } from "@/lib/session/types";
-import { NEW_ROOM_CONFIRM, type RoomQuestion } from "@/lib/session/shared/roomActions";
+import { ROOM_TEXT } from "@/lib/session/shared/roomActions";
+import { useLang, useText } from "@/lib/i18n/useLang";
+import LocalLink from "@/components/LocalLink";
 import RoomDialog, { type RoomDialogProps } from "@/components/RoomDialog";
-import { CLOCKS, MODE_LABELS, MODES, type Mode, type Pawn, PAWN_LABELS, PAWNS } from "@/lib/games/lasthop/constants";
+import { CLOCKS, MODES, type Mode, type Pawn, PAWNS } from "@/lib/games/lasthop/constants";
 import { otherMode, type RoundResult, type Vote } from "@/lib/games/lasthop/game";
 import { PawnShape } from "./pawns";
+import { TEXT } from "./text";
 import { FOCUS, FONT, formatClock, PieceMark, PrimaryButton, SecondaryButton, seatColor } from "./ui";
 
 /** The page frame's title row: the wordmark, the match so far, and the How to play button (`rules`). */
 export function Header({ round, score, rules }: { round?: number; score?: ReactNode; rules?: ReactNode }) {
+  const t = useText(TEXT);
   return (
     <header className="flex items-center justify-between gap-3">
       <p className={`${FONT} m-0 text-[22px] font-extrabold tracking-[-0.01em] min-[640px]:text-[28px]`}>
@@ -21,7 +24,7 @@ export function Header({ round, score, rules }: { round?: number; score?: ReactN
       <div className="flex items-center gap-3">
         {round ? (
           <p className="m-0 text-right text-[14px] font-medium text-[var(--muted)]">
-            Round {round}
+            {t.round(round)}
             {score ? <> · {score}</> : null}
           </p>
         ) : null}
@@ -32,15 +35,16 @@ export function Header({ round, score, rules }: { round?: number; score?: ReactN
 }
 
 export function Message({ text, alert, home }: { text: string; alert?: boolean; home?: boolean }) {
+  const t = useText(TEXT);
   return (
     <div className="rounded-2xl bg-[var(--surface)] px-4 py-3.5">
       <p role={alert ? "alert" : undefined} className="m-0 font-medium">
         {text}
       </p>
       {home ? (
-        <Link href="/" className="mt-2 inline-block font-bold text-[var(--p1)] underline">
-          All games
-        </Link>
+        <LocalLink href="/" className="mt-2 inline-block font-bold text-[var(--p1)] underline">
+          {t.allGames}
+        </LocalLink>
       ) : null}
     </div>
   );
@@ -69,7 +73,10 @@ export function PlayerBar({
   wins: number;
   pawn: Pawn;
 }) {
+  const lang = useLang();
+  const t = TEXT[lang];
   const low = running && clockMs < 10_000;
+  const clock = formatClock(clockMs, lang);
   return (
     <div
       className={`flex items-center gap-3 rounded-2xl px-3.5 py-2.5 transition-colors motion-reduce:transition-none ${running ? "bg-[var(--surface-2)]" : "bg-[var(--surface)]"}`}
@@ -79,18 +86,16 @@ export function PlayerBar({
       <div className="min-w-0 flex-1">
         <p className="m-0 truncate text-[16px] font-bold">
           {name}
-          {isMe ? <span className="font-medium text-[var(--muted)]"> (you)</span> : null}
-          {!online ? <span className="font-medium text-[var(--muted)]"> · offline</span> : null}
+          {isMe ? <span className="font-medium text-[var(--muted)]">{t.you}</span> : null}
+          {!online ? <span className="font-medium text-[var(--muted)]">{t.offline}</span> : null}
         </p>
-        <p className="m-0 text-[13px] text-[var(--muted)]">
-          {moves === 1 ? "1 move" : `${moves} moves`} available · {wins} {wins === 1 ? "round" : "rounds"}
-        </p>
+        <p className="m-0 text-[13px] text-[var(--muted)]">{t.barLine(moves, wins)}</p>
       </div>
       <p
-        aria-label={`${name}'s clock: ${formatClock(clockMs)}${running ? ", running" : ""}`}
+        aria-label={t.clockLabel(name, clock, running)}
         className={`${FONT} m-0 min-w-[78px] rounded-xl px-2.5 py-1 text-center text-[24px] font-bold tabular-nums ${running ? "bg-[var(--text)] text-[var(--ink)]" : "text-[var(--muted)]"} ${low ? "lh-low !bg-[var(--danger)]" : ""}`}
       >
-        {formatClock(clockMs)}
+        {clock}
       </p>
     </div>
   );
@@ -117,17 +122,16 @@ function ModePicture({ mode }: { mode: Mode }) {
 
 /** A mode's picture, name, line and clock: inside the lobby's card and the host's switch between matches. */
 function ModeInfo({ mode }: { mode: Mode }) {
+  const t = useText(TEXT);
   const clock = CLOCKS[mode];
   return (
     <>
       <span className="flex h-[60px] w-full items-center justify-center">
         <ModePicture mode={mode} />
       </span>
-      <span className={`${FONT} text-[20px] font-bold`}>{MODE_LABELS[mode].label}</span>
-      <span className="text-[14px] leading-snug text-[var(--muted)]">{MODE_LABELS[mode].detail}</span>
-      <span className="text-[13px] font-medium text-[var(--muted)]">
-        {clock.startMs / 60_000} min each, +{clock.incrementMs / 1000} s a move
-      </span>
+      <span className={`${FONT} text-[20px] font-bold`}>{t.modes[mode].label}</span>
+      <span className="text-[14px] leading-snug text-[var(--muted)]">{t.modes[mode].detail}</span>
+      <span className="text-[13px] font-medium text-[var(--muted)]">{t.clockLine(clock.startMs / 60_000, clock.incrementMs / 1000)}</span>
     </>
   );
 }
@@ -153,19 +157,20 @@ export function Lobby({
   rules?: ReactNode;
   pawnPicker?: ReactNode;
 }) {
+  const t = useText(TEXT);
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4">
-        <h1 className={`${FONT} m-0 text-[24px] font-extrabold`}>Make the last move</h1>
+        <h1 className={`${FONT} m-0 text-[24px] font-extrabold`}>{t.lobbyTitle}</h1>
         <ul className="m-0 mt-2 grid gap-1.5 pl-5 text-[15px] leading-snug text-[var(--muted)]">
-          <li>Your pieces only go forward: slide into the next empty square, or jump one of theirs.</li>
-          <li>If it&apos;s your turn and you can&apos;t move, you lose the round. Rushing burns your moves.</li>
-          <li>Each board is played twice, swapping sides. You each have a chess clock.</li>
+          {t.lobbyRules.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
         </ul>
         {rules ? <div className="mt-3">{rules}</div> : null}
       </div>
       {onMode ? (
-        <ModeSwitch mode={mode} onMode={onMode} label="Mode" />
+        <ModeSwitch mode={mode} onMode={onMode} label={t.modeLabel} />
       ) : (
         <div className="flex flex-col items-start gap-2 rounded-2xl border-2 border-[var(--p1)] bg-[var(--surface-2)] p-3.5">
           <ModeInfo mode={mode} />
@@ -173,25 +178,26 @@ export function Lobby({
       )}
       {pawnPicker}
       {onStart ? (
-        <PrimaryButton onClick={onStart}>Start the match</PrimaryButton>
+        <PrimaryButton onClick={onStart}>{t.startMatch}</PrimaryButton>
       ) : (
         <p aria-live="polite" className="m-0 text-center text-[16px] font-medium text-[var(--muted)]">
-          Waiting for {hostName} to start the match…
+          {t.waitingForHost(hostName)}
         </p>
       )}
     </div>
   );
 }
 
-/** The host's Track / Grid switch: in the lobby, or for the next match. */
-function ModeSwitch({ mode, onMode, label = "Mode for the next match" }: { mode: Mode; onMode: (mode: Mode) => void; label?: string }) {
+/** The host's Track / Grid switch: in the lobby, or for the next match (`label` defaults to "Mode for the next match"). */
+function ModeSwitch({ mode, onMode, label }: { mode: Mode; onMode: (mode: Mode) => void; label?: string }) {
+  const t = useText(TEXT);
   const choose = (next: Mode) => {
     if (next !== mode) onMode(next);
   };
   return (
     <div
       role="radiogroup"
-      aria-label={label}
+      aria-label={label ?? t.nextMatchModeLabel}
       className="grid grid-cols-2 gap-3"
       onKeyDown={(e) => {
         if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
@@ -245,38 +251,43 @@ export function MatchLobby({
   onLeave: () => void;
   pawnPicker?: ReactNode;
 }) {
+  const t = useText(TEXT);
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4 text-center">
-        <p className="m-0 text-[14px] font-medium uppercase tracking-[0.06em] text-[var(--muted)]">Matchmaking · {MODE_LABELS[mode].label}</p>
+        <p className="m-0 text-[14px] font-medium uppercase tracking-[0.06em] text-[var(--muted)]">{t.matchmaking(t.modes[mode].label)}</p>
         <p className={`${FONT} m-0 mt-2 text-[24px] font-extrabold`}>
-          {myName} <span className="text-[var(--muted)]">vs</span> {otherName ?? "…"}
+          {myName} <span className="text-[var(--muted)]">{t.versus}</span> {otherName ?? "…"}
         </p>
         <p aria-live="polite" className="m-0 mt-2 text-[16px] font-medium">
           {status}
         </p>
       </div>
       {pawnPicker}
-      {onFindAnother ? <PrimaryButton onClick={onFindAnother}>Find another player</PrimaryButton> : null}
-      <SecondaryButton onClick={onLeave}>Leave room</SecondaryButton>
+      {onFindAnother ? <PrimaryButton onClick={onFindAnother}>{t.findAnother}</PrimaryButton> : null}
+      <SecondaryButton onClick={onLeave}>{t.leaveRoom}</SecondaryButton>
     </div>
   );
 }
 
 /** Between rounds: who won it and why, and what comes next. */
 export function RoundBanner({ result, name, me, nextIn, sameBoard }: { result: RoundResult; name: (seat: Role) => string; me: Role | null; nextIn: number | null; sameBoard: boolean }) {
+  const t = useText(TEXT);
   const loser = result.winner === "p1" ? "p2" : "p1";
-  const title = me ? (result.winner === me ? "You made the last hop!" : `${name(result.winner)} made the last hop`) : `${name(result.winner)} takes the round`;
+  const title = me ? (result.winner === me ? t.youMadeLastHop : t.madeLastHop(name(result.winner))) : t.takesRound(name(result.winner));
   const why =
     result.reason === "time"
-      ? `${me === loser ? "You" : name(loser)} ran out of time.`
-      : `${me === loser ? "You" : name(loser)} had no move left.`;
+      ? me === loser
+        ? t.youRanOut
+        : t.ranOut(name(loser))
+      : me === loser
+        ? t.youStuck
+        : t.stuck(name(loser));
   return (
     <div aria-live="polite" className="rounded-2xl px-4 py-3 text-center" style={{ background: seatColor(result.winner), color: "var(--ink)" }}>
       <p className={`${FONT} m-0 text-[22px] font-extrabold`}>{title}</p>
       <p className="m-0 text-[15px] font-medium">
-        {why} {sameBoard ? "Next: the same board, sides swapped" : "Next: a new board"}
-        {nextIn != null ? ` in ${nextIn}` : ""}.
+        {why} {t.next(sameBoard, nextIn)}
       </p>
     </div>
   );
@@ -287,11 +298,13 @@ export function RoundBanner({ result, name, me, nextIn, sameBoard }: { result: R
  * other player's pawn is taken (shown in their colour, disabled).
  */
 export function PawnPicker({ me, mine, theirs, otherName, onPick }: { me: Role; mine: Pawn; theirs: Pawn; otherName: string; onPick: (pawn: Pawn) => void }) {
+  const t = useText(TEXT);
   const other: Role = me === "p1" ? "p2" : "p1";
   return (
     <div className="grid gap-2 rounded-2xl bg-[var(--surface)] p-3.5">
       <p id="lh-pawn-label" className={`${FONT} m-0 text-[16px] font-bold`}>
-        Your pawn: <span style={{ color: seatColor(me) }}>{PAWN_LABELS[mine]}</span>
+        {t.yourPawn}
+        <span style={{ color: seatColor(me) }}>{t.pawns[mine]}</span>
       </p>
       <div role="radiogroup" aria-labelledby="lh-pawn-label" className="grid grid-cols-4 gap-2 min-[560px]:grid-cols-8">
         {PAWNS.map((pawn) => {
@@ -303,7 +316,7 @@ export function PawnPicker({ me, mine, theirs, otherName, onPick }: { me: Role; 
               type="button"
               role="radio"
               aria-checked={on}
-              aria-label={taken ? `${PAWN_LABELS[pawn]} (${otherName}'s)` : PAWN_LABELS[pawn]}
+              aria-label={taken ? t.takenBy(t.pawns[pawn], otherName) : t.pawns[pawn]}
               disabled={taken}
               onClick={() => !on && onPick(pawn)}
               className={`flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 p-2 disabled:cursor-not-allowed ${on ? "border-[var(--p1)] bg-[var(--surface-2)]" : "border-transparent bg-[var(--well)]"} ${taken ? "opacity-45" : ""} ${FOCUS}`}
@@ -359,7 +372,8 @@ export function MatchOver({
   pawnOf: (seat: Role) => Pawn;
   pawnPicker?: ReactNode;
 }) {
-  const title = winner == null ? "A draw" : me ? (winner === me ? "You win the match!" : `${name(winner)} wins the match`) : `${name(winner)} wins the match`;
+  const t = useText(TEXT);
+  const title = winner == null ? t.draw : me && winner === me ? t.youWinMatch : t.winsMatch(name(winner));
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl bg-[var(--surface)] p-4 text-center">
@@ -374,10 +388,11 @@ export function MatchOver({
             <li key={i} className="flex items-center gap-2.5 rounded-xl bg-[var(--surface-2)] px-3 py-2">
               <PieceMark seat={r.winner} pawn={pawnOf(r.winner)} size={16} />
               <span className="flex-1">
-                Round {i + 1}: <b>{name(r.winner)}</b>
+                {t.roundOf(i + 1)}
+                <b>{name(r.winner)}</b>
               </span>
               <span className="text-[var(--muted)]">
-                {r.reason === "time" ? "on time" : "last hop"} · {r.moves} moves
+                {r.reason === "time" ? t.onTime : t.lastHop} · {t.moveCount(r.moves)}
               </span>
             </li>
           ))}
@@ -388,16 +403,17 @@ export function MatchOver({
         <VotePanel mode={mode} voting={voting} />
       ) : onMode ? (
         <>
-          <p className={`${FONT} m-0 text-[18px] font-bold`}>Next match</p>
+          <p className={`${FONT} m-0 text-[18px] font-bold`}>{t.nextMatch}</p>
           <ModeSwitch mode={mode} onMode={onMode} />
         </>
       ) : (
         <p aria-live="polite" className="m-0 text-center text-[15px] text-[var(--muted)]">
-          Next match: <b className="text-[var(--text)]">{MODE_LABELS[mode].label}</b>
-          {hostName ? ` · Waiting for ${hostName} to start it…` : null}
+          {t.nextMatchIs}
+          <b className="text-[var(--text)]">{t.modes[mode].label}</b>
+          {hostName ? t.waitingForHostToStart(hostName) : null}
         </p>
       )}
-      {onAgain ? <PrimaryButton onClick={onAgain}>Play again</PrimaryButton> : null}
+      {onAgain ? <PrimaryButton onClick={onAgain}>{t.playAgain}</PrimaryButton> : null}
     </div>
   );
 }
@@ -408,19 +424,20 @@ export function MatchOver({
  * just leaving the room.
  */
 function VotePanel({ mode, voting }: { mode: Mode; voting: Voting }) {
+  const t = useText(TEXT);
   const { mine, theirs, otherName, onVote, onLeave } = voting;
-  const label = (v: Vote) => (v === "again" ? `Replay ${MODE_LABELS[mode].label}` : `Change to ${MODE_LABELS[otherMode(mode)].label}`);
+  const label = (v: Vote) => (v === "again" ? t.replay(t.modes[mode].label) : t.changeTo(t.modes[otherMode(mode)].label));
   const status =
     mine == null && theirs == null
-      ? "Vote for the next match. It starts when you both pick the same."
+      ? t.voteFirst
       : mine == null
-        ? `${otherName} voted: ${label(theirs!)}.`
+        ? t.theyVoted(otherName, label(theirs!))
         : theirs == null
-          ? `Waiting for ${otherName} to vote…`
-          : `${otherName} voted: ${label(theirs)}. Pick the same to start.`;
+          ? t.waitingForVote(otherName)
+          : t.pickSame(otherName, label(theirs));
   return (
     <div className="grid gap-3">
-      <p className={`${FONT} m-0 text-[18px] font-bold`}>What next?</p>
+      <p className={`${FONT} m-0 text-[18px] font-bold`}>{t.whatNext}</p>
       <div className="grid grid-cols-2 gap-3">
         {(["again", "switch"] as const).map((v) => (
           <button
@@ -432,7 +449,7 @@ function VotePanel({ mode, voting }: { mode: Mode; voting: Voting }) {
           >
             <span className={`${FONT} text-[18px] font-bold`}>{label(v)}</span>
             <span className="text-[13px] font-medium text-[var(--muted)]">
-              {[mine === v ? "You" : null, theirs === v ? otherName : null].filter(Boolean).join(" · ") || "\u00a0"}
+              {[mine === v ? t.voterYou : null, theirs === v ? otherName : null].filter(Boolean).join(" · ") || "\u00a0"}
             </span>
           </button>
         ))}
@@ -440,7 +457,7 @@ function VotePanel({ mode, voting }: { mode: Mode; voting: Voting }) {
       <p aria-live="polite" className="m-0 text-center text-[15px] text-[var(--muted)]">
         {status}
       </p>
-      <SecondaryButton onClick={onLeave}>Leave room</SecondaryButton>
+      <SecondaryButton onClick={onLeave}>{t.leaveRoom}</SecondaryButton>
     </div>
   );
 }
@@ -458,29 +475,23 @@ export function AskDialog(props: RoomDialogProps) {
   );
 }
 
-const RESET_CONFIRM: RoomQuestion = {
-  title: "Reset the game?",
-  message: "The match ends and you're back in the lobby, in the same mode. Seats stay as they are.",
-  cancelLabel: "Cancel",
-  confirmLabel: "Reset game",
-  busyLabel: "Resetting…",
-};
-
 const linkClass = `cursor-pointer border-0 bg-transparent p-0 text-inherit underline ${FOCUS}`;
 
 /** Room code, then Reset game · New room · Leave room (or All games where there's no room to leave). A matchmaking room has only Leave room. */
 export function Footer({ room, roomName, onReset, onNewRoom, onLeave }: { room: string; roomName?: string; onReset?: () => unknown; onNewRoom?: () => unknown; onLeave?: () => void }) {
+  const lang = useLang();
+  const t = TEXT[lang];
   const [asking, setAsking] = useState<"reset" | "newRoom" | null>(null);
   const close = () => setAsking(null);
   return (
     <>
       <p className="m-0 mt-4 text-center text-[13px] text-[var(--muted)]">
-        Room: {roomName ? `${roomName} (${room})` : room}
+        {t.room(roomName ? `${roomName} (${room})` : room)}
         <br />
         {onReset ? (
           <>
             <button type="button" onClick={() => setAsking("reset")} className={linkClass}>
-              Reset game
+              {t.resetGame}
             </button>{" "}
             ·{" "}
           </>
@@ -488,23 +499,23 @@ export function Footer({ room, roomName, onReset, onNewRoom, onLeave }: { room: 
         {onNewRoom ? (
           <>
             <button type="button" onClick={() => setAsking("newRoom")} className={linkClass}>
-              New room
+              {t.newRoom}
             </button>{" "}
             ·{" "}
           </>
         ) : null}
         {onLeave ? (
           <button type="button" onClick={onLeave} className={linkClass}>
-            Leave room
+            {t.leaveRoom}
           </button>
         ) : (
-          <Link href="/" className={linkClass}>
-            All games
-          </Link>
+          <LocalLink href="/" className={linkClass}>
+            {t.allGames}
+          </LocalLink>
         )}
       </p>
-      {asking === "reset" && onReset ? <AskDialog question={RESET_CONFIRM} onCancel={close} onConfirm={onReset} onDone={close} /> : null}
-      {asking === "newRoom" && onNewRoom ? <AskDialog question={NEW_ROOM_CONFIRM} onCancel={close} onConfirm={onNewRoom} onDone={close} /> : null}
+      {asking === "reset" && onReset ? <AskDialog question={t.resetConfirm} onCancel={close} onConfirm={onReset} onDone={close} /> : null}
+      {asking === "newRoom" && onNewRoom ? <AskDialog question={ROOM_TEXT[lang].newRoomConfirm} onCancel={close} onConfirm={onNewRoom} onDone={close} /> : null}
     </>
   );
 }

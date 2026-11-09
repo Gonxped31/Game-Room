@@ -255,3 +255,22 @@ export function classifyDuo(trust: number, focus: number): DuoClassification {
   if (trust >= 70 && focus >= 70) return "Solid Partners";
   return "Still Learning Each Other";
 }
+
+/**
+ * The id a finished case is reported under ("game finished",
+ * lib/tracking/finished.ts): built from the shared state, so it's the same on
+ * both devices. The state has no per-case counter or start time, so it's the
+ * case, how many pairs were played and a hash of what they were: two plays of
+ * the same case in one room only share an id (and count once) when every
+ * pair played was the same. Letters, digits and "-" only, at most 40 chars.
+ */
+export function finishedGameId(game: GameState): string {
+  const log = game.log ?? [];
+  const played = log.map((e) => `${e.partIndex}.${e.investigatorCard}.${e.defendantCard}.${e.outcome}`).join("|");
+  let hash = 0x811c9dc5; // FNV-1a, 32-bit
+  for (let i = 0; i < played.length; i++) {
+    hash = Math.imul(hash ^ played.charCodeAt(i), 0x01000193) >>> 0;
+  }
+  const caseId = game.caseId.replace(/[^A-Za-z0-9-]/g, "").slice(0, 24) || "case";
+  return `${caseId}-${log.length}-${hash.toString(36)}`;
+}

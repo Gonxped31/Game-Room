@@ -1,3 +1,5 @@
+import type { Lang } from "@/lib/i18n/lang";
+import { texts } from "@/lib/i18n/text";
 import { ITEMS_PER_ROUND } from "./constants";
 
 /**
@@ -75,12 +77,32 @@ export function rankOrder(placement: Placement, itemIds: string[]): string[] {
   return [...itemIds].sort((a, b) => (placement[a] ?? 0) - (placement[b] ?? 0));
 }
 
-/** The result screen's headline and the line under it (references/ftw/first-to-worst-game-design.md, "Result headlines"). */
-export function resultHeadline(matches: number): { headline: string; line: string } {
-  if (matches >= ITEMS_PER_ROUND) return { headline: "Same page!", line: `All ${ITEMS_PER_ROUND} in the same order.` };
-  if (matches === 0) return { headline: "Different books.", line: "No matches this time." };
-  const line = `Same page on ${matches} of ${ITEMS_PER_ROUND}.`;
-  if (matches >= 3) return { headline: "Close!", line };
-  if (matches === 2) return { headline: "Same chapter.", line };
-  return { headline: "Different chapters.", line };
+const HEADLINES = texts({
+  en: {
+    all: { headline: "Same page!", line: `All ${ITEMS_PER_ROUND} in the same order.` },
+    none: { headline: "Different books.", line: "No matches this time." },
+    some: (matches: number) => `Same page on ${matches} of ${ITEMS_PER_ROUND}.`,
+    close: "Close!",
+    chapter: "Same chapter.",
+    chapters: "Different chapters.",
+  },
+  fr: {
+    all: { headline: "Même page !", line: `Les ${ITEMS_PER_ROUND} dans le même ordre.` },
+    none: { headline: "Pas le même livre.", line: "Aucun point commun cette fois." },
+    some: (matches) => `Même page pour ${matches} sur ${ITEMS_PER_ROUND}.`,
+    close: "Presque !",
+    chapter: "Même chapitre.",
+    chapters: "Pas le même chapitre.",
+  },
+});
+
+/** The result screen's headline and the line under it (references/ftw/first-to-worst-game-design.md, "Result headlines"), in the interface language. */
+export function resultHeadline(matches: number, lang: Lang = "en"): { headline: string; line: string } {
+  const t = HEADLINES[lang];
+  if (matches >= ITEMS_PER_ROUND) return t.all;
+  if (matches === 0) return t.none;
+  const line = t.some(matches);
+  if (matches >= 3) return { headline: t.close, line };
+  if (matches === 2) return { headline: t.chapter, line };
+  return { headline: t.chapters, line };
 }

@@ -1,3 +1,6 @@
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
+
 interface BackLinkProps {
   onBack: () => void;
   className?: string;
@@ -13,11 +16,12 @@ interface BackLinkProps {
  * in a multiplayer room).
  */
 export default function BackLink({ onBack, className = "" }: BackLinkProps) {
+  const t = useText(CC_TEXT);
   return (
     <button
       type="button"
       onClick={onBack}
-      aria-label="Back to case selection"
+      aria-label={t.backToCases}
       className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-black/40 text-lg leading-none text-white ${className}`}
     >
       ←

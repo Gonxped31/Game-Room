@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useSyncExternalStore } from "react";
+import { langOfPath, localizePath } from "@/lib/i18n/lang";
 import { createPathStore, emptyStore, serverTimestamp, updateRoot } from "@/lib/store";
 import { tryJoinRoom, type MatchGame } from "./shared/findMatch";
 import { betterRoom, nextAutoStart, type Queue, QUEUE_REFRESH_MS, queuePath } from "./shared/matchmaking";
@@ -8,6 +9,9 @@ import { useDeadline } from "./shared/serverClock";
 import { leaveRoomUpdate, queueEntryUpdate, queueRemoveUpdate, room as roomPath } from "./shared/updates";
 import type { Session } from "./useSession";
 import type { SeatId } from "./types";
+
+/** The hub in the page's language. Call it when leaving, never during render. */
+const hub = () => localizePath("/", langOfPath(window.location.pathname));
 
 /** How often a player waiting alone looks for another waiting room to join. */
 const MERGE_CHECK_MS = 8_000;
@@ -138,7 +142,7 @@ export function usePublicRoom(opts: {
     },
     [leaveRoom],
   );
-  const leave = useCallback(() => leaveTo("/"), [leaveTo]);
+  const leave = useCallback(() => leaveTo(hub()), [leaveTo]);
 
   // Back = "Leave room": one extra history entry keeps Back on this page,
   // which gives up the seat, then goes to the hub (leaving anyway if the
@@ -146,7 +150,7 @@ export function usePublicRoom(opts: {
   const onBack = useEffectEvent(() => {
     void leaveRoom()
       .catch(() => {})
-      .then(() => window.location.replace("/"));
+      .then(() => window.location.replace(hub()));
   });
   const backLeaves = active && (leaveOnBack ?? inLobby);
   useEffect(() => {

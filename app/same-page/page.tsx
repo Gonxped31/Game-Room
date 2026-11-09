@@ -2,16 +2,22 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
+import { leaveToHub, ROOM_TEXT, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import type { Role } from "@/lib/session/types";
+import type { Lang } from "@/lib/games/shared/language";
+import { useLang, useText } from "@/lib/i18n/useLang";
+import { useReportFinished } from "@/lib/tracking/useReportFinished";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { GAME_TITLE } from "@/lib/games/ftw/constants";
 import {
+  contentLang,
   type CurrentRound,
   lockIn,
   masterOf,
   newGame,
   nextRound as advanceRound,
+  revealedRoundId,
+  setLang,
   setPlaced,
   setPrompt,
   setTopics,
@@ -26,6 +32,7 @@ import RoundBoard from "@/components/ftw/RoundBoard";
 import { GameHeader, ScoreCard, type ScorePlayer } from "@/components/ftw/Scoreboard";
 import SessionRecap from "@/components/ftw/SessionRecap";
 import TopicPicker from "@/components/ftw/TopicPicker";
+import { FTW_TEXT } from "@/components/ftw/text";
 import { CREATOR_COLOR, PARTNER_COLOR, TEXT, THEME } from "@/components/ftw/ui";
 import RulesButton from "@/components/ftw/Rules";
 
@@ -34,7 +41,10 @@ import RulesButton from "@/components/ftw/Rules";
  * Its rooms keep the `ftw` slug; `/ftw` redirects here (next.config.ts).
  */
 export default function SamePagePage() {
-  const createInitialState = useCallback(() => newGame(randomRound()), []);
+  const lang = useLang();
+  const t = useText(FTW_TEXT);
+  // A new room's prompts start in its creator's interface language.
+  const createInitialState = useCallback(() => newGame(randomRound([], [], lang), [], lang), [lang]);
   const session = useGameSession({ gameSlug: "ftw", createInitialState });
   const { room, game, me, other, names, bothJoined, hostSeat, roomName, canRenameRoom, setRoomName, roomNameError, online, canTakeOver, pickIdentity, transact, setGame, newRoom } =
     session;
@@ -42,10 +52,17 @@ export default function SamePagePage() {
   const status = game?.current.status;
   const isRanker = game != null && me === masterOf(game.round);
   const placing = game != null && me != null && ((status === "RANKING" && isRanker) || (status === "GUESSING" && !isRanker));
+  // The room's content language: the bank prompts are drawn from (English for rooms made before it).
+  const roomLang: Lang = game ? contentLang(game) : lang;
 
   useEffect(() => {
-    document.title = placing || (status === "REVEALED" && me) ? `▶ Your turn! · ${GAME_TITLE}` : GAME_TITLE;
-  }, [placing, status, me]);
+    document.title = placing || (status === "REVEALED" && me) ? t.yourTurnTitle(GAME_TITLE) : GAME_TITLE;
+  }, [placing, status, me, t]);
+
+  // Same Page has no final result (rounds go on as long as the players like),
+  // so each revealed round is reported as a finished game, by both seated players.
+  const roundId = game && me && bothJoined ? revealedRoundId(game) : null;
+  useReportFinished(roundId ? { slug: "ftw", mode: "room", id: roundId, room, players: 2, lang: roomLang } : null);
 
   const handleLockIn = (order: string[]) => transact((current) => lockIn(current, order));
   const handleSubmitGuess = (order: string[]) => transact((current) => submitGuess(current, order));
@@ -55,29 +72,32 @@ export default function SamePagePage() {
   const handlePlacedChange = (placedIds: string[]) => {
     if (status === "RANKING" || status === "GUESSING") transact((current) => setPlaced(current, status, placedIds));
   };
-  const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [], current.topics ?? [])));
+  const handleNextRound = () => transact((current) => advanceRound(current, randomRound(current.usedPrompts ?? [], current.topics ?? [], contentLang(current))));
   const handleTopicsChange = (topics: string[]) => {
     if (me) transact((current) => setTopics(current, me, topics, TOPICS));
   };
+  const handleLangChange = (next: Lang) => {
+    if (me) transact((current) => setLang(current, me, next));
+  };
   // Seats live at the room level, so a reset keeps both players seated -
-  // only the game itself starts over (with the same topics).
+  // only the game itself starts over (with the same topics and language).
   // Only topics the bank still has (a renamed category drops out rather than blocking changes).
-  const topics = (game?.topics ?? []).filter((t) => TOPICS.includes(t));
-  const handleResetGame = () => setGame(newGame(randomRound([], topics), topics));
+  const topics = (game?.topics ?? []).filter((topic) => TOPICS.includes(topic));
+  const handleResetGame = () => setGame(newGame(randomRound([], topics, roomLang), topics, roomLang));
 
   // The room's creator is yellow, the other player pink (p1 is yellow if the creator holds no seat).
   const yellowSeat: Role = hostSeat ?? "p1";
   const colorOf = (seat: Role) => (seat === yellowSeat ? CREATOR_COLOR : PARTNER_COLOR);
-  const partnerName = (other && names[other]) || "Your partner";
+  const partnerName = (other && names[other]) || t.yourPartner;
   const players: ScorePlayer[] | undefined =
     game && me && other && bothJoined
       ? [me, other].map((seat) => ({ name: names[seat] ?? "", score: game.totals[seat], color: colorOf(seat), isMe: seat === me }))
       : undefined;
   const myName = me != null ? names[me] : undefined;
-  const myRole = me != null ? (isRanker ? "Ranking" : "Guessing") : undefined;
+  const myRole = me != null ? (isRanker ? t.roleRanking : t.roleGuessing) : undefined;
 
-  const problem = roomProblemMessage(session);
-  const notice = problem ?? (!game ? "Connecting to the room…" : null);
+  const problem = roomProblemMessage(session, lang);
+  const notice = problem ?? (!game ? t.connecting : null);
   // Asks first once both are playing: leaving ends the game for the partner.
   // Not offered under a notice: no room, or still connecting (the seat isn't known yet).
   const [askingLeave, setAskingLeave] = useState(false);
@@ -129,6 +149,7 @@ export default function SamePagePage() {
             partnerOnline={other ? Boolean(online[other]) : false}
             usedPrompts={game.usedPrompts ?? []}
             topics={topics}
+            contentLang={roomLang}
             masterOrder={game.current.masterOrder ?? null}
             guessOrder={game.current.guessOrder ?? null}
             score={game.current.score ?? null}
@@ -142,7 +163,13 @@ export default function SamePagePage() {
             scoreCard={players ? <ScoreCard round={game.round} players={players} /> : null}
             extras={
               <>
-                <TopicPicker topics={topics} onChange={isRanker ? handleTopicsChange : undefined} rankerName={(game && names[masterOf(game.round)]) || "The ranker"} />
+                <TopicPicker
+                  topics={topics}
+                  onChange={isRanker ? handleTopicsChange : undefined}
+                  lang={roomLang}
+                  onLangChange={isRanker ? handleLangChange : undefined}
+                  rankerName={(game && names[masterOf(game.round)]) || t.theRanker}
+                />
                 <SessionRecap history={game.history ?? []} names={names} />
               </>
             }
@@ -157,7 +184,7 @@ export default function SamePagePage() {
           onNewRoom={newRoom}
           onLeave={notice ? undefined : leave}
         />
-        {askingLeave && <AskDialog question={LEAVE_CONFIRM} onCancel={() => setAskingLeave(false)} onConfirm={leaveNow} />}
+        {askingLeave && <AskDialog question={ROOM_TEXT[lang].leaveConfirm} onCancel={() => setAskingLeave(false)} onConfirm={leaveNow} />}
       </main>
     </div>
   );

@@ -6,7 +6,8 @@ import type { Area } from "@/lib/games/borderrun/constants";
 import { nameOf } from "@/lib/games/borderrun/countries";
 import shapesData from "@/lib/games/borderrun/shapes.json";
 import { TONE } from "@/lib/games/borderrun/theme";
-import type { Lang } from "@/lib/games/shared/language";
+import type { Lang } from "@/lib/i18n/lang";
+import { TEXT } from "./text";
 
 /** scripts/borderrun-data.mjs: `c` the centre, `p` the pieces' rings, delta-encoded, in hundredths of a degree. */
 const SHAPES: Record<string, { c: number[]; p: number[][][] }> = shapesData;
@@ -622,7 +623,8 @@ function RouteMap({
   }, [shown, ends, route, lang, visible, vw, dot, map, screenWidth, view.scale]);
   const maskId = `br-line-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
 
-  const label = `Map of ${AREA_NAME[area].en}: ${shown.map((s) => `${nameOf(s.code, lang)} (${TONE_LABEL[s.tone]})`).join(", ")}`;
+  const t = TEXT[lang];
+  const label = t.mapLabel(AREA_NAME[area][lang], shown.map((s) => `${nameOf(s.code, lang)} (${t.tone[s.tone]})`).join(", "));
   const cross = dot * 0.75;
 
   return (
@@ -691,19 +693,19 @@ function RouteMap({
       </svg>
       <div className="br-map-zoom">
         {view.scale > 1 ? (
-          <button type="button" className="br-map-zoom-button" aria-label="Show the whole map" onClick={reset}>
+          <button type="button" className="br-map-zoom-button" aria-label={t.wholeMap} onClick={reset}>
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
             </svg>
           </button>
         ) : null}
-        <button type="button" className="br-map-zoom-button" aria-label="Zoom in" onClick={() => zoomBy(2)} disabled={view.scale >= maxScale}>
+        <button type="button" className="br-map-zoom-button" aria-label={t.zoomIn} onClick={() => zoomBy(2)} disabled={view.scale >= maxScale}>
           <svg viewBox="0 0 16 16" aria-hidden="true">
             <path d="M8 3v10M3 8h10" />
           </svg>
         </button>
         {view.scale > 1 ? (
-          <button type="button" className="br-map-zoom-button" aria-label="Zoom out" onClick={() => zoomBy(0.5)}>
+          <button type="button" className="br-map-zoom-button" aria-label={t.zoomOut} onClick={() => zoomBy(0.5)}>
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M3 8h10" />
             </svg>
@@ -715,7 +717,5 @@ function RouteMap({
 }
 
 const NO_LINKS: [string, string][] = [];
-
-const TONE_LABEL: Record<Tone, string> = { endpoint: "start or end", best: "on a shortest route", close: "close", off: "off the route", reveal: "a route" };
 
 export default memo(RouteMap);

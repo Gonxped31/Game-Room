@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useText } from "@/lib/i18n/useLang";
 import { readJson, removeKey, writeJson } from "./storage";
+import { TEXT } from "./text";
 
 /**
  * A segmented switch: role="radiogroup", arrow keys move the choice
@@ -141,18 +143,20 @@ export function useAutoMark(storageKey: string, puzzleId: string | null) {
  * aria-disabled rather than disabled, so keyboard focus isn't lost.
  */
 export function AutoMarkButton({ auto, usable }: { auto: ReturnType<typeof useAutoMark>; usable: boolean }) {
+  const t = useText(TEXT);
   const off = auto.locked || !usable;
   return (
     <button
       type="button"
       className="cg-button cg-auto"
       aria-disabled={off || undefined}
-      aria-label={auto.locked ? `Auto ✕, available in ${auto.lockLeft} seconds` : "Auto ✕: show the squares your pieces rule out"}
+      aria-label={auto.locked ? t.autoLocked(auto.lockLeft) : t.autoHelp}
       onClick={() => {
         if (!off) auto.use();
       }}
     >
-      Auto ✕{auto.locked ? <span className="cg-auto-left"> {auto.lockLeft}s</span> : null}
+      {t.autoMark}
+      {auto.locked ? <span className="cg-auto-left">{t.lockLeft(auto.lockLeft)}</span> : null}
     </button>
   );
 }
@@ -173,18 +177,19 @@ export function Toolbar({
   onUndo: () => void;
   onClear: () => void;
 }) {
+  const t = useText(TEXT);
   return (
     <div className="cg-toolbar">
-      <span className="cg-time" aria-label={`Time ${formatTime(elapsed)}`}>
+      <span className="cg-time" aria-label={t.time(formatTime(elapsed))}>
         {formatTime(elapsed)}
-        {best !== undefined ? <span className="cg-best"> · best {formatTime(best)}</span> : null}
+        {best !== undefined ? <span className="cg-best">{t.best(formatTime(best))}</span> : null}
       </span>
       <span className="cg-actions">
         <button type="button" className="cg-button" disabled={!canUndo} onClick={onUndo}>
-          Undo
+          {t.undo}
         </button>
         <button type="button" className="cg-button" disabled={!canClear} onClick={onClear}>
-          Clear
+          {t.clear}
         </button>
       </span>
     </div>

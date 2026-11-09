@@ -1,5 +1,6 @@
 import type { RaceOptions, RunResult } from "@/lib/games/nighthighway/game";
 import type { LiveCar } from "@/lib/games/nighthighway/live";
+import type { EngineText } from "../text";
 
 export interface EngineOptions {
   /** "solo" (the original title/results screens, pausing) or "race" (the page shows its own screens). */
@@ -12,6 +13,10 @@ export interface EngineOptions {
   onFatal?: (message: string) => void;
   /** Puts the API (plus internals) on `window.NightHighway`, for Playwright checks. */
   exposeForTests?: boolean;
+  /** Every word the engine shows, in the page's language: `ENGINE_TEXT[lang]` (../text.ts). English when omitted. */
+  text?: EngineText;
+  /** Solo: called once each run's 60 seconds are up, as its results screen shows (never for a run restarted mid-way). */
+  onSoloFinish?: (result: RunResult) => void;
 }
 
 export interface EngineRace {

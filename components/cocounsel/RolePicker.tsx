@@ -2,6 +2,8 @@ import type { CaseDefinition } from "@/lib/games/cocounsel/caseTypes";
 import { COLOR } from "@/lib/games/cocounsel/theme";
 import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Wordmark from "./Wordmark";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface RolePickerProps {
   caseDef: CaseDefinition;
@@ -40,6 +42,7 @@ export default function RolePicker({
   theme,
   onToggleTheme,
 }: RolePickerProps) {
+  const t = useText(CC_TEXT);
   const bothTaken = investigatorTaken && defendantTaken;
   const anyFree = canTakeOverInvestigator || canTakeOverDefendant;
 
@@ -48,18 +51,16 @@ export default function RolePicker({
       <div className="px-4 pb-5 pt-3.5">
         <Wordmark onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
         <p className="mt-2 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.text2 }}>
-          Two sides of one story. Talk it out to solve it.
+          {t.tagline}
         </p>
         <p className="mt-4 font-[family-name:var(--font-archivo)] text-base font-bold" style={{ color: COLOR.ink }}>
           {caseDef.title}
         </p>
         <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-[1.15]" style={{ color: COLOR.ink }}>
-          {!bothTaken ? "Who are you this round?" : anyFree ? "Welcome back! Which one are you?" : "Both roles are taken."}
+          {!bothTaken ? t.whoAreYou : anyFree ? t.whichOne : t.bothTaken}
         </h1>
         <p className="mt-1 font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-          {!bothTaken
-            ? "Your partner picks the other role. Never look at each other's screen."
-            : "A role frees up 2 minutes after its player goes offline."}
+          {!bothTaken ? t.otherPicks : t.roleFreesUp}
         </p>
       </div>
       <div className="relative flex flex-col">
@@ -67,7 +68,7 @@ export default function RolePicker({
           type="button"
           disabled={investigatorTaken && !canTakeOverInvestigator}
           onClick={onPickInvestigator}
-          aria-label={bothTaken ? `I'm ${caseDef.characters.investigator}, the Investigator` : "I'm the Investigator"}
+          aria-label={bothTaken ? t.iAmName(t.asRole(caseDef.characters.investigator, "investigator")) : t.iAmRole.investigator}
           className="flex min-h-[180px] flex-col justify-center gap-2 px-6 py-8 text-left text-white disabled:cursor-not-allowed disabled:opacity-60"
           style={{ backgroundColor: COLOR.investigator }}
         >
@@ -75,17 +76,17 @@ export default function RolePicker({
             🔍
           </span>
           <span className="font-[family-name:var(--font-archivo)] text-2xl font-extrabold">
-            {bothTaken ? `I'm ${caseDef.characters.investigator}` : "I'm the Investigator"}
+            {bothTaken ? t.iAmName(caseDef.characters.investigator) : t.iAmRole.investigator}
           </span>
           {!bothTaken ? (
-            <span className="font-[family-name:var(--font-archivo)] text-base">You saw what happened from the outside. You hold the evidence.</span>
+            <span className="font-[family-name:var(--font-archivo)] text-base">{t.pitch.investigator}</span>
           ) : null}
         </button>
         <button
           type="button"
           disabled={defendantTaken && !canTakeOverDefendant}
           onClick={onPickDefendant}
-          aria-label={bothTaken ? `I'm ${caseDef.characters.defendant}, the Defendant` : "I'm the Defendant"}
+          aria-label={bothTaken ? t.iAmName(t.asRole(caseDef.characters.defendant, "defendant")) : t.iAmRole.defendant}
           className="flex min-h-[180px] flex-col justify-center gap-2 px-6 py-8 text-left text-white disabled:cursor-not-allowed disabled:opacity-60"
           style={{ backgroundColor: COLOR.defendant }}
         >
@@ -93,10 +94,10 @@ export default function RolePicker({
             💬
           </span>
           <span className="font-[family-name:var(--font-archivo)] text-2xl font-extrabold">
-            {bothTaken ? `I'm ${caseDef.characters.defendant}` : "I'm the Defendant"}
+            {bothTaken ? t.iAmName(caseDef.characters.defendant) : t.iAmRole.defendant}
           </span>
           {!bothTaken ? (
-            <span className="font-[family-name:var(--font-archivo)] text-base">You know what was going on inside. You hold the motives.</span>
+            <span className="font-[family-name:var(--font-archivo)] text-base">{t.pitch.defendant}</span>
           ) : null}
         </button>
         <div

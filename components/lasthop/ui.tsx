@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, CSSProperties } from "react";
+import type { Lang } from "@/lib/i18n/lang";
 import type { Role } from "@/lib/session/types";
 import type { Pawn } from "@/lib/games/lasthop/constants";
 import { PawnShape } from "./pawns";
@@ -51,9 +52,12 @@ export function SecondaryButton({ className = "", ...rest }: ButtonHTMLAttribute
   return <button type="button" className={`${BUTTON} bg-[var(--surface-2)] text-[var(--text)] shadow-[0_4px_0_var(--well)] ${className}`} {...rest} />;
 }
 
-/** "1:05", or "8.4" under 10 s. */
-export function formatClock(ms: number): string {
-  if (ms < 10_000) return (Math.max(0, Math.floor(ms / 100)) / 10).toFixed(1);
+/** "1:05", or "8.4" under 10 s ("8,4" in French). */
+export function formatClock(ms: number, lang: Lang = "en"): string {
+  if (ms < 10_000) {
+    const tenths = (Math.max(0, Math.floor(ms / 100)) / 10).toFixed(1);
+    return lang === "fr" ? tenths.replace(".", ",") : tenths;
+  }
   const seconds = Math.ceil(ms / 1000);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }

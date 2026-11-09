@@ -1,8 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import LocalLink from "@/components/LocalLink";
 import { MODE_NAME, PLAYERS, type Mode } from "@/lib/games/race/race";
+import type { Lang } from "@/lib/i18n/lang";
+import { plural as pluralFor, texts } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
+import { inviteFromLocation } from "@/lib/session/shared/inviteFromLocation";
 import "./race.css";
 
 /**
@@ -12,33 +16,148 @@ import "./race.css";
  * variables on its page (see race.css).
  */
 
+/** The English mode names, as before; `modeName(mode, lang)` for the page's language. */
 export { MODE_NAME };
 
-/** "1:05" from ms. */
+/** Each mode's name in each language (docs/i18n.md's glossary: Défi, Survie). */
+export const MODE_NAMES = texts<Record<Mode, string>>({
+  en: MODE_NAME,
+  fr: { challenge: "Défi", survival: "Survie" },
+});
+
+/** "Challenge" / "Défi". */
+export const modeName = (mode: Mode, lang: Lang = "en") => MODE_NAMES[lang][mode];
+
+/**
+ * Why a game of this mode can't start with this many players, or null if it
+ * can: `startProblem` (lib/games/race/race.ts) in the page's language.
+ */
+export function raceStartProblem(mode: Mode, players: number, lang: Lang = "en"): string | null {
+  const { min, max } = PLAYERS[mode];
+  if (players < min) return TEXT[lang].needsAtLeast(modeName(mode, lang), min);
+  if (players > max) return TEXT[lang].atMost(modeName(mode, lang), max);
+  return null;
+}
+
+const TEXT = texts({
+  en: {
+    home: "Back to all games",
+    leave: "Leave room",
+    full: "This room is full",
+    joinTitle: (mode: string) => `Join the race: ${mode}`,
+    atMost: (mode: string, max: number) => `${mode} is for ${max} players at most.`,
+    needsAtLeast: (mode: string, min: number) => `${mode} needs at least ${min} players.`,
+    canWatch: "You can watch.",
+    yourName: "Your name",
+    namePlaceholder: "What should others call you?",
+    join: "Join",
+    joinNext: "Join (from the next game)",
+    watch: "Watch",
+    invite: "Invite friends with the link. Room",
+    copied: "Copied!",
+    copy: "Copy invite link",
+    nameRoom: "Name this room (optional)",
+    online: "online",
+    offline: "offline",
+    host: "Host",
+    you: "You",
+    youAfterName: " (you)",
+    matchmaking: "Matchmaking",
+    privateRoom: "Private room",
+    players: (n: number, max: number) => `Players: ${n} of ${max}`,
+    start: "Start the race",
+    waitingHost: (host: string | null) => `Waiting for ${host ?? "the host"} to start…`,
+    board: "The race",
+    timeLeft: (time: string) => `Time left ${time}`,
+    waitingOthers: "Waiting for the others…",
+    gaveUp: (unit: string) => `You gave up this ${unit}. Waiting for the others…`,
+    out: "You're out. Watching the others…",
+    watching: "Watching.",
+    giveUpAsk: (unit: string) => `Give up this ${unit}?`,
+    keepGoing: "Keep going",
+    giveUp: "Give up",
+    giveUpMenu: "Give up…",
+    outPill: "Out",
+    finalStandings: "Final standings",
+    playAgain: "Play again",
+    settings: "Change mode or settings",
+  },
+  fr: {
+    home: "Retour à tous les jeux",
+    leave: "Quitter le salon",
+    full: "Ce salon est complet",
+    joinTitle: (mode) => `Rejoins la course : ${mode}`,
+    atMost: (mode, max) => `Le mode ${mode} se joue à ${max} joueurs au maximum.`,
+    needsAtLeast: (mode, min) => `Il faut au moins ${min} joueurs pour le mode ${mode}.`,
+    canWatch: "Tu peux regarder.",
+    yourName: "Ton nom",
+    namePlaceholder: "Le nom que les autres verront",
+    join: "Rejoindre",
+    joinNext: "Rejoindre (dès la prochaine partie)",
+    watch: "Regarder",
+    invite: "Invite tes amis avec le lien. Salon",
+    copied: "Copié !",
+    copy: "Copier le lien d'invitation",
+    nameRoom: "Nomme ce salon (facultatif)",
+    online: "en ligne",
+    offline: "hors ligne",
+    host: "Hôte",
+    you: "Toi",
+    youAfterName: " (toi)",
+    matchmaking: "Partie rapide",
+    privateRoom: "Salon privé",
+    players: (n, max) => `Joueurs : ${n} sur ${max}`,
+    start: "Lancer la course",
+    waitingHost: (host) => (host ? `On attend que ${host} lance la course…` : "On attend que l'hôte lance la course…"),
+    board: "La course",
+    timeLeft: (time) => `Temps restant ${time}`,
+    waitingOthers: "On attend les autres…",
+    // A round is a "manche" whatever the game calls it (a route, a puzzle): no gender to match.
+    gaveUp: () => "Tu as abandonné cette manche. On attend les autres…",
+    out: "La course est finie pour toi. Tu regardes les autres…",
+    watching: "Tu regardes la course.",
+    giveUpAsk: () => "Abandonner cette manche ?",
+    keepGoing: "Je continue",
+    giveUp: "Abandonner",
+    giveUpMenu: "Abandonner…",
+    outPill: "Hors course",
+    finalStandings: "Classement final",
+    playAgain: "Rejouer",
+    settings: "Changer de mode ou de réglages",
+  },
+});
+
+/** "1:05" from ms (the same in both languages). */
 export function formatTime(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
-export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+/**
+ * "3 routes": `n` and `word`, plural by the language's rule (French says
+ * "0 manche"). `many` is the plural when it isn't `word` + "s" ("parcours").
+ */
+export const plural = (n: number, word: string, lang: Lang = "en", many = `${word}s`) => `${n} ${pluralFor(lang, n, word, many)}`;
 
 export function Message({ text, home }: { text: string; home?: boolean }) {
+  const t = useText(TEXT);
   return (
     <section className="race-card">
       <p className="race-status">{text}</p>
       {home ? (
-        <Link href="/" className="race-button race-button-wide race-link-button">
-          Back to all games
-        </Link>
+        <LocalLink href="/" className="race-button race-button-wide race-link-button">
+          {t.home}
+        </LocalLink>
       ) : null}
     </section>
   );
 }
 
 export function LeaveButton({ onLeave }: { onLeave: () => void }) {
+  const t = useText(TEXT);
   return (
     <button type="button" className="race-button" onClick={onLeave}>
-      Leave room
+      {t.leave}
     </button>
   );
 }
@@ -61,17 +180,19 @@ export function JoinScreen({
   onWatch: () => void;
   onLeave: () => void;
 }) {
+  const t = useText(TEXT);
+  const names = useText(MODE_NAMES);
   const [typed, setTyped] = useState<string | null>(null);
   const name = typed ?? defaultName;
   const id = useId();
   return (
     <section className="race-card" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="race-card-title">
-        {full ? "This room is full" : `Join the race: ${MODE_NAME[mode]}`}
+        {full ? t.full : t.joinTitle(names[mode])}
       </h2>
       {full ? (
         <p className="race-note">
-          {MODE_NAME[mode]} is for {PLAYERS[mode].max} players at most. You can watch.
+          {t.atMost(names[mode], PLAYERS[mode].max)} {t.canWatch}
         </p>
       ) : (
         <form
@@ -82,18 +203,18 @@ export function JoinScreen({
           }}
         >
           <label htmlFor={`${id}-name`} className="race-field-label">
-            Your name
+            {t.yourName}
           </label>
-          <input id={`${id}-name`} className="race-input" value={name} maxLength={24} autoComplete="nickname" onChange={(e) => setTyped(e.target.value)} placeholder="What should others call you?" />
+          <input id={`${id}-name`} className="race-input" value={name} maxLength={24} autoComplete="nickname" onChange={(e) => setTyped(e.target.value)} placeholder={t.namePlaceholder} />
           <button type="submit" className="race-button race-button-primary race-button-wide" disabled={!name.trim()}>
-            {underway ? "Join (from the next game)" : "Join"}
+            {underway ? t.joinNext : t.join}
           </button>
         </form>
       )}
       <div className="race-footer">
         {full || underway ? (
           <button type="button" className="race-button" onClick={onWatch}>
-            Watch
+            {t.watch}
           </button>
         ) : null}
         <LeaveButton onLeave={onLeave} />
@@ -104,6 +225,7 @@ export function JoinScreen({
 
 /** The invite: the link to copy, the code, and (the host only) the room's name. */
 export function InviteCard({ room, roomName, onRename, nameError }: { room: string; roomName?: string; onRename?: (name: string) => void; nameError?: string | null }) {
+  const t = useText(TEXT);
   const [copied, setCopied] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const id = useId();
@@ -111,7 +233,8 @@ export function InviteCard({ room, roomName, onRename, nameError }: { room: stri
   useEffect(() => () => clearTimeout(timer.current ?? undefined), []);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      // The room's invite page in this page's language, not the address as it is (lib/share.ts).
+      await navigator.clipboard.writeText(inviteFromLocation(window.location));
       setCopied(true);
       timer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -124,14 +247,14 @@ export function InviteCard({ room, roomName, onRename, nameError }: { room: stri
   return (
     <div className="race-invite">
       <p className="race-invite-text">
-        Invite friends with the link. Room <strong>{roomName || room.toUpperCase()}</strong>
+        {t.invite} <strong>{roomName || room.toUpperCase()}</strong>
       </p>
       <button type="button" className="race-button race-button-primary" onClick={copy}>
-        <span aria-live="polite">{copied ? "Copied!" : "Copy invite link"}</span>
+        <span aria-live="polite">{copied ? t.copied : t.copy}</span>
       </button>
       {onRename ? (
         <label htmlFor={`${id}-room`} className="race-field-label">
-          Name this room (optional)
+          {t.nameRoom}
           <input
             id={`${id}-room`}
             className="race-input"
@@ -165,14 +288,15 @@ export interface Seat {
 }
 
 function PlayerChips({ players }: { players: Seat[] }) {
+  const t = useText(TEXT);
   return (
     <ul className="race-players">
       {players.map((p) => (
         <li key={p.seat} className="race-player" data-me={p.me ? "" : undefined}>
-          <span className="race-dot" data-online={p.online ? "" : undefined} aria-label={p.online ? "online" : "offline"} role="img" />
+          <span className="race-dot" data-online={p.online ? "" : undefined} aria-label={p.online ? t.online : t.offline} role="img" />
           <span className="race-player-name">{p.name}</span>
-          {p.host ? <span className="race-pill">Host</span> : null}
-          {p.me ? <span className="race-pill">You</span> : null}
+          {p.host ? <span className="race-pill">{t.host}</span> : null}
+          {p.me ? <span className="race-pill">{t.you}</span> : null}
         </li>
       ))}
     </ul>
@@ -210,13 +334,15 @@ export function Lobby({
   onStart: () => void;
   onLeave: () => void;
 }) {
+  const t = useText(TEXT);
+  const names = useText(MODE_NAMES);
   const id = useId();
   return (
     <>
       <section className="race-card" aria-labelledby={`${id}-title`}>
-        <p className="race-kicker">{isPublic ? "Matchmaking" : "Private room"}</p>
+        <p className="race-kicker">{isPublic ? t.matchmaking : t.privateRoom}</p>
         <h2 id={`${id}-title`} className="race-card-title">
-          {MODE_NAME[mode]}
+          {names[mode]}
         </h2>
         {settings}
         <p className="race-note race-rules">{rules}</p>
@@ -224,7 +350,7 @@ export function Lobby({
 
       <section className="race-card" aria-labelledby={`${id}-players`}>
         <h2 id={`${id}-players`} className="race-card-title">
-          Players: {players.length} of {PLAYERS[mode].max}
+          {t.players(players.length, PLAYERS[mode].max)}
         </h2>
         <PlayerChips players={players} />
         {isPublic ? (
@@ -239,11 +365,11 @@ export function Lobby({
               </p>
             ) : null}
             <button type="button" className="race-button race-button-primary race-button-wide" disabled={problem !== null} onClick={onStart}>
-              Start the race
+              {t.start}
             </button>
           </>
         ) : (
-          <p className="race-status">{problem ?? `Waiting for ${hostName ?? "the host"} to start…`}</p>
+          <p className="race-status">{problem ?? t.waitingHost(hostName)}</p>
         )}
       </section>
 
@@ -269,8 +395,9 @@ export interface BoardRow {
 
 /** Everyone still in, as they go: how far (never where), and who's done. */
 function ProgressBoard({ rows }: { rows: BoardRow[] }) {
+  const t = useText(TEXT);
   return (
-    <ol className="race-board" aria-label="The race">
+    <ol className="race-board" aria-label={t.board}>
       {rows.map((row) => (
         <li key={row.seat} className="race-board-row" data-me={row.me ? "" : undefined} data-done={row.done ? "" : undefined}>
           <span className="race-dot" data-online={row.online ? "" : undefined} aria-hidden="true" />
@@ -326,13 +453,14 @@ export function RoundView({
   /** Only for someone not playing this game (out, or watching). */
   onLeave?: () => void;
 }) {
+  const t = useText(TEXT);
   const [asking, setAsking] = useState(false);
   const playing = me.kind === "playing";
   return (
     <>
       <div className="race-bar">
         <span className="race-kicker">{roundLabel}</span>
-        <span className="race-time race-clock" data-low={timeLeft < 30_000 ? "" : undefined} aria-label={`Time left ${formatTime(timeLeft)}`}>
+        <span className="race-time race-clock" data-low={timeLeft < 30_000 ? "" : undefined} aria-label={t.timeLeft(formatTime(timeLeft))}>
           {formatTime(timeLeft)}
         </span>
       </div>
@@ -347,14 +475,14 @@ export function RoundView({
       </div>
       {me.kind === "done" ? (
         <p className="race-done-title race-me" role="status">
-          {me.text} Waiting for the others…
+          {me.text} {t.waitingOthers}
         </p>
       ) : me.kind === "gaveUp" ? (
-        <p className="race-status race-me">You gave up this {unit}. Waiting for the others…</p>
+        <p className="race-status race-me">{t.gaveUp(unit)}</p>
       ) : me.kind === "out" ? (
-        <p className="race-status race-me">You&apos;re out. Watching the others…</p>
+        <p className="race-status race-me">{t.out}</p>
       ) : me.kind === "watching" ? (
-        <p className="race-status race-me">Watching.</p>
+        <p className="race-status race-me">{t.watching}</p>
       ) : null}
       {playing ? afterStage : null}
       <ProgressBoard rows={board} />
@@ -364,9 +492,9 @@ export function RoundView({
         {playing && countdown === null ? (
           asking ? (
             <>
-              <span className="race-note">Give up this {unit}?</span>
+              <span className="race-note">{t.giveUpAsk(unit)}</span>
               <button type="button" className="race-button" onClick={() => setAsking(false)}>
-                Keep going
+                {t.keepGoing}
               </button>
               <button
                 type="button"
@@ -376,12 +504,12 @@ export function RoundView({
                   onGiveUp();
                 }}
               >
-                Give up
+                {t.giveUp}
               </button>
             </>
           ) : (
             <button type="button" className="race-button" onClick={() => setAsking(true)}>
-              Give up…
+              {t.giveUpMenu}
             </button>
           )
         ) : null}
@@ -422,6 +550,7 @@ export function ResultsView({
   children: ReactNode;
   onLeave?: () => void;
 }) {
+  const t = useText(TEXT);
   return (
     <>
       <section className="race-card" aria-label={title}>
@@ -433,8 +562,8 @@ export function ResultsView({
                 <span className="race-rank">{i + 1}</span>
                 <span className="race-result-name">
                   {row.name}
-                  {row.me ? <span className="race-you"> (you)</span> : null}
-                  {row.out ? <span className="race-pill race-pill-out">Out</span> : null}
+                  {row.me ? <span className="race-you">{t.youAfterName}</span> : null}
+                  {row.out ? <span className="race-pill race-pill-out">{t.outPill}</span> : null}
                 </span>
                 <span className="race-result-time">{row.result}</span>
                 <span className="race-result-detail">{row.detail}</span>
@@ -483,11 +612,12 @@ export function FinalView({
   onSettings?: () => void;
   onLeave: () => void;
 }) {
+  const t = useText(TEXT);
   const id = useId();
   return (
     <>
       <section className="race-card" aria-labelledby={`${id}-final`}>
-        <p className="race-kicker">Final standings</p>
+        <p className="race-kicker">{t.finalStandings}</p>
         <h2 id={`${id}-final`} className="race-card-title race-final-title">
           {headline}
         </h2>
@@ -497,7 +627,7 @@ export function FinalView({
               <span className="race-rank">{i + 1}</span>
               <span className="race-result-name">
                 {row.name}
-                {row.me ? <span className="race-you"> (you)</span> : null}
+                {row.me ? <span className="race-you">{t.youAfterName}</span> : null}
               </span>
               <span className="race-result-time">{row.value}</span>
               <span className="race-result-detail">{row.detail}</span>
@@ -507,14 +637,14 @@ export function FinalView({
         {againProblem ? <p className="race-note race-problem">{againProblem}</p> : null}
         {canPlayAgain ? (
           <button type="button" className="race-button race-button-primary race-button-wide" disabled={againProblem !== null} onClick={onPlayAgain}>
-            Play again
+            {t.playAgain}
           </button>
         ) : null}
       </section>
       <div className="race-footer">
         {onSettings ? (
           <button type="button" className="race-button" onClick={onSettings}>
-            Change mode or settings
+            {t.settings}
           </button>
         ) : null}
         <LeaveButton onLeave={onLeave} />

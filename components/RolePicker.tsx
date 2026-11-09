@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { formatList, texts } from "@/lib/i18n/text";
+import { useLang } from "@/lib/i18n/useLang";
 import type { SeatId } from "@/lib/session/types";
 import Button from "./Button";
 
@@ -21,10 +23,36 @@ const PAIR = ["p1", "p2"] as const;
 
 const bubble = "m-0 rounded-xl bg-white px-3.5 py-2.5 font-semibold text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]";
 
-/** "Sam", "Sam and Alex", "Sam, Alex and Kim". */
-const listNames = (names: string[]) => (names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
+const TEXT = texts({
+  en: {
+    enterName: "Enter your name to continue.",
+    alreadyIn: (names: string, count: number) => `${names} ${count === 1 ? "is" : "are"} already in. What's your name?`,
+    firstOfTwo: "What's your name? The other player joins next with their own.",
+    firstOfMany: "What's your name? The others join next with their own.",
+    yourName: "Your name",
+    continue: "Continue",
+    welcomeBack: "Welcome back! Which one are you on this device?",
+    allTaken: (two: boolean) => `${two ? "Both" : "All"} seats are taken. A seat frees up 2 minutes after its player goes offline.`,
+    takeOver: (name: string) => `I'm ${name} · Take this seat`,
+    playing: (name: string) => `${name} is playing`,
+  },
+  fr: {
+    enterName: "Entre ton nom pour continuer.",
+    alreadyIn: (names, count) => `${names} ${count === 1 ? "est" : "sont"} déjà là. Comment tu t'appelles ?`,
+    firstOfTwo: "Comment tu t'appelles ? L'autre joueur entrera son nom ensuite.",
+    firstOfMany: "Comment tu t'appelles ? Les autres entreront leur nom ensuite.",
+    yourName: "Ton nom",
+    continue: "Continuer",
+    welcomeBack: "Te revoilà ! Qui es-tu sur cet appareil ?",
+    allTaken: (two) => `${two ? "Les deux places sont prises" : "Toutes les places sont prises"}. Une place se libère 2 minutes après la déconnexion de son joueur.`,
+    takeOver: (name) => `Je suis ${name} · Prendre cette place`,
+    playing: (name) => `${name} joue en ce moment`,
+  },
+});
 
 export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPick, seats = PAIR as unknown as readonly S[], accentColor, accentShadowColor }: RolePickerProps<S>) {
+  const lang = useLang();
+  const t = TEXT[lang];
   const accent = accentColor ? { backgroundColor: accentColor, boxShadow: `0 4px 0 ${accentShadowColor ?? accentColor}` } : undefined;
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
@@ -37,18 +65,15 @@ export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPic
     const submit = () => {
       const name = draft.trim();
       if (!name) {
-        setError("Enter your name to continue.");
+        setError(t.enterName);
         return;
       }
       setError("");
       onPick(unclaimed, name);
     };
     const inAlready = held.map((seat) => names[seat]!);
-    const prompt = inAlready.length
-      ? `${listNames(inAlready)} ${inAlready.length === 1 ? "is" : "are"} already in. What's your name?`
-      : seats.length === 2
-        ? "What's your name? The other player joins next with their own."
-        : "What's your name? The others join next with their own.";
+    // "Sam", "Sam and Alex", "Sam, Alex and Kim" (formatList).
+    const prompt = inAlready.length ? t.alreadyIn(formatList(lang, inAlready), inAlready.length) : seats.length === 2 ? t.firstOfTwo : t.firstOfMany;
     return (
       <div className="mt-6 grid gap-3">
         <p className={bubble}>{prompt}</p>
@@ -56,9 +81,9 @@ export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPic
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Your name"
+          placeholder={t.yourName}
           maxLength={24}
-          aria-label="Your name"
+          aria-label={t.yourName}
           className="w-full rounded-xl border-0 bg-white p-3.5 text-lg text-black shadow-[0_3px_8px_rgba(0,0,0,.25)] placeholder:text-black/45"
         />
         {error ? (
@@ -67,7 +92,7 @@ export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPic
           </p>
         ) : null}
         <Button onClick={submit} style={accent}>
-          Continue
+          {t.continue}
         </Button>
       </div>
     );
@@ -80,9 +105,7 @@ export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPic
   return (
     <div className="mt-6 grid gap-3">
       <p className={bubble}>
-        {anyFree
-          ? "Welcome back! Which one are you on this device?"
-          : `${seats.length === 2 ? "Both" : "All"} seats are taken. A seat frees up 2 minutes after its player goes offline.`}
+        {anyFree ? t.welcomeBack : t.allTaken(seats.length === 2)}
       </p>
       {seats.map((seat, i) => (
         <Button
@@ -93,7 +116,7 @@ export default function RolePicker<S extends SeatId>({ names, canTakeOver, onPic
           onClick={() => onPick(seat, names[seat]!)}
           style={i % 2 || !canTakeOver[seat] ? undefined : accent}
         >
-          {canTakeOver[seat] ? `I'm ${names[seat]} · Take this seat` : `${names[seat]} is playing`}
+          {canTakeOver[seat] ? t.takeOver(names[seat]!) : t.playing(names[seat]!)}
         </Button>
       ))}
     </div>

@@ -1,4 +1,6 @@
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface PartProgressProps {
   totalParts: number;
@@ -12,6 +14,7 @@ interface PartProgressProps {
 
 /** Docket tabs (which Part) + try-left pips - shown inside HeaderBand during a Part, and standalone on the reveal screen. */
 export default function PartProgress({ totalParts, currentPartIndex, attemptsUsed, maxAttempts, tone }: PartProgressProps) {
+  const t = useText(CC_TEXT);
   const triesLeft = Math.max(0, maxAttempts - attemptsUsed);
   const textColor = tone === "onColor" ? "#FFFFFF" : COLOR.ink;
   const inactiveTab = tone === "onColor" ? "rgba(255,255,255,.35)" : COLOR.disabledBg;
@@ -26,7 +29,7 @@ export default function PartProgress({ totalParts, currentPartIndex, attemptsUse
           ))}
         </div>
         <span className="font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: textColor }}>
-          Part {currentPartIndex + 1} of {totalParts}
+          {t.partOf(currentPartIndex + 1, totalParts)}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
@@ -40,7 +43,7 @@ export default function PartProgress({ totalParts, currentPartIndex, attemptsUse
           )}
         </span>
         <span className="font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: textColor }}>
-          {triesLeft} {triesLeft === 1 ? "try" : "tries"} left
+          {t.triesLeft(triesLeft)}
         </span>
       </div>
     </div>

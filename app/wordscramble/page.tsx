@@ -7,7 +7,9 @@ import { leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
 import { createPathStore, serverTimestamp } from "@/lib/store";
-import { defaultLang, LANG_LABELS } from "@/lib/games/shared/language";
+import { LANG_LABELS } from "@/lib/games/shared/language";
+import { useLang } from "@/lib/i18n/useLang";
+import { useReportFinished } from "@/lib/tracking/useReportFinished";
 import { WORDSCRAMBLE_MATCH } from "@/lib/games/matchGames";
 import { GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, RESULT_MS, SCOREBOARD_MS, STEAL_MS, STEAL_OFFER_MS, TURN_MS } from "@/lib/games/wordscramble/constants";
 import {
@@ -42,6 +44,7 @@ import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import TurnScreen, { type TurnView } from "@/components/wordscramble/TurnScreen";
 import { End, GetReady, InviteRow, Lobby, Message, NameEntry, Scoreboard } from "@/components/wordscramble/Screens";
 import { seatName, THEME } from "@/components/wordscramble/ui";
+import { COPY } from "@/components/wordscramble/text";
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
 /** The word for the turn about to start: the next one after a scoreboard, else the first. */
@@ -64,11 +67,15 @@ type Typing = Partial<Record<string, { at: number }>>;
  * writing only its own.
  */
 export default function WordScramblePage() {
-  const createInitialState = useCallback((): ScrambleState => newGame(defaultLang(typeof navigator === "undefined" ? undefined : navigator.languages)), []);
+  const lang = useLang();
+  const t = COPY[lang];
+  // A new room's words start in its creator's interface language; the host can switch them in the lobby.
+  const createInitialState = useCallback((): ScrambleState => newGame(lang), [lang]);
   const session = useSession<ScrambleState>({ gameSlug: GAME_SLUG, maxPlayers: MAX_PLAYERS, minPlayers: MIN_PLAYERS, createInitialState });
   const { room, me, seats, names, isHost, hostSeat, transact, pickIdentity, joinedSeats } = session;
   const raw = session.game;
   const game = useMemo(() => (raw ? normalize(raw) : null), [raw]);
+  const nameOf = (seat: string) => seatName(names, seat, lang);
   const serverNow = useServerClock();
   const [watching, setWatching] = useState(false);
 
@@ -93,15 +100,31 @@ export default function WordScramblePage() {
   const lastTyped = useRef(0);
   const onTyping = useCallback(() => {
     if (!me || !room) return;
-    const t = Date.now();
-    if (t - lastTyped.current < TYPING_EVERY_MS) return;
-    lastTyped.current = t;
+    const stamp = Date.now();
+    if (stamp - lastTyped.current < TYPING_EVERY_MS) return;
+    lastTyped.current = stamp;
     void createPathStore<{ at: unknown }>(`games/${room}/wordscrambleTyping/${me}`).set({ at: serverTimestamp() });
   }, [me, room]);
 
   useEffect(() => {
     document.title = "Word Scramble";
   }, []);
+
+  // A finished match (the end screen, winner shown), reported by every device that played in it. Its id is
+  // the last word's id and scramble seed: the same on every device, new with each match.
+  const players = game ? Object.keys(game.teams).length : 0;
+  useReportFinished(
+    myTeam && game?.phase === "end" && game.wordId
+      ? {
+          slug: GAME_SLUG,
+          mode: session.publicLang ? "match" : "room",
+          id: `${game.wordId}-${game.seed}`,
+          room,
+          players,
+          lang: game.settings.lang,
+        }
+      : null,
+  );
 
   const word = getWord(game?.wordId);
 
@@ -144,23 +167,23 @@ export default function WordScramblePage() {
   const leave = publicRoom.isPublic ? publicRoom.leave : () => void leaveToHub(session.leave);
 
   let screen;
-  const problem = roomProblemMessage(session);
+  const problem = roomProblemMessage(session, lang);
   if (problem) {
     screen = <Message text={problem} />;
   } else if (!game) {
-    screen = <Message text="Connecting to the room…" />;
+    screen = <Message text={t.connecting} />;
   } else if (!me && !watching) {
     const underway = game.phase !== "lobby" && game.phase !== "end";
     screen = <NameEntry seats={seats} names={names} canTakeOver={session.canTakeOver} onPick={(seat, name) => void pickIdentity(seat, name)} watching={underway || session.allJoined ? () => setWatching(true) : undefined} onLeave={leave} />;
   } else {
     const teamNames: Record<Team, string[]> = {
-      A: members(game.teams, joinedSeats, "A").map((s) => seatName(names, s)),
-      B: members(game.teams, joinedSeats, "B").map((s) => seatName(names, s)),
+      A: members(game.teams, joinedSeats, "A").map(nameOf),
+      B: members(game.teams, joinedSeats, "B").map(nameOf),
     };
     const total = game.settings.mode === "turns" ? game.settings.turnsPerTeam * 2 : null;
-    const turnLabel = total ? `Turn ${game.turn + 1} of ${total}` : `Turn ${game.turn + 1} · first to ${game.settings.target}`;
+    const turnLabel = total ? t.turnOf(game.turn + 1, total) : t.turnTarget(game.turn + 1, game.settings.target);
     const words = (id: string) => getWord(id)?.word ?? "";
-    const t = now ?? 0;
+    const at = now ?? 0;
 
     if (game.phase === "lobby") {
       screen = (
@@ -182,12 +205,12 @@ export default function WordScramblePage() {
               ? {
                   status:
                     publicRoom.autoStartAt != null && lobbyNow != null
-                      ? `Starting in ${Math.max(1, secondsLeft(publicRoom.autoStartAt, lobbyNow))} s`
+                      ? t.startingIn(Math.max(1, secondsLeft(publicRoom.autoStartAt, lobbyNow)))
                       : online < MIN_PLAYERS
-                        ? "Waiting for more players…"
+                        ? t.waitingForPlayers
                         : online % 2 === 1
-                          ? "Waiting for one more player to even the teams…"
-                          : "Getting ready…",
+                          ? t.waitingToEven
+                          : t.gettingReady,
                   onLeave: publicRoom.leave,
                 }
               : undefined
@@ -211,7 +234,7 @@ export default function WordScramblePage() {
           scores={game.scores}
           teamNames={teamNames}
           found={found}
-          summary={`${game.turn + 1} turns · ${LANG_LABELS[game.settings.lang]}`}
+          summary={t.endSummary(game.turn + 1, LANG_LABELS[game.settings.lang])}
           canRematch={me != null && session.enoughJoined}
           onRematch={startGame}
           onShuffle={() => transact((s) => shuffle(s, joinedSeats, Math.random))}
@@ -219,7 +242,7 @@ export default function WordScramblePage() {
         />
       );
     } else if (game.phase === "scoreboard") {
-      const left = secondsLeft(game.deadline ?? 0, t);
+      const left = secondsLeft(game.deadline ?? 0, at);
       screen = (
         <Scoreboard
           turn={game.turn}
@@ -231,7 +254,7 @@ export default function WordScramblePage() {
           words={words}
           nextTeam={otherTeam(playingTeam(game.turn))}
           seconds={Math.min(SCOREBOARD_MS / 1000, Math.max(1, left))}
-          fraction={Math.max(0, (game.deadline ?? 0) - t) / SCOREBOARD_MS}
+          fraction={Math.max(0, (game.deadline ?? 0) - at) / SCOREBOARD_MS}
         />
       );
     } else if (game.phase === "turn" && game.startAt != null && now != null && now < game.startAt) {
@@ -241,9 +264,9 @@ export default function WordScramblePage() {
       const team = playingTeam(game.turn);
       const answer = [...plain(word.word)];
       const typingNames = Object.entries(typing ?? {})
-        .filter(([seat, v]) => seat !== me && game.teams[seat] === team && v && t - v.at < TYPING_SHOWN_MS)
-        .map(([seat]) => seatName(names, seat));
-      const leftMs = game.phase === "result" ? 0 : Math.max(0, (game.deadline ?? 0) - t);
+        .filter(([seat, v]) => seat !== me && game.teams[seat] === team && v && at - v.at < TYPING_SHOWN_MS)
+        .map(([seat]) => nameOf(seat));
+      const leftMs = game.phase === "result" ? 0 : Math.max(0, (game.deadline ?? 0) - at);
       const phaseMs = game.phase === "stealOffer" ? STEAL_OFFER_MS : game.phase === "stealing" ? STEAL_MS : TURN_MS;
       const points = game.phase === "result" ? game.history.at(-1)?.points ?? 0 : worth(word.word, game.hints);
       const view: TurnView = {
@@ -260,22 +283,22 @@ export default function WordScramblePage() {
         hints: game.hints,
         worth: worth(word.word, game.hints),
         canHint: canHint(word.word, game.hints),
-        guesses: game.guesses.map((g) => ({ name: seatName(names, g.seat), text: g.text })),
+        guesses: game.guesses.map((g) => ({ name: nameOf(g.seat), text: g.text })),
         typing: typingNames,
-        found: game.found ? { name: seatName(names, game.found.seat), seconds: Math.round(game.found.ms / 1000), points } : undefined,
+        found: game.found ? { name: nameOf(game.found.seat), seconds: Math.round(game.found.ms / 1000), points } : undefined,
         seconds: Math.ceil(leftMs / 1000),
         fraction: leftMs / phaseMs,
         nextTeam: otherTeam(team),
-        nextSeconds: game.phase === "result" ? Math.min(RESULT_MS / 1000, Math.max(1, secondsLeft(game.deadline ?? 0, t))) : 0,
+        nextSeconds: game.phase === "result" ? Math.min(RESULT_MS / 1000, Math.max(1, secondsLeft(game.deadline ?? 0, at))) : 0,
         stealValue: stealValue(word.word, game.hints),
-        stealerName: game.stealer ? seatName(names, game.stealer) : undefined,
+        stealerName: game.stealer ? nameOf(game.stealer) : undefined,
         isStealer: me != null && game.stealer === me,
-        stolen: game.stolen ? { name: seatName(names, game.stolen.seat), points: game.stolen.points } : undefined,
-        pointsLine: `+${points} Team ${team} · ${answer.length} letters${game.hints ? ` − ${game.hints} hint${game.hints > 1 ? "s" : ""}` : ""}`,
+        stolen: game.stolen ? { name: nameOf(game.stolen.seat), points: game.stolen.points } : undefined,
+        pointsLine: t.pointsLine(points, team, answer.length, game.hints),
       };
       screen = <TurnScreen view={view} onGuess={onGuess} onHint={onHint} onTyping={onTyping} onSteal={onSteal} />;
     } else {
-      screen = <Message text="Loading the word…" />;
+      screen = <Message text={t.loadingWord} />;
     }
   }
 

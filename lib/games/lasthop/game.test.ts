@@ -10,6 +10,7 @@ import {
   flag,
   flagAt,
   type LastHopState,
+  matchId,
   matchWinner,
   move,
   moverOf,
@@ -294,5 +295,15 @@ describe("pawns", () => {
   it("survives Reset (newGame with the picks) and keeps no empty object", () => {
     expect(newGame("grid", { p1: "star" }).pawns).toEqual({ p1: "star" });
     expect("pawns" in newGame("grid", {})).toBe(false);
+  });
+});
+
+describe("matchId", () => {
+  it("is the same for the same finished state, safe as a report id, and differs as matches go differently", () => {
+    const a = playMatch(["p1", "p1", "p1"]);
+    expect(matchId(a)).toBe(matchId(JSON.parse(JSON.stringify(a))));
+    expect(matchId(a)).toMatch(/^[a-z0-9-]{1,40}$/);
+    expect(matchId(playMatch(["p2", "p2", "p2"]))).not.toBe(matchId(a));
+    expect(matchId({ ...a, clocks: { ...a.clocks, p1: a.clocks.p1 - 1 } })).not.toBe(matchId(a));
   });
 });

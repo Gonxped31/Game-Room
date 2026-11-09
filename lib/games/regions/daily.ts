@@ -1,5 +1,6 @@
 import { weekdayOf } from "@/lib/daily/day";
 import type { DailyGame } from "@/lib/daily/types";
+import type { Lang } from "@/lib/i18n/lang";
 import type { Puzzle } from "./board";
 import { GAME_TITLE, type Variant } from "./constants";
 import { generate } from "./generate";
@@ -19,16 +20,20 @@ export const SCHEDULE: { variant: Variant; size: number; minLevel: number }[] = 
 
 export const scheduleFor = (day: string) => SCHEDULE[weekdayOf(day)];
 
+/** The day's puzzle in a few words ("King · 7×7", "Roi · 7×7"): the page shows it in its own language. */
+export function describeDay(day: string, lang: Lang): string {
+  const { variant, size } = scheduleFor(day);
+  return `${VARIANT_NAME[lang][variant]} · ${size}×${size}`;
+}
+
 const MAX_MOVES = 5000;
 
 /** Rank & File's daily puzzle, for the shared daily system (lib/daily/). */
 export const regionsDaily: DailyGame<Puzzle> = {
   slug: "regions",
   title: GAME_TITLE,
-  describe(day) {
-    const { variant, size } = scheduleFor(day);
-    return `${VARIANT_NAME[variant]} · ${size}×${size}`;
-  },
+  // The server's label stays English; the page builds its own with describeDay.
+  describe: (day) => describeDay(day, "en"),
   generate(seed, day) {
     const { variant, size, minLevel } = scheduleFor(day);
     return generate(seed, { variant, size, minLevel }).puzzle;

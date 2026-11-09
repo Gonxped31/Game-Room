@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useText } from "@/lib/i18n/useLang";
 import ModeChoice, { type GameMode } from "./ModeChoice";
+import { HUB_TEXT } from "./text";
 
 /** Visible focus on the white panel: a 3px teal outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
 const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0F7983]";
@@ -24,6 +26,7 @@ interface StartPanelProps {
  * lobby. Styled like the Join and Matchmaking panels.
  */
 export default function StartPanel({ modes, gameTitle, headingId, inSheet, onStart }: StartPanelProps) {
+  const t = useText(HUB_TEXT);
   const [mode, setMode] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const canStart = mode !== null && !starting;
@@ -40,11 +43,11 @@ export default function StartPanel({ modes, gameTitle, headingId, inSheet, onSta
     >
       {inSheet ? null : (
         <h2 id={headingId} className="m-0 font-[family-name:var(--font-fredoka)] text-[17px] font-bold">
-          Start a {gameTitle} room
+          {t.startTitle(gameTitle)}
         </h2>
       )}
       <p className="m-0 text-sm font-medium" style={{ color: "#444444" }}>
-        Pick a mode. You can still change it in the room, before you start.
+        {t.start.intro}
       </p>
       <ModeChoice modes={modes} value={mode} onChange={setMode} disabled={starting} />
       <button
@@ -57,7 +60,7 @@ export default function StartPanel({ modes, gameTitle, headingId, inSheet, onSta
           cursor: starting ? "progress" : undefined,
         }}
       >
-        <span aria-live="polite">{starting ? "Starting…" : "Start room"}</span>
+        <span aria-live="polite">{starting ? t.start.starting : t.start.submit}</span>
       </button>
     </form>
   );

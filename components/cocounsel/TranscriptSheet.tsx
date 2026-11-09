@@ -2,17 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { COLOR } from "@/lib/games/cocounsel/theme";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface TranscriptSheetProps {
   text: string;
   role: "investigator" | "defendant";
+  /** Defaults to "What you know" in the page's language. */
   label?: string;
 }
 
 const LINE_HEIGHT = 26;
 
 /** The "What you know" sheet: ruled lines, generated line numbers, Courier Prime typed look. */
-export default function TranscriptSheet({ text, role, label = "What you know" }: TranscriptSheetProps) {
+export default function TranscriptSheet({ text, role, label }: TranscriptSheetProps) {
+  const t = useText(CC_TEXT);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [lineCount, setLineCount] = useState(1);
 
@@ -33,7 +37,7 @@ export default function TranscriptSheet({ text, role, label = "What you know" }:
   return (
     <div className="relative mt-4 rounded-[6px] shadow-[0_2px_6px_rgba(0,0,0,.12)]" style={{ backgroundColor: COLOR.white }}>
       <div className="absolute -top-[22px] left-3 rounded-t-[4px] px-3 py-1.5 text-xs font-bold text-white" style={{ backgroundColor: tabColor }}>
-        {label}
+        {label ?? t.whatYouKnow}
       </div>
       {/* items-start, not the flex default (stretch): the paragraph's measured
           offsetHeight below must be its own intrinsic content height, never

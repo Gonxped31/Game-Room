@@ -1,6 +1,7 @@
 "use client";
 
 import type { Team } from "@/lib/games/wordscramble/teams";
+import { useText } from "@/lib/i18n/useLang";
 import {
   BulbIcon,
   CheckIcon,
@@ -21,6 +22,7 @@ import {
 import { SCREEN } from "./Screens";
 import TileBoard from "./TileBoard";
 import RulesButton from "./Rules";
+import { COPY } from "./text";
 
 /** Everything a turn shows, derived by the page from the game state and the clock. */
 export interface TurnView {
@@ -70,6 +72,7 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
   onTyping: () => void;
   onSteal: () => void;
 }) {
+  const t = useText(COPY);
   const { team, playing, phase } = view;
   const thief = view.nextTeam; // the team that may steal
   const done = phase === "result";
@@ -102,19 +105,19 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
   const board = (size: number) => (
     <div className="flex flex-col items-center gap-5">
       {!done ? (
-        <div role="img" aria-label={`Scrambled letters ${view.scrambled.join(" ")}`} className={`flex justify-center ${size < 70 ? "gap-1.5" : "gap-2"}`}>
+        <div role="img" aria-label={t.scrambledAria(view.scrambled)} className={`flex justify-center ${size < 70 ? "gap-1.5" : "gap-2"}`}>
           {view.scrambled.map((l, i) => (
             <Tile key={i} letter={l} look={used.has(i) ? "used" : "wood"} size={size} tilt={((i * 37) % 11) - 5} />
           ))}
         </div>
       ) : null}
-      <div role="img" aria-label={done ? `The word was ${view.word}` : `Answer: ${placed.join(" ")}${placed.length ? " and " : ""}${view.answer.length - view.hints} blanks`} className={`flex justify-center ${size < 70 ? "gap-1.5" : "gap-2"}`}>
+      <div role="img" aria-label={done ? t.wordWas(view.word) : t.answerAria(placed, view.answer.length - view.hints)} className={`flex justify-center ${size < 70 ? "gap-1.5" : "gap-2"}`}>
         {tiles(size)}
       </div>
     </div>
   );
 
-  const stakes = `+${view.stealValue} if right, −${view.stealValue} if wrong`;
+  const stakes = t.stakes(view.stealValue);
   // The result says what happened; a "Your team's turn" banner above it would only confuse.
   let banner = null;
   if (done) {
@@ -123,29 +126,29 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
     banner = canClaim ? (
       <div role="status" className="flex flex-col gap-3 rounded-[18px] border-[3px] border-[var(--ink)] px-4 py-3 min-[600px]:flex-row min-[600px]:items-center" style={{ background: teamColor(thief), color: teamText(thief) }}>
         <div className="flex-1">
-          <p className={`${DISPLAY} m-0 text-[24px] min-[900px]:text-[30px]`}>Time&apos;s up! Steal it?</p>
-          <p className={`${TEXT} m-0 text-[15px] font-extrabold`}>One try, 10 seconds: {stakes}</p>
+          <p className={`${DISPLAY} m-0 text-[24px] min-[900px]:text-[30px]`}>{t.stealIt}</p>
+          <p className={`${TEXT} m-0 text-[15px] font-extrabold`}>{t.oneTry(stakes)}</p>
         </div>
         <ChunkyButton white className="min-h-14 px-6 text-[20px]" onClick={onSteal}>
-          Steal!
+          {t.stealButton}
         </ChunkyButton>
       </div>
     ) : (
       <div role="status" className="flex items-center gap-2.5 rounded-[18px] border-[3px] bg-white px-4 py-2.5" style={{ borderColor: teamColor(thief) }}>
-        <span className={`${DISPLAY} flex-1 text-[20px] min-[900px]:text-[26px]`}>Time&apos;s up · Team {thief} can steal…</span>
+        <span className={`${DISPLAY} flex-1 text-[20px] min-[900px]:text-[26px]`}>{t.canSteal(thief)}</span>
       </div>
     );
   } else if (phase === "stealing") {
     banner = (
       <div role="status" className="flex items-center justify-between gap-3 rounded-[18px] border-[3px] border-[var(--ink)] px-4 py-2.5" style={{ background: teamColor(thief), color: teamText(thief) }}>
-        <span className={`${DISPLAY} text-[22px] min-[900px]:text-[28px]`}>{view.isStealer ? "You're stealing!" : `${view.stealerName} is stealing…`}</span>
+        <span className={`${DISPLAY} text-[22px] min-[900px]:text-[28px]`}>{view.isStealer ? t.youreStealing : t.isStealing(view.stealerName ?? "")}</span>
         <span className={`${TEXT} text-[14px] font-extrabold`}>{stakes}</span>
       </div>
     );
   } else if (playing) {
     banner = (
       <div className="flex items-center justify-between gap-3 rounded-[18px] border-[3px] border-[var(--ink)] px-4 py-2.5" style={{ background: teamColor(team), color: teamText(team) }}>
-        <span className={`${DISPLAY} text-[22px] min-[900px]:text-[28px]`}>Your team&apos;s turn</span>
+        <span className={`${DISPLAY} text-[22px] min-[900px]:text-[28px]`}>{t.yourTeamsTurn}</span>
         <span className={`${TEXT} truncate text-[14px] font-extrabold`}>{view.teamNames.join(" · ")}</span>
       </div>
     );
@@ -155,8 +158,8 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
         <span style={{ color: teamColor(team) }}>
           <EyeIcon />
         </span>
-        <span className={`${DISPLAY} flex-1 text-[20px] min-[900px]:text-[26px]`}>Team {team} is playing</span>
-        {view.myTeam ? <span className={`${TEXT} text-[14px] font-extrabold text-[var(--muted)]`}>{view.myTeam === view.nextTeam ? "You're next" : ""}</span> : null}
+        <span className={`${DISPLAY} flex-1 text-[20px] min-[900px]:text-[26px]`}>{t.teamPlaying(team)}</span>
+        {view.myTeam ? <span className={`${TEXT} text-[14px] font-extrabold text-[var(--muted)]`}>{view.myTeam === view.nextTeam ? t.youreNext : ""}</span> : null}
       </div>
     );
   }
@@ -165,9 +168,9 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
     phase === "turn" ? (
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className={`${DISPLAY} m-0 text-[24px] min-[900px]:text-[26px]`}>Worth {view.worth} points</p>
+          <p className={`${DISPLAY} m-0 text-[24px] min-[900px]:text-[26px]`}>{t.worthPoints(view.worth)}</p>
           <p className={`${TEXT} m-0 text-[14px] font-bold text-[var(--muted)]`}>
-            {view.answer.length} letters · {view.hints} hint{view.hints === 1 ? "" : "s"} used
+            {t.lettersHints(view.answer.length, view.hints)}
           </p>
         </div>
         {playing ? (
@@ -177,29 +180,29 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
             disabled={!view.canHint}
             className={`${TEXT} ${FOCUS} flex h-12 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-[var(--ink)] bg-white px-3.5 text-[16px] font-extrabold shadow-[0_4px_0_var(--ink)] active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none`}
           >
-            <BulbIcon /> Hint <span className="text-[var(--wrong)]">−1</span>
+            <BulbIcon /> {t.hint} <span className="text-[var(--wrong)]">−1</span>
           </button>
         ) : null}
       </div>
     ) : (
-      <p className={`${DISPLAY} m-0 text-[24px] min-[900px]:text-[26px]`}>Steal for {view.stealValue} points</p>
+      <p className={`${DISPLAY} m-0 text-[24px] min-[900px]:text-[26px]`}>{t.stealFor(view.stealValue)}</p>
     );
 
   const locked = (
     <p className={`${TEXT} m-0 flex min-h-14 items-center justify-center gap-2 rounded-2xl border-[3px] border-dashed border-[var(--slot)] px-3 text-center text-[15px] font-bold text-[var(--muted)]`}>
-      <LockIcon /> {view.myTeam ? `You can guess on Team ${view.myTeam}'s turn` : "You're watching. Join a team at the next rematch."}
+      <LockIcon /> {view.myTeam ? t.guessOnTurn(view.myTeam) : t.watchingLocked}
     </p>
   );
 
   const feed = (
     <section className="flex flex-col gap-2 rounded-[20px] border-2 border-[var(--line)] bg-white p-3.5">
-      <h2 className={LABEL}>{playing ? "Team guesses" : `Team ${team}'s guesses`}</h2>
+      <h2 className={LABEL}>{playing ? t.teamGuesses : t.teamsGuesses(team)}</h2>
       <ul aria-live="polite" className="m-0 flex list-none flex-col gap-1.5 p-0">
         {view.guesses.map((g, i) => (
           <li key={i} className={`${TEXT} flex items-center gap-2 text-[15px] font-bold`}>
             <span className="w-16 shrink-0 truncate text-[var(--muted)]">{g.name}</span>
             <span className={`${DISPLAY} flex-1 truncate text-[18px] tracking-[0.08em] line-through decoration-[var(--wrong)] decoration-2`}>{g.text}</span>
-            <span className="text-[13px] text-[var(--wrong)]">not it</span>
+            <span className="text-[13px] text-[var(--wrong)]">{t.notIt}</span>
           </li>
         ))}
         {view.found ? (
@@ -209,23 +212,20 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
             <span className={`${DISPLAY} flex-1 text-[18px] tracking-[0.08em]`}>{view.answer.join("")}</span>
           </li>
         ) : null}
-        {phase === "turn" && view.typing.length ? <li className={`${TEXT} text-[14px] italic text-[var(--muted)]`}>{view.typing.join(", ")} {view.typing.length === 1 ? "is" : "are"} arranging…</li> : null}
-        {!view.guesses.length && !view.found && !(phase === "turn" && view.typing.length) ? <li className={`${TEXT} text-[14px] text-[var(--muted)]`}>No guesses yet.</li> : null}
+        {phase === "turn" && view.typing.length ? <li className={`${TEXT} text-[14px] italic text-[var(--muted)]`}>{t.arranging(view.typing)}</li> : null}
+        {!view.guesses.length && !view.found && !(phase === "turn" && view.typing.length) ? <li className={`${TEXT} text-[14px] text-[var(--muted)]`}>{t.noGuesses}</li> : null}
       </ul>
-      <p className={`${TEXT} m-0 hidden text-[13px] text-[var(--muted)] min-[900px]:block`}>Wrong guesses cost nothing. Keep trying until the timer runs out.</p>
+      <p className={`${TEXT} m-0 hidden text-[13px] text-[var(--muted)] min-[900px]:block`}>{t.wrongCostsNothing}</p>
     </section>
   );
 
   let result = null;
   if (done) {
     const s = view.stolen;
-    const title = right ? "Got it!" : s ? (s.points > 0 ? "Stolen!" : "Steal missed") : "Time's up";
-    const line = right
-      ? `Found by ${view.found!.name} in ${view.found!.seconds} s`
-      : s
-        ? `${s.name} ${s.points > 0 ? "stole" : "missed"} ${view.word.toUpperCase()}`
-        : `The word was ${view.word.toUpperCase()}`;
-    const points = right ? view.pointsLine : s ? `${s.points > 0 ? "+" : "−"}${Math.abs(s.points)} Team ${thief} · steal` : `No points for Team ${team}`;
+    const title = right ? t.gotIt : s ? (s.points > 0 ? t.stolen : t.stealMissed) : t.timesUp;
+    const word = view.word.toUpperCase();
+    const line = right ? t.foundBy(view.found!.name, view.found!.seconds) : s ? (s.points > 0 ? t.stole(s.name, word) : t.missed(s.name, word)) : t.wordWas(word);
+    const points = right ? view.pointsLine : s ? t.stealPoints(`${s.points > 0 ? "+" : "−"}${Math.abs(s.points)}`, thief) : t.noPoints(team);
     result = (
       <div role="status" className="flex flex-col items-center gap-2 text-center">
         <p className={`${DISPLAY} m-0 text-[34px] min-[900px]:text-[48px]`} style={{ color: s && s.points < 0 ? "var(--wrong)" : undefined }}>
@@ -234,7 +234,7 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
         <p className={`${TEXT} m-0 text-[16px] font-bold text-[var(--muted)]`}>{line}</p>
         <p className={`${TEXT} m-0 rounded-2xl border-[3px] border-[var(--ink)] bg-white px-4 py-2 text-[17px] font-extrabold`}>{points}</p>
         <p className={`${DISPLAY} m-0 rounded-full px-4 py-2 text-[18px]`} style={{ background: teamColor(view.nextTeam), color: teamText(view.nextTeam) }}>
-          Team {view.nextTeam} plays next
+          {t.playsNext(view.nextTeam)}
         </p>
       </div>
     );
@@ -248,7 +248,7 @@ export default function TurnScreen({ view, onGuess, onHint, onTyping, onSteal }:
           <ScorePill team="A" score={view.scores.A} glow={(right && team === "A") || (stolenRight && thief === "A")} />
           <span className={`${TEXT} flex-1 text-center text-[14px] font-extrabold text-[var(--muted)]`}>{view.turnLabel}</span>
           <ScorePill team="B" score={view.scores.B} glow={(right && team === "B") || (stolenRight && thief === "B")} />
-          {!done ? <TimerRing seconds={view.seconds} fraction={view.fraction} team={clockTeam} size={46} label={`${view.seconds} seconds left`} /> : null}
+          {!done ? <TimerRing seconds={view.seconds} fraction={view.fraction} team={clockTeam} size={46} label={t.secondsLeft(view.seconds)} /> : null}
           <RulesButton />
         </header>
         {banner}

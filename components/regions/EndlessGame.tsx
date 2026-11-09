@@ -5,9 +5,12 @@ import { MAX_SIZE, MIN_SIZE, VARIANTS, type Variant } from "@/lib/games/regions/
 import { generate, hashSeed } from "@/lib/games/regions/generate";
 import { clearAll, newPlay, PIECE, replay, setMark, status, undo, type Mark, type Play } from "@/lib/games/regions/play";
 import { GLYPH, VARIANT_NAME, VARIANT_RULE } from "@/lib/games/regions/theme";
+import { useLang } from "@/lib/i18n/useLang";
+import { useReportFinished } from "@/lib/tracking/useReportFinished";
 import Board from "./Board";
 import { AutoMarkButton, formatTime, Segmented, Toolbar, useAutoMark } from "./Controls";
 import { AUTO_MARK_KEY, ENDLESS_GAME_KEY, isPuzzle, readJson, removeKey, writeJson, type SavedEndlessGame } from "./storage";
+import { TEXT } from "./text";
 
 const SIZES = Array.from({ length: MAX_SIZE - MIN_SIZE + 1 }, (_, i) => MIN_SIZE + i);
 const VARIANT_ICON: Record<Variant, string> = { rook: GLYPH.rook, king: GLYPH.king, knight: GLYPH.knight, queen: GLYPH.queen, mix: "✦" };
@@ -48,14 +51,21 @@ function save(saved: Saved) {
  * timed from Start, with your best time per piece and size kept on this
  * device. Nothing is generated before Start (the user's call, 2026-10-26);
  * New puzzle and Next puzzle keep the piece and size, Change goes back to the
- * pickers.
+ * pickers. `online` (the site, not the offline export) reports each solve as
+ * a finished game.
  */
-export default function EndlessGame() {
+export default function EndlessGame({ online = false }: { online?: boolean }) {
+  const lang = useLang();
+  const t = TEXT[lang];
+  const variantName = VARIANT_NAME[lang];
+  const variantRule = VARIANT_RULE[lang];
   const [saved, setSaved] = useState<Saved | null>(null);
   /** False on the setup screen; true from Start until Change. */
   const [started, setStarted] = useState(false);
   const [play, setPlay] = useState<Play | null>(null);
   const [startedAt, setStartedAt] = useState(0);
+  /** When this puzzle was dealt (wall clock): with its fingerprint, the finished game's id. */
+  const [dealtAt, setDealtAt] = useState(0);
   const [now, setNow] = useState(0);
   // Auto ✕'s lock belongs to the puzzle it was used on: a new puzzle (New, Next, Change then Start) starts unlocked.
   const puzzle = play?.puzzle ?? null;
@@ -96,6 +106,7 @@ export default function EndlessGame() {
         const start = performance.now();
         commit(newPlay(puzzle));
         setStartedAt(start);
+        setDealtAt(Date.now());
         setNow(start);
       }, 30);
     },
@@ -123,11 +134,14 @@ export default function EndlessGame() {
         return;
       }
       // The clock picks up where it was; time with the page closed doesn't count.
-      const start = performance.now() - Math.max(game!.elapsed, resumed.moves.at(-1)?.t ?? 0);
+      const spent = Math.max(game!.elapsed, resumed.moves.at(-1)?.t ?? 0);
+      const start = performance.now() - spent;
+      const dealt = game!.dealtAt;
       setSaved({ ...prefs, variant: resumed.puzzle.variant, size: resumed.puzzle.size });
       setStarted(true);
       commit(resumed);
       setStartedAt(start);
+      setDealtAt(typeof dealt === "number" && Number.isInteger(dealt) && dealt > 0 ? dealt : Date.now() - spent);
       setNow(performance.now());
     }, 0);
     return () => clearTimeout(timer);
@@ -142,6 +156,8 @@ export default function EndlessGame() {
   };
 
   const solved = play ? status(play).solved : false;
+  // A solve is a finished solo game (lib/tracking/finished.ts); Endless has no losing end, and Change abandons.
+  useReportFinished(online && solved && puzzleId && dealtAt ? { slug: "regions", mode: "solo", id: `${puzzleId}-${dealtAt}`, players: 1, lang } : null);
   useEffect(() => {
     if (!play || solved) return;
     const timer = setInterval(() => setNow(performance.now()), 250);
@@ -160,6 +176,7 @@ export default function EndlessGame() {
         puzzle: play.puzzle,
         moves: play.moves,
         elapsed: Math.max(play.moves.at(-1)?.t ?? 0, Math.round(performance.now() - startedAt)),
+        dealtAt,
       };
       writeJson(ENDLESS_GAME_KEY, game);
     };
@@ -170,7 +187,7 @@ export default function EndlessGame() {
       clearInterval(timer);
       window.removeEventListener("pagehide", persist);
     };
-  }, [play, solved, startedAt]);
+  }, [play, solved, startedAt, dealtAt]);
 
   const elapsed = (play && solved ? play.moves[play.moves.length - 1].t : now - startedAt) || 0;
   const bestKey = play ? `${play.puzzle.variant}-${play.puzzle.size}` : "";
@@ -179,26 +196,26 @@ export default function EndlessGame() {
   const onSet = (cell: number, to: Mark) => {
     const current = latest.current;
     if (!current || status(current).solved) return;
-    const t = Math.round(performance.now() - startedAt);
-    const next = setMark(current, cell, to, t);
+    const time = Math.round(performance.now() - startedAt);
+    const next = setMark(current, cell, to, time);
     commit(next);
     // A solve's time is its last move's; keep it if it beats this piece and size's best.
-    if (status(next).solved && saved && !(saved.best[bestKey] <= t)) update({ best: { ...saved.best, [bestKey]: t } });
+    if (status(next).solved && saved && !(saved.best[bestKey] <= time)) update({ best: { ...saved.best, [bestKey]: time } });
   };
 
-  if (!saved) return <p className="cg-status">Loading…</p>;
+  if (!saved) return <p className="cg-status">{t.loading}</p>;
 
   if (!started) {
     const setupBest = saved.best[`${saved.variant}-${saved.size}`];
     return (
       <section className="cg-daily-card" aria-labelledby="endless-title">
         <h2 id="endless-title" className="cg-daily-title">
-          Endless
+          {t.endless}
         </h2>
-        <p className="cg-daily-note">Pick a piece and a grid size, then start. The clock starts with the puzzle.</p>
+        <p className="cg-daily-note">{t.endlessIntro}</p>
         <div className="cg-settings">
           <Segmented
-            label="Piece"
+            label={t.piece}
             options={VARIANTS}
             value={saved.variant}
             onChange={(variant) => update({ variant })}
@@ -207,29 +224,27 @@ export default function EndlessGame() {
                 <span aria-hidden="true" className="cg-seg-icon">
                   {VARIANT_ICON[variant]}
                 </span>
-                {VARIANT_NAME[variant]}
+                {variantName[variant]}
               </>
             )}
           />
           <Segmented
-            label="Grid size"
+            label={t.gridSize}
             options={SIZES}
             value={saved.size}
             onChange={(size) => update({ size })}
             render={(size) => (
               <>
                 {size}
-                <span className="cg-sr">{` by ${size}`}</span>
+                <span className="cg-sr">{t.bySize(size)}</span>
               </>
             )}
           />
         </div>
-        <p className="cg-rule">{VARIANT_RULE[saved.variant]}</p>
-        <p className="cg-daily-note">
-          {setupBest !== undefined ? `Your best at ${VARIANT_NAME[saved.variant]} ${saved.size}×${saved.size}: ${formatTime(setupBest)}` : "No best time yet at this piece and size."}
-        </p>
+        <p className="cg-rule">{variantRule[saved.variant]}</p>
+        <p className="cg-daily-note">{setupBest !== undefined ? t.yourBest(variantName[saved.variant], saved.size, formatTime(setupBest)) : t.noBest}</p>
         <button type="button" className="cg-button cg-button-primary cg-button-wide" onClick={() => deal(saved.variant, saved.size)}>
-          Start
+          {t.start}
         </button>
       </section>
     );
@@ -242,27 +257,25 @@ export default function EndlessGame() {
           <span aria-hidden="true" className="cg-seg-icon">
             {VARIANT_ICON[saved.variant]}
           </span>{" "}
-          {VARIANT_NAME[saved.variant]} · {saved.size}×{saved.size}
+          {variantName[saved.variant]} · {saved.size}×{saved.size}
         </p>
         <button type="button" className="cg-button" onClick={change}>
-          Change
+          {t.change}
         </button>
       </div>
 
-      <p className="cg-rule">{VARIANT_RULE[saved.variant]}</p>
+      <p className="cg-rule">{variantRule[saved.variant]}</p>
 
       {/* Once solved, the result takes the timer row's place, above the board, where a phone shows it. */}
       <div aria-live="polite">
         {solved ? (
           <div className="cg-solved">
             <div>
-              <p className="cg-solved-title">Solved in {formatTime(elapsed)}</p>
-              <p className="cg-solved-note">
-                {best !== undefined && best === elapsed ? "A new best for this piece and size." : best !== undefined ? `Best ${formatTime(best)}` : null}
-              </p>
+              <p className="cg-solved-title">{t.solvedIn(formatTime(elapsed))}</p>
+              <p className="cg-solved-note">{best !== undefined && best === elapsed ? t.newBest : best !== undefined ? t.bestIs(formatTime(best)) : null}</p>
             </div>
             <button type="button" className="cg-button cg-button-primary" onClick={() => deal(saved.variant, saved.size)}>
-              Next puzzle
+              {t.nextPuzzle}
             </button>
           </div>
         ) : (
@@ -281,14 +294,14 @@ export default function EndlessGame() {
         <Board play={play} hint={auto.hint} locked={solved} onSet={onSet} />
       ) : (
         <div className="cg-board cg-board-empty" style={{ "--n": saved.size } as CSSProperties}>
-          <p className="cg-status">Shuffling…</p>
+          <p className="cg-status">{t.shuffling}</p>
         </div>
       )}
 
       <div className="cg-footer">
         <AutoMarkButton auto={auto} usable={!!play && !solved && play.marks.includes(PIECE)} />
         <button type="button" className="cg-button" onClick={() => deal(saved.variant, saved.size)}>
-          New puzzle
+          {t.newPuzzle}
         </button>
       </div>
     </>

@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
 import { MATCH_GAMES, MATCH_MODES } from "@/lib/games/matchGames";
-import { APP_TITLE, type GameEntry, gameBySlug, gamePath, roomHref } from "@/lib/games/registry";
+import { APP_TITLE, type GameEntry, gameBySlug, gamePath, gameText, roomHref } from "@/lib/games/registry";
+import { useLang, useText } from "@/lib/i18n/useLang";
+import LangSwitch from "@/components/LangSwitch";
 import GameCard, { SoloCard } from "./GameCard";
 import HubOverlay from "./HubOverlay";
 import JoinPanel from "./JoinPanel";
 import MatchPanel from "./MatchPanel";
 import StartPanel from "./StartPanel";
+import { HUB_TEXT } from "./text";
 import YourRoomsList from "./YourRoomsList";
 import { useIsDesktop } from "./useIsDesktop";
 import { type SavedRoom, useSavedRooms } from "./useSavedRooms";
@@ -99,17 +102,16 @@ function CountBadge({ count }: { count: number }) {
   );
 }
 
-const gamesLabel = (n: number) => `${n} game${n === 1 ? "" : "s"}`;
-
 /** "Continue": a pill that opens the most recently active room. */
 function ContinueChip({ room }: { room: SavedRoom }) {
+  const lang = useLang();
   const game = gameBySlug(room.gameSlug);
   return (
     <a
-      href={roomHref(room.gameSlug, room.code)}
+      href={roomHref(room.gameSlug, room.code, lang)}
       className={`inline-flex h-11 max-w-full items-center gap-2.5 self-start rounded-full bg-black/20 pr-3 pl-3.5 text-[15px] font-medium text-white no-underline min-[760px]:text-base ${FOCUS_RING_ON_DARK}`}
     >
-      <span className="shrink-0 font-bold">Continue</span>
+      <span className="shrink-0 font-bold">{HUB_TEXT[lang].continue}</span>
       <span
         aria-hidden="true"
         className="h-2.5 w-2.5 shrink-0 rounded-[2px] outline-[1.5px] outline-white [outline-style:solid]"
@@ -150,6 +152,7 @@ function Folder({
   description: string;
   children: ReactNode;
 }) {
+  const t = useText(HUB_TEXT);
   return (
     <section aria-labelledby={id} className="relative mt-[50px] min-[760px]:mt-[62px]">
       <div
@@ -168,7 +171,7 @@ function Folder({
           <span className="hidden min-[760px]:inline">{title}</span>
         </h2>
         <span className="flex h-6 shrink-0 items-center rounded-full bg-white/16 px-2.5 text-xs font-semibold whitespace-nowrap text-white min-[760px]:h-7 min-[760px]:px-3 min-[760px]:text-sm">
-          {gamesLabel(count)}
+          {t.games(count)}
         </span>
       </div>
       <div
@@ -184,23 +187,23 @@ function Folder({
 
 /** "Play from anywhere": globe circle, heading, a rule filling the row, then the line under it. */
 function AnywhereHeading() {
+  const t = useText(HUB_TEXT).anywhere;
   return (
     <div>
       <div className="flex items-center gap-2.5">
         <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-white/70 text-white min-[760px]:h-[34px] min-[760px]:w-[34px]">
           <GlobeIcon className="h-4 w-4 min-[760px]:h-5 min-[760px]:w-5" />
         </span>
-        <h3 className="m-0 text-[18px] font-bold whitespace-nowrap text-white min-[760px]:text-[22px]">Play from anywhere</h3>
+        <h3 className="m-0 text-[18px] font-bold whitespace-nowrap text-white min-[760px]:text-[22px]">{t.title}</h3>
         <span aria-hidden="true" className="h-0.5 flex-1 bg-white/22" />
       </div>
       <p className="m-0 mt-1 pl-[38px] text-sm font-medium text-white/85 min-[760px]:pl-11 min-[760px]:text-base">
-        <span className="hidden min-[760px]:inline">The game shows everyone what&apos;s happening. </span>No need to talk.
+        <span className="hidden min-[760px]:inline">{t.lead}</span>
+        {t.tail}
       </p>
     </div>
   );
 }
-
-const TALK_STEPS = ["Start a call, or sit side by side.", "Each of you opens the room on your own phone.", "Talk it through. The game won't tell you everything."];
 
 /**
  * "Talk it out": the bright yellow block inside the Social folder, so the need
@@ -214,6 +217,7 @@ const TALK_STEPS = ["Start a call, or sit side by side.", "Each of you opens the
  * Mobile: stacked, without the steps.
  */
 function TalkPanel({ children }: { children: ReactNode }) {
+  const t = useText(HUB_TEXT).talk;
   return (
     <div className="@container mt-1.5 min-[760px]:mt-2">
       <div
@@ -226,16 +230,16 @@ function TalkPanel({ children }: { children: ReactNode }) {
               <SpeechIcon className="h-4 w-4 min-[760px]:h-5 min-[760px]:w-5" />
             </span>
             <h3 id={SECTION_IDS.talk} className="m-0 scroll-mt-[70px] text-[20px] font-bold text-black min-[760px]:text-[26px]">
-              Talk it out
+              {t.title}
             </h3>
           </div>
-          <p className="m-0 text-[15px] font-medium leading-[1.35] text-[#1A1A1A] min-[760px]:hidden">You&apos;ll need to talk to win. Get on a call or sit together.</p>
+          <p className="m-0 text-[15px] font-medium leading-[1.35] text-[#1A1A1A] min-[760px]:hidden">{t.mobile}</p>
           <span className="inline-flex h-[30px] items-center gap-1.5 self-start rounded-full bg-black px-3 text-[13px] font-semibold text-white @min-[1300px]:self-center">
             <PhoneIcon />
-            Call or same room
+            {t.tag}
           </span>
           <ol className="m-0 hidden list-none flex-col gap-2.5 p-0 min-[760px]:flex @min-[1300px]:basis-full @min-[1300px]:flex-row @min-[1300px]:gap-8">
-            {TALK_STEPS.map((step, i) => (
+            {t.steps.map((step, i) => (
               <li key={step} className="flex items-start gap-2.5 text-base font-medium leading-[1.35] @min-[1300px]:flex-1">
                 <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-[13px] font-bold" style={{ color: TALK }}>
                   {i + 1}
@@ -276,7 +280,8 @@ function CardGrid({ children }: { children: ReactNode }) {
 
 /**
  * The Game Room hub (references/game-room/game-room-ui-spec.md, v2 sections):
- * - Header: title, subtitle, and a Continue chip for the latest room; on
+ * - Header: title (with the EN/FR switch beside it), subtitle, and a
+ *   Continue chip for the latest room; on
  *   desktop the Your rooms button sits top right. On mobile, jump buttons
  *   under it.
  * - The Social folder: "Play from anywhere" cards, then the yellow "Talk it
@@ -286,6 +291,8 @@ function CardGrid({ children }: { children: ReactNode }) {
  * button on desktop, a bottom sheet on mobile. Only one is open at a time.
  */
 export default function Hub({ games }: { games: GameEntry[] }) {
+  const lang = useLang();
+  const t = HUB_TEXT[lang];
   const desktop = useIsDesktop();
   const { rooms, loadedAt } = useSavedRooms();
   const [open, setOpen] = useState<Open>(null);
@@ -299,10 +306,10 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   // from an effect, per this repo's react-hooks/immutability lint rule.
   useEffect(() => {
     if (!startingSlug) return;
-    const url = new URL(gamePath(startingSlug), window.location.origin);
+    const url = new URL(gamePath(startingSlug, lang), window.location.origin);
     if (startingMode) url.searchParams.set("mode", startingMode);
     window.location.href = url.href;
-  }, [startingSlug, startingMode]);
+  }, [startingSlug, startingMode, lang]);
 
   const close = useCallback(() => setOpen(null), []);
   // A game with modes asks which one first.
@@ -317,14 +324,15 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   const toggleRooms = (anchor: HTMLElement) => setOpen((current) => (current?.kind === "rooms" ? null : { kind: "rooms", anchor }));
 
   const latest = rooms[0];
-  const roomsLabel = `Your rooms, ${rooms.length} saved`;
+  const roomsLabel = t.roomsLabel(rooms.length);
   const joinGame = open?.kind === "join" ? gameBySlug(open.slug) : undefined;
   const startGame = open?.kind === "start" ? gameBySlug(open.slug) : undefined;
   const matchGame = open?.kind === "matchmaking" ? gameBySlug(open.slug) : undefined;
   const matchConfig = open?.kind === "matchmaking" ? MATCH_GAMES[open.slug] : undefined;
+  const startModes = startGame ? gameText(startGame, lang).modes : undefined;
   const matchModes =
     open?.kind === "matchmaking" && matchGame?.modes
-      ? matchGame.modes.flatMap((mode) => {
+      ? (gameText(matchGame, lang).modes ?? []).flatMap((mode) => {
           const config = MATCH_MODES[open.slug]?.[mode.key];
           return config ? [{ ...mode, game: config }] : [];
         })
@@ -353,12 +361,14 @@ export default function Hub({ games }: { games: GameEntry[] }) {
     <main className="flex flex-col gap-[22px] px-4 pt-[22px] pb-[110px] font-[family-name:var(--font-fredoka)] min-[760px]:gap-12 min-[760px]:px-14 min-[760px]:pt-10 min-[760px]:pb-9">
       <header className="flex items-start justify-between gap-6">
         <div className="flex min-w-0 flex-col gap-4">
-          <h1 className="m-0 -rotate-2 self-start rounded-[9px] bg-white px-3.5 py-2 text-[26px] font-bold leading-none text-black shadow-[0_3px_8px_rgba(0,0,0,.3)] min-[760px]:px-4 min-[760px]:py-2.5 min-[760px]:text-[30px]">
-            {APP_TITLE}
-          </h1>
-          <p className="m-0 max-w-[560px] text-[17px] font-medium leading-[1.35] text-white min-[760px]:text-[19px]">
-            Pick a game. You&apos;ll get a private room and a link to share.
-          </p>
+          {/* The brand, with the EN/FR switch beside it (docs/i18n.md): the same size in both languages, so no shift. */}
+          <div className="flex items-center gap-3">
+            <h1 className="m-0 -rotate-2 rounded-[9px] bg-white px-3.5 py-2 text-[26px] font-bold leading-none text-black shadow-[0_3px_8px_rgba(0,0,0,.3)] min-[760px]:px-4 min-[760px]:py-2.5 min-[760px]:text-[30px]">
+              {APP_TITLE}
+            </h1>
+            <LangSwitch className={`h-11 w-12 shrink-0 cursor-pointer rounded-full border-2 border-white/80 bg-black/20 text-[15px] font-bold leading-none tracking-[0.04em] text-white transition-transform duration-[60ms] hover:bg-black/30 active:translate-y-0.5 motion-reduce:transition-none ${FOCUS_RING_ON_DARK}`} />
+          </div>
+          <p className="m-0 max-w-[560px] text-[17px] font-medium leading-[1.35] text-white min-[760px]:text-[19px]">{t.subtitle}</p>
           {latest ? <ContinueChip room={latest} /> : null}
         </div>
         {rooms.length ? (
@@ -371,7 +381,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
             className={`hidden h-11 shrink-0 cursor-pointer items-center gap-2.5 rounded-xl border-2 border-black bg-white px-3.5 text-base font-bold text-black shadow-[0_3px_0_#000] transition-transform duration-[60ms] active:translate-y-[3px] active:shadow-none motion-reduce:transition-none min-[760px]:flex ${FOCUS_RING_ON_DARK}`}
           >
             <ListIcon />
-            Your rooms
+            {t.yourRooms}
             <CountBadge count={rooms.length} />
           </button>
         ) : null}
@@ -384,10 +394,10 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         color={SOCIAL}
         accent={SOCIAL_ACCENT}
         icon={(className) => <PeopleIcon className={className} />}
-        title="Social games"
-        shortTitle="Social"
+        title={t.social.title}
+        shortTitle={t.social.short}
         count={anywhere.length + talk.length}
-        description="Two or more players, each on their own device."
+        description={t.social.description}
       >
         <AnywhereHeading />
         <CardGrid>{anywhere.map(card)}</CardGrid>
@@ -400,10 +410,10 @@ export default function Hub({ games }: { games: GameEntry[] }) {
           color={SOLO}
           accent={SOLO_ACCENT}
           icon={(className) => <PersonIcon className={className} />}
-          title="Solo games"
-          shortTitle="Solo"
+          title={t.solo.title}
+          shortTitle={t.solo.short}
           count={solo.length}
-          description="Play on your own, anytime."
+          description={t.solo.description}
         >
           <CardGrid>
             {solo.map((game) => (
@@ -413,7 +423,7 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         </Folder>
       ) : null}
 
-      <p className="m-0 text-center text-sm font-medium leading-[1.35] text-white min-[760px]:text-[15px]">No accounts. Send the link and everyone&apos;s in.</p>
+      <p className="m-0 text-center text-sm font-medium leading-[1.35] text-white min-[760px]:text-[15px]">{t.footer}</p>
 
       {rooms.length ? (
         <button
@@ -425,20 +435,20 @@ export default function Hub({ games }: { games: GameEntry[] }) {
           className={`fixed right-1 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full border-2 border-black bg-white px-5 text-base font-bold text-black shadow-[0_4px_0_#000,0_10px_24px_rgba(0,0,0,.3)] min-[760px]:hidden ${FOCUS_RING_ON_DARK}`}
         >
           <ListIcon />
-          Your rooms
+          {t.yourRooms}
           <CountBadge count={rooms.length} />
         </button>
       ) : null}
 
       {open?.kind === "join" && joinGame ? (
-        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={`Join a ${joinGame.title} room`} labelledBy={titleId} onClose={close}>
+        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={t.joinTitle(joinGame.title)} labelledBy={titleId} onClose={close}>
           <JoinPanel gameTitle={joinGame.title} headingId={titleId} inSheet={!desktop} />
         </HubOverlay>
       ) : null}
-      {open?.kind === "start" && startGame?.modes ? (
-        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={`Start a ${startGame.title} room`} labelledBy={titleId} onClose={close}>
+      {open?.kind === "start" && startGame && startModes ? (
+        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={t.startTitle(startGame.title)} labelledBy={titleId} onClose={close}>
           <StartPanel
-            modes={startGame.modes}
+            modes={startModes}
             gameTitle={startGame.title}
             headingId={titleId}
             inSheet={!desktop}
@@ -450,12 +460,12 @@ export default function Hub({ games }: { games: GameEntry[] }) {
         </HubOverlay>
       ) : null}
       {open?.kind === "matchmaking" && matchGame && (matchConfig || matchModes?.length) ? (
-        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={`${matchGame.title} matchmaking`} labelledBy={titleId} onClose={close}>
+        <HubOverlay anchor={open.anchor} desktop={desktop} placement="above-center" title={t.matchTitle(matchGame.title)} labelledBy={titleId} onClose={close}>
           <MatchPanel game={matchConfig} modes={matchModes} gameTitle={matchGame.title} headingId={titleId} inSheet={!desktop} />
         </HubOverlay>
       ) : null}
       {open?.kind === "rooms" ? (
-        <HubOverlay anchor={open.anchor} desktop={desktop} placement="below-right" title="Your rooms" labelledBy={titleId} sheetMaxHeightClass="max-h-[75vh]" onClose={close}>
+        <HubOverlay anchor={open.anchor} desktop={desktop} placement="below-right" title={t.yourRooms} labelledBy={titleId} sheetMaxHeightClass="max-h-[75vh]" onClose={close}>
           <YourRoomsList rooms={rooms} loadedAt={loadedAt} heading={desktop ? { id: titleId } : null} />
         </HubOverlay>
       ) : null}
@@ -463,10 +473,12 @@ export default function Hub({ games }: { games: GameEntry[] }) {
   );
 }
 
+type HubText = (typeof HUB_TEXT)["en"];
+
 const JUMPS = [
-  { id: SECTION_IDS.social, label: "Social", fill: SOCIAL, text: "#FFFFFF", square: SOCIAL_ACCENT, focus: FOCUS_RING_ON_DARK },
-  { id: SECTION_IDS.talk, label: "Talk it out", fill: TALK, text: "#000000", square: null, focus: FOCUS_RING_ON_YELLOW },
-  { id: SECTION_IDS.solo, label: "Solo", fill: SOLO, text: "#FFFFFF", square: SOLO_ACCENT, focus: FOCUS_RING_ON_DARK },
+  { id: SECTION_IDS.social, label: (t: HubText) => t.social.short, fill: SOCIAL, text: "#FFFFFF", square: SOCIAL_ACCENT, focus: FOCUS_RING_ON_DARK },
+  { id: SECTION_IDS.talk, label: (t: HubText) => t.talk.title, fill: TALK, text: "#000000", square: null, focus: FOCUS_RING_ON_YELLOW },
+  { id: SECTION_IDS.solo, label: (t: HubText) => t.solo.short, fill: SOLO, text: "#FFFFFF", square: SOLO_ACCENT, focus: FOCUS_RING_ON_DARK },
 ];
 
 /**
@@ -474,6 +486,7 @@ const JUMPS = [
  * (smoothly, unless reduced motion is on) without touching the URL's hash.
  */
 function JumpButtons() {
+  const t = useText(HUB_TEXT);
   const jump = (e: MouseEvent<HTMLAnchorElement>, id: string) => {
     const target = document.getElementById(id);
     if (!target) return;
@@ -482,7 +495,7 @@ function JumpButtons() {
     target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   };
   return (
-    <nav aria-label="Game types" className="flex flex-wrap gap-2 min-[760px]:hidden">
+    <nav aria-label={t.jumpNav} className="flex flex-wrap gap-2 min-[760px]:hidden">
       {JUMPS.map((j) => (
         <a
           key={j.id}
@@ -492,7 +505,7 @@ function JumpButtons() {
           style={{ backgroundColor: j.fill, color: j.text }}
         >
           {j.square ? <span aria-hidden="true" className="h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: j.square }} /> : null}
-          {j.label}
+          {j.label(t)}
         </a>
       ))}
     </nav>

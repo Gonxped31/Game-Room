@@ -1,6 +1,9 @@
+import type { Lang } from "@/lib/games/shared/language";
 import { ITEMS_PER_ROUND, MAX_ITEM_LENGTH, MAX_PROMPT_LENGTH } from "./constants";
 import { type CurrentRound, makeRound } from "./game";
 import promptsByGroup from "./prompts.json";
+import frenchPromptsByGroup from "./prompts.fr.json";
+import frenchTopicNames from "./topics.fr.json";
 
 export interface PromptEntry {
   prompt: string;
@@ -45,23 +48,40 @@ function interleaveByGroup<T extends { group: string }>(entries: T[], maxRun: nu
   return result;
 }
 
-/**
- * Built-in prompt bank, authored in prompts.json grouped by category (so
- * adding a prompt is "find your category's array, add an entry" - no need
- * to touch this file, pick an insertion point, or worry about ordering).
- * Every entry must have exactly ITEMS_PER_ROUND unique items - see
- * prompts.test.ts. The categories are the topics players can choose from
- * (TOPICS, shown by TopicPicker); PROMPTS itself is a flat, reordered array.
- */
-export const PROMPTS: PromptEntry[] = interleaveByGroup(
-  Object.entries(promptsByGroup as Record<string, { prompt: string; items: string[] }[]>).flatMap(([group, entries]) =>
-    entries.map((entry) => ({ ...entry, group })),
-  ),
-  2,
-);
+type BankSource = Record<string, { prompt: string; items: string[] }[]>;
 
-/** The bank's groups (the topics players can choose from), in prompts.json order. */
+const flatten = (source: BankSource): PromptEntry[] =>
+  interleaveByGroup(
+    Object.entries(source).flatMap(([group, entries]) => entries.map((entry) => ({ ...entry, group }))),
+    2,
+  );
+
+/**
+ * Built-in prompt banks, one per content language, authored in prompts.json
+ * (English) and prompts.fr.json (French) grouped by category (so adding a
+ * prompt is "find your category's array, add an entry" - no need to touch
+ * this file, pick an insertion point, or worry about ordering). Every entry
+ * must have exactly ITEMS_PER_ROUND unique items - see prompts.test.ts. Both
+ * files use the same categories, keyed by their English names: those are the
+ * topics players can choose from (TOPICS, shown by TopicPicker through
+ * `topicName`), so a room's `topics` work in either language. Each bank is a
+ * flat, reordered array.
+ */
+export const BANKS: Record<Lang, PromptEntry[]> = {
+  en: flatten(promptsByGroup as BankSource),
+  fr: flatten(frenchPromptsByGroup as BankSource),
+};
+
+/** The English bank. */
+export const PROMPTS: PromptEntry[] = BANKS.en;
+
+/** The banks' groups (the topics players can choose from), in prompts.json order, by their English names. */
 export const TOPICS: readonly string[] = Object.keys(promptsByGroup);
+
+/** A topic's name to show in `lang`: the English key itself, or its French name from topics.fr.json. */
+export function topicName(topic: string, lang: Lang): string {
+  return lang === "fr" ? ((frenchTopicNames as Record<string, string>)[topic] ?? topic) : topic;
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -73,15 +93,18 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
- * Picks a random built-in prompt from the chosen `topics` (every topic when
- * none are chosen), excluding every prompt in `usedPrompts` (the session's
- * history, so nothing repeats until those topics have all come up). Once that
- * exhausts the pool, it cycles: picks from those topics again, still avoiding
- * an immediate repeat of the very last prompt.
+ * Picks a random built-in prompt in `lang` (the room's content language) from
+ * the chosen `topics` (every topic when none are chosen), excluding every
+ * prompt in `usedPrompts` (the session's history, so nothing repeats until
+ * those topics have all come up). Once that exhausts the pool, it cycles:
+ * picks from those topics again, still avoiding an immediate repeat of the
+ * very last prompt. The history holds prompt texts, so prompts seen in the
+ * other language don't count against this one's.
  */
-export function randomRound(usedPrompts: string[] = [], topics: string[] = []): CurrentRound {
-  const chosen = PROMPTS.filter((p) => topics.includes(p.group));
-  const bank = chosen.length ? chosen : PROMPTS;
+export function randomRound(usedPrompts: string[] = [], topics: string[] = [], lang: Lang = "en"): CurrentRound {
+  const all = BANKS[lang];
+  const chosen = all.filter((p) => topics.includes(p.group));
+  const bank = chosen.length ? chosen : all;
   const avoid = new Set(usedPrompts);
   let pool = bank.filter((p) => !avoid.has(p.prompt));
   if (pool.length === 0) {

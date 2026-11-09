@@ -4,7 +4,9 @@ import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type
 import { colOf, rowOf } from "@/lib/games/regions/board";
 import { EMPTY, MARK, nextMark, PIECE, ruledOut, status, type Mark, type Play } from "@/lib/games/regions/play";
 import { GLYPH, INK, PIECE_NAME, REGION_COLORS } from "@/lib/games/regions/theme";
+import { useLang } from "@/lib/i18n/useLang";
 import type { AutoMarkHint } from "./Controls";
+import { TEXT } from "./text";
 
 const INNER_LINE = "rgba(22, 38, 29, 0.25)";
 
@@ -35,6 +37,9 @@ interface BoardProps {
 export default function Board({ play, hint, locked, onSet, answer }: BoardProps) {
   const { puzzle, marks } = play;
   const { size } = puzzle;
+  const lang = useLang();
+  const t = TEXT[lang];
+  const pieceName = PIECE_NAME[lang];
   const [focus, setFocus] = useState(0);
   const cells = useRef<(HTMLButtonElement | null)[]>([]);
   const drag = useRef<{ start: number; painting: boolean; seen: Set<number> } | null>(null);
@@ -120,7 +125,7 @@ export default function Board({ play, hint, locked, onSet, answer }: BoardProps)
   return (
     <div
       role="grid"
-      aria-label={`${size} by ${size} board`}
+      aria-label={t.board(size)}
       className="cg-board"
       data-hint={hint}
       style={{ "--n": size } as CSSProperties}
@@ -137,9 +142,11 @@ export default function Board({ play, hint, locked, onSet, answer }: BoardProps)
             const piece = puzzle.pieces[region];
             const mark = marks[cell];
             const shown = mark !== PIECE && solution.has(cell) ? "answer" : mark === EMPTY && out.has(cell) ? "auto" : mark === MARK ? "mark" : mark === PIECE ? "piece" : "empty";
-            const label = `Row ${r + 1}, column ${c + 1}: ${
-              mark === PIECE ? PIECE_NAME[piece] + (bad.has(cell) ? ", clashes" : "") : shown === "answer" ? `the answer's ${PIECE_NAME[piece]}` : mark === MARK ? "crossed out" : "empty"
-            }`;
+            const label = t.cell(
+              r + 1,
+              c + 1,
+              mark === PIECE ? pieceName[piece] + (bad.has(cell) ? t.clashes : "") : shown === "answer" ? t.answer(pieceName[piece]) : mark === MARK ? t.crossed : t.empty,
+            );
             return (
               <div role="gridcell" key={c} className="cg-cell-wrap">
                 <button

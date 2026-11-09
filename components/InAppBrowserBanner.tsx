@@ -1,7 +1,24 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { texts } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
 import { detectInAppBrowser } from "@/lib/inAppBrowsers";
+
+const TEXT = texts({
+  en: {
+    hint: (app: string) => `You're in ${app}'s browser. Open this link in Safari or Chrome to keep your rooms.`,
+    copied: "Copied!",
+    copy: "Copy link",
+    dismiss: "Dismiss",
+  },
+  fr: {
+    hint: (app) => `Tu es dans le navigateur de ${app}. Ouvre ce lien dans Safari ou Chrome pour garder tes salons.`,
+    copied: "Copié !",
+    copy: "Copier le lien",
+    dismiss: "Fermer",
+  },
+});
 
 const DISMISSED_KEY = "inAppBrowserHintDismissed";
 const noopSubscribe = () => () => {};
@@ -22,6 +39,7 @@ function readDismissed(): boolean {
  * another browser.
  */
 export default function InAppBrowserBanner() {
+  const t = useText(TEXT);
   // Server-renders (and hydrates) as null; the user agent is read client-side only.
   const app = useSyncExternalStore(noopSubscribe, () => detectInAppBrowser(navigator.userAgent), () => null);
   const [dismissed, setDismissed] = useState(readDismissed);
@@ -50,12 +68,12 @@ export default function InAppBrowserBanner() {
   return (
     <div role="note" className="flex items-center gap-2 bg-black/85 px-3 py-2 text-[13px] leading-snug text-white">
       <p className="m-0 flex-1">
-        You&apos;re in {app}&apos;s browser. Open this link in Safari or Chrome to keep your rooms.
+        {t.hint(app)}
       </p>
       <button type="button" onClick={copy} className="shrink-0 cursor-pointer rounded-md border-0 bg-white px-2.5 py-1 text-[13px] font-semibold text-black">
-        {copied ? "Copied!" : "Copy link"}
+        {copied ? t.copied : t.copy}
       </button>
-      <button type="button" onClick={dismiss} aria-label="Dismiss" className="shrink-0 cursor-pointer border-0 bg-transparent px-1 text-lg leading-none text-white">
+      <button type="button" onClick={dismiss} aria-label={t.dismiss} className="shrink-0 cursor-pointer border-0 bg-transparent px-1 text-lg leading-none text-white">
         ×
       </button>
     </div>

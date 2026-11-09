@@ -3,6 +3,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { SeatId } from "@/lib/session/types";
 import type { Team } from "@/lib/games/wordscramble/teams";
+import type { Lang } from "@/lib/i18n/lang";
+import { useText } from "@/lib/i18n/useLang";
+import { COPY } from "./text";
 
 /**
  * Word Scramble's building blocks, per references/scramble/word-scramble-visual-spec.md.
@@ -139,18 +142,19 @@ export function Segmented<T extends string | number>({ label, options, value, on
 }
 
 export function Stepper({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+  const t = useText(COPY);
   const btn = `${DISPLAY} ${FOCUS} flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-white text-[24px] leading-none text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-40`;
   return (
     <div className="flex items-center justify-between gap-3">
       <span className={`${TEXT} text-[16px] font-bold text-[var(--ink)]`}>{label}</span>
       <div className="flex items-center gap-3">
-        <button type="button" aria-label="Fewer turns" disabled={value <= min} onClick={() => onChange(value - 1)} className={btn}>
+        <button type="button" aria-label={t.fewerTurns} disabled={value <= min} onClick={() => onChange(value - 1)} className={btn}>
           −
         </button>
         <span aria-live="polite" className={`${DISPLAY} w-6 text-center text-[24px] text-[var(--ink)]`}>
           {value}
         </span>
-        <button type="button" aria-label="More turns" disabled={value >= max} onClick={() => onChange(value + 1)} className={btn}>
+        <button type="button" aria-label={t.moreTurns} disabled={value >= max} onClick={() => onChange(value + 1)} className={btn}>
           +
         </button>
       </div>
@@ -223,11 +227,12 @@ export function TimerRing({ seconds, fraction, team, size = 46, label }: { secon
 // ---- Scores and progress -----------------------------------------------------------------
 
 export function ScorePill({ team, score, glow }: { team: Team; score: number; glow?: boolean }) {
+  const t = useText(COPY);
   return (
     <span
       className={`${DISPLAY} flex h-[34px] items-center gap-2 rounded-full border-2 border-[var(--ink)] px-3 text-[18px] min-[900px]:h-[38px] min-[900px]:text-[20px]`}
       style={{ background: teamColor(team), color: teamText(team), boxShadow: glow ? `0 0 0 4px color-mix(in srgb, ${teamColor(team)} 30%, transparent)` : undefined }}
-      aria-label={`Team ${team}: ${score} points`}
+      aria-label={t.scorePill(team, score)}
     >
       {team === "A" ? (
         <>
@@ -256,12 +261,13 @@ export function TurnProgress({ total, played }: { total: number; played: number 
 }
 
 export function TeamCard({ team, score, names, children, loser = false }: { team: Team; score?: number; names: string[]; children?: ReactNode; loser?: boolean }) {
+  const t = useText(COPY);
   const fill = loser ? "#FFFFFF" : teamColor(team);
   const color = loser ? "var(--team-b)" : teamText(team);
   return (
     <section className="flex flex-col gap-2 rounded-[22px] border-[3px] border-[var(--ink)] p-4 shadow-[0_6px_0_var(--ink)] min-[900px]:shadow-[0_8px_0_var(--ink)]" style={{ background: fill, color }}>
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className={`${DISPLAY} m-0 text-[24px]`}>Team {team}</h2>
+        <h2 className={`${DISPLAY} m-0 text-[24px]`}>{t.team(team)}</h2>
         {score != null ? <span className={`${DISPLAY} text-[64px] leading-none min-[900px]:text-[96px]`}>{score}</span> : null}
       </div>
       <p className={`${TEXT} m-0 text-[15px] font-bold opacity-90`}>{names.join(" · ") || "—"}</p>
@@ -270,4 +276,4 @@ export function TeamCard({ team, score, names, children, loser = false }: { team
   );
 }
 
-export const seatName = (names: Partial<Record<SeatId, string>>, seat: SeatId) => names[seat] ?? "Player";
+export const seatName = (names: Partial<Record<SeatId, string>>, seat: SeatId, lang: Lang) => names[seat] ?? COPY[lang].player;

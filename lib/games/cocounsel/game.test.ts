@@ -5,6 +5,7 @@ import { DEFENDANT, INVESTIGATOR } from "./constants";
 import {
   classifyDuo,
   continueAfterReveal,
+  finishedGameId,
   focusPercent,
   type GameState,
   lockIn,
@@ -331,5 +332,30 @@ describe("writes Firebase accepts", () => {
       }
     });
     expect(game.phase).toBe("CASE_DONE");
+  });
+});
+
+describe("finishedGameId", () => {
+  const solveAll = (): GameState => {
+    let game = fresh();
+    for (const part of CASE.parts) {
+      game = lockIn(lockIn(game, CASE, INVESTIGATOR, part.correct[0]), CASE, DEFENDANT, part.correct[1]);
+      game = continueAfterReveal(game, CASE);
+    }
+    return game;
+  };
+
+  it("is the same for the same shared state, and a valid report id", () => {
+    const id = finishedGameId(solveAll());
+    expect(id).toBe(finishedGameId(solveAll()));
+    expect(id).toMatch(/^[A-Za-z0-9-]{1,40}$/);
+    expect(id.startsWith("ruined-birthday-")).toBe(true);
+  });
+
+  it("changes when the plays differ, and survives Firebase dropping an empty log", () => {
+    const missed = continueAfterReveal(lockIn(lockIn(fresh(), CASE, INVESTIGATOR, "I2"), CASE, DEFENDANT, "D2"), CASE);
+    expect(finishedGameId(missed)).not.toBe(finishedGameId(solveAll()));
+    const noLog = { ...fresh(), log: undefined } as unknown as GameState;
+    expect(finishedGameId(noLog)).toMatch(/^ruined-birthday-0-/);
   });
 });

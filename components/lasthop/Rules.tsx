@@ -2,10 +2,13 @@
 
 import type { ReactNode } from "react";
 import HowToPlay, { type HowToPlayLook } from "@/components/HowToPlay";
+import { texts } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
 import type { Role } from "@/lib/session/types";
 import { CLOCKS } from "@/lib/games/lasthop/constants";
 import type { Pawn } from "@/lib/games/lasthop/constants";
 import { PawnShape } from "./pawns";
+import { TEXT } from "./text";
 import { FOCUS, FONT, PrimaryButton, seatColor } from "./ui";
 
 type Cell = "me" | "them" | "";
@@ -84,7 +87,7 @@ function Example({ title, children, picture }: { title: string; children: ReactN
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
     <section className="grid gap-2">
       <h3 className={`${FONT} m-0 text-[18px] font-bold`}>{title}</h3>
@@ -94,79 +97,191 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const LIST = "m-0 grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-disc text-[15px] leading-snug text-[var(--muted)] [&_b]:text-[var(--text)]";
+const STRONG = "text-[var(--text)]";
+const { track: TRACK, grid: GRID } = CLOCKS;
+
+/**
+ * How to play's words, English and French (docs/i18n.md). Rich text, so the
+ * values are elements; the lists are rendered in order. The clocks come from
+ * `CLOCKS`, the "moves available" quote matches the player bars (text.ts).
+ */
+const RULES = texts({
+  en: {
+    goalTitle: "The goal: make the last move" as ReactNode,
+    goal: (
+      <>
+        You take turns moving one of your pieces. <b className={STRONG}>If it&apos;s your turn and none of your pieces can move, you lose the round.</b> Getting across the board
+        scores nothing: what counts is having a move left when your opponent doesn&apos;t.
+      </>
+    ) as ReactNode,
+    movesTitle: "How pieces move" as ReactNode,
+    moves: (
+      <>
+        Pieces only go <b className={STRONG}>forward</b>, toward the other side. On your screen yours always start at the bottom (or right) and move up (or left).
+      </>
+    ) as ReactNode,
+    slideTitle: "Slide.",
+    slide: "One square forward, into an empty square." as ReactNode,
+    jumpTitle: "Jump.",
+    jump: "Over exactly one of their pieces, into the empty square right behind it." as ReactNode,
+    blockedTitle: "Blocked.",
+    blocked: "Nothing empty in front, and nothing empty behind the piece in front: this piece can't move." as ReactNode,
+    moveList: [
+      "Never backward, never over your own pieces, never over two pieces at once.",
+      <>
+        <b>Track</b>: one row, so each piece has one direction. <b>Grid</b>: each piece can go up <i>or</i> left (theirs go down or right), in a straight line: no diagonals.
+      </>,
+    ] as ReactNode[],
+    grid: (
+      <>
+        <b>On the Grid</b>, this piece can slide up or left (theirs go down or right). Jumps work the same way, in a straight line.
+      </>
+    ) as ReactNode,
+    roundTitle: "How to win a round" as ReactNode,
+    roundList: [
+      <>
+        <b>Save your moves.</b> A piece at the far edge has nothing left to give. A slide spends one square of room, a jump two: when you can, take the patient move.
+      </>,
+      <>
+        <b>Take away theirs.</b> Park a piece right in front of one of theirs, with no empty square behind yours, and it can&apos;t slide or jump.
+      </>,
+      <>
+        <b>Count.</b> Under each name, &ldquo;moves available&rdquo; shows how many moves each side has right now. Watch theirs run out.
+      </>,
+      <>
+        <b>Mind the clock.</b> Each player has a chess clock: only the player to move uses time, and every move adds a little back (Track {TRACK.startMs / 60_000} min +
+        {TRACK.incrementMs / 1000} s a move, Grid {GRID.startMs / 60_000} min +{GRID.incrementMs / 1000} s). Running out loses the round.
+      </>,
+    ] as ReactNode[],
+    matchTitle: "How to win the match" as ReactNode,
+    matchList: [
+      <>
+        <b>Each board is played twice</b>, the second time with sides swapped, so you both get the same chances.
+      </>,
+      <>
+        The match ends once one player can&apos;t be caught: <b>at least 4 rounds</b> (3–0 ends it early). Level after 4, you play another board, and so on. Still level after 10
+        rounds, it&apos;s a draw.
+      </>,
+      <>
+        <b>Pick your pawn</b> in the lobby or between matches (a frog, a ghost, a star…); the two of you can&apos;t have the same one. Your colour stays yours all match, whichever
+        side you play.
+      </>,
+    ] as ReactNode[],
+  },
+  fr: {
+    goalTitle: <>Le but&nbsp;: jouer le dernier coup</>,
+    goal: (
+      <>
+        Chacun son tour, tu déplaces un de tes pions. <b className={STRONG}>Si c&apos;est ton tour et qu&apos;aucun de tes pions ne peut bouger, tu perds la manche.</b> Traverser
+        le plateau ne rapporte rien&nbsp;: ce qui compte, c&apos;est d&apos;avoir encore un coup à jouer quand ton adversaire n&apos;en a plus.
+      </>
+    ),
+    movesTitle: "Comment bougent les pions",
+    moves: (
+      <>
+        Les pions ne vont que <b className={STRONG}>vers l&apos;avant</b>, vers le camp d&apos;en face. Sur ton écran, les tiens partent toujours du bas (ou de la droite) et
+        montent (ou vont vers la gauche).
+      </>
+    ),
+    slideTitle: "Glisser.",
+    slide: "D'une case vers l'avant, dans une case vide.",
+    jumpTitle: "Sauter.",
+    jump: "Par-dessus un seul pion adverse, dans la case vide juste derrière.",
+    blockedTitle: "Bloqué.",
+    blocked: <>Pas de case vide devant, ni derrière le pion d&apos;en face&nbsp;: ce pion ne peut pas bouger.</>,
+    moveList: [
+      "Jamais en arrière, jamais par-dessus tes propres pions, jamais par-dessus deux pions à la fois.",
+      <>
+        <b>Piste</b>&nbsp;: une seule rangée, donc chaque pion n&apos;a qu&apos;une direction. <b>Grille</b>&nbsp;: chaque pion peut monter <i>ou</i> aller à gauche (ceux
+        d&apos;en face descendent ou vont à droite), en ligne droite&nbsp;: pas de diagonale.
+      </>,
+    ],
+    grid: (
+      <>
+        <b>Sur la Grille</b>, ce pion peut glisser vers le haut ou vers la gauche (ceux d&apos;en face, vers le bas ou la droite). Les sauts marchent pareil, en ligne droite.
+      </>
+    ),
+    roundTitle: "Comment gagner une manche",
+    roundList: [
+      <>
+        <b>Économise tes coups.</b> Un pion arrivé au bout n&apos;a plus rien à offrir. Une glissade use une case d&apos;avance, un saut deux&nbsp;: quand tu peux, joue le coup
+        patient.
+      </>,
+      <>
+        <b>Bloque les siens.</b> Place un de tes pions juste devant un des siens, sans case vide derrière le tien&nbsp;: il ne peut plus ni glisser ni sauter.
+      </>,
+      <>
+        <b>Compte.</b> Sous chaque nom, «&nbsp;coups possibles&nbsp;» indique combien de coups chaque camp a en ce moment. Regarde ceux d&apos;en face fondre.
+      </>,
+      <>
+        <b>Surveille le chrono.</b> Chaque joueur a son chrono, comme aux échecs&nbsp;: seul celui du joueur qui doit jouer tourne, et chaque coup rajoute un peu de temps
+        (Piste {TRACK.startMs / 60_000}&nbsp;min +{TRACK.incrementMs / 1000}&nbsp;s par coup, Grille {GRID.startMs / 60_000}&nbsp;min +{GRID.incrementMs / 1000}&nbsp;s). Tomber à
+        zéro fait perdre la manche.
+      </>,
+    ],
+    matchTitle: "Comment gagner la partie",
+    matchList: [
+      <>
+        <b>Chaque plateau se joue deux fois</b>, la seconde en échangeant les côtés&nbsp;: vous avez donc les mêmes chances.
+      </>,
+      <>
+        La partie se termine dès qu&apos;un joueur ne peut plus être rattrapé&nbsp;: <b>au moins 4 manches</b> (un 3–0 y met fin plus tôt). À égalité après 4, vous jouez un autre
+        plateau, et ainsi de suite. Toujours à égalité après 10 manches&nbsp;: partie nulle.
+      </>,
+      <>
+        <b>Choisis ton pion</b> dans la salle d&apos;attente ou entre deux parties (une grenouille, un fantôme, une étoile…)&#8239;; vous ne pouvez pas avoir le même. Ta couleur
+        reste la tienne toute la partie, quel que soit ton côté.
+      </>,
+    ],
+  },
+});
 
 /** The rules, in full, with drawings in the viewer's own shape and colour. */
 function RulesContent({ me, pawns }: { me: Role; pawns: Record<Role, Pawn> }) {
+  const r = useText(RULES);
   return (
     <div className="grid gap-5">
-      <Section title="The goal: make the last move">
-        <p className="m-0 text-[15px] leading-snug text-[var(--muted)]">
-          You take turns moving one of your pieces. <b className="text-[var(--text)]">If it&apos;s your turn and none of your pieces can move, you lose the round.</b> Getting across the
-          board scores nothing: what counts is having a move left when your opponent doesn&apos;t.
-        </p>
+      <Section title={r.goalTitle}>
+        <p className="m-0 text-[15px] leading-snug text-[var(--muted)]">{r.goal}</p>
       </Section>
 
-      <Section title="How pieces move">
-        <p className="m-0 text-[15px] leading-snug text-[var(--muted)]">
-          Pieces only go <b className="text-[var(--text)]">forward</b>, toward the other side. On your screen yours always start at the bottom (or right) and move up (or left).
-        </p>
+      <Section title={r.movesTitle}>
+        <p className="m-0 text-[15px] leading-snug text-[var(--muted)]">{r.moves}</p>
         <div className="grid gap-2 min-[560px]:grid-cols-3">
-          <Example title="Slide." picture={<Row cells={["", "me"]} me={me} pawns={pawns} from={1} to={0} />}>
-            One square forward, into an empty square.
+          <Example title={r.slideTitle} picture={<Row cells={["", "me"]} me={me} pawns={pawns} from={1} to={0} />}>
+            {r.slide}
           </Example>
-          <Example title="Jump." picture={<Row cells={["", "them", "me"]} me={me} pawns={pawns} from={2} to={0} />}>
-            Over exactly one of their pieces, into the empty square right behind it.
+          <Example title={r.jumpTitle} picture={<Row cells={["", "them", "me"]} me={me} pawns={pawns} from={2} to={0} />}>
+            {r.jump}
           </Example>
-          <Example title="Blocked." picture={<Row cells={["them", "them", "me"]} me={me} pawns={pawns} blocked={2} />}>
-            Nothing empty in front, and nothing empty behind the piece in front: this piece can&apos;t move.
+          <Example title={r.blockedTitle} picture={<Row cells={["them", "them", "me"]} me={me} pawns={pawns} blocked={2} />}>
+            {r.blocked}
           </Example>
         </div>
         <ul className={LIST}>
-          <li>Never backward, never over your own pieces, never over two pieces at once.</li>
-          <li>
-            <b>Track</b>: one row, so each piece has one direction. <b>Grid</b>: each piece can go up <i>or</i> left (theirs go down or right), in a straight line: no
-            diagonals.
-          </li>
+          {r.moveList.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
         </ul>
         <div className="flex items-center gap-3 rounded-xl bg-[var(--surface-2)] p-3">
           <GridPicture me={me} pawns={pawns} />
-          <p className="m-0 text-[15px] leading-snug">
-            <b>On the Grid</b>, this piece can slide up or left (theirs go down or right). Jumps work the same way, in a straight line.
-          </p>
+          <p className="m-0 text-[15px] leading-snug">{r.grid}</p>
         </div>
       </Section>
 
-      <Section title="How to win a round">
+      <Section title={r.roundTitle}>
         <ul className={LIST}>
-          <li>
-            <b>Save your moves.</b> A piece at the far edge has nothing left to give. A slide spends one square of room, a jump two: when you can, take the patient move.
-          </li>
-          <li>
-            <b>Take away theirs.</b> Park a piece right in front of one of theirs, with no empty square behind yours, and it can&apos;t slide or jump.
-          </li>
-          <li>
-            <b>Count.</b> Under each name, &ldquo;moves available&rdquo; shows how many moves each side has right now. Watch theirs run out.
-          </li>
-          <li>
-            <b>Mind the clock.</b> Each player has a chess clock: only the player to move uses time, and every move adds a little back (Track {CLOCKS.track.startMs / 60_000} min
-            +{CLOCKS.track.incrementMs / 1000} s a move, Grid {CLOCKS.grid.startMs / 60_000} min +{CLOCKS.grid.incrementMs / 1000} s). Running out loses the round.
-          </li>
+          {r.roundList.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
         </ul>
       </Section>
 
-      <Section title="How to win the match">
+      <Section title={r.matchTitle}>
         <ul className={LIST}>
-          <li>
-            <b>Each board is played twice</b>, the second time with sides swapped, so you both get the same chances.
-          </li>
-          <li>
-            The match ends once one player can&apos;t be caught: <b>at least 4 rounds</b> (3–0 ends it early). Level after 4, you play another board, and so on. Still level after
-            10 rounds, it&apos;s a draw.
-          </li>
-          <li>
-            <b>Pick your pawn</b> in the lobby or between matches (a frog, a ghost, a star…); the two of you can&apos;t have the same one. Your colour
-            stays yours all match, whichever side you play.
-          </li>
+          {r.matchList.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
         </ul>
       </Section>
     </div>
@@ -190,8 +305,9 @@ const LOOK: HowToPlayLook = {
  * the full rules". The drawings use the viewer's own pawn and colour.
  */
 export default function RulesButton({ me, pawns, variant = "icon" }: { me: Role | null; pawns: Record<Role, Pawn>; variant?: "icon" | "link" }) {
+  const t = useText(TEXT);
   return (
-    <HowToPlay look={LOOK} variant={variant} label="Read the full rules">
+    <HowToPlay look={LOOK} variant={variant} label={t.readRules}>
       <svg aria-hidden="true" width="0" height="0" className="absolute">
         <defs>
           <marker id="lh-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">

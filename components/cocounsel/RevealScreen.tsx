@@ -7,6 +7,8 @@ import PartProgress from "./PartProgress";
 import ResultsHeader from "./ResultsHeader";
 import RevealCard from "./RevealCard";
 import Stamp, { type StampColor } from "./Stamp";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface RevealScreenProps {
   investigatorName: string;
@@ -33,23 +35,8 @@ interface RevealScreenProps {
   onToggleTheme: () => void;
 }
 
-const STAMP_CONFIG: Record<AttemptOutcome, { color: StampColor; label: string; heading: string; body: string }> = {
-  solved: { color: "green", label: "WORKING THEORY", heading: "Working theory accepted.", body: "" },
-  judgeRevealed: {
-    color: "red",
-    label: "CASE ADJOURNED",
-    heading: "The judge reveals the pair, then dismisses the case.",
-    body: "Too many misreadings - the court has run out of patience.",
-  },
-  adjourned: {
-    color: "red",
-    label: "CASE ADJOURNED",
-    heading: "The judge dismisses the case.",
-    body: "Too many misreadings - the court has run out of patience. No ruling is given.",
-  },
-  trap: { color: "amber", label: "DOESN'T FIT", heading: "Plausible, but something doesn't fit.", body: "Talk it through, then pick again." },
-  wrong: { color: "ink", label: "DOESN'T HOLD UP", heading: "That doesn't hold up.", body: "Talk it through, then pick again." },
-};
+/** The stamp's colour per outcome; its label, heading and body are `CC_TEXT.stamp` (./text.ts). */
+const STAMP_COLOR: Record<AttemptOutcome, StampColor> = { solved: "green", judgeRevealed: "red", adjourned: "red", trap: "amber", wrong: "ink" };
 
 /** Both cards flip, a stamp lands, and - depending on the outcome - either "Pick again" (retry) or a theory + "Continue" (solved/judge-revealed). */
 export default function RevealScreen({
@@ -74,7 +61,8 @@ export default function RevealScreen({
   theme,
   onToggleTheme,
 }: RevealScreenProps) {
-  const cfg = STAMP_CONFIG[logOutcome];
+  const t = useText(CC_TEXT);
+  const cfg = { color: STAMP_COLOR[logOutcome], ...t.stamp[logOutcome] };
   // "Final" just means no more retries at this Part - solved, judgeRevealed,
   // and adjourned are all cap/solve outcomes rather than a plain miss.
   const isFinal = logOutcome === "solved" || logOutcome === "judgeRevealed" || logOutcome === "adjourned";
@@ -89,7 +77,7 @@ export default function RevealScreen({
       <div className="px-4 pb-8 pt-4">
         {solvedOnFirstTry ? (
           <p className="text-right font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: COLOR.ink }}>
-            Solved on the first try
+            {t.solvedFirstTry}
           </p>
         ) : (
           <PartProgress totalParts={totalParts} currentPartIndex={currentPartIndex} attemptsUsed={attemptsUsed} maxAttempts={maxAttempts} tone="onPaper" />
@@ -117,7 +105,7 @@ export default function RevealScreen({
         {showTheory ? (
           <div className="relative mt-6">
             <div className="absolute -top-3.5 left-2 rounded-t px-3 py-1 text-xs font-bold text-white" style={{ backgroundColor: COLOR.ink }}>
-              Case notes
+              {t.caseNotes}
             </div>
             <div
               className="rounded-[6px] p-4 pt-5 font-[family-name:var(--font-courier-prime)] text-[15px] leading-[26px]"
@@ -130,7 +118,7 @@ export default function RevealScreen({
 
         <div className="mt-8">
           <Button warmDisabled={myRole === "defendant"} onClick={isFinal ? onContinue : onPickAgain}>
-            {isFinal ? continueLabel : "Pick again"}
+            {isFinal ? continueLabel : t.pickAgain}
           </Button>
         </div>
       </div>

@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { APP_TITLE } from "@/lib/games/registry";
+import { texts } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
 import { detectInAppBrowser } from "@/lib/inAppBrowsers";
+
+const TEXT = texts({
+  en: { tip: `Tip: add ${APP_TITLE} to your Home Screen so your rooms stay saved.`, dismiss: "Dismiss tip" },
+  fr: { tip: `Astuce : ajoute ${APP_TITLE} à ton écran d'accueil pour garder tes salons.`, dismiss: "Masquer l'astuce" },
+});
 
 const DISMISSED_KEY = "homeScreenTipDismissed";
 const noopSubscribe = () => () => {};
@@ -34,6 +42,7 @@ function readDismissed(): boolean {
  * once there's something to lose), dismissible, remembered per browser.
  */
 export default function HomeScreenTip() {
+  const t = useText(TEXT);
   const show = useSyncExternalStore(noopSubscribe, isIosSafariTab, () => false);
   const [dismissed, setDismissed] = useState(readDismissed);
   if (!show || dismissed) return null;
@@ -52,8 +61,8 @@ export default function HomeScreenTip() {
       role="note"
       className="flex items-start gap-2 rounded-[12px] bg-[#F1F4F4] px-3 py-2.5 text-sm text-black"
     >
-      <p className="m-0 flex-1">Tip: add Game Room to your Home Screen so your rooms stay saved.</p>
-      <button type="button" onClick={dismiss} aria-label="Dismiss tip" className="cursor-pointer border-0 bg-transparent px-1 text-lg leading-none text-black">
+      <p className="m-0 flex-1">{t.tip}</p>
+      <button type="button" onClick={dismiss} aria-label={t.dismiss} className="cursor-pointer border-0 bg-transparent px-1 text-lg leading-none text-black">
         ×
       </button>
     </div>

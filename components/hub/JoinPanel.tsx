@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { CONNECTION_ERROR_MESSAGE, ensureGuestUid } from "@/lib/session/shared/auth";
+import { CONNECTION_ERROR_TEXT, ensureGuestUid } from "@/lib/session/shared/auth";
 import { findRoomByName, readRoomMeta } from "@/lib/session/shared/roomActions";
 import { roomHref } from "@/lib/games/registry";
+import { useLang, useText } from "@/lib/i18n/useLang";
+import { HUB_TEXT } from "./text";
 
 type Mode = "code" | "name";
 type Status = "idle" | "checking" | "notFound" | "offline";
@@ -12,11 +14,12 @@ type Status = "idle" | "checking" | "notFound" | "offline";
 const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0F7983]";
 
 function JoinModeSwitch({ mode, onChange, disabled }: { mode: Mode; onChange: (mode: Mode) => void; disabled: boolean }) {
+  const t = useText(HUB_TEXT).join;
   const other: Mode = mode === "code" ? "name" : "code";
   return (
     <div
       role="radiogroup"
-      aria-label="Join with"
+      aria-label={t.joinWith}
       className="inline-flex shrink-0 items-center self-start justify-self-start rounded-[10px] bg-[#E9EEEF] p-[3px]"
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
@@ -41,7 +44,7 @@ function JoinModeSwitch({ mode, onChange, disabled }: { mode: Mode; onChange: (m
           className={`h-9 cursor-pointer rounded-[8px] px-4 text-sm font-semibold capitalize disabled:cursor-not-allowed disabled:opacity-60 min-[760px]:h-[34px] ${FOCUS_RING}`}
           style={{ backgroundColor: mode === m ? "#0F7983" : "transparent", color: mode === m ? "#FFFFFF" : "#3A4547" }}
         >
-          {m}
+          {t.mode[m]}
         </button>
       ))}
     </div>
@@ -66,6 +69,8 @@ interface JoinPanelProps {
  * opens anyway: routing follows the room's own `meta.gameSlug`.
  */
 export default function JoinPanel({ gameTitle, headingId, inSheet }: JoinPanelProps) {
+  const lang = useLang();
+  const t = HUB_TEXT[lang];
   const [mode, setMode] = useState<Mode>("code");
   const [codeValue, setCodeValue] = useState("");
   const [nameValue, setNameValue] = useState("");
@@ -108,12 +113,12 @@ export default function JoinPanel({ gameTitle, headingId, inSheet }: JoinPanelPr
     try {
       const meta = await readRoomMeta(asCode);
       if (meta) {
-        setDestination(roomHref(meta.gameSlug, asCode));
+        setDestination(roomHref(meta.gameSlug, asCode, lang));
         return;
       }
       const match = await findRoomByName(typed);
       if (match) {
-        setDestination(roomHref(match.meta.gameSlug, match.room));
+        setDestination(roomHref(match.meta.gameSlug, match.room, lang));
         return;
       }
       setStatus("notFound");
@@ -133,14 +138,14 @@ export default function JoinPanel({ gameTitle, headingId, inSheet }: JoinPanelPr
       ) : (
         <div className="flex items-center justify-between gap-3">
           <h2 id={headingId} className="m-0 font-[family-name:var(--font-fredoka)] text-[17px] font-bold">
-            Join a {gameTitle} room
+            {t.joinTitle(gameTitle)}
           </h2>
           <JoinModeSwitch mode={mode} onChange={changeMode} disabled={disabled} />
         </div>
       )}
 
       <p className="m-0 text-sm font-medium" style={{ color: "#444444" }}>
-        Enter its {mode} to jump back in.
+        {t.join.helper[mode]}
       </p>
 
       <input
@@ -152,8 +157,8 @@ export default function JoinPanel({ gameTitle, headingId, inSheet }: JoinPanelPr
           setValue(e.target.value);
           setStatus("idle");
         }}
-        placeholder={mode === "code" ? "Room code" : "Room name"}
-        aria-label={mode === "code" ? "Room code" : "Room name"}
+        placeholder={t.join.placeholder[mode]}
+        aria-label={t.join.placeholder[mode]}
         aria-invalid={status === "notFound"}
         aria-describedby={hasError ? errorId : undefined}
         autoCapitalize="off"
@@ -168,7 +173,7 @@ export default function JoinPanel({ gameTitle, headingId, inSheet }: JoinPanelPr
             <path d="M9 1.5 16.8 15H1.2L9 1.5Z" />
             <path d="M9 6v4.2M9 12.4v.3" strokeLinecap="round" />
           </svg>
-          {status === "notFound" ? `We can't find that room. Check the ${mode} and try again.` : CONNECTION_ERROR_MESSAGE}
+          {status === "notFound" ? t.join.notFound[mode] : CONNECTION_ERROR_TEXT[lang]}
         </p>
       ) : null}
 
@@ -182,7 +187,7 @@ export default function JoinPanel({ gameTitle, headingId, inSheet }: JoinPanelPr
           cursor: disabled ? "progress" : undefined,
         }}
       >
-        {disabled ? "Joining…" : "Join"}
+        {disabled ? t.join.joining : t.join.submit}
       </button>
     </form>
   );

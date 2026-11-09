@@ -39,11 +39,12 @@ export function removeKey(key: string) {
   }
 }
 
-/** An Endless puzzle in progress: the grid, the moves, and the time spent on it before the page closed. */
+/** An Endless puzzle in progress: the grid, the moves, the time spent on it before the page closed, and when it was dealt (wall clock; missing in older saves). */
 export interface SavedEndlessGame {
   puzzle: Puzzle;
   moves: Move[];
   elapsed: number;
+  dealtAt?: number;
 }
 
 /** Today's Daily moves (the server keeps the puzzle and the clock). */

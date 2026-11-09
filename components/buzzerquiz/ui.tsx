@@ -2,6 +2,8 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { SeatId } from "@/lib/session/types";
+import { useText } from "@/lib/i18n/useLang";
+import { WORDS } from "./text";
 
 /**
  * Buzzer Quiz's building blocks, per references/buzzer-quiz/buzzer-quiz-visual-spec.md.
@@ -197,13 +199,14 @@ export type BuzzerState = "ready" | "pressed" | "wait" | "locked";
 
 /** The big red buzzer. "wait" and "locked" are grey and disabled. */
 export function Buzzer({ state, caption, onBuzz, small = false }: { state: BuzzerState; caption: string; onBuzz: () => void; small?: boolean }) {
+  const t = useText(WORDS);
   const off = state === "wait" || state === "locked";
   const size = small ? 152 : 176;
   return (
     <div className="flex flex-col items-center gap-3">
       <button
         type="button"
-        aria-label={state === "locked" ? "Buzzer locked" : state === "wait" ? "Buzzer, wait" : "Buzz"}
+        aria-label={state === "locked" ? t.buzzerLocked : state === "wait" ? t.buzzerWait : t.buzz}
         disabled={off || state === "pressed"}
         onPointerDown={(e) => {
           // Buzz on touch-down, not on release: every millisecond counts.
@@ -228,7 +231,7 @@ export function Buzzer({ state, caption, onBuzz, small = false }: { state: Buzze
         }}
       >
         {state === "locked" ? <LockIcon size={28} /> : null}
-        <span className="leading-none">{state === "locked" ? "LOCKED" : state === "wait" ? "WAIT" : "BUZZ"}</span>
+        <span className="leading-none">{state === "locked" ? t.buzzerFace.locked : state === "wait" ? t.buzzerFace.wait : t.buzzerFace.ready}</span>
       </button>
       <p className={`${TEXT} m-0 text-center text-[15px] text-[var(--text-muted)]`}>{caption}</p>
     </div>
@@ -249,6 +252,7 @@ export function ChoiceTile({ letter, text, look, note, myColor, onPick, compact 
   onPick?: () => void;
   compact?: boolean;
 }) {
+  const t = useText(WORDS);
   const height = compact ? "h-[52px]" : "h-14";
   const base = `${FOCUS} flex w-full items-center gap-3 rounded-2xl px-2.5 text-left min-[900px]:h-[78px] min-[900px]:rounded-[18px] min-[900px]:px-3.5 ${height}`;
   const badge = (fill: string, color: string, content: ReactNode) => (
@@ -260,7 +264,7 @@ export function ChoiceTile({ letter, text, look, note, myColor, onPick, compact 
 
   if (look === "struck") {
     return (
-      <div aria-label={`${text}, struck out`} className={`${base} border-2 border-dashed border-[var(--line-dashed)] text-[var(--text-struck)]`}>
+      <div aria-label={t.struckOut(text)} className={`${base} border-2 border-dashed border-[var(--line-dashed)] text-[var(--text-struck)]`}>
         {badge("var(--buzz)", "#FFFFFF", <CrossIcon size={18} />)}
         <span className={`${TEXT} min-w-0 flex-1 text-[18px] font-bold leading-tight line-through decoration-[var(--buzz)] decoration-[3px] min-[900px]:text-[22px]`}>{text}</span>
         {note ? <span className={`${TEXT} shrink-0 text-[13px]`}>{note}</span> : null}
@@ -281,7 +285,7 @@ export function ChoiceTile({ letter, text, look, note, myColor, onPick, compact 
       <div className={`${base} border-[3px] border-[var(--right)] bg-[var(--right-tint)] text-[var(--text)]`}>
         {badge("var(--right)", "var(--right-ink)", letter)}
         {label}
-        <span className={`${TEXT} shrink-0 text-[13px] font-bold uppercase tracking-[0.06em] text-[var(--right)]`}>Answer</span>
+        <span className={`${TEXT} shrink-0 text-[13px] font-bold uppercase tracking-[0.06em] text-[var(--right)]`}>{t.answer}</span>
       </div>
     );
   }
@@ -359,6 +363,7 @@ export interface ScoreRow {
 
 /** A row of chips on phones, a column on desktop (sorted by score there). */
 export function ScoreBoard({ rows }: { rows: ScoreRow[] }) {
+  const t = useText(WORDS);
   const sorted = [...rows].sort((a, b) => b.score - a.score);
   const chip = (row: ScoreRow, desktop: boolean) => (
     <li
@@ -374,7 +379,7 @@ export function ScoreBoard({ rows }: { rows: ScoreRow[] }) {
       <Avatar seat={row.seat} name={row.name} size={desktop ? 36 : 26} locked={row.locked} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className={`${TEXT} truncate font-bold ${desktop ? "text-[15px]" : "text-[12px]"}`} style={{ color: row.active ? "var(--ink)" : "var(--text-muted)" }}>
-          {row.isMe ? (desktop ? `${row.name} (you)` : "You") : row.name}
+          {row.isMe ? (desktop ? t.nameYou(row.name) : t.you) : row.name}
         </span>
         <span className={`${DISPLAY} font-extrabold leading-none ${desktop ? "text-[24px]" : "text-[16px]"}`}>{row.score}</span>
       </span>
@@ -387,10 +392,10 @@ export function ScoreBoard({ rows }: { rows: ScoreRow[] }) {
   );
   return (
     <>
-      <ul aria-label="Scores" className="m-0 grid list-none gap-1.5 p-0 min-[900px]:hidden" style={{ gridTemplateColumns: `repeat(${Math.max(rows.length, 2)}, minmax(0, 1fr))` }}>
+      <ul aria-label={t.scores} className="m-0 grid list-none gap-1.5 p-0 min-[900px]:hidden" style={{ gridTemplateColumns: `repeat(${Math.max(rows.length, 2)}, minmax(0, 1fr))` }}>
         {rows.map((row) => chip(row, false))}
       </ul>
-      <ul aria-label="Scores" className="m-0 hidden list-none flex-col gap-2 p-0 min-[900px]:flex">
+      <ul aria-label={t.scores} className="m-0 hidden list-none flex-col gap-2 p-0 min-[900px]:flex">
         {sorted.map((row) => chip(row, true))}
       </ul>
     </>

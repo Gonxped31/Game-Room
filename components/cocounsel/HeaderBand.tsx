@@ -4,11 +4,12 @@ import BackLink from "./BackLink";
 import PartProgress from "./PartProgress";
 import ThemeToggle from "./ThemeToggle";
 import RulesButton from "./Rules";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface HeaderBandProps {
   role: "investigator" | "defendant";
   characterName: string;
-  roleLabel: string;
   totalParts: number;
   /** 0-based. */
   currentPartIndex: number;
@@ -25,7 +26,6 @@ interface HeaderBandProps {
 export default function HeaderBand({
   role,
   characterName,
-  roleLabel,
   totalParts,
   currentPartIndex,
   partTitle,
@@ -35,6 +35,7 @@ export default function HeaderBand({
   theme,
   onToggleTheme,
 }: HeaderBandProps) {
+  const t = useText(CC_TEXT);
   const bg = role === "investigator" ? COLOR.investigator : COLOR.defendant;
 
   return (
@@ -56,7 +57,7 @@ export default function HeaderBand({
       </div>
       <h1 className="font-[family-name:var(--font-archivo)] text-[27px] font-extrabold leading-[1.1] tracking-[-0.01em]">{partTitle}</h1>
       <p className="m-0 font-[family-name:var(--font-archivo)] text-base font-medium">
-        You&apos;re {characterName}, the {roleLabel}
+        {t.youAre(characterName, role)}
       </p>
     </div>
   );

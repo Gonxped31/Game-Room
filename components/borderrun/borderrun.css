@@ -91,13 +91,22 @@
   white-space: nowrap;
 }
 
+/* The EN/FR switch (components/LangSwitch.tsx): a button in the back link's look. */
+.br-page .br-lang {
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 /* A phone's header holds the back link, the sign, the EN/FR switch and How to play's ?: tighten it so the sign stays whole. */
 @media (max-width: 420px) {
   .br-page .br-header { gap: 8px; }
   .br-page .br-title { padding: 6px 10px 4px; font-size: 22px; }
 }
 
-/* Switches: the mode tabs, the map picker and the EN/FR names switch. */
+/* Switches: the mode tabs, the map picker and the race lobby's settings (`small` is a compact one for a header). */
 .br-page .br-seg {
   display: flex;
   gap: 4px;

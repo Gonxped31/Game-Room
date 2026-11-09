@@ -1,0 +1,854 @@
+{
+  "ruined-birthday": {
+    "id": "ruined-birthday",
+    "tier": "easy",
+    "title": "L'affaire de l'anniversaire gâché",
+    "teaser": "Un repas d'anniversaire. Un invité qui ne vient pas. Vous connaissez chacun la moitié de l'histoire.",
+    "characters": { "investigator": "Maya", "defendant": "Léo" },
+    "parts": [
+      {
+        "n": 1,
+        "title": "La table vide",
+        "screens": {
+          "investigator": {
+            "info": "C'est ton anniversaire. Tu as réservé chez Bellini's pour deux, ce soir à 20 h. Léo n'est jamais venu et n'a répondu à aucun de tes textos, ni à 20 h 15 ni à 20 h 45. À 21 h, tu as marché jusqu'à son appartement et tu l'as trouvé devant son PC, casque sur les oreilles, en pleine partie avec ses amis. En te voyant, il avait l'air plus sous le choc que coupable.",
+            "facts": [
+              { "id": "P1-I1", "text": "Maya a réservé chez Bellini's pour ce soir à 20 h, le soir de son anniversaire." },
+              { "id": "P1-I2", "text": "Léo était en pleine partie, casque sur les oreilles, et avait l'air plus sous le choc que coupable." }
+            ]
+          },
+          "defendant": {
+            "info": "Tu étais en pleine partie en ligne avec tes amis. Quand Maya entre, tu voudrais disparaître sous terre. Tu ne savais pas du tout que le repas, c'était ce soir. Et tu ne peux pas encore t'expliquer : depuis des semaines, tu lui prépares en secret une surprise d'anniversaire, et tu ne veux pas tout gâcher.",
+            "facts": [
+              { "id": "P1-D1", "text": "Léo ne savait pas que le repas était ce soir." },
+              { "id": "P1-D2", "text": "Léo prépare en secret une surprise d'anniversaire pour Maya." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I1", "text": "Il avait l'air sous le choc, pas coupable.", "type": "correct", "contradicts": [] },
+            { "id": "I2", "text": "Il se fiche de mon anniversaire.", "type": "trap", "contradicts": ["P1-D2"] },
+            { "id": "I3", "text": "Il a ignoré mes textos exprès.", "type": "decoy", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D1", "text": "Je ne savais pas du tout que le repas, c'était ce soir.", "type": "correct", "contradicts": [] },
+            { "id": "D2", "text": "J'ai complètement oublié son anniversaire.", "type": "trap", "contradicts": ["P1-D2"] },
+            { "id": "D3", "text": "J'étais trop malade pour venir.", "type": "decoy", "contradicts": ["P1-I2"] }
+          ]
+        },
+        "correct": ["I1", "D1"],
+        "traps": [
+          { "pair": ["I2", "D2"] }
+        ],
+        "theory": "Léo ne savait pas que le repas était ce soir. Reste à savoir pourquoi."
+      },
+      {
+        "n": 2,
+        "title": "Le coéquipier",
+        "screens": {
+          "investigator": {
+            "info": "Pendant que Léo éteint son PC, son téléphone s'allume sur le bureau. Un message de son ami Dave, envoyé à 19 h 15 : « Le tournoi commence dans 15 min. Tu m'as dit que t'étais libre ce soir, nous laisse pas tomber. »",
+            "facts": [
+              { "id": "P2-I1", "text": "Le texto de Dave, à 19 h 15, dit que Léo lui avait déjà annoncé qu'il était libre ce soir." }
+            ]
+          },
+          "defendant": {
+            "info": "Sur ce point, tu décides de jouer franc jeu : il y a quelques jours, tu as dit à Dave que tu étais libre ce soir, parce que tu croyais que le rendez-vous d'anniversaire était samedi à 9 h. Dave n'a fait que te rappeler la partie, à 19 h 15. La surprise, tu la gardes encore secrète.",
+            "facts": [
+              { "id": "P2-D1", "text": "Léo a dit à Dave qu'il était libre parce qu'il croyait que le rendez-vous était samedi à 9 h." },
+              { "id": "P2-D2", "text": "Dave a seulement rappelé la partie à Léo. Il ne l'a dissuadé de rien du tout." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I4", "text": "Dave l'a convaincu de ne pas venir.", "type": "trap", "contradicts": ["P2-D2"] },
+            { "id": "I5", "text": "Léo avait promis sa soirée à Dave avant même que Dave la lui demande.", "type": "correct", "contradicts": [] },
+            { "id": "I6", "text": "Léo m'a menti sur son emploi du temps.", "type": "decoy", "contradicts": ["P2-D1"] }
+          ],
+          "defendant": [
+            { "id": "D4", "text": "Je croyais que l'anniversaire était prévu samedi matin.", "type": "correct", "contradicts": [] },
+            { "id": "D5", "text": "Dave m'a mis la pression pour que je laisse tomber le repas.", "type": "trap", "contradicts": ["P2-I1"] },
+            { "id": "D6", "text": "J'ai prévu deux choses le même soir, exprès.", "type": "decoy", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I5", "D4"],
+        "traps": [
+          { "pair": ["I4", "D5"] }
+        ],
+        "theory": "Léo croyait que c'était samedi matin, et Dave n'y est pour rien. D'où Léo tient-il cette idée ?"
+      },
+      {
+        "n": 3,
+        "title": "L'invitation",
+        "screens": {
+          "investigator": {
+            "info": "Tu demandes à voir l'invitation que tu as envoyée il y a trois semaines. Tu n'as aucun doute : elle disait vendredi à 20 h, et tu ne l'as jamais modifiée. Ton courriel de confirmation le dit encore. Sur l'ordinateur portable de Léo, l'agenda affiche « Anniversaire de Maya 🎂 — Bellini's » samedi à 9 h.",
+            "facts": [
+              { "id": "P3-I1", "text": "Maya a envoyé l'invitation pour vendredi 20 h et ne l'a jamais modifiée." },
+              { "id": "P3-I2", "text": "Sur l'ordinateur de Léo, l'invitation affiche samedi 9 h." }
+            ]
+          },
+          "defendant": {
+            "info": "Tu ouvres ton agenda et tu vois la même chose : samedi, 9 h. Tu n'as jamais touché à l'invitation. Plus tôt ce mois-ci, sur l'ordinateur que vous partagez, tu as cherché et réservé pour Maya un atelier de pâtisserie surprise avec un grand chef, en passant par un VPN réglé sur Tokyo pour qu'elle ne le voie pas dans l'historique. Ton application d'agenda détecte son fuseau horaire automatiquement.",
+            "facts": [
+              { "id": "P3-D1", "text": "Léo n'a jamais modifié l'invitation." },
+              { "id": "P3-D2", "text": "Léo a utilisé un VPN réglé sur Tokyo sur l'ordinateur. Son agenda détecte tout seul son fuseau horaire." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I7", "text": "Sur son écran, l'invitation n'a ni le jour ni l'heure de celle que j'ai envoyée.", "type": "correct", "contradicts": [] },
+            { "id": "I8", "text": "Léo a modifié l'invitation lui-même.", "type": "decoy", "contradicts": ["P3-D1"] },
+            { "id": "I9", "text": "Dave a remplacé mon invitation par une fausse.", "type": "memoryLure", "contradicts": ["P2-D2"] }
+          ],
+          "defendant": [
+            { "id": "D7", "text": "Mon agenda est passé au fuseau de Tokyo quand mon VPN était activé.", "type": "correct", "contradicts": [] },
+            { "id": "D8", "text": "Maya a modifié l'invitation après que je l'ai acceptée.", "type": "trap", "contradicts": ["P3-I1"] },
+            { "id": "D9", "text": "Je n'ai jamais ouvert l'invitation.", "type": "memoryLure", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I7", "D7"],
+        "traps": [
+          { "pair": ["I7", "D8"] },
+          { "pair": ["I9", "D9"] }
+        ]
+      }
+    ],
+    "verdict": {
+      "title": "NON COUPABLE",
+      "text": "Léo ne négligeait pas l'anniversaire de Maya, et Dave ne tirait pas les ficelles. Une surprise secrète, un VPN réglé sur Tokyo et un agenda qui détecte tout seul son fuseau horaire ont fait glisser un repas du vendredi soir au samedi matin. L'atelier de pâtisserie, lui, était bien prévu samedi. Léo doit à Maya un week-end vraiment mémorable."
+    }
+  },
+  "missed-arrival": {
+    "id": "missed-arrival",
+    "tier": "easy",
+    "title": "L'affaire des retrouvailles manquées",
+    "teaser": "Un voyage pour fêter un an ensemble. Un hall des arrivées bondé. Vous connaissez chacun la moitié de l'histoire.",
+    "characters": { "investigator": "Ella", "defendant": "Marco" },
+    "parts": [
+      {
+        "n": 1,
+        "title": "Le hall des arrivées",
+        "screens": {
+          "investigator": {
+            "info": "C'est votre premier anniversaire de couple, et tu as pris l'avion de Lisbonne à Paris pour le passer avec Marco. Il t'a promis de venir te chercher aux arrivées. Ton avion s'est posé à 18 h 40 et tu as attendu une heure dans le hall des arrivées. À chaque appel, tu tombais directement sur sa messagerie. À 20 h 15, tu as pris un taxi jusque chez lui. Son colocataire, Jules, t'a dit que Marco était parti pour l'aéroport à 17 h 30, des fleurs à la main.",
+            "facts": [
+              { "id": "P1-I1", "text": "Ella a atterri à 18 h 40 et a attendu une heure aux arrivées ; le téléphone de Marco tombait sur la messagerie." },
+              { "id": "P1-I2", "text": "Le colocataire de Marco l'a vu partir pour l'aéroport à 17 h 30 avec des fleurs." }
+            ]
+          },
+          "defendant": {
+            "info": "À 18 h 15, tu étais déjà à l'aéroport, des fleurs à la main, pour l'atterrissage d'Ella à 18 h 40. Pendant deux heures, devant les portes des arrivées, tu as scruté chaque visage. La batterie de ton téléphone avait lâché avant 18 h : impossible de l'appeler. Tu ne l'as jamais vue passer.",
+            "facts": [
+              { "id": "P1-D1", "text": "Marco était devant les portes des arrivées dès 18 h 15 pour l'atterrissage d'Ella à 18 h 40." },
+              { "id": "P1-D2", "text": "La batterie du téléphone de Marco a lâché avant 18 h." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I1", "text": "Son colocataire l'a vu partir me chercher.", "type": "correct", "contradicts": [] },
+            { "id": "I2", "text": "Il a oublié que j'arrivais aujourd'hui.", "type": "trap", "contradicts": ["P1-D1"] },
+            { "id": "I3", "text": "Il était sorti avec des amis à la place.", "type": "decoy", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D1", "text": "J'ai attendu deux heures devant les portes des arrivées.", "type": "correct", "contradicts": [] },
+            { "id": "D2", "text": "J'avais noté la mauvaise heure d'atterrissage.", "type": "trap", "contradicts": ["P1-D1"] },
+            { "id": "D3", "text": "Ella a raté son avion.", "type": "decoy", "contradicts": ["P1-I1"] }
+          ]
+        },
+        "correct": ["I1", "D1"],
+        "traps": [
+          { "pair": ["I2", "D2"] }
+        ],
+        "theory": "Marco attendait aux arrivées depuis le début. Alors comment ont-ils pu se rater ?"
+      },
+      {
+        "n": 2,
+        "title": "Le texto",
+        "screens": {
+          "investigator": {
+            "info": "À 21 h 30, Marco rentre, les fleurs fanées, et te regarde, bouche bée. Tu vérifies ton téléphone. Ton dernier message, envoyé à 13 h 12 avant l'embarquement : « Vol annulé !! Nouveau vol, j'atterris toujours à 18 h 40, on se voit aux arrivées ❤️ ». Il ne dit jamais quel aéroport. Il est marqué « distribué », mais pas « lu ».",
+            "facts": [
+              { "id": "P2-I1", "text": "Le texto d'Ella, à 13 h 12, disait que son vol était annulé et remplacé, avec une arrivée toujours à 18 h 40, sans jamais nommer d'aéroport." },
+              { "id": "P2-I2", "text": "Le texto est marqué « distribué », mais pas « lu »." }
+            ]
+          },
+          "defendant": {
+            "info": "En réunion, à midi, tu as jeté un œil à l'aperçu d'un message d'Ella sur ton écran verrouillé : « Vol annulé !! Nouveau vol, j'atterris toujours à 18 h 40 ». Même heure, donc rien ne change, as-tu pensé. Tu n'as jamais ouvert le message. Le soir, tu as filé à Charles-de-Gaulle, l'aéroport où son vol initial devait arriver.",
+            "facts": [
+              { "id": "P2-D1", "text": "Marco n'a vu que l'aperçu sur l'écran verrouillé : « Vol annulé !! Nouveau vol, j'atterris toujours à 18 h 40 »." },
+              { "id": "P2-D2", "text": "Marco est allé à Charles-de-Gaulle, où son vol initial devait arriver." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I4", "text": "Mon message ne précisait aucun aéroport.", "type": "correct", "contradicts": [] },
+            { "id": "I5", "text": "Il a lu mon texto et l'a ignoré.", "type": "trap", "contradicts": ["P2-I2"] },
+            { "id": "I6", "text": "Il ne s'est même pas donné la peine de venir me chercher.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D4", "text": "J'ai filé à Charles-de-Gaulle, celui de sa première réservation.", "type": "correct", "contradicts": [] },
+            { "id": "D5", "text": "Ella m'a donné la mauvaise heure.", "type": "trap", "contradicts": ["P2-I1"] },
+            { "id": "D6", "text": "Je n'ai jamais reçu le moindre message d'elle.", "type": "decoy", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I4", "D4"],
+        "traps": [
+          { "pair": ["I5", "D5"] }
+        ],
+        "theory": "Marco est allé à l'aéroport de son vol initial. Alors, où Ella a-t-elle vraiment atterri ?"
+      },
+      {
+        "n": 3,
+        "title": "L'autre aéroport",
+        "screens": {
+          "investigator": {
+            "info": "Tu ouvres l'application de ta compagnie aérienne. Ton vol initial pour Charles-de-Gaulle a été annulé à midi. La compagnie t'a trouvé une place sur le vol d'un partenaire, qui s'est posé à Orly, à l'heure : 18 h 40. Orly et Charles-de-Gaulle sont de part et d'autre de Paris, à environ une heure de route l'un de l'autre.",
+            "facts": [
+              { "id": "P3-I1", "text": "Le nouveau vol d'Ella s'est posé à Orly, à l'heure, à 18 h 40." },
+              { "id": "P3-I2", "text": "Le vol initial d'Ella pour Charles-de-Gaulle a été annulé." }
+            ]
+          },
+          "defendant": {
+            "info": "À Charles-de-Gaulle, le tableau des arrivées indiquait son vol initial comme annulé. Tu as supposé que le vol de remplacement arriverait au même aéroport, et tu as guetté chaque vol en provenance de Lisbonne. Téléphone à plat, tu n'avais aucun moyen de vérifier où elle était vraiment.",
+            "facts": [
+              { "id": "P3-D1", "text": "Marco a vu son vol initial affiché « annulé » et a supposé que le vol de remplacement atterrirait au même aéroport." },
+              { "id": "P3-D2", "text": "Téléphone à plat, Marco ne pouvait pas vérifier où était Ella." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I7", "text": "Mon vol de remplacement est arrivé à Orly.", "type": "correct", "contradicts": [] },
+            { "id": "I8", "text": "Il savait que j'étais à Orly et il n'est pas venu.", "type": "decoy", "contradicts": ["P3-D1"] },
+            { "id": "I9", "text": "Il n'a pas quitté son appartement de la soirée.", "type": "memoryLure", "contradicts": ["P1-I2"] }
+          ],
+          "defendant": [
+            { "id": "D7", "text": "J'ai supposé que le nouveau vol arriverait là où le premier était prévu.", "type": "correct", "contradicts": [] },
+            { "id": "D8", "text": "Son nouveau vol a atterri en retard.", "type": "trap", "contradicts": ["P3-I1"] },
+            { "id": "D9", "text": "Je ne savais pas que son vol avait été annulé.", "type": "memoryLure", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I7", "D7"],
+        "traps": [
+          { "pair": ["I7", "D8"] },
+          { "pair": ["I9", "D9"] }
+        ]
+      }
+    ],
+    "verdict": {
+      "title": "NON COUPABLE",
+      "text": "Marco n'a pas posé de lapin à Ella. Un vol annulé, un nouveau vol vers l'autre aéroport de Paris, un texto lu seulement en aperçu et un téléphone à plat ont mis une heure de route entre les fleurs et la valise, qui attendaient chacune de leur côté aux arrivées. Il lui doit un chargeur. Elle lui doit un mot de plus dans son prochain texto : Orly."
+    }
+  },
+  "midnight-playlist": {
+    "id": "midnight-playlist",
+    "tier": "medium",
+    "title": "L'affaire de la playlist de minuit",
+    "teaser": "Une playlist de chansons d'amour que personne ne se souvient d'avoir créée. Vous connaissez chacun la moitié de l'histoire.",
+    "characters": { "investigator": "Elena", "defendant": "Julian" },
+    "parts": [
+      {
+        "n": 1,
+        "title": "La playlist",
+        "screens": {
+          "investigator": {
+            "info": "Dimanche matin, tu empruntes la tablette de Julian pour mettre de la musique. Sur son compte, tu trouves une nouvelle playlist intitulée « Pour Clara 💕 » : 24 chansons d'amour, créée mardi à 2 h 14. Julian travaille avec une femme qui s'appelle Clara. Quand tu lui poses la question, il devient blême et affirme qu'il ne l'a jamais vue.",
+            "facts": [
+              { "id": "P1-I1", "text": "Le compte de Julian contient une playlist intitulée « Pour Clara 💕 », créée mardi à 2 h 14." },
+              { "id": "P1-I2", "text": "Julian travaille avec une femme qui s'appelle Clara." }
+            ]
+          },
+          "defendant": {
+            "info": "Tu n'as vraiment jamais vu cette playlist. Le suivi du sommeil de ta montre indique que tu dormais de 23 h 28 lundi à 6 h 50 mardi. Tu caches une seule chose : jeudi dernier, tu as mangé le midi avec Clara, de la comptabilité, à la cafétéria du bureau. Elle t'a donné des conseils pour demander une augmentation. Ça te gênait, alors tu n'en as pas parlé à Elena.",
+            "facts": [
+              { "id": "P1-D1", "text": "D'après sa montre, Julian dormait de 23 h 28 lundi à 6 h 50 mardi." },
+              { "id": "P1-D2", "text": "Jeudi dernier, Julian a mangé le midi avec Clara, de la comptabilité, à la cafétéria du bureau, sans le dire à Elena." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I1", "text": "Il avait l'air de la découvrir pour la première fois.", "type": "correct", "contradicts": [] },
+            { "id": "I2", "text": "Il l'a créée pour Clara en pleine nuit.", "type": "trap", "contradicts": ["P1-D1"] },
+            { "id": "I3", "text": "Il l'a créée pour me faire une surprise.", "type": "decoy", "contradicts": ["P1-I1"] }
+          ],
+          "defendant": [
+            { "id": "D1", "text": "Je dormais à poings fermés quand elle a été créée.", "type": "correct", "contradicts": [] },
+            { "id": "D2", "text": "J'ai caché mes repas avec Clara.", "type": "trap", "contradicts": [] },
+            { "id": "D3", "text": "Cette nuit-là, je travaillais tard.", "type": "decoy", "contradicts": ["P1-D1"] }
+          ]
+        },
+        "correct": ["I1", "D1"],
+        "traps": [
+          { "pair": ["I2", "D2"] }
+        ],
+        "theory": "Julian dormait quand la playlist a été créée. Alors qui l'a créée, sur son compte ?"
+      },
+      {
+        "n": 2,
+        "title": "La collègue",
+        "screens": {
+          "investigator": {
+            "info": "Tu cherches la Clara du bureau de Julian : Clara Mendes. Ses photos publiques montrent qu'elle a passé toute la semaine de la playlist à Lisbonne, au mariage de sa sœur. Une légende mentionne son fiancé.",
+            "facts": [
+              { "id": "P2-I1", "text": "Clara Mendes a passé toute la semaine de la playlist à Lisbonne, au mariage de sa sœur." },
+              { "id": "P2-I2", "text": "Clara Mendes est fiancée." }
+            ]
+          },
+          "defendant": {
+            "info": "Clara Mendes est la seule Clara avec qui tu aies jamais travaillé. Tu ne lui as jamais écrit en dehors du travail, et tu ne la suis nulle part en ligne.",
+            "facts": [
+              { "id": "P2-D1", "text": "Clara Mendes est la seule Clara avec qui Julian travaille." },
+              { "id": "P2-D2", "text": "Julian n'a jamais été en contact avec Clara Mendes en dehors du travail." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I4", "text": "Sa collègue était partie à un mariage toute cette semaine-là.", "type": "correct", "contradicts": [] },
+            { "id": "I5", "text": "Elle lui a envoyé les chansons depuis Lisbonne.", "type": "trap", "contradicts": ["P2-D2"] },
+            { "id": "I6", "text": "Il a veillé tard à lui écrire.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D4", "text": "Je ne l'ai jamais contactée en dehors du bureau.", "type": "correct", "contradicts": [] },
+            { "id": "D5", "text": "Ça doit être une autre Clara du bureau.", "type": "trap", "contradicts": ["P2-D1"] },
+            { "id": "D6", "text": "J'ai créé la playlist dans un demi-sommeil.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ]
+        },
+        "correct": ["I4", "D4"],
+        "traps": [
+          { "pair": ["I5", "D5"] },
+          { "pair": ["I6", "D6"] }
+        ],
+        "theory": "La collègue n'y est pour rien. Quelqu'un d'autre utilise le compte de Julian."
+      },
+      {
+        "n": 3,
+        "title": "Les appareils",
+        "screens": {
+          "investigator": {
+            "info": "Dans les paramètres du compte, tu ouvres la liste des appareils connectés : le téléphone de Julian, sa tablette, et un téléphone nommé « Pixel d'Ivo », actif pour la dernière fois mardi à 2 h 16. Ivo est le petit frère de Julian. Il a déménagé à Vancouver l'été dernier.",
+            "facts": [
+              { "id": "P3-I1", "text": "Un téléphone nommé « Pixel d'Ivo » est connecté au compte de Julian, actif pour la dernière fois mardi à 2 h 16." },
+              { "id": "P3-I2", "text": "Ivo, le petit frère de Julian, a déménagé à Vancouver l'été dernier." }
+            ]
+          },
+          "defendant": {
+            "info": "L'été dernier, quand Ivo a déménagé à Vancouver et qu'il était à court d'argent, tu lui as donné le mot de passe de ton compte de musique pour qu'il profite de ton abonnement payant. Tu avais complètement oublié qu'il était encore connecté.",
+            "facts": [
+              { "id": "P3-D1", "text": "Julian a donné à Ivo le mot de passe de son compte de musique l'été dernier." },
+              { "id": "P3-D2", "text": "Julian avait oublié qu'Ivo était encore connecté." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I7", "text": "Un téléphone nommé « Pixel d'Ivo » était actif sur le compte cette nuit-là.", "type": "correct", "contradicts": [] },
+            { "id": "I8", "text": "Ivo a piraté le compte.", "type": "trap", "contradicts": ["P3-D1"] },
+            { "id": "I9", "text": "Julian l'a créée sur son téléphone et il a menti.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D7", "text": "L'été dernier, j'ai confié mes identifiants à mon petit frère, et je ne les ai jamais récupérés.", "type": "correct", "contradicts": [] },
+            { "id": "D8", "text": "Quelqu'un a deviné mon mot de passe.", "type": "trap", "contradicts": ["P3-D1"] },
+            { "id": "D9", "text": "Clara Mendes a dû se connecter à mon compte.", "type": "memoryLure", "contradicts": ["P2-D2"] }
+          ]
+        },
+        "correct": ["I7", "D7"],
+        "traps": [
+          { "pair": ["I8", "D8"] },
+          { "pair": ["I9", "D9"] }
+        ],
+        "theory": "C'est Ivo qui a créé la playlist sur le compte de Julian. Mais qui est cette Clara ?"
+      },
+      {
+        "n": 4,
+        "title": "L'autre Clara",
+        "screens": {
+          "investigator": {
+            "info": "Sur le profil public d'Ivo, une photo de mars : Ivo avec une femme souriante, et la légende « deux mois avec ma Clara ❤️ ». Elle s'appelle Clara Novak. Tu remarques aussi que le 2 h 14 de la playlist est affiché à l'heure de Montréal, où Julian et toi vivez.",
+            "facts": [
+              { "id": "P4-I1", "text": "Ivo sort avec une femme qui s'appelle Clara Novak." },
+              { "id": "P4-I2", "text": "L'heure de création de la playlist, 2 h 14, est affichée à l'heure de Montréal." }
+            ]
+          },
+          "defendant": {
+            "info": "Tu appelles Ivo. Penaud, il avoue avoir créé la playlist lundi soir à 23 h 14, heure de chez lui, pour l'anniversaire de sa petite amie, sans jamais remarquer que c'était ton compte. Vancouver a trois heures de retard sur Montréal.",
+            "facts": [
+              { "id": "P4-D1", "text": "Ivo a créé la playlist lundi à 23 h 14, heure de Vancouver, pour l'anniversaire de sa petite amie." },
+              { "id": "P4-D2", "text": "Vancouver a trois heures de retard sur Montréal." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I10", "text": "La petite amie d'Ivo s'appelle Clara.", "type": "correct", "contradicts": [] },
+            { "id": "I11", "text": "Ivo l'a créée en pleine nuit.", "type": "trap", "contradicts": ["P4-D1"] },
+            { "id": "I12", "text": "Julian l'a créée pour la petite amie d'Ivo.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D10", "text": "Pour mon frère, il n'était que 23 h 14.", "type": "correct", "contradicts": [] },
+            { "id": "D11", "text": "Ivo l'a créée pour la Clara de mon bureau.", "type": "trap", "contradicts": ["P4-I1"] },
+            { "id": "D12", "text": "Je l'ai créée et j'ai demandé à Ivo de me couvrir.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ]
+        },
+        "correct": ["I10", "D10"],
+        "traps": [
+          { "pair": ["I11", "D11"] },
+          { "pair": ["I12", "D12"] }
+        ]
+      }
+    ],
+    "verdict": {
+      "title": "NON COUPABLE",
+      "text": "Julian ne composait pas de playlist d'amour pour sa collègue à 2 h du matin. Son frère Ivo, toujours connecté au compte de musique de Julian depuis l'été dernier, a créé « Pour Clara 💕 » pour sa propre petite amie, Clara Novak, à 23 h 14, une heure tout à fait raisonnable à Vancouver, que le compte de Julian affichait comme 2 h 14 à Montréal. Julian change son mot de passe. Ivo lui doit un mois d'abonnement, et à Elena, une playlist d'excuses."
+    }
+  },
+  "empty-frame": {
+    "id": "empty-frame",
+    "tier": "medium",
+    "title": "L'affaire du cadre vide",
+    "teaser": "Le plus beau tableau d'une galerie a disparu, et le code du gardien de nuit figure dans le journal de l'alarme. Vous connaissez chacun la moitié de l'histoire.",
+    "characters": { "investigator": "Rosa", "defendant": "Félix" },
+    "parts": [
+      {
+        "n": 1,
+        "title": "Le cadre vide",
+        "screens": {
+          "investigator": {
+            "info": "Lundi, 8 h. Tu ouvres ta galerie et tu découvres le cadre de « Blue Harbor », ton tableau le plus précieux, suspendu vide : la toile a disparu. Le journal de l'alarme indique qu'elle a été désactivée de 1 h 52 à 1 h 58 avec le code de Félix. Félix, ton gardien de nuit, était de service de 22 h à 6 h.",
+            "facts": [
+              { "id": "P1-I1", "text": "Lundi à 8 h, la toile de « Blue Harbor » avait disparu de son cadre." },
+              { "id": "P1-I2", "text": "L'alarme a été désactivée de 1 h 52 à 1 h 58 avec le code de Félix, pendant son service." }
+            ]
+          },
+          "defendant": {
+            "info": "À 1 h 52, le capteur de la porte arrière s'est encore déclenché, comme souvent les nuits de grand vent ; tu as donc désactivé l'alarme pour aller vérifier la ruelle. La porte arrière était fermée à clé. Tu as réactivé l'alarme à ton retour, à 1 h 58. Tu n'as jamais mis les pieds près de « Blue Harbor ».",
+            "facts": [
+              { "id": "P1-D1", "text": "Félix a désactivé l'alarme parce que le capteur de la porte arrière s'est déclenché, comme souvent les nuits de grand vent." },
+              { "id": "P1-D2", "text": "Félix a trouvé la porte arrière fermée à clé, et a réactivé l'alarme à 1 h 58." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I1", "text": "Ces six minutes ont été la seule coupure de l'alarme de toute la nuit.", "type": "correct", "contradicts": [] },
+            { "id": "I2", "text": "Il a coupé l'alarme exprès pour le voler.", "type": "trap", "contradicts": ["P1-D1"] },
+            { "id": "I3", "text": "L'alarme ne s'est jamais déclenchée.", "type": "decoy", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D1", "text": "Le capteur arrière s'est déclenché, alors je l'ai coupé pour aller voir.", "type": "correct", "contradicts": [] },
+            { "id": "D2", "text": "Quelqu'un a dû me voir taper mon code.", "type": "trap", "contradicts": [] },
+            { "id": "D3", "text": "Rosa a oublié d'activer l'alarme.", "type": "decoy", "contradicts": ["P1-I2"] }
+          ]
+        },
+        "correct": ["I1", "D1"],
+        "traps": [
+          { "pair": ["I2", "D2"] }
+        ],
+        "theory": "Félix avait une vraie raison de couper l'alarme. Mais quelqu'un a profité de ces six minutes."
+      },
+      {
+        "n": 2,
+        "title": "La camionnette dans la ruelle",
+        "screens": {
+          "investigator": {
+            "info": "La boulangerie de l'autre côté de la ruelle a une caméra. On y voit une camionnette blanche garée derrière ta galerie de 1 h 50 à 2 h 01. Seule la fin de la plaque est lisible : « …47K ». On ne voit personne forcer une porte.",
+            "facts": [
+              { "id": "P2-I1", "text": "Une camionnette blanche dont la plaque finit par « 47K » était garée derrière la galerie de 1 h 50 à 2 h 01." },
+              { "id": "P2-I2", "text": "La caméra ne montre personne en train de forcer une porte." }
+            ]
+          },
+          "defendant": {
+            "info": "Pour vérifier la ruelle, tu as pris la porte d'entrée à 1 h 53 et fait le tour du pâté de maisons. En partant, tu as entendu le loquet de la porte arrière cliquer derrière toi, mais tu as mis ça sur le compte du vent. Dans la ruelle, un homme en casquette, debout près d'une camionnette blanche, t'a dit qu'il avait une livraison pour la boulangerie.",
+            "facts": [
+              { "id": "P2-D1", "text": "En sortant par la porte d'entrée à 1 h 53, Félix a entendu cliquer le loquet de la porte arrière, et a cru que c'était le vent." },
+              { "id": "P2-D2", "text": "Dans la ruelle, le chauffeur de la camionnette a dit à Félix qu'il avait une livraison pour la boulangerie." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I4", "text": "Une camionnette est restée garée derrière la galerie pendant toute la coupure.", "type": "correct", "contradicts": [] },
+            { "id": "I5", "text": "Le voleur a forcé la porte arrière.", "type": "trap", "contradicts": ["P2-I2"] },
+            { "id": "I6", "text": "Félix n'a jamais désactivé l'alarme.", "type": "memoryLure", "contradicts": ["P1-I2"] }
+          ],
+          "defendant": [
+            { "id": "D4", "text": "En sortant par l'entrée, j'ai entendu le loquet arrière cliquer.", "type": "correct", "contradicts": [] },
+            { "id": "D5", "text": "Personne n'était garé derrière, cette nuit-là.", "type": "trap", "contradicts": ["P2-I1"] },
+            { "id": "D6", "text": "La porte arrière était grande ouverte quand j'ai vérifié.", "type": "memoryLure", "contradicts": ["P1-D2"] }
+          ]
+        },
+        "correct": ["I4", "D4"],
+        "traps": [
+          { "pair": ["I5", "D5"] },
+          { "pair": ["I6", "D6"] }
+        ],
+        "theory": "Quelqu'un a déverrouillé la porte arrière pendant que Félix était devant, puis est reparti en camionnette. Cette personne avait une clé."
+      },
+      {
+        "n": 3,
+        "title": "Les clés",
+        "screens": {
+          "investigator": {
+            "info": "Il n'existe que trois clés de la porte arrière : la tienne, celle de Félix, et une prêtée à Hugo Lambert, l'encadreur qui a refait le cadre de « Blue Harbor » ce mois-ci et qui vient parfois chercher des œuvres la nuit. Hugo conduit une camionnette blanche. Sa plaque finit par 47K.",
+            "facts": [
+              { "id": "P3-I1", "text": "Seuls Rosa, Félix et l'encadreur Hugo Lambert ont une clé de la porte arrière." },
+              { "id": "P3-I2", "text": "Hugo conduit une camionnette blanche dont la plaque finit par « 47K »." }
+            ]
+          },
+          "defendant": {
+            "info": "Ta clé n'a jamais quitté ta ceinture ; tu l'as montrée à la police. Il y a deux semaines, en passant récupérer une œuvre de nuit, Hugo a fait la conversation avec toi : il t'a demandé à quelle heure tu faisais ta ronde, et si le capteur arrière faisait encore des siennes. Tu lui as répondu : vers 2 h, et oui, chaque nuit de grand vent.",
+            "facts": [
+              { "id": "P3-D1", "text": "La clé de Félix n'a jamais quitté sa ceinture." },
+              { "id": "P3-D2", "text": "Il y a deux semaines, Félix a dit à Hugo que le capteur arrière se déclenche les nuits de grand vent, vers 2 h." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I7", "text": "L'encadreur a une clé et une camionnette qui correspond à la caméra.", "type": "correct", "contradicts": [] },
+            { "id": "I8", "text": "Félix a prêté sa clé au chauffeur.", "type": "trap", "contradicts": ["P3-D1"] },
+            { "id": "I9", "text": "La porte arrière a été forcée.", "type": "memoryLure", "contradicts": ["P2-I2"] }
+          ],
+          "defendant": [
+            { "id": "D7", "text": "Hugo savait exactement quand ce capteur me ferait sortir.", "type": "correct", "contradicts": [] },
+            { "id": "D8", "text": "Rosa a tout mis en scène elle-même.", "type": "trap", "contradicts": [] },
+            { "id": "D9", "text": "J'ai réactivé l'alarme avant que quiconque puisse entrer.", "type": "memoryLure", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I7", "D7"],
+        "traps": [
+          { "pair": ["I8", "D8"] },
+          { "pair": ["I9", "D9"] }
+        ],
+        "theory": "Hugo avait une clé, la bonne camionnette, et savait quand Félix sortirait. Mais pourquoi voler un tableau qui venait de passer par son atelier ?"
+      },
+      {
+        "n": 4,
+        "title": "La copie",
+        "screens": {
+          "investigator": {
+            "info": "La police fouille l'atelier d'Hugo et trouve une toile de « Blue Harbor » roulée dans un tube. Selon le labo, c'est une copie habile, peinte il y a moins de trois semaines. « Blue Harbor » est revenu de chez Hugo, dans son nouveau cadre, neuf jours avant le vol.",
+            "facts": [
+              { "id": "P4-I1", "text": "La toile trouvée dans l'atelier d'Hugo est une copie peinte il y a moins de trois semaines." },
+              { "id": "P4-I2", "text": "« Blue Harbor » est revenu de l'encadrement chez Hugo neuf jours avant le vol." }
+            ]
+          },
+          "defendant": {
+            "info": "Le soir où le tableau est revenu de chez l'encadreur, tu as remarqué pendant ta ronde une légère odeur de peinture fraîche près de lui. Tu as mis ça sur le compte du vernis du nouveau cadre. Depuis, tu le trouves étrangement éclatant.",
+            "facts": [
+              { "id": "P4-D1", "text": "Le soir où « Blue Harbor » est revenu de chez l'encadreur, Félix a senti une odeur de peinture fraîche près du tableau." },
+              { "id": "P4-D2", "text": "Félix a mis l'odeur sur le compte du vernis du nouveau cadre." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I10", "text": "Ce qu'Hugo avait roulé dans un tube est une copie récente.", "type": "correct", "contradicts": [] },
+            { "id": "I11", "text": "Hugo s'apprêtait à remplacer l'original par la copie.", "type": "trap", "contradicts": ["P4-D1"] },
+            { "id": "I12", "text": "Félix a fait entrer Hugo par derrière.", "type": "memoryLure", "contradicts": ["P2-D1"] }
+          ],
+          "defendant": [
+            { "id": "D10", "text": "À son retour de l'encadrement, il sentait la peinture fraîche.", "type": "correct", "contradicts": [] },
+            { "id": "D11", "text": "Hugo avait une clé et la camionnette qui correspond.", "type": "trap", "contradicts": [] },
+            { "id": "D12", "text": "L'alarme est restée activée toute la nuit.", "type": "memoryLure", "contradicts": ["P1-I2"] }
+          ]
+        },
+        "correct": ["I10", "D10"],
+        "traps": [
+          { "pair": ["I11", "D11"] },
+          { "pair": ["I12", "D12"] }
+        ],
+        "theory": "Le tableau volé lundi était déjà la copie. Hugo les a échangés en refaisant le cadre. Alors, où est l'original ?"
+      },
+      {
+        "n": 5,
+        "title": "L'expertise",
+        "screens": {
+          "investigator": {
+            "info": "Ton agenda montre que l'expert de l'assureur devait venir mardi matin, le lendemain du vol. La police découvre aussi qu'Hugo a loué un local de stockage le lendemain du jour où « Blue Harbor » est revenu de son atelier. À l'intérieur, enveloppé dans une couverture : l'original.",
+            "facts": [
+              { "id": "P5-I1", "text": "L'expert de l'assureur devait venir mardi, le lendemain du vol." },
+              { "id": "P5-I2", "text": "Hugo a loué un local de stockage le lendemain du jour où il a rendu le tableau ; l'original s'y trouve." }
+            ]
+          },
+          "defendant": {
+            "info": "Dimanche soir, Hugo a appelé la ligne de nuit pour savoir si tu travaillais cette nuit-là. Tu as dit oui. Il y a des années, tu surveillais un musée, et tu sais que les experts analysent la peinture : une copie fraîche ne serait jamais passée.",
+            "facts": [
+              { "id": "P5-D1", "text": "Dimanche soir, Hugo a appelé pour savoir si Félix travaillait cette nuit-là." },
+              { "id": "P5-D2", "text": "Félix sait que les experts analysent la peinture, ce qui trahirait une copie récente." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I13", "text": "L'expertise était prévue dès le lendemain matin.", "type": "correct", "contradicts": [] },
+            { "id": "I14", "text": "L'original est resté accroché dans la galerie jusqu'à lundi soir.", "type": "memoryLure", "contradicts": ["P4-D1"] },
+            { "id": "I15", "text": "Hugo voulait toucher l'argent de l'assurance.", "type": "trap", "contradicts": [] }
+          ],
+          "defendant": [
+            { "id": "D13", "text": "Un spécialiste aurait analysé la peinture et repéré le faux.", "type": "correct", "contradicts": [] },
+            { "id": "D14", "text": "Hugo a vérifié que je serais de service.", "type": "trap", "contradicts": [] },
+            { "id": "D15", "text": "J'ai donné ma clé au chauffeur.", "type": "memoryLure", "contradicts": ["P3-D1"] }
+          ]
+        },
+        "correct": ["I13", "D13"],
+        "traps": [
+          { "pair": ["I15", "D14"] },
+          { "pair": ["I14", "D15"] }
+        ]
+      }
+    ],
+    "verdict": {
+      "title": "NON COUPABLE",
+      "text": "Félix n'a pas volé « Blue Harbor ». En refaisant son cadre, Hugo Lambert a gardé l'original, renvoyé une copie toute fraîche, et caché l'original dans un local de stockage. Comme un expert devait venir mardi et analyser la peinture, il a utilisé sa clé de la porte arrière pour reprendre la copie pendant les six minutes où, il le savait, le capteur défectueux ferait sortir Félix. L'original rentre à la maison. Rosa fait réparer le capteur et changer les serrures."
+    }
+  },
+  "unlocked-session": {
+    "id": "unlocked-session",
+    "tier": "hard",
+    "title": "L'affaire de l'écran déverrouillé",
+    "teaser": "Un rein issu d'un don a été attribué au mauvais patient, et le nom d'un seul médecin figure sur tous les dossiers. Vous connaissez chacun la moitié de l'histoire.",
+    "characters": { "investigator": "Inès", "defendant": "Karim" },
+    "parts": [
+      {
+        "n": 1,
+        "title": "L'alerte",
+        "screens": {
+          "investigator": {
+            "info": "Tu diriges le service de conformité de l'hôpital Saint-Columba, à Ottawa. L'audit de lundi signale la greffe de samedi : un rein issu d'un don est allé au patient en 38e position sur la liste d'attente, au lieu de celui en 1re position. L'attribution a été approuvée avec le compte du docteur Karim Benali, samedi à 3 h 12. La responsable de l'unité, la docteure Helena Voss, a suspendu Karim en attendant l'enquête.",
+            "facts": [
+              { "id": "P1-I1", "text": "Le rein est allé au patient en 38e position sur la liste d'attente ; l'attribution a été approuvée avec le compte de Karim samedi à 3 h 12." },
+              { "id": "P1-I2", "text": "La docteure Voss a suspendu Karim en attendant l'enquête." }
+            ]
+          },
+          "defendant": {
+            "info": "Tu as quitté l'hôpital vendredi à 23 h 04, après une journée de 14 heures, pour rentrer chez toi. Tu n'as rien approuvé samedi. Tu caches aussi quelque chose : tu as postulé dans un hôpital de Montréal, et personne à Saint-Columba n'est au courant.",
+            "facts": [
+              { "id": "P1-D1", "text": "Karim a quitté l'hôpital vendredi à 23 h 04 et n'a rien approuvé cette nuit-là." },
+              { "id": "P1-D2", "text": "Karim a postulé en secret pour un poste à Montréal." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I1", "text": "Le dossier montre son compte, pas qui était au clavier.", "type": "correct", "contradicts": [] },
+            { "id": "I2", "text": "Il a contourné la liste d'attente pour quelqu'un qu'il connaissait.", "type": "trap", "contradicts": ["P1-D1"] },
+            { "id": "I3", "text": "Ce n'était qu'une erreur de saisie, rien de plus.", "type": "decoy", "contradicts": ["P1-I1"] }
+          ],
+          "defendant": [
+            { "id": "D1", "text": "J'étais chez moi quand cette approbation a été validée.", "type": "correct", "contradicts": [] },
+            { "id": "D2", "text": "Je m'en vais de toute façon, alors les règles importaient peu.", "type": "trap", "contradicts": ["P1-D1"] },
+            { "id": "D3", "text": "Il n'y a eu aucune greffe cette nuit-là.", "type": "decoy", "contradicts": ["P1-I1"] }
+          ]
+        },
+        "correct": ["I1", "D1"],
+        "traps": [
+          { "pair": ["I2", "D2"] }
+        ],
+        "theory": "Quelqu'un a approuvé la greffe au nom de Karim pendant qu'il était chez lui. Qui, et comment ?"
+      },
+      {
+        "n": 2,
+        "title": "La session ouverte",
+        "screens": {
+          "investigator": {
+            "info": "Les journaux informatiques montrent que l'approbation vient du poste ICU-07, aux soins intensifs, dans une session ouverte vendredi à 22 h 51 et jamais fermée. Le badge de Karim indique qu'il a quitté le bâtiment à 23 h 04.",
+            "facts": [
+              { "id": "P2-I1", "text": "L'approbation vient du poste ICU-07, dans une session ouverte vendredi à 22 h 51 et jamais fermée." },
+              { "id": "P2-I2", "text": "Le badge de Karim indique qu'il a quitté le bâtiment à 23 h 04." }
+            ]
+          },
+          "defendant": {
+            "info": "Ça te revient maintenant : à 22 h 51, tu as ouvert ta session sur ICU-07 pour signer un dossier, puis un appel de la salle des familles t'a fait quitter le poste sans fermer ta session. Depuis la mise à jour informatique de la semaine dernière, les écrans des soins intensifs ne se verrouillent plus tout seuls. Tu l'as signalé au service informatique mercredi.",
+            "facts": [
+              { "id": "P2-D1", "text": "Karim a ouvert sa session sur ICU-07 à 22 h 51 et est parti sans la fermer." },
+              { "id": "P2-D2", "text": "Depuis une mise à jour informatique, les postes des soins intensifs ne se verrouillent plus tout seuls ; Karim l'a signalé mercredi." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I4", "text": "L'approbation vient d'un poste qu'il avait quitté des heures plus tôt.", "type": "correct", "contradicts": [] },
+            { "id": "I5", "text": "Il s'est connecté à distance depuis chez lui.", "type": "trap", "contradicts": ["P2-I1"] },
+            { "id": "I6", "text": "Il est revenu à l'hôpital pendant la nuit.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D4", "text": "J'ai laissé ICU-07 avec ma session ouverte, et l'écran ne s'est jamais verrouillé.", "type": "correct", "contradicts": [] },
+            { "id": "D5", "text": "Quelqu'un m'a volé mon mot de passe.", "type": "trap", "contradicts": ["P2-D1"] },
+            { "id": "D6", "text": "Je l'ai approuvée par accident en signant le dossier.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ]
+        },
+        "correct": ["I4", "D4"],
+        "traps": [
+          { "pair": ["I5", "D5"] },
+          { "pair": ["I6", "D6"] }
+        ],
+        "theory": "Quelqu'un a utilisé la session ouverte de Karim sur ICU-07 à 3 h 12. Qui était aux soins intensifs à cette heure-là ?"
+      },
+      {
+        "n": 3,
+        "title": "L'équipe de nuit",
+        "screens": {
+          "investigator": {
+            "info": "Les badges de l'aile des soins intensifs cette nuit-là : l'infirmière de nuit, Pauline Roy, en service depuis 19 h. Viktor Lenz, employé des archives médicales, entré à 2 h 55 et sorti à 3 h 20. La docteure Voss, entrée à 3 h 40. Et un nouvel élément venu de la banque : 15 000 $ sont arrivés sur le compte de Karim lundi.",
+            "facts": [
+              { "id": "P3-I1", "text": "Viktor Lenz, employé des archives, a badgé à l'entrée de l'aile des soins intensifs à 2 h 55, et à la sortie à 3 h 20." },
+              { "id": "P3-I2", "text": "La docteure Voss n'a badgé à l'entrée de l'aile des soins intensifs qu'à 3 h 40." },
+              { "id": "P3-I3", "text": "15 000 $ sont arrivés sur le compte de Karim lundi." }
+            ]
+          },
+          "defendant": {
+            "info": "Pauline t'a téléphoné ce matin : Viktor s'est présenté dans le service vers 3 h « pour récupérer des formulaires », ce que les employés des archives ne font jamais la nuit. Quant à l'argent : c'est l'héritage de ta défunte mère, débloqué par le notaire lundi. Au travail, personne ne sait qu'elle est décédée.",
+            "facts": [
+              { "id": "P3-D1", "text": "Pauline a dit à Karim que Viktor était venu dans le service vers 3 h « pour récupérer des formulaires », ce que les employés des archives ne font jamais la nuit." },
+              { "id": "P3-D2", "text": "Les 15 000 $ sont l'héritage de la mère de Karim, débloqué lundi." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I7", "text": "Viktor était dans l'aile au moment de l'approbation.", "type": "correct", "contradicts": [] },
+            { "id": "I8", "text": "Les 15 000 $, c'était son paiement.", "type": "trap", "contradicts": ["P3-D2"] },
+            { "id": "I9", "text": "Karim s'est faufilé à l'intérieur par l'entrée du personnel.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D7", "text": "Pauline dit qu'il n'avait rien à faire dans le service à cette heure-là.", "type": "correct", "contradicts": [] },
+            { "id": "D8", "text": "Je ne peux pas expliquer cet argent.", "type": "trap", "contradicts": ["P3-D2"] },
+            { "id": "D9", "text": "J'étais encore dans le service quand Viktor est arrivé.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ]
+        },
+        "correct": ["I7", "D7"],
+        "traps": [
+          { "pair": ["I8", "D8"] },
+          { "pair": ["I9", "D9"] }
+        ],
+        "theory": "Un employé des archives était dans le service à 3 h 12 sans raison, et l'argent est un héritage. Mais pourquoi un employé des archives détournerait-il un rein ?"
+      },
+      {
+        "n": 4,
+        "title": "Le transporteur",
+        "screens": {
+          "investigator": {
+            "info": "Registre des transports : le rein est parti à 4 h 05 avec SwiftMed Couriers, et non avec le service de transport habituel de l'hôpital. Le bordereau de SwiftMed indique comme destination la clinique Lumen, une clinique privée, pas un centre public de transplantation.",
+            "facts": [
+              { "id": "P4-I1", "text": "Le rein est parti à 4 h 05 avec SwiftMed Couriers au lieu du transport habituel de l'hôpital." },
+              { "id": "P4-I2", "text": "Le bordereau de SwiftMed indique comme destination la clinique Lumen, une clinique privée." }
+            ]
+          },
+          "defendant": {
+            "info": "Ce nom te dit quelque chose : SwiftMed est dirigée par le beau-frère de Viktor. Viktor s'en est vanté à la fête de fin d'année du personnel. Et pour réserver le transport d'un organe, il faut un compte de coordinateur, comme celui que tu as laissé ouvert.",
+            "facts": [
+              { "id": "P4-D1", "text": "SwiftMed est dirigée par le beau-frère de Viktor ; Viktor s'en est vanté à la fête de fin d'année." },
+              { "id": "P4-D2", "text": "Pour réserver le transport d'un organe, il faut un compte de coordinateur." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I10", "text": "Le rein est parti vers une clinique privée par un transporteur externe.", "type": "correct", "contradicts": [] },
+            { "id": "I11", "text": "Le transporteur s'est simplement trompé d'adresse.", "type": "trap", "contradicts": ["P4-I2"] },
+            { "id": "I12", "text": "Karim a organisé tout le transfert lui-même.", "type": "memoryLure", "contradicts": ["P1-D1"] }
+          ],
+          "defendant": [
+            { "id": "D10", "text": "Le beau-frère de Viktor dirige cette entreprise.", "type": "correct", "contradicts": [] },
+            { "id": "D11", "text": "J'ai laissé ma session ouverte sur ICU-07.", "type": "trap", "contradicts": [] },
+            { "id": "D12", "text": "Cet argent prouve qu'on m'a versé un pot-de-vin.", "type": "memoryLure", "contradicts": ["P3-D2"] }
+          ]
+        },
+        "correct": ["I10", "D10"],
+        "traps": [
+          { "pair": ["I11", "D11"] },
+          { "pair": ["I12", "D12"] }
+        ],
+        "theory": "Le rein est passé par le transporteur de la famille de Viktor, direction une clinique privée. Agissait-il seul ?"
+      },
+      {
+        "n": 5,
+        "title": "La clinique",
+        "screens": {
+          "investigator": {
+            "info": "Le patient en 38e position s'avère être un patient privé de la clinique Lumen. Le rapport annuel de Lumen cite la docteure Helena Voss parmi les membres de son conseil consultatif. Et sur injonction du tribunal, la banque révèle que Viktor a reçu 40 000 $ de SwiftMed le mardi suivant la greffe.",
+            "facts": [
+              { "id": "P5-I1", "text": "Le patient en 38e position est un patient privé de la clinique Lumen." },
+              { "id": "P5-I2", "text": "Le rapport annuel de la clinique Lumen cite la docteure Voss au sein de son conseil consultatif." },
+              { "id": "P5-I3", "text": "Viktor a reçu 40 000 $ de SwiftMed le mardi suivant la greffe." }
+            ]
+          },
+          "defendant": {
+            "info": "La docteure Voss a quitté le conseil de Lumen en janvier et l'a annoncé en réunion du personnel ; tu as signé le registre des conflits d'intérêts ce jour-là. Et en mars, Viktor t'a demandé comment fonctionnent les réservations de transport d'organes, « pour se former ».",
+            "facts": [
+              { "id": "P5-D1", "text": "La docteure Voss a démissionné du conseil de Lumen en janvier et l'a déclaré en réunion du personnel." },
+              { "id": "P5-D2", "text": "En mars, Viktor a demandé à Karim comment fonctionnent les réservations de transport d'organes, « pour se former »." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I13", "text": "SwiftMed a payé Viktor juste après le transfert du rein.", "type": "correct", "contradicts": [] },
+            { "id": "I14", "text": "La docteure Voss a tout arrangé pour sa clinique.", "type": "trap", "contradicts": ["P5-D1"] },
+            { "id": "I15", "text": "Les 15 000 $ de Karim venaient de Lumen.", "type": "memoryLure", "contradicts": ["P3-D2"] }
+          ],
+          "defendant": [
+            { "id": "D13", "text": "Il y a des mois, il m'a demandé comment marchent les réservations.", "type": "correct", "contradicts": [] },
+            { "id": "D14", "text": "Viktor n'avait rien à faire dans le service.", "type": "trap", "contradicts": [] },
+            { "id": "D15", "text": "Je n'ai jamais laissé de session ouverte.", "type": "memoryLure", "contradicts": ["P2-D1"] }
+          ]
+        },
+        "correct": ["I13", "D13"],
+        "traps": [
+          { "pair": ["I14", "D14"] },
+          { "pair": ["I15", "D15"] }
+        ],
+        "theory": "Viktor préparait son coup depuis des mois, et SwiftMed l'a payé pour ça. La docteure Voss est une fausse piste. Reste à prouver que c'est lui qui était au clavier de Karim."
+      },
+      {
+        "n": 6,
+        "title": "Le clavier",
+        "screens": {
+          "investigator": {
+            "info": "Images de surveillance du couloir des soins intensifs : de 3 h 09 à 3 h 16, quelqu'un est assis au poste ICU-07, avec un cordon porte-badge gris du service des archives. La réservation de transport de 3 h 17 a utilisé la même session ouverte que l'approbation.",
+            "facts": [
+              { "id": "P6-I1", "text": "De 3 h 09 à 3 h 16, une personne portant un cordon porte-badge gris des archives était assise au poste ICU-07." },
+              { "id": "P6-I2", "text": "La réservation de transport de 3 h 17 a utilisé la même session ouverte que l'approbation." }
+            ]
+          },
+          "defendant": {
+            "info": "Le personnel soignant porte des cordons rouges ; celui des archives, des gris. Et cette nuit-là, à 3 h, ta sœur de Vancouver t'a lancé un appel vidéo ; là-bas, il n'était que minuit, et vous avez parlé jusqu'à 3 h 30. Ton téléphone affiche l'appel de 30 minutes.",
+            "facts": [
+              { "id": "P6-D1", "text": "Le personnel soignant, comme Karim, porte un cordon rouge ; le personnel des archives, un cordon gris." },
+              { "id": "P6-D2", "text": "De 3 h à 3 h 30, Karim était en appel vidéo avec sa sœur, à Vancouver." }
+            ]
+          }
+        },
+        "hands": {
+          "investigator": [
+            { "id": "I16", "text": "La personne assise à ICU-07 portait un cordon des archives.", "type": "correct", "contradicts": [] },
+            { "id": "I17", "text": "Karim est revenu et s'est assis au poste ICU-07.", "type": "memoryLure", "contradicts": ["P1-D1"] },
+            { "id": "I18", "text": "SwiftMed a payé Viktor pour le rein.", "type": "trap", "contradicts": [] }
+          ],
+          "defendant": [
+            { "id": "D16", "text": "À 3 h, j'étais en appel vidéo avec ma sœur.", "type": "correct", "contradicts": [] },
+            { "id": "D17", "text": "C'est la docteure Voss qui était au clavier.", "type": "memoryLure", "contradicts": ["P3-I2"] },
+            { "id": "D18", "text": "Pauline a utilisé ma session pour Viktor.", "type": "decoy", "contradicts": ["P6-I1"] }
+          ]
+        },
+        "correct": ["I16", "D16"],
+        "traps": [
+          { "pair": ["I18", "D16"] },
+          { "pair": ["I17", "D17"] }
+        ]
+      }
+    ],
+    "verdict": {
+      "title": "NON COUPABLE",
+      "text": "Karim n'a pas vendu de rein. Il a laissé sa session ouverte sur ICU-07, sur des écrans qui ne se verrouillaient plus. À 3 h 12, Viktor Lenz, employé des archives, s'en est servi pour attribuer le rein à un patient payant de la clinique Lumen, puis pour réserver le transporteur de son beau-frère. SwiftMed lui a versé 40 000 $. Le siège de la docteure Voss au conseil, c'était de l'histoire ancienne, et l'argent de Karim était l'héritage de sa mère. Karim est réintégré, le patient en 1re position retrouve sa place en tête de liste, et le service informatique a réactivé le verrouillage automatique."
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pruneLikeFirebase, undefinedPaths } from "@/lib/store/firebaseShape";
-import { addUsedPrompt, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, setPlaced, setPrompt, setTopics, submitGuess } from "./game";
+import { addUsedPrompt, contentLang, guesserOf, lockIn, makeRound, masterOf, newGame, nextRound, revealedRoundId, setLang, setPlaced, setPrompt, setTopics, submitGuess } from "./game";
+import { BANKS, randomRound } from "./prompts";
 
 const LABELS = ["Pepperoni", "Mushrooms", "Pineapple", "Anchovies", "Jalapenos"];
 
@@ -291,5 +292,84 @@ describe("setTopics", () => {
     expect(nextRound(game, makeRound("Next", LABELS)).topics).toEqual(["Music"]);
     expect(newGame(makeRound("Again", LABELS), ["Music"]).topics).toEqual(["Music"]);
     expect("topics" in newGame(makeRound("Again", LABELS))).toBe(false);
+  });
+});
+
+describe("content language (lang)", () => {
+  const roundTrip = (game: ReturnType<typeof freshGame>) => {
+    const ids = game.current.items.map((i) => i.id);
+    return submitGuess(lockIn(game, ids), ids);
+  };
+
+  it("starts in English unless the creator's language is given", () => {
+    expect(freshGame().lang).toBe("en");
+    expect(newGame(makeRound("Pizzas", LABELS), [], "fr").lang).toBe("fr");
+  });
+
+  it("reads a room made before the field existed as English", () => {
+    const old = { ...freshGame() };
+    delete old.lang;
+    expect(contentLang(old)).toBe("en");
+    expect(contentLang(newGame(makeRound("Pizzas", LABELS), [], "fr"))).toBe("fr");
+  });
+
+  it("is the master's choice only, at any point in the round, and leaves the prompt on show alone", () => {
+    const game = freshGame();
+    const french = setLang(game, "p1", "fr");
+    expect(french.lang).toBe("fr");
+    expect(french.current).toEqual(game.current);
+    expect(() => setLang(game, "p2", "fr")).toThrow();
+    const ids = game.current.items.map((i) => i.id);
+    expect(setLang(lockIn(french, ids), "p1", "en").lang).toBe("en");
+    expect(() => setLang(game, "p1", "de" as never)).toThrow();
+  });
+
+  it("passes to the next master with the role swap", () => {
+    const game = nextRound(roundTrip(freshGame()), makeRound("Next", LABELS));
+    expect(setLang(game, "p2", "fr").lang).toBe("fr");
+    expect(() => setLang(game, "p1", "fr")).toThrow();
+  });
+
+  it("survives the next round, and an old room's missing field stays missing (never an explicit undefined)", () => {
+    const french = roundTrip(setLang(freshGame(), "p1", "fr"));
+    expect(nextRound(french, makeRound("Next", LABELS)).lang).toBe("fr");
+    const old = roundTrip(freshGame());
+    delete old.lang;
+    const next = nextRound(old, makeRound("Next", LABELS));
+    expect("lang" in next).toBe(false);
+    expect(undefinedPaths(next)).toEqual([]);
+  });
+
+  it("draws the next prompts from that language's bank", () => {
+    const french = new Set(BANKS.fr.map((p) => p.prompt));
+    let game = setLang(newGame(randomRound([], [], "en")), "p1", "fr");
+    game = setPrompt(game, randomRound(game.usedPrompts, game.topics, contentLang(game)));
+    expect(french.has(game.current.prompt)).toBe(true);
+    game = nextRound(roundTrip(game), randomRound(game.usedPrompts, game.topics, contentLang(game)));
+    expect(french.has(game.current.prompt)).toBe(true);
+    expect(game.usedPrompts).toHaveLength(3);
+  });
+});
+
+describe("revealedRoundId", () => {
+  it("is null until the round is revealed, then the same for the same round", () => {
+    const game = freshGame();
+    expect(revealedRoundId(game)).toBeNull();
+    const ids = game.current.items.map((i) => i.id);
+    expect(revealedRoundId(lockIn(game, ids))).toBeNull();
+    const revealed = submitGuess(lockIn(game, ids), ids);
+    expect(revealedRoundId(revealed)).toMatch(/^r1-[0-9a-z]+$/);
+    expect(revealedRoundId(revealed)).toBe(revealedRoundId(JSON.parse(JSON.stringify(revealed))));
+    expect(revealedRoundId(revealed)!.length).toBeLessThanOrEqual(40);
+  });
+
+  it("differs for another round 1 (after Reset game) with a different prompt or guess", () => {
+    const game = freshGame();
+    const ids = game.current.items.map((i) => i.id);
+    const a = revealedRoundId(submitGuess(lockIn(game, ids), ids));
+    const b = revealedRoundId(submitGuess(lockIn(game, ids), [...ids].reverse()));
+    const other = newGame(makeRound("Breakfasts", LABELS));
+    const c = revealedRoundId(submitGuess(lockIn(other, ids), ids));
+    expect(new Set([a, b, c]).size).toBe(3);
   });
 });

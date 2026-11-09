@@ -261,6 +261,36 @@ export function matchWinner(state: LastHopState): Role | null {
 }
 
 /**
+ * An id for a finished match, for the "game finished" report
+ * (lib/tracking/finished.ts): read from the shared state, so the same on every
+ * device. The state keeps no match number or start time, so it fingerprints
+ * how the match went: each round's result, the last board and how it ended,
+ * the clocks to the millisecond. Two matches in a room only share one if all
+ * of that is identical. Letters, digits and "-" only.
+ */
+export function matchId(state: LastHopState): string {
+  const s = normalize(state);
+  const rounds = s.history.map((r) => `${r.winner}${r.reason}${r.aSeat}${r.moves}`).join(",");
+  const last = s.last ? `${s.last.from}-${s.last.to}` : "";
+  const key = [s.mode, s.firstA, s.start ?? "", s.board?.cells ?? "", s.clocks.p1, s.clocks.p2, last, rounds].join("|");
+  return `${s.mode}-${s.history.length}-${fingerprint(key)}`;
+}
+
+/** A 53-bit string hash (cyrb53), in base 36. */
+function fingerprint(text: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/**
  * The next round, once `nextAt` passes. An even round replays its pair's
  * board with the colours swapped; an odd one starts a new pair on `fresh`.
  */

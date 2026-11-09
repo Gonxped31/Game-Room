@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { CASES, getCase } from "./cases";
-import type { CaseDefinition } from "./caseTypes";
+import { LANGS, type Lang } from "@/lib/i18n/lang";
+import { CASES, CASES_BY_LANG, caseForState, casesByTier, getCase } from "./cases";
+import type { CaseDefinition, CaseScreen } from "./caseTypes";
 import { validateCase } from "./caseValidator";
 
-function freshCase(): CaseDefinition {
+function freshCase(lang: Lang = "en"): CaseDefinition {
   // deep clone so mutation in one test never leaks into another
-  return JSON.parse(JSON.stringify(getCase("ruined-birthday")));
+  return JSON.parse(JSON.stringify(getCase("ruined-birthday", lang)));
 }
 
 describe("validateCase", () => {
-  it("passes every shipped case with zero errors", () => {
-    for (const [id, caseDef] of Object.entries(CASES)) {
-      expect(validateCase(caseDef), `case "${id}"`).toEqual([]);
+  it("passes every shipped case, in every language, with zero errors", () => {
+    for (const lang of LANGS) {
+      for (const [id, caseDef] of Object.entries(CASES_BY_LANG[lang])) {
+        expect(validateCase(caseDef, lang), `${lang} case "${id}"`).toEqual([]);
+      }
     }
   });
 
@@ -26,6 +29,25 @@ describe("validateCase", () => {
     c.parts[0].hands.investigator[0].text = "He would never look guilty about it.";
     c.parts[0].hands.defendant[0].text = "I would never have known tonight was the night.";
     expect(validateCase(c)).toEqual([]);
+  });
+
+  it("catches a shared French word with accents, or behind an elision (content rule 5)", () => {
+    const accented = freshCase("fr");
+    accented.parts[0].hands.investigator[0].text = "Il avait l'air déçu, pour le dîner.";
+    accented.parts[0].hands.defendant[0].text = "Le dîner, c'était ce soir.";
+    expect(validateCase(accented, "fr").some((e) => e.includes('"dîner"'))).toBe(true);
+
+    const elided = freshCase("fr");
+    elided.parts[0].hands.investigator[0].text = "Il ne pensait pas à l'anniversaire.";
+    elided.parts[0].hands.defendant[0].text = "Je ne savais rien de son anniversaire.";
+    expect(validateCase(elided, "fr").some((e) => e.includes('"anniversaire"'))).toBe(true);
+  });
+
+  it("ignores common French words when checking a correct pair's wording", () => {
+    const c = freshCase("fr");
+    c.parts[0].hands.investigator[0].text = "Il était encore sous le choc, jamais coupable.";
+    c.parts[0].hands.defendant[0].text = "Je ne savais pas encore, jamais je n'aurais deviné.";
+    expect(validateCase(c, "fr")).toEqual([]);
   });
 
   it("rejects a hand with the wrong number of cards", () => {
@@ -126,5 +148,55 @@ describe("validateCase", () => {
     const c = freshCase();
     c.characters.defendant = "";
     expect(validateCase(c)).toContain("Case is missing a character name for one of the two roles.");
+  });
+});
+
+/**
+ * Everything but the words: case and Part order, tiers, card and fact IDs, card
+ * types, contradicts, correct pairs, traps. The shared state stores IDs only,
+ * so this must be identical in every language for a case to play the same.
+ */
+function caseLogic(caseDef: CaseDefinition) {
+  const screens: CaseScreen[] = ["investigator", "defendant"];
+  return {
+    id: caseDef.id,
+    tier: caseDef.tier,
+    parts: caseDef.parts.map((part) => ({
+      n: part.n,
+      facts: screens.map((s) => part.screens[s].facts.map((f) => f.id)),
+      hands: screens.map((s) => part.hands[s].map(({ id, type, contradicts }) => ({ id, type, contradicts }))),
+      correct: part.correct,
+      traps: part.traps,
+      hasTheory: part.theory !== undefined,
+    })),
+  };
+}
+
+describe("the French case bank", () => {
+  const fr = CASES_BY_LANG.fr;
+
+  it("has the same cases as the English one, in the same order", () => {
+    expect(Object.keys(fr)).toEqual(Object.keys(CASES));
+  });
+
+  it("matches every English case's structure: Part numbers, card and fact IDs, and all the logic", () => {
+    for (const [id, caseDef] of Object.entries(CASES)) {
+      expect(fr[id] && caseLogic(fr[id]), `case "${id}"`).toEqual(caseLogic(caseDef));
+    }
+  });
+
+  it("is actually translated: every title, teaser and verdict differs from the English", () => {
+    for (const [id, caseDef] of Object.entries(CASES)) {
+      expect(fr[id].title, `case "${id}" title`).not.toBe(caseDef.title);
+      expect(fr[id].teaser, `case "${id}" teaser`).not.toBe(caseDef.teaser);
+      expect(fr[id].verdict.text, `case "${id}" verdict`).not.toBe(caseDef.verdict.text);
+    }
+  });
+
+  it("is what getCase, caseForState and casesByTier return for French", () => {
+    expect(getCase("empty-frame", "fr")).toBe(fr["empty-frame"]);
+    expect(caseForState("no-such-case", "fr")).toBe(fr["ruined-birthday"]);
+    expect(casesByTier("fr").flatMap((t) => t.cases)).toEqual(expect.arrayContaining(Object.values(fr)));
+    expect(getCase("empty-frame")).toBe(CASES["empty-frame"]);
   });
 });

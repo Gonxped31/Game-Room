@@ -6,7 +6,9 @@ import { startingSeats, usePublicRoom } from "@/lib/session/usePublicRoom";
 import { leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
-import { defaultLang } from "@/lib/games/shared/language";
+import { useLang } from "@/lib/i18n/useLang";
+import type { FinishedGame } from "@/lib/tracking/finished";
+import { useReportFinished } from "@/lib/tracking/useReportFinished";
 import { BUZZERQUIZ_MATCH } from "@/lib/games/matchGames";
 import { ANSWER_MS, type Card, COUNTDOWN_MS, FREEZE_MS, GAME_SLUG, MAX_PLAYERS, MIN_PLAYERS, QUESTION_MS, RESULT_MS } from "@/lib/games/buzzerquiz/constants";
 import {
@@ -42,6 +44,7 @@ import QuestionScreen, { type QuestionView } from "@/components/buzzerquiz/Quest
 import { Countdown, Final, InviteCard, Lobby, Message, NameEntry, Setup } from "@/components/buzzerquiz/Screens";
 import { PlayedRow, PowerHand } from "@/components/buzzerquiz/PowerCards";
 import { THEME, type ScoreRow } from "@/components/buzzerquiz/ui";
+import { WORDS } from "@/components/buzzerquiz/text";
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
 
@@ -52,7 +55,10 @@ const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
  * first (`useDeadline` + the state machine's `advance`).
  */
 export default function BuzzerQuizPage() {
-  const createInitialState = useCallback((): QuizState => newGame(defaultLang(typeof navigator === "undefined" ? undefined : navigator.languages)), []);
+  const lang = useLang();
+  const t = WORDS[lang];
+  // A new room's questions start in its creator's interface language; the host can switch them.
+  const createInitialState = useCallback((): QuizState => newGame(lang), [lang]);
   const session = useSession<QuizState>({ gameSlug: GAME_SLUG, maxPlayers: MAX_PLAYERS, minPlayers: MIN_PLAYERS, createInitialState });
   const { room, me, seats, names, isHost, hostSeat, transact, pickIdentity } = session;
   const raw = session.game;
@@ -126,12 +132,21 @@ export default function BuzzerQuizPage() {
   // Leave room shows only between games (name entry, setup, lobby, final), so it never asks first.
   const leave = publicRoom.isPublic ? publicRoom.leave : () => void leaveToHub(session.leave);
 
+  // Game finished (lib/tracking/finished.ts): the final ranking, reported by each
+  // player who played it. The seed is drawn at every Start and Rematch, so it tells
+  // this quiz from the room's others.
+  const finished: FinishedGame | null =
+    game?.phase === "final" && me != null && game.players.includes(me)
+      ? { slug: GAME_SLUG, mode: publicRoom.isPublic ? "match" : "room", id: String(game.seed), room, players: game.players.length, lang: game.settings.lang }
+      : null;
+  useReportFinished(finished);
+
   let screen;
-  const problem = roomProblemMessage(session);
+  const problem = roomProblemMessage(session, lang);
   if (problem) {
     screen = <Message text={problem} />;
   } else if (!game) {
-    screen = <Message text="Connecting to the room…" />;
+    screen = <Message text={t.connecting} />;
   } else if (!me && !watching) {
     const underway = !["setup", "lobby", "final"].includes(game.phase);
     screen = <NameEntry seats={seats} names={names} canTakeOver={session.canTakeOver} onPick={(seat, name) => void pickIdentity(seat, name)} watching={underway || session.allJoined ? () => setWatching(true) : undefined} onLeave={leave} />;
@@ -168,10 +183,10 @@ export default function BuzzerQuizPage() {
             ? {
                 status:
                   publicRoom.autoStartAt != null && lobbyNow != null
-                    ? `Starting in ${Math.max(1, secondsLeft(publicRoom.autoStartAt, lobbyNow))} s`
+                    ? t.startingIn(Math.max(1, secondsLeft(publicRoom.autoStartAt, lobbyNow)))
                     : session.onlineSeats.length < MIN_PLAYERS
-                      ? "Waiting for more players…"
-                      : "Getting ready…",
+                      ? t.waitingForPlayers
+                      : t.gettingReady,
                 onLeave: publicRoom.leave,
               }
             : undefined
@@ -182,7 +197,7 @@ export default function BuzzerQuizPage() {
       />
     );
   } else {
-    const nameOf = (seat: string) => names[seat] ?? "Player";
+    const nameOf = (seat: string) => names[seat] ?? t.player;
     const pop = game.phase === "result" && game.outcome?.kind === "right" ? game.outcome : undefined;
     const scores: ScoreRow[] = game.players.map((seat) => ({
       seat,

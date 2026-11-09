@@ -62,6 +62,30 @@ export interface GameEntry {
    * and the Continue chip, since a guest may have rooms of them.
    */
   hidden?: boolean;
+  /**
+   * The French for the words above (docs/i18n.md): description, short
+   * description, tags, modes (matched to the English ones by `key`) and the
+   * solo card's words. Titles are brands and stay as they are. Read a card's
+   * words through `gameText(game, lang)`, not these fields;
+   * lib/games/registry.test.ts checks every game has them all.
+   */
+  fr?: {
+    description: string;
+    shortDescription: string;
+    tags: string[];
+    modes?: { key: string; label: string; detail: string }[];
+    solo?: { description: string; tags: string[] };
+  };
+}
+
+/** A game's card words in one language (`gameText`). */
+export interface GameText {
+  description: string;
+  shortDescription: string;
+  tags: string[];
+  modes?: { key: string; label: string; detail: string }[];
+  /** The Solo card's words. `path` is the English route: links pass it through `localizePath`. */
+  solo?: { path: string; description: string; tags: string[] };
 }
 
 /**
@@ -82,6 +106,11 @@ export const ALL_GAMES: GameEntry[] = [
     description: "Race to buzz in. Wrong answers get struck out, so the question gets easier but worth less.",
     shortDescription: "Buzz first. Wrong answers get struck out.",
     tags: ["2–4 players", "EN or FR"],
+    fr: {
+      description: "Buzze avant les autres. Chaque mauvaise réponse est barrée : la question devient plus facile, mais rapporte moins.",
+      shortDescription: "Buzze vite. Les erreurs sont barrées.",
+      tags: ["2 à 4 joueurs", "EN ou FR"],
+    },
     maxPlayers: 4,
     ink: "#16113A",
     textSecondary: "#4A4570",
@@ -96,6 +125,11 @@ export const ALL_GAMES: GameEntry[] = [
     description: "Two teams take turns unscrambling a word against the clock. Hints help, but cost points.",
     shortDescription: "Two teams race to unscramble words.",
     tags: ["2–8 players", "2 teams"],
+    fr: {
+      description: "À tour de rôle, deux équipes remettent un mot dans l'ordre contre la montre. Les indices aident, mais coûtent des points.",
+      shortDescription: "Deux équipes, des mots à démêler, vite.",
+      tags: ["2 à 8 joueurs", "2 équipes"],
+    },
     maxPlayers: 8,
     ink: "#2A1B12",
     textSecondary: "#5A4636",
@@ -115,6 +149,15 @@ export const ALL_GAMES: GameEntry[] = [
       { key: "track", label: "Track", detail: "Quick and sharp. One row: every move counts." },
       { key: "grid", label: "Grid", detail: "Longer, more open. Pieces move two ways." },
     ],
+    fr: {
+      description: "Fais glisser ou sauter tes pions vers l'avant, sur une piste ou une grille. Qui ne peut plus bouger à son tour a perdu.",
+      shortDescription: "Avance d'un bond. Joue le dernier coup.",
+      tags: ["2 joueurs", "Piste ou Grille"],
+      modes: [
+        { key: "track", label: "Piste", detail: "Court et serré. Une seule rangée : chaque coup compte." },
+        { key: "grid", label: "Grille", detail: "Plus long, plus ouvert. Les pions avancent dans deux directions." },
+      ],
+    },
     ink: "#1E1733",
     textSecondary: "#544A70",
     accentColor: "#FF8A4C",
@@ -141,6 +184,15 @@ export const ALL_GAMES: GameEntry[] = [
       description: "Just you and the road. Beat your own best distance.",
       tags: ["Just you", "Best score saved"],
     },
+    fr: {
+      description: "Prends la route de nuit entre amis. Qui ira le plus loin ?",
+      shortDescription: "Prends la route de nuit entre amis.",
+      tags: ["En solo ou entre amis"],
+      solo: {
+        description: "Toi et la route, rien d'autre. Bats ta meilleure distance.",
+        tags: ["Rien que toi", "Record enregistré"],
+      },
+    },
   },
   {
     slug: "ftw",
@@ -150,6 +202,11 @@ export const ALL_GAMES: GameEntry[] = [
     description: "Rank five things from best to worst, then guess how your partner ranked them.",
     shortDescription: "Rank 5 things. Guess your partner's order.",
     tags: ["2 players", "Live or anytime"],
+    fr: {
+      description: "Classe cinq choses de la meilleure à la pire, puis devine l'ordre choisi par ton partenaire.",
+      shortDescription: "Classe 5 choses. Devine l'ordre de l'autre.",
+      tags: ["2 joueurs", "En direct ou en différé"],
+    },
     maxPlayers: 2,
     ink: "#1D2240",
     textSecondary: "#565C85",
@@ -165,6 +222,11 @@ export const ALL_GAMES: GameEntry[] = [
     description: "A cooperative mystery. Each of you knows half the story. Talk it out to find the matching pair.",
     shortDescription: "Each of you knows half of a mystery.",
     tags: ["2 players", "Cooperative"],
+    fr: {
+      description: "Un mystère en coopération. Chaque joueur connaît la moitié de l'histoire : il faudra se parler pour trouver la bonne paire.",
+      shortDescription: "À chacun sa moitié du mystère.",
+      tags: ["2 joueurs", "Coopératif"],
+    },
     maxPlayers: 2,
     ink: "#1C1F3D",
     textSecondary: "#4A4F73",
@@ -197,6 +259,19 @@ export const ALL_GAMES: GameEntry[] = [
       description: "A chess piece in every row, column and colour. None may attack another.",
       tags: ["Just you", "Endless puzzles"],
     },
+    fr: {
+      description: "Place une pièce d'échecs dans chaque rangée, colonne et couleur, plus vite que les autres. Le meilleur temps gagne, ou les plus lents sont éliminés.",
+      shortDescription: "Course sur la même grille d'échecs.",
+      tags: ["2 à 8 joueurs", "Défi ou Survie"],
+      modes: [
+        { key: "challenge", label: "Défi", detail: "2 à 4 joueurs. Quelques grilles, les mêmes pour tout le monde : le plus petit temps total gagne." },
+        { key: "survival", label: "Survie", detail: "4 à 8 joueurs. Les plus lents sont éliminés après chaque grille, jusqu'à ce qu'il n'en reste qu'un." },
+      ],
+      solo: {
+        description: "Une pièce d'échecs dans chaque rangée, colonne et couleur. Aucune ne doit en attaquer une autre.",
+        tags: ["Rien que toi", "Grilles à l'infini"],
+      },
+    },
   },
   {
     slug: "borderrun",
@@ -220,6 +295,19 @@ export const ALL_GAMES: GameEntry[] = [
       description: "Link two countries by land, around the closed borders. A new route every day.",
       tags: ["Just you", "Daily route"],
     },
+    fr: {
+      description: "Relie deux pays par la terre en contournant les frontières fermées, plus vite que les autres. Le meilleur temps gagne, ou les plus lents sont éliminés.",
+      shortDescription: "Course pour relier deux pays par la terre.",
+      tags: ["2 à 8 joueurs", "Défi ou Survie"],
+      modes: [
+        { key: "challenge", label: "Défi", detail: "2 à 4 joueurs. Quelques parcours, les mêmes pour tout le monde : le plus petit temps total gagne." },
+        { key: "survival", label: "Survie", detail: "4 à 8 joueurs. Les plus lents sont éliminés après chaque parcours, jusqu'à ce qu'il n'en reste qu'un." },
+      ],
+      solo: {
+        description: "Relie deux pays par la terre, en contournant les frontières fermées. Un nouveau parcours chaque jour.",
+        tags: ["Rien que toi", "Parcours du jour"],
+      },
+    },
   },
 ];
 
@@ -229,6 +317,21 @@ export const GAMES: GameEntry[] = ALL_GAMES.filter((game) => !game.hidden);
 /** Any game by slug, hidden or not - e.g. for a saved room's title and colors. */
 export function gameBySlug(slug: string): GameEntry | undefined {
   return ALL_GAMES.find((game) => game.slug === slug);
+}
+
+/**
+ * A game's card words in `lang`: the English fields, or their French (`fr`)
+ * for "fr", falling back to English for anything missing. Titles stay brands.
+ */
+export function gameText(game: GameEntry, lang: Lang): GameText {
+  const fr = lang === "fr" ? game.fr : undefined;
+  return {
+    description: fr?.description ?? game.description,
+    shortDescription: fr?.shortDescription ?? game.shortDescription,
+    tags: fr?.tags ?? game.tags,
+    modes: game.modes?.map((mode) => fr?.modes?.find((m) => m.key === mode.key) ?? mode),
+    solo: game.solo ? { path: game.solo.path, ...(fr?.solo ?? { description: game.solo.description, tags: game.solo.tags }) } : undefined,
+  };
 }
 
 /**

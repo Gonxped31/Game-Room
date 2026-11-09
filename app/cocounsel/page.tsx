@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameSession } from "@/lib/session/useGameSession";
-import { LEAVE_CONFIRM, leaveToHub, roomProblemMessage } from "@/lib/session/shared/roomActions";
+import { leaveToHub, ROOM_TEXT, roomProblemMessage } from "@/lib/session/shared/roomActions";
+import { useLang } from "@/lib/i18n/useLang";
+import { useReportFinished } from "@/lib/tracking/useReportFinished";
+import LocalLink from "@/components/LocalLink";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { caseForState, DEFAULT_CASE_ID } from "@/lib/games/cocounsel/cases";
 import { DEFENDANT, GAME_TITLE, INVESTIGATOR, MAX_CASE_ATTEMPTS } from "@/lib/games/cocounsel/constants";
-import { classifyDuo, continueAfterReveal, focusPercent, type GameState, lockIn, newGame, screenOfRole, totalAttempts, trustPercent } from "@/lib/games/cocounsel/game";
+import { classifyDuo, continueAfterReveal, finishedGameId, focusPercent, type GameState, lockIn, newGame, screenOfRole, totalAttempts, trustPercent } from "@/lib/games/cocounsel/game";
 import { COLOR, CONTAINER_MAX_WIDTH_CLASS } from "@/lib/games/cocounsel/theme";
 import { useTheme } from "@/lib/games/cocounsel/useTheme";
 import InviteLinkBanner from "@/components/InviteLinkBanner";
@@ -22,6 +24,7 @@ import RevealScreen from "@/components/cocounsel/RevealScreen";
 import RolePicker from "@/components/cocounsel/RolePicker";
 import VerdictScreen from "@/components/cocounsel/VerdictScreen";
 import Wordmark from "@/components/cocounsel/Wordmark";
+import { CC_TEXT } from "@/components/cocounsel/text";
 
 export default function CoCounselPage() {
   // A new room starts on the default case; its owner then picks the real one
@@ -35,9 +38,13 @@ export default function CoCounselPage() {
   // choice is held here and written once the owner's seat claim lands (see
   // claimRole). Until then the role picker already shows its characters.
   const [pendingCaseId, setPendingCaseId] = useState<string | null>(null);
+  const lang = useLang();
+  const t = CC_TEXT[lang];
   // The case lives in the shared game state, so both devices always play
-  // the same one - whichever the owner last picked.
-  const caseDef = caseForState(pendingCaseId ?? game?.caseId);
+  // the same one - whichever the owner last picked. Its words follow each
+  // viewer's own interface language (cases.fr.json has the same IDs), so an
+  // English and a French player can share a room.
+  const caseDef = caseForState(pendingCaseId ?? game?.caseId, lang);
   const { theme, toggleTheme } = useTheme();
 
   // Whoever visits with no #room in the URL at all is the one about to
@@ -178,8 +185,13 @@ export default function CoCounselPage() {
     ((phase === "SELECTING" && !game.locks?.[me]) || phase === "REVEALED");
 
   useEffect(() => {
-    document.title = isMyTurnToAct ? `▶ Your turn! · ${GAME_TITLE}` : GAME_TITLE;
-  }, [isMyTurnToAct]);
+    document.title = isMyTurnToAct ? t.yourTurnTitle(GAME_TITLE) : GAME_TITLE;
+  }, [isMyTurnToAct, t]);
+
+  // "Game finished" (lib/tracking/finished.ts), from every seated device, once
+  // the case reaches its end: CASE_DONE, whether the last Part was solved or
+  // the case-wide misses ran out. Leaving or resetting mid-case never gets here.
+  useReportFinished(game?.phase === "CASE_DONE" && me ? { slug: "cocounsel", mode: "room", id: finishedGameId(game), room, players: 2, lang } : null);
 
   const handleLockIn = (cardId: string) => {
     if (!me) return;
@@ -254,15 +266,15 @@ export default function CoCounselPage() {
           start flush with the viewport. */}
       {/* A screen with a fixed bottom bar (PartScreen's Lock in) gets its height reserved below everything, the Footer included. */}
       <main className={`mx-auto font-[family-name:var(--font-archivo)] has-[[data-fixed-bar]]:pb-32 ${CONTAINER_MAX_WIDTH_CLASS}`} style={{ color: COLOR.ink }}>
-        {roomProblemMessage(session) ? (
+        {roomProblemMessage(session, lang) ? (
           // No room to leave here, so a plain way back to the hub.
           <div className="flex flex-col gap-3 px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>
             <p role="alert" className="m-0">
-              {roomProblemMessage(session)}
+              {roomProblemMessage(session, lang)}
             </p>
-            <Link href="/" className="self-start font-bold underline" style={{ color: COLOR.text2 }}>
-              Back to all games
-            </Link>
+            <LocalLink href="/" className="self-start font-bold underline" style={{ color: COLOR.text2 }}>
+              {t.backToGames}
+            </LocalLink>
           </div>
         ) : !game ? (
           // Checked FIRST, unconditionally, before showCasePicker - game is
@@ -272,7 +284,7 @@ export default function CoCounselPage() {
           // branch is what keeps the isCreator/showCasePicker logic below
           // from ever being reached before hydration has safely completed.
           <p className="px-4 pt-8 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>
-            Connecting to the room…
+            {t.connecting}
           </p>
         ) : showCasePicker ? (
           <CasePicker
@@ -372,7 +384,7 @@ export default function CoCounselPage() {
             const defendantCard = part.hands.defendant.find((c) => c.id === reveal.defendantCardId)!;
             const logEntry = game.log.at(-1)!;
             const isLastPart = game.partIndex >= caseDef.parts.length - 1;
-            const continueLabel = reveal.outcome === "adjourned" ? "See what happened" : isLastPart ? "See the verdict" : `Continue to Part ${game.partIndex + 2}`;
+            const continueLabel = reveal.outcome === "adjourned" ? t.seeWhatHappened : isLastPart ? t.seeVerdict : t.continueToPart(game.partIndex + 2);
             return (
               <RevealScreen
                 investigatorName={caseDef.characters.investigator}
@@ -408,7 +420,6 @@ export default function CoCounselPage() {
               <PartScreen
                 role={myRole}
                 characterName={caseDef.characters[myRole]}
-                roleLabel={myRole === "investigator" ? "Investigator" : "Defendant"}
                 otherCharacterName={caseDef.characters[otherRole]}
                 part={part}
                 info={info}
@@ -431,7 +442,7 @@ export default function CoCounselPage() {
           <Footer
             room={room}
             roomName={roomName}
-            identity={me ? `${caseDef.characters[myRole]} · ${myRole === "investigator" ? "Investigator" : "Defendant"}` : undefined}
+            identity={me ? t.identity(caseDef.characters[myRole], myRole) : undefined}
             onReset={session.roomClosed ? undefined : handleResetCase}
             onNewRoom={handleNewRoom}
             onLeave={handleLeave}
@@ -439,7 +450,7 @@ export default function CoCounselPage() {
         ) : null}
       </main>
       {/* Inside the [data-theme] root, so it follows the light/dark toggle. */}
-      {askingLeave && <AskDialog question={LEAVE_CONFIRM} onCancel={() => setAskingLeave(false)} onConfirm={leaveNow} />}
+      {askingLeave && <AskDialog question={ROOM_TEXT[lang].leaveConfirm} onCancel={() => setAskingLeave(false)} onConfirm={leaveNow} />}
     </div>
   );
 }

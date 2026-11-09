@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import HowToPlay, { type HowToPlayLook } from "@/components/HowToPlay";
+import { useLang } from "@/lib/i18n/useLang";
 import { COUNTDOWN_SECONDS, RUN_SECONDS } from "@/lib/games/nighthighway/constants";
 import { COMBO_SECONDS, MAX_COMBO, nearMissPoints } from "@/lib/games/nighthighway/game";
 
@@ -41,7 +42,7 @@ const LIST = `${P} grid gap-1.5 pl-5 [&:is(ol)]:list-decimal [&:is(ul)]:list-dis
 const Key = ({ children }: { children: ReactNode }) => <kbd className="nh-rules-key">{children}</kbd>;
 
 /** Your car squeezing past another, the gap marked: a near miss. */
-function NearMissPicture() {
+function NearMissPicture({ gap }: { gap: string }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 220 96" className="mx-auto block h-24 w-auto">
       <path d="M40 0 L10 96 M110 0 V96 M180 0 L210 96" stroke="var(--rule)" strokeWidth="2" strokeDasharray="8 8" fill="none" />
@@ -51,13 +52,13 @@ function NearMissPicture() {
       <rect x="82" y="66" width="10" height="5" rx="2" fill="var(--taillight)" />
       <path d="M99 50 H115" stroke="#ffd36a" strokeWidth="3" strokeLinecap="round" />
       <text x="107" y="44" textAnchor="middle" fontSize="11" fontWeight="800" fill="#ffd36a">
-        gap
+        {gap}
       </text>
     </svg>
   );
 }
 
-function RulesContent() {
+function RulesEn() {
   return (
     <div className="grid gap-5">
       <Section title="The goal">
@@ -101,7 +102,7 @@ function RulesContent() {
           </li>
         </ol>
         <div className="rounded-lg border border-[var(--rule)] p-3">
-          <NearMissPicture />
+          <NearMissPicture gap="gap" />
         </div>
       </Section>
 
@@ -159,6 +160,116 @@ function RulesContent() {
 }
 
 /**
+ * The same rules in French. The words match the game's (./text.ts): Bonus for
+ * Pickups, Passe-muraille for phase, « C'est parti » for Ready. The engine reads
+ * keys by position, so AZERTY's Z and Q do W's and A's job.
+ */
+function RulesFr() {
+  return (
+    <div className="grid gap-5">
+      <Section title="Le but">
+        <p className={P}>
+          <b>
+            {RUN_SECONDS} secondes, une route&nbsp;: roule le plus loin possible et frôle la circulation pour marquer des points.
+          </b>{" "}
+          En course, le meilleur score gagne.
+        </p>
+      </Section>
+
+      <Section title="Solo ou course">
+        <ul className={LIST}>
+          <li>
+            <b>Solo</b>&nbsp;: toi et la route. Ton record est gardé sur cet appareil.
+          </li>
+          <li>
+            <b>Course</b>&nbsp;: deux pilotes sur la même route en même temps, dans exactement la même circulation. Chacun voit l&apos;autre en voiture fantôme&nbsp;:
+            impossible de la percuter. Le salon garde le compte des victoires.
+          </li>
+          <li>
+            En course, les deux pilotes appuient sur <b>C&apos;est parti</b>. Chacun peut changer les options dans la salle d&apos;attente, ce qui annule les deux
+            départs, pour que personne ne parte avec des réglages surprises. Avec la <b>partie rapide</b>, on te trouve un adversaire.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Une course">
+        <ol className={LIST}>
+          <li>
+            Un compte à rebours de {COUNTDOWN_SECONDS} secondes, puis {RUN_SECONDS} secondes de conduite. En course, le chrono ne s&apos;arrête jamais.
+          </li>
+          <li>Chaque mètre parcouru rapporte un point.</li>
+          <li>
+            <b>Frôlement</b>&nbsp;: double une voiture presque à la toucher, à bonne vitesse, pour {nearMissPoints(1, 1)} points. À moins d&apos;un demi-mètre, c&apos;est
+            un passage <b>de justesse</b>, qui vaut moitié plus.
+          </li>
+          <li>
+            Des frôlements à moins de {COMBO_SECONDS} secondes d&apos;intervalle forment un <b>combo</b>, jusqu&apos;à ×{MAX_COMBO}&nbsp;: chacun vaut{" "}
+            {nearMissPoints(1, 1)} × le combo. Attends trop et il retombe à zéro.
+          </li>
+          <li>
+            Une <b>collision</b> avec une voiture te ralentit et te fait perdre ton combo.
+          </li>
+        </ol>
+        <div className="rounded-lg border border-[var(--rule)] p-3">
+          <NearMissPicture gap="écart" />
+        </div>
+      </Section>
+
+      <Section title="Nitro et bonus">
+        <ul className={LIST}>
+          <li>
+            La <b>nitro</b> est pleine au départ, se vide tant que tu appuies et se recharge lentement. Chaque frôlement en rajoute.
+          </li>
+          <li>
+            Avec les <b>Bonus</b> activés, roule dessus&nbsp;: <b>nitro</b> (une grosse recharge), <b>passe-muraille</b> (5 secondes à traverser la circulation, sans
+            que ton combo puisse casser), <b>bouclier</b> (ta prochaine collision ne coûte rien). En course, les deux pilotes trouvent les mêmes.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Commandes">
+        <ul className={LIST}>
+          <li>
+            <b>Clavier</b>&nbsp;: <Key>W</Key> ou <Key>↑</Key> pour accélérer, <Key>S</Key> ou <Key>↓</Key> pour freiner, <Key>A</Key> <Key>D</Key> ou <Key>←</Key>{" "}
+            <Key>→</Key> pour tourner, <Key>Maj</Key> pour la nitro. Sur un clavier AZERTY, <Key>Z</Key> et <Key>Q</Key> remplacent <Key>W</Key> et <Key>A</Key>.
+          </li>
+          <li>
+            <b>Tactile</b>&nbsp;: l&apos;accélération est automatique. ◀ ▶ pour tourner, plus <b>Frein</b> et <b>Nitro</b>.
+          </li>
+          <li>
+            En plus&nbsp;: <Key>V</Key> caméra, <Key>C</Key> peinture, <Key>M</Key> son, <Key>H</Key> masquer l&apos;affichage. En solo seulement&nbsp;: <Key>P</Key> pause,{" "}
+            <Key>R</Key> recommencer.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Options">
+        <ul className={LIST}>
+          <li>
+            <b>Bonus</b> (activés par défaut)&nbsp;: nitro, passe-muraille et bouclier sur la route.
+          </li>
+          <li>
+            <b>Pluie</b>&nbsp;: route mouillée. La voiture glisse après un coup de volant, freine moins bien et se fait davantage déporter dans les virages.
+          </li>
+          <li>
+            <b>Désert</b>&nbsp;: une piste en terre dans un canyon au coucher du soleil, avec du relief, au lieu de la ville.
+          </li>
+          <li>Les virages sont toujours là.</li>
+        </ul>
+      </Section>
+
+      <Section title="Astuces">
+        <ul className={LIST}>
+          <li>Garde ton combo en vie&nbsp;: un frôlement à ×{MAX_COMBO} vaut plus qu&apos;une longue ligne droite.</li>
+          <li>Garde la nitro pour la route dégagée et freine tôt dans les bouchons&nbsp;: une collision coûte plus cher qu&apos;une seconde au ralenti.</li>
+          <li>Night Highway est un jeu 3D gourmand&nbsp;: il tourne mieux sur ordinateur. Sur téléphone, il peut saccader.</li>
+        </ul>
+      </Section>
+    </div>
+  );
+}
+
+/**
  * Night Highway's How to play (docs/how-to-play.md, on the shared
  * components/HowToPlay.tsx): `variant` "icon" is the round ? in the top
  * corner of every race card and of the solo page, "link" the two lobbies' "How
@@ -167,9 +278,10 @@ function RulesContent() {
  * the offline download (no Tailwind utilities) doesn't get it.
  */
 export default function RulesButton({ variant = "icon" }: { variant?: "icon" | "link" }) {
+  const lang = useLang();
   return (
     <HowToPlay look={LOOK} variant={variant}>
-      <RulesContent />
+      {lang === "fr" ? <RulesFr /> : <RulesEn />}
     </HowToPlay>
   );
 }

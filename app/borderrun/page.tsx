@@ -4,18 +4,19 @@ import { useEffect, useState } from "react";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { GuessInput, GuessList, PathLine, PlayMap, RouteHeader } from "@/components/borderrun/Controls";
 import { RaceShell, Settings } from "@/components/borderrun/race/Screens";
-import { LANG_KEY, loadLang, writeJson } from "@/components/borderrun/storage";
-import { FinalView, formatTime, InviteCard, JoinScreen, Lobby, Message, MODE_NAME, plural, ResultsView, RoundView, type BoardRow, type MyStatus, type ResultRow } from "@/components/race/Screens";
+import { RACE_TEXT } from "@/components/borderrun/text";
+import { FinalView, formatTime, InviteCard, JoinScreen, Lobby, Message, modeName, raceStartProblem, ResultsView, RoundView, type BoardRow, type MyStatus, type ResultRow } from "@/components/race/Screens";
 import { useRace } from "@/components/race/useRace";
 import { BORDERRUN_MATCH } from "@/lib/games/matchGames";
 import { PENALTY_MS } from "@/lib/games/borderrun/constants";
 import { shortestPath } from "@/lib/games/borderrun/route";
 import { status } from "@/lib/games/borderrun/play";
-import { newRace, normalizeRun, PLAYERS, playOf, race, scoreOf, setMap, startProblem, type Run } from "@/lib/games/borderrun/race";
-import type { Lang } from "@/lib/games/shared/language";
+import { newRace, normalizeRun, PLAYERS, playOf, race, scoreOf, setMap, type Run } from "@/lib/games/borderrun/race";
+import { useLang } from "@/lib/i18n/useLang";
 import { secondsLeft } from "@/lib/session/shared/deadline";
 import { roomProblemMessage } from "@/lib/session/shared/roomActions";
 import { startingSeats } from "@/lib/session/usePublicRoom";
+import { useReportFinished } from "@/lib/tracking/useReportFinished";
 
 const { backToLobby, decided, ranking, setMode, setRounds, standings, total } = race;
 
@@ -24,23 +25,28 @@ const { backToLobby, decided, ranking, setMode, setRounds, standings, total } = 
  * layer: lib/games/race/, components/race/): Challenge or Survival, in a
  * private room or a matchmade one. The room's state is
  * `games/{room}/borderrun`; each player's guesses go to `borderrunRuns/{seat}`.
+ * Words and country names follow the page's language (/fr/borderrun is French).
  */
 export default function BorderRunRoomPage() {
   const r = useRace({ gameSlug: "borderrun", race, newState: newRace, normalizeRun, match: BORDERRUN_MATCH });
   const { session, game, runs, myRun, now, publicRoom, leave, nameOf } = r;
   const { room, me, transact, joinedSeats, online } = session;
   const [selected, setSelected] = useState<string | null>(null);
-
-  // The names' language, as on the solo page; read once mounted.
-  const [lang, setLang] = useState<Lang>("en");
-  useEffect(() => {
-    const id = setTimeout(() => setLang(loadLang()), 0);
-    return () => clearTimeout(id);
-  }, []);
+  const lang = useLang();
+  const t = RACE_TEXT[lang];
 
   useEffect(() => {
     document.title = "Detour";
   }, []);
+
+  // The race's final standings are a finished game, reported by every player in it. The last round's start
+  // (server ms) is the same on every device, and a rematch's first round has a new one.
+  const finished = game?.phase === "over" && me != null && game.players.includes(me);
+  useReportFinished(
+    finished && game
+      ? { slug: "borderrun", mode: game.mode, id: String(Math.round(game.startsAt)), room, players: game.players.length, lang, matchmade: publicRoom.isPublic }
+      : null,
+  );
 
   // My guesses go to my own run, timed on the server's clock from the round's start.
   const currentRun = (): Run => (game && myRun?.at === game.startsAt ? myRun : { at: game?.startsAt ?? 0, guesses: [], gaveUp: false });
@@ -52,11 +58,11 @@ export default function BorderRunRoomPage() {
   const onGiveUp = () => r.writeRun({ ...currentRun(), gaveUp: true });
 
   let screen;
-  const problem = roomProblemMessage(session);
+  const problem = roomProblemMessage(session, lang);
   if (problem) {
     screen = <Message text={problem} home />;
   } else if (!game) {
-    screen = <Message text="Connecting to the room…" />;
+    screen = <Message text={t.connecting} />;
   } else if (!me && !r.watching) {
     const free = r.freeSeat;
     screen = (
@@ -89,18 +95,18 @@ export default function BorderRunRoomPage() {
             onRounds={(n) => transact((s) => setRounds(s, n))}
           />
         }
-        rules="Each route is the same for everyone. The time limit is 3 minutes; each guess past the par adds 15 s."
+        rules={t.lobbyRules}
         players={players}
         isPublic={publicRoom.isPublic}
         canEdit={canEdit}
         hostName={session.hostSeat ? nameOf(session.hostSeat) : null}
-        problem={startProblem(game.mode, joinedSeats.length)}
+        problem={raceStartProblem(game.mode, joinedSeats.length, lang)}
         autoStatus={
           publicRoom.autoStartAt != null && r.lobbyNow != null
-            ? `Starting in ${Math.max(1, secondsLeft(publicRoom.autoStartAt, r.lobbyNow))} s`
+            ? t.startingIn(Math.max(1, secondsLeft(publicRoom.autoStartAt, r.lobbyNow)))
             : r.onlineCount < PLAYERS[game.mode].min
-              ? `Waiting for more players… (${PLAYERS[game.mode].min} needed)`
-              : "Getting ready…"
+              ? t.waiting(PLAYERS[game.mode].min)
+              : t.gettingReady
         }
         invite={
           publicRoom.isPublic ? null : <InviteCard room={room} roomName={session.roomName} onRename={session.canRenameRoom ? session.setRoomName : undefined} nameError={session.roomNameError} />
@@ -111,7 +117,7 @@ export default function BorderRunRoomPage() {
     );
   } else if (game.phase === "round" && game.route) {
     const route = game.route;
-    const t = now ?? game.startsAt;
+    const clock = now ?? game.startsAt;
     const playing = me != null && game.alive.includes(me);
     const play = playOf(route, playing ? myRun : undefined, game.startsAt);
     const mine = playing ? scoreOf(route, myRun, game.startsAt) : null;
@@ -120,7 +126,7 @@ export default function BorderRunRoomPage() {
       : !playing
         ? { kind: "out" }
         : mine?.done
-          ? { kind: "done", text: `Done in ${formatTime(total(mine))}${mine.extra ? ` (${mine.extra} past the par)` : ""}.` }
+          ? { kind: "done", text: t.doneIn(formatTime(total(mine)), mine.extra) }
           : myRun?.at === game.startsAt && myRun.gaveUp
             ? { kind: "gaveUp" }
             : { kind: "playing" };
@@ -134,7 +140,7 @@ export default function BorderRunRoomPage() {
         seat,
         name: nameOf(seat),
         progress: finish !== null ? 1 : score.found / Math.max(1, route.par),
-        status: finish !== null ? `✓ ${formatTime(finish)}` : gaveUp ? "Gave up" : `${score.found} of ${route.par} found, ${guesses} ${guesses === 1 ? "guess" : "guesses"}`,
+        status: finish !== null ? `✓ ${formatTime(finish)}` : gaveUp ? t.gaveUp : t.progress(score.found, route.par, guesses),
         done: finish !== null,
         online: Boolean(online[seat]),
         me: seat === me,
@@ -143,14 +149,14 @@ export default function BorderRunRoomPage() {
       };
     });
     board.sort((a, b) => (a.finish ?? Infinity) - (b.finish ?? Infinity) || b.found - a.found);
-    const roundLabel = game.mode === "challenge" ? `Route ${game.round + 1} of ${game.rounds}` : `Route ${game.round + 1}, ${game.alive.length} left`;
-    const countdown = t < game.startsAt ? Math.max(1, secondsLeft(game.startsAt, t)) : null;
+    const roundLabel = game.mode === "challenge" ? t.routeOf(game.round + 1, game.rounds) : t.routeLeft(game.round + 1, game.alive.length);
+    const countdown = clock < game.startsAt ? Math.max(1, secondsLeft(game.startsAt, clock)) : null;
     screen = (
       <RoundView
         roundLabel={roundLabel}
-        unit="route"
+        unit={t.unit}
         countdown={countdown}
-        timeLeft={Math.max(0, game.endsAt - Math.max(t, game.startsAt))}
+        timeLeft={Math.max(0, game.endsAt - Math.max(clock, game.startsAt))}
         me={myStatus}
         board={board}
         header={<RouteHeader play={play} lang={lang} />}
@@ -169,8 +175,8 @@ export default function BorderRunRoomPage() {
       return {
         seat,
         name: nameOf(seat),
-        result: score.done ? formatTime(total(score)) : "Didn't finish",
-        detail: score.done ? (score.extra ? `${score.extra} past the par, +${(score.extra * PENALTY_MS) / 1000} s` : "On par") : `${score.found} of ${game.route!.par} found`,
+        result: score.done ? formatTime(total(score)) : t.didntFinish,
+        detail: score.done ? (score.extra ? t.pastPar(score.extra, (score.extra * PENALTY_MS) / 1000) : t.onPar) : t.found(score.found, game.route!.par),
         out: result.out.includes(seat),
         me: seat === me,
       };
@@ -182,12 +188,12 @@ export default function BorderRunRoomPage() {
     const left = Math.max(1, secondsLeft(game.nextAt, now ?? game.nextAt));
     screen = (
       <ResultsView
-        title={game.mode === "challenge" ? `Route ${game.round + 1} of ${game.rounds}` : `Route ${game.round + 1}`}
-        next={decided(game) ? `Final standings in ${left} s` : `Next route in ${left} s`}
+        title={game.mode === "challenge" ? t.routeOf(game.round + 1, game.rounds) : t.route(game.round + 1)}
+        next={decided(game) ? t.finalIn(left) : t.nextIn(left)}
         rows={rows}
         selected={pick}
         onSelect={setSelected}
-        caption={shown ? `${shown.me ? "Your" : `${shown.name}'s`} guesses, and ${play.guesses.length && path.length ? "the route" : "a route"}:` : ""}
+        caption={shown ? t.caption(shown.me ? null : shown.name, play.guesses.length > 0 && path.length > 0) : ""}
         onLeave={!me || !game.alive.includes(me) ? leave : undefined}
       >
         <PlayMap play={play} lang={lang} reveal={path} />
@@ -200,40 +206,32 @@ export default function BorderRunRoomPage() {
     const rows = table.map((row) => ({
       seat: row.seat,
       name: nameOf(row.seat),
-      value: game.mode === "challenge" ? formatTime(row.value) : row.outIn === null ? "Winner" : `Out on route ${row.outIn + 1}`,
+      value: game.mode === "challenge" ? formatTime(row.value) : row.outIn === null ? t.winner : t.outOn(row.outIn + 1),
       detail:
         game.mode === "challenge"
-          ? `${game.results.filter((result) => result.scores[row.seat]?.done).length} of ${game.results.length} routes finished`
-          : plural(row.outIn === null ? game.results.length : row.outIn + 1, "route") + " played",
+          ? t.finished(game.results.filter((result) => result.scores[row.seat]?.done).length, game.results.length)
+          : t.played(row.outIn === null ? game.results.length : row.outIn + 1),
       me: row.seat === me,
     }));
     screen = (
       <FinalView
-        headline={winner ? `${winner.seat === me ? "You win" : `${nameOf(winner.seat)} wins`}!` : "Game over"}
+        headline={winner ? (winner.seat === me ? t.youWin : t.wins(nameOf(winner.seat))) : t.gameOver}
         rows={rows}
         canPlayAgain={me != null}
-        againProblem={startProblem(game.mode, startingSeats(session).length)}
+        againProblem={raceStartProblem(game.mode, startingSeats(session).length, lang)}
         onPlayAgain={r.startGame}
         onSettings={session.isHost && !publicRoom.isPublic ? () => transact(backToLobby) : undefined}
         onLeave={leave}
       />
     );
   } else {
-    screen = <Message text={`Loading the ${MODE_NAME[game.mode]}…`} />;
+    screen = <Message text={t.loadingMode(modeName(game.mode, lang))} />;
   }
 
   return (
     <>
       <InAppBrowserBanner />
-      <RaceShell
-        lang={lang}
-        onLang={(next) => {
-          setLang(next);
-          writeJson(LANG_KEY, next);
-        }}
-      >
-        {screen}
-      </RaceShell>
+      <RaceShell>{screen}</RaceShell>
     </>
   );
 }

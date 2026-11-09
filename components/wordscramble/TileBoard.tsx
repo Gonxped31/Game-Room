@@ -2,6 +2,8 @@
 
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import type { Team } from "@/lib/games/wordscramble/teams";
+import { useText } from "@/lib/i18n/useLang";
+import { COPY } from "./text";
 import { BulbIcon, ChunkyButton, DISPLAY, FOCUS, teamColor, teamEdge, teamText, TEXT } from "./ui";
 
 /**
@@ -45,6 +47,7 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
   /** Called on every change, for the teammates' "is arranging…". */
   onArrange: () => void;
 }) {
+  const t = useText(COPY);
   const n = answer.length;
 
   // The tiles the hints have taken (each hinted letter uses the first matching tile).
@@ -164,7 +167,7 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
       style={{ "--phone-t": `${phoneTile}px` } as CSSProperties}
     >
       {/* The scrambled row: also where a dragged tile goes back to. */}
-      <div data-row="" role="group" aria-label="Scrambled letters" className="flex min-h-[var(--t)] justify-center gap-1.5 min-[900px]:gap-2">
+      <div data-row="" role="group" aria-label={t.scrambledGroup} className="flex min-h-[var(--t)] justify-center gap-1.5 min-[900px]:gap-2">
         {scrambled.map((letter, i) => {
           const gone = inSlots.has(i);
           if (gone) return <span key={i} aria-hidden="true" className="shrink-0 rounded-[12px] bg-[var(--line)] opacity-50" style={size} />;
@@ -172,7 +175,7 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
             <button
               key={i}
               type="button"
-              aria-label={`Letter ${letter}`}
+              aria-label={t.letter(letter)}
               onPointerDown={(e) => startDrag(e, { kind: "row", tile: i }, i)}
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
@@ -195,7 +198,7 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
       {/* The answer slots. */}
       <div
         role="group"
-        aria-label="Your word"
+        aria-label={t.yourWord}
         className={`flex justify-center gap-1.5 min-[900px]:gap-2 ${shake ? "animate-[ws-shake_300ms] motion-reduce:animate-none" : ""}`}
         key={`slots-${shake}`}
       >
@@ -206,7 +209,7 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
               <span
                 key={i}
                 data-slot={i}
-                aria-label={`Slot ${i + 1}, empty`}
+                aria-label={t.slotEmpty(i + 1)}
                 role="img"
                 className="shrink-0 rounded-[12px] border-[3px] border-dashed"
                 style={{ ...size, borderColor: drag?.moving ? teamColor(team) : "var(--slot)" }}
@@ -220,7 +223,7 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
                 key={i}
                 data-slot={i}
                 role="img"
-                aria-label={`Slot ${i + 1}, ${letter} (hint)`}
+                aria-label={t.slotHint(i + 1, letter)}
                 className={`${DISPLAY} relative flex shrink-0 items-center justify-center rounded-[12px]`}
                 style={{ ...size, background: teamColor(team), color: teamText(team), boxShadow: `0 6px 0 ${teamEdge(team)}` }}
               >
@@ -236,7 +239,7 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
               key={i}
               type="button"
               data-slot={i}
-              aria-label={`Slot ${i + 1}, ${letter}. Press to take it back`}
+              aria-label={t.slotPlaced(i + 1, letter)}
               onPointerDown={(e) => startDrag(e, { kind: "slot", slot: i }, tile)}
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
@@ -258,13 +261,13 @@ export default function TileBoard({ scrambled, answer, hints, team, phoneTile, o
 
       <div className="flex w-full max-w-[560px] gap-2">
         <ChunkyButton white className="min-h-12 flex-none px-4 text-[16px]" onClick={clear} disabled={slots.every((s, i) => i < hints || s == null)}>
-          Clear
+          {t.clear}
         </ChunkyButton>
         <ChunkyButton team={team} className="min-h-12 flex-1" onClick={confirm} disabled={!full}>
-          {full ? `Confirm ${word}` : `Confirm (${slots.filter((s) => s != null).length}/${n})`}
+          {full ? t.confirmWord(word) : t.confirmCount(slots.filter((s) => s != null).length, n)}
         </ChunkyButton>
       </div>
-      <p className={`${TEXT} m-0 -mt-2 text-center text-[13px] font-bold text-[var(--muted)]`}>Drag the tiles into the slots, or tap them in order.</p>
+      <p className={`${TEXT} m-0 -mt-2 text-center text-[13px] font-bold text-[var(--muted)]`}>{t.dragHelp}</p>
 
       {/* The tile under the finger while dragging. */}
       {drag?.moving ? (

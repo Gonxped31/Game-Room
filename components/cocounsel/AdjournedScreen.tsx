@@ -4,6 +4,8 @@ import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import ResultsHeader from "./ResultsHeader";
 import Stamp from "./Stamp";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface AdjournedScreenProps {
   investigatorName: string;
@@ -46,21 +48,22 @@ export default function AdjournedScreen({
   theme,
   onToggleTheme,
 }: AdjournedScreenProps) {
+  const t = useText(CC_TEXT);
   return (
     <div>
       <ResultsHeader investigatorName={investigatorName} defendantName={defendantName} onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <div className="px-4 pb-8 pt-6">
         <Stamp color="red" rotate={-3}>
-          Case Adjourned
+          {t.adjournedStamp}
         </Stamp>
         <p className="mt-4 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.ink }}>
-          Too many misreadings - the court ran out of patience on Part {endedPartIndex + 1} of {totalParts}.
+          {t.ranOut(endedPartIndex + 1, totalParts)}
         </p>
 
         {verdict ? (
           <>
             <p className="mt-2 font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-              The judge still delivers a ruling on the way out:
+              {t.rulingOnWayOut}
             </p>
             <div
               className="mt-4 rounded-[6px] p-4 font-[family-name:var(--font-courier-prime)] text-[15px] leading-[26px]"
@@ -71,21 +74,21 @@ export default function AdjournedScreen({
           </>
         ) : (
           <p className="mt-2 font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-            The case is dismissed before being fully heard - no final answer this time.
+            {t.dismissed}
           </p>
         )}
 
         <div className="mt-6 flex flex-col gap-3">
           {verdict && onSeeRecap ? (
             <Button variant="secondary" onClick={onSeeRecap}>
-              See the full case file
+              {t.seeCaseFile}
             </Button>
           ) : null}
           {onStartNewCase ? (
-            <Button onClick={onStartNewCase}>Start a new case</Button>
+            <Button onClick={onStartNewCase}>{t.startNewCase}</Button>
           ) : (
             <p aria-live="polite" className="text-center font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-              Waiting for your partner to pick the next case…
+              {t.waitingForPartner}
             </p>
           )}
         </div>

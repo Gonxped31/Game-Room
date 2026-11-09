@@ -2,6 +2,8 @@
 
 import { useRef, type KeyboardEvent } from "react";
 import type { GameEntry } from "@/lib/games/registry";
+import { useText } from "@/lib/i18n/useLang";
+import { HUB_TEXT } from "./text";
 
 /** Visible focus on the white panel: a 3px teal outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
 const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0F7983]";
@@ -9,12 +11,13 @@ const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 f
 export type GameMode = NonNullable<GameEntry["modes"]>[number];
 
 /**
- * A game's modes as radio cards (registry `modes`): its name and one line
- * on it. Nothing is picked until the player picks: Start and Matchmaking
+ * A game's modes as radio cards (registry `modes`, in the page's language
+ * through `gameText`): its name and one line on it. Nothing is picked until the player picks: Start and Matchmaking
  * both wait for a choice. Arrow keys move the choice, as in the other
  * switches.
  */
 export default function ModeChoice({ modes, value, onChange, disabled }: { modes: GameMode[]; value: string | null; onChange: (key: string) => void; disabled?: boolean }) {
+  const label = useText(HUB_TEXT).modeLabel;
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (event: KeyboardEvent, index: number) => {
     const step = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 0;
@@ -25,7 +28,7 @@ export default function ModeChoice({ modes, value, onChange, disabled }: { modes
     buttons.current[next]?.focus();
   };
   return (
-    <div role="radiogroup" aria-label="Mode" className="grid gap-2">
+    <div role="radiogroup" aria-label={label} className="grid gap-2">
       {modes.map((mode, index) => {
         const picked = mode.key === value;
         return (

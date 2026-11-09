@@ -4,10 +4,13 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } 
 import { AREA_COUNTRIES, AREA_NAME } from "@/lib/games/borderrun/areas";
 import { PENALTY_MS } from "@/lib/games/borderrun/constants";
 import { capitalDistanceKm, COUNTRIES, findCountry, nameOf, suggest } from "@/lib/games/borderrun/countries";
-import { links, refusalOf, status, type Play, type Refusal } from "@/lib/games/borderrun/play";
-import { closenessOf, type Closeness } from "@/lib/games/borderrun/route";
-import type { Lang } from "@/lib/games/shared/language";
+import { links, refusalOf, status, type Play } from "@/lib/games/borderrun/play";
+import { closenessOf } from "@/lib/games/borderrun/route";
+import type { Lang } from "@/lib/i18n/lang";
+import { formatNumber } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
 import RouteMap, { type Shown } from "./RouteMap";
+import { TEXT } from "./text";
 
 /**
  * A segmented switch: role="radiogroup", arrow keys move the choice
@@ -72,27 +75,33 @@ export function formatTime(ms: number): string {
   return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 }
 
-/** "Portugal → Poland", the par (after `kicker`, e.g. the daily's number and map), and the closed borders. */
+/**
+ * "Portugal → Poland", the par (after `kicker`, e.g. the daily's number and
+ * map), and the closed borders. `lang` here and below is the page's language
+ * (`useLang()`): it gives the words and the country names alike.
+ */
 export function RouteHeader({ play, lang, kicker }: { play: Play; lang: Lang; kicker?: ReactNode }) {
   const { route } = play;
+  const t = TEXT[lang];
   return (
     <div className="br-route">
       <p className="br-route-kicker">
-        {kicker}par {route.par}
+        {kicker}
+        {t.par(route.par)}
       </p>
       <h2 className="br-route-title">
         <span>{nameOf(route.start, lang)}</span>
-        <span className="br-route-arrow" aria-label="to">
+        <span className="br-route-arrow" aria-label={t.to}>
           →
         </span>
         <span>{nameOf(route.end, lang)}</span>
       </h2>
       <p className="br-route-closed">
-        {route.closed.length === 1 ? "Closed border: " : "Closed borders: "}
+        {t.closedBorders(route.closed.length)}
         {route.closed.map(([a, b], i) => (
           <span key={`${a}-${b}`} className="br-closed-chip">
             {i ? " " : null}
-            {nameOf(a, lang)} <span aria-label="and">✕</span> {nameOf(b, lang)}
+            {nameOf(a, lang)} <span aria-label={t.and}>✕</span> {nameOf(b, lang)}
           </span>
         ))}
       </p>
@@ -103,34 +112,26 @@ export function RouteHeader({ play, lang, kicker }: { play: Play; lang: Lang; ki
 /** The time so far, the guesses against the par, and the penalty once past it. */
 export function Toolbar({ play, elapsed, best }: { play: Play; elapsed: number; best?: number }) {
   const { extra } = status(play);
+  const t = useText(TEXT);
   return (
     <div className="br-toolbar">
-      <span className="br-time" aria-label={`Time ${formatTime(elapsed)}`}>
+      <span className="br-time" aria-label={t.timeLabel(formatTime(elapsed))}>
         {formatTime(elapsed)}
         {extra ? <span className="br-penalty"> +{(extra * PENALTY_MS) / 1000} s</span> : null}
-        {best !== undefined ? <span className="br-best"> · best {formatTime(best)}</span> : null}
+        {best !== undefined ? <span className="br-best">{t.best(formatTime(best))}</span> : null}
       </span>
       <span className="br-count">
-        {play.guesses.length} {play.guesses.length === 1 ? "guess" : "guesses"} · par {play.route.par}
+        {t.guesses(play.guesses.length)} · {t.par(play.route.par)}
       </span>
     </div>
   );
 }
 
-const REFUSAL: Record<Refusal, (name: string, area: string) => string> = {
-  // Also what a part of the start's name gets ("Fra" when France is the start): it isn't offered either.
-  unknown: (name) => `No country left on this map matches “${name}”.`,
-  "not-on-map": (name, area) => `${name} isn’t on this map (${area}).`,
-  endpoint: (name) => `${name} is the start or the end already.`,
-  repeat: (name) => `You already tried ${name}.`,
-  done: () => "The route is complete.",
-};
-
 /**
- * The guess box: type a country in English or French, pick from the
- * suggestions (arrow keys, or a tap), Enter to guess. The first suggestion
- * is highlighted, so Enter takes it. A refused guess is explained and costs
- * nothing.
+ * The guess box: type a country in English or French (either, whatever the
+ * page's language), pick from the suggestions (arrow keys, or a tap), Enter
+ * to guess. The first suggestion is highlighted, so Enter takes it. A
+ * refused guess is explained and costs nothing.
  */
 export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang: Lang; onGuess: (code: string) => void; disabled?: boolean }) {
   const [text, setText] = useState("");
@@ -138,6 +139,7 @@ export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang
   const [message, setMessage] = useState<string | null>(null);
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
+  const t = TEXT[lang];
   const { route, guesses } = play;
   const options = useMemo(() => {
     const taken = new Set([route.start, route.end, ...guesses.map((g) => g.code)]);
@@ -149,7 +151,7 @@ export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang
   const guess = (code: string | null) => {
     const refusal = refusalOf(play, code);
     if (refusal) {
-      setMessage(REFUSAL[refusal](code ? nameOf(code, lang) : text.trim(), AREA_NAME[route.area].en));
+      setMessage(t.refusal[refusal](code ? nameOf(code, lang) : text.trim(), AREA_NAME[route.area][lang]));
       return;
     }
     setMessage(null);
@@ -176,7 +178,7 @@ export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang
           ref={input}
           className="br-input"
           role="combobox"
-          aria-label="Guess a country"
+          aria-label={t.guessLabel}
           aria-expanded={open}
           aria-controls={`${id}-list`}
           aria-autocomplete="list"
@@ -185,7 +187,7 @@ export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang
           aria-invalid={message ? true : undefined}
           value={text}
           disabled={disabled}
-          placeholder={lang === "fr" ? "Un pays…" : "A country…"}
+          placeholder={t.placeholder}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="words"
@@ -208,10 +210,10 @@ export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang
           }}
         />
         <button type="submit" className="br-button br-button-primary" disabled={disabled || !text.trim()}>
-          Guess
+          {t.guess}
         </button>
       </div>
-      <ul id={`${id}-list`} role="listbox" aria-label="Countries" className="br-suggest" hidden={!open}>
+      <ul id={`${id}-list`} role="listbox" aria-label={t.countries} className="br-suggest" hidden={!open}>
         {open
           ? options.map((code, i) => (
               <li
@@ -225,7 +227,10 @@ export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang
                 onClick={() => guess(code)}
               >
                 {nameOf(code, lang)}
-                <span className="br-suggest-other">{nameOf(code, lang === "en" ? "fr" : "en")}</span>
+                {/* The other language's name too: either can be typed. */}
+                <span className="br-suggest-other" lang={lang === "en" ? "fr" : "en"}>
+                  {nameOf(code, lang === "en" ? "fr" : "en")}
+                </span>
               </li>
             ))
           : null}
@@ -237,14 +242,13 @@ export function GuessInput({ play, lang, onGuess, disabled }: { play: Play; lang
   );
 }
 
-const CLOSENESS_LABEL: Record<Closeness, string> = { best: "On route", close: "Close", off: "Off route" };
-
 /** The guesses so far, newest first, each with how close it is. */
 export function GuessList({ play, lang }: { play: Play; lang: Lang }) {
+  const t = TEXT[lang];
   const graded = play.guesses.map((guess) => ({ code: guess.code, closeness: closenessOf(play.route, guess.code) }));
-  if (!graded.length) return <p className="br-hint">Name a country that borders {nameOf(play.route.start, lang)}, or any on the way.</p>;
+  if (!graded.length) return <p className="br-hint">{t.hint(nameOf(play.route.start, lang))}</p>;
   return (
-    <ol className="br-guesses" reversed aria-label="Your guesses">
+    <ol className="br-guesses" reversed aria-label={t.yourGuesses}>
       {graded
         .map((guess, i) => ({ ...guess, i }))
         .reverse()
@@ -252,7 +256,7 @@ export function GuessList({ play, lang }: { play: Play; lang: Lang }) {
           <li key={code} className="br-guess-item" data-tone={closeness}>
             <span className="br-guess-number">{i + 1}</span>
             <span className="br-guess-name">{nameOf(code, lang)}</span>
-            <span className="br-guess-tag">{CLOSENESS_LABEL[closeness]}</span>
+            <span className="br-guess-tag">{t.closeness[closeness]}</span>
           </li>
         ))}
     </ol>
@@ -280,19 +284,17 @@ export function PlayMap({ play, lang, reveal }: { play: Play; lang: Lang; reveal
   return <RouteMap key={key} area={play.route.area} shown={shown} closed={play.route.closed} lang={lang} route={route} links={run} />;
 }
 
-/** "Lisbon → Warsaw: 2,760 km as the crow flies": the capitals, once the route is over. */
+/** "Lisbon → Warsaw: 2,760 km as the crow flies" ("2 760 km" in French): the capitals, once the route is over. */
 export function CapitalLine({ play, lang }: { play: Play; lang: Lang }) {
   const { start, end } = play.route;
+  const t = TEXT[lang];
   const km = capitalDistanceKm(start, end);
   const from = COUNTRIES[start].capital;
   const to = COUNTRIES[end].capital;
   if (km === null || !from || !to) return null;
   return (
     <p className="br-capitals">
-      <span className="br-capitals-names">
-        {from[lang]} → {to[lang]}:
-      </span>{" "}
-      {km.toLocaleString("en-US")} km as the crow flies, capital to capital
+      <span className="br-capitals-names">{t.capitals(from[lang], to[lang])}</span> {t.crowFlies(formatNumber(lang, km))}
     </p>
   );
 }

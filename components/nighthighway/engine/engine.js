@@ -22,7 +22,16 @@
 // - Curves: the world is bent sideways in the vertex shaders (the game itself
 //   stays a straight road), and bends push the car outward; see
 //   lib/games/nighthighway/road.ts.
+// - Words (Partyfox is bilingual, docs/i18n.md): every word the engine shows
+//   (messages, pop-ups, the HUD's live lines, solo's results, number formats)
+//   comes from `options.text`, the page language's half of
+//   components/nighthighway/text.ts's ENGINE_TEXT (English when it's missing).
+//   The engine itself knows no languages. The scenery's signs and billboards
+//   (an American city) stay as they are.
+// - Solo: `options.onSoloFinish(result)` once a run's 60 seconds are up (the
+//   results screen); a run restarted mid-way (R) never finishes.
 import * as THREE from 'three';
+import { ENGINE_TEXT } from '../text';
 import { TrafficSim } from '@/lib/games/nighthighway/traffic';
 import { COUNTDOWN_SECONDS, COUNTDOWN_SPEED, LIVE_INTERVAL_MS, RUN_SECONDS } from '@/lib/games/nighthighway/constants';
 import { COMBO_SECONDS, DEFAULT_OPTIONS, MAX_COMBO, NEAR_MISS_GAP, NEAR_MISS_MIN_SPEED, nearMissPoints } from '@/lib/games/nighthighway/game';
@@ -36,6 +45,8 @@ const SHIELD_BREAK_SECONDS = 0.8;
 
 export function createEngine(root, options = {}) {
 const $ = (id) => root.querySelector('#' + id);
+// Game Room: the words to show, in the page's language (see the header).
+const T = options.text || ENGINE_TEXT.en;
 const bootEl = $('boot');
 // Game Room: every listener goes through listen(), so destroy() can remove it.
 const cleanups = [];
@@ -76,7 +87,7 @@ let renderer = null;
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
 } catch { renderer = null; }
-if (!renderer || !renderer.getContext()) { fatal('This game needs WebGL, and this browser has it turned off. Try another browser or turn on hardware acceleration.'); return DEAD_ENGINE; }
+if (!renderer || !renderer.getContext()) { fatal(T.noWebGL); return DEAD_ENGINE; }
 renderer.setClearColor(0x000000, 1);
 const gl = renderer.getContext();
 const isGL2 = renderer.capabilities.isWebGL2;
@@ -2485,7 +2496,7 @@ const HUD = {
   power: $('power'),
   optRain: $('optRain'), optPickups: $('optPickups'), optDesert: $('optDesert'),
 };
-if (RACE_MODE && HUD.hint) HUD.hint.innerHTML = 'W / ↑ gas · S / ↓ brake · A D / ← → steer<br>Shift or Space nitro · V camera · C paint · L glow · H hide HUD';
+// Game Room: the race's hint (no P pause) is written by the stage (Stage.tsx), in the page's language.
 (function drawTicks() {
   let svg = '';
   for (let k = 0; k <= 18; k++) {
@@ -2539,13 +2550,13 @@ function collect(p) {
   G.pickups++;
   if (p.kind === 'nitro') {
     player.nitro = Math.min(1, player.nitro + NITRO_REFILL);
-    popup('Nitro', '+' + Math.round(NITRO_REFILL * 100) + '%', 'cool');
+    popup(T.nitro, T.nitroSub(Math.round(NITRO_REFILL * 100)), 'cool');
   } else if (p.kind === 'phase') {
     player.phaseT = PHASE_SECONDS;
-    popup('Phase', PHASE_SECONDS + ' s · drive through traffic', 'cool');
+    popup(T.phase, T.phaseSub(PHASE_SECONDS), 'cool');
   } else {
     player.shield = true;
-    popup('Shield', 'absorbs your next crash', 'cool');
+    popup(T.shield, T.shieldSub, 'cool');
   }
   audio.beep(p.kind === 'nitro' ? 990 : 1320, 0.1);
 }
@@ -2866,7 +2877,7 @@ function hit(strength, sx, side) {
   G.flashCol.set(1.0, 0.12, 0.1);
   G.combo = 0;
   G.comboT = 0;
-  if (G.state === 'drive') { G.crashes++; popup('Crash', 'combo lost', 'hot'); }
+  if (G.state === 'drive') { G.crashes++; popup(T.crash, T.crashSub, 'hot'); }
   emitSparks(sx, 0.6, side === 0 ? -2.2 : rand(-1, 1), side || (Math.random() < 0.5 ? -1 : 1), 26, 1.2);
   audio.crash();
 }
@@ -2877,7 +2888,7 @@ function nearMiss(gap) {
   G.bonus += pts;
   G.nearMiss++;
   player.nitro = Math.min(1, player.nitro + 0.15);
-  popup(gap < 0.5 ? 'Close call' : 'Near miss', '+' + pts + (G.combo > 1 ? '  ×' + G.combo : ''), 'cool');
+  popup(gap < 0.5 ? T.closeCall : T.nearMiss, '+' + pts + (G.combo > 1 ? '  ×' + G.combo : ''), 'cool');
   audio.whoosh();
 }
 function checkTraffic() {
@@ -2891,7 +2902,7 @@ function checkTraffic() {
       player.phaseT = SHIELD_BREAK_SECONDS;
       G.flash = 0.25;
       G.flashCol.set(1.0, 0.8, 0.2);
-      if (G.state === 'drive') popup('Shield', 'crash absorbed', 'cool');
+      if (G.state === 'drive') popup(T.shield, T.shieldUsed, 'cool');
       audio.whoosh();
     } else if (ox > 0 && oz > 0 && player.phaseT <= 0) {
       if (ox < oz) {
@@ -3078,7 +3089,7 @@ function updatePost(blurScale) {
 // ---------- HUD ----------
 const hudCache = {};
 function setText(el, key, val) { if (hudCache[key] !== val) { hudCache[key] = val; el.textContent = val; } }
-const fmt = (n) => Math.floor(n).toLocaleString('en-US');
+const fmt = T.num; // Game Room: was en-US only
 function updateHUD() {
   if (HUD.hud.hidden) return;
   const kmh = Math.round(player.v * 3.6);
@@ -3089,18 +3100,18 @@ function updateHUD() {
   HUD.speedo.classList.toggle('boost', player.boosting);
   HUD.speedo.classList.toggle('redline', !player.boosting && kmh > 290);
   const tl = Math.max(0, G.time);
-  setText(HUD.clock, 'clock', tl.toFixed(1));
+  setText(HUD.clock, 'clock', T.decimal(tl, 1));
   HUD.timefill.style.transform = 'scaleX(' + (tl / 60).toFixed(4) + ')';
   const late = G.state === 'drive' && tl < 10;
   HUD.clock.classList.toggle('late', late);
   HUD.timebar.classList.toggle('late', late);
   setText(HUD.score, 'score', fmt(G.score));
-  setText(HUD.dist, 'dist', (G.distRun / 1000).toFixed(2));
+  setText(HUD.dist, 'dist', T.decimal(G.distRun / 1000, 2));
   setText(HUD.nm, 'nm', String(G.nearMiss));
   if (HUD.power) {
     const parts = [];
-    if (player.phaseT > 0) parts.push('Phase ' + player.phaseT.toFixed(1) + ' s');
-    if (player.shield) parts.push('Shield up');
+    if (player.phaseT > 0) parts.push(T.phaseLeft(player.phaseT));
+    if (player.shield) parts.push(T.shieldUp);
     setText(HUD.power, 'power', parts.join('  ·  '));
   }
   if (HUD.opp) {
@@ -3108,7 +3119,7 @@ function updateHUD() {
     let line = '';
     if (latest && latest.race === G.race.race) {
       const gap = Math.round(latest.s - dist);
-      line = opponent.name + '  ' + fmt(latest.score) + '  ·  ' + (Math.abs(gap) < 3 ? 'side by side' : Math.abs(gap) + ' m ' + (gap > 0 ? 'ahead' : 'behind'));
+      line = opponent.name + '  ' + fmt(latest.score) + '  ·  ' + (Math.abs(gap) < 3 ? T.sideBySide : gap > 0 ? T.ahead(Math.abs(gap)) : T.behind(Math.abs(gap)));
     }
     setText(HUD.opp, 'opp', line);
   }
@@ -3123,7 +3134,7 @@ function showTitle() {
   if (HUD.results) HUD.results.hidden = true;
   HUD.hud.hidden = true;
   HUD.touch.hidden = true;
-  if (HUD.bestLine) HUD.bestLine.textContent = G.best > 0 ? 'Best run on this device: ' + fmt(G.best) : '';
+  if (HUD.bestLine) HUD.bestLine.textContent = G.best > 0 ? T.bestLine(G.best) : '';
 }
 function resetRunStats() {
   Object.assign(G, { state: 'countdown', cd: COUNTDOWN_SECONDS, lastCd: COUNTDOWN_SECONDS + 1, time: RUN_SECONDS, score: 0, bonus: 0, distRun: 0, nearMiss: 0, overtakes: 0, crashes: 0, top: 0, sumV: 0, sumT: 0, combo: 0, comboT: 0, hintT: 9, liveT: 0, pickups: 0 });
@@ -3169,7 +3180,7 @@ function beginRaceCountdown(R, rt) {
   showRunHud();
 }
 function showRunHud() {
-  if (runOptions().rain) popup('Rain', 'wet road · the car slides', 'cool');
+  if (runOptions().rain) popup(T.rain, T.rainSub, 'cool');
   if (HUD.title) HUD.title.hidden = true;
   if (HUD.results) HUD.results.hidden = true;
   HUD.hud.hidden = false;
@@ -3212,12 +3223,12 @@ function endRun() {
   const prev = G.best;
   const isBest = score > prev;
   if (isBest) { G.best = score; store.set('best', score); }
-  $('resKicker').textContent = isBest ? 'New best run' : 'Run complete';
+  $('resKicker').textContent = isBest ? T.newBest : T.runComplete;
   $('resScore').textContent = fmt(score);
   const rb = $('resBest');
-  rb.textContent = isBest ? (prev > 0 ? 'Previous best ' + fmt(prev) : 'First run on this device') : 'Best ' + fmt(G.best);
+  rb.textContent = isBest ? (prev > 0 ? T.previousBest(prev) : T.firstRun) : T.best(G.best);
   rb.classList.toggle('new', isBest);
-  $('rDist').textContent = (G.distRun / 1000).toFixed(2);
+  $('rDist').textContent = T.decimal(G.distRun / 1000, 2);
   $('rTop').textContent = String(Math.round(G.top));
   $('rAvg').textContent = String(Math.round(G.sumT > 0 ? (G.sumV / G.sumT) * 3.6 : 0));
   $('rNm').textContent = String(G.nearMiss);
@@ -3227,6 +3238,8 @@ function endRun() {
   HUD.touch.hidden = true;
   HUD.results.hidden = false;
   for (const k in keys) keys[k] = false;
+  // Game Room: the page counts a finished solo run (see the header).
+  if (options.onSoloFinish) options.onSoloFinish(runResult());
 }
 function togglePause(on) {
   if (on === G.paused) return;
@@ -3300,7 +3313,7 @@ function update(dt) {
     if (n !== G.lastCd && n > 0) { G.lastCd = n; showCount(String(n)); audio.beep(440, 0.12); }
     if (G.cd <= 0) {
       G.state = 'drive';
-      showCount('Go', true);
+      showCount(T.go, true);
       audio.beep(880, 0.25);
       G.flash = 0.25;
       G.flashCol.set(0.5, 0.6, 1.0);
@@ -3390,23 +3403,23 @@ listen(window, 'keydown', (e) => {
     case 'KeyV':
       camMode = (camMode + 1) % CAMS.length;
       store.set('cam', camMode);
-      popup(CAMS[camMode].name + ' camera');
+      popup(T.cams[camMode] || CAMS[camMode].name + ' camera');
       break;
     case 'KeyC':
       setPaint(paintIdx + 1);
       store.set('paint', paintIdx);
-      popup(PAINTS[paintIdx].name);
+      popup(T.paints[paintIdx] || PAINTS[paintIdx].name);
       break;
     case 'KeyL':
       glowIdx = (glowIdx + 1) % GLOW.length;
       store.set('glow', glowIdx);
       applyGlow();
-      popup(GLOW[glowIdx].name);
+      popup(T.glows[glowIdx] || GLOW[glowIdx].name);
       break;
     case 'KeyM':
       audio.init();
       audio.setEnabled(!audio.enabled);
-      popup(audio.enabled ? 'Sound on' : 'Sound off');
+      popup(audio.enabled ? T.soundOn : T.soundOff);
       break;
     case 'KeyH':
       G.hudOff = !G.hudOff;
@@ -3524,7 +3537,7 @@ function boot(data) {
     for (const o of hidden) o.visible = false;
     renderFrame();
   } catch {
-    fatal('The graphics engine hit an error while starting. Reloading the page usually fixes it.');
+    fatal(T.bootError);
     return;
   }
   bootEl.hidden = true;

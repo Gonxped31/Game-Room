@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { COLOR } from "@/lib/games/cocounsel/theme";
 import ExhibitTent from "./ExhibitTent";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface RevealCardProps {
   n: number;
@@ -19,6 +21,7 @@ interface RevealCardProps {
  * inherits the existing global prefers-reduced-motion override for free.
  */
 export default function RevealCard({ n, text, role, characterName }: RevealCardProps) {
+  const t = useText(CC_TEXT);
   const [revealed, setRevealed] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setRevealed(true));
@@ -38,7 +41,7 @@ export default function RevealCard({ n, text, role, characterName }: RevealCardP
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: "#d6d6d6", backgroundColor: COLOR.white }}
         >
           <div className="px-3 py-2 text-xs font-bold text-white" style={{ backgroundColor: roleColor }}>
-            {characterName}&apos;s card
+            {t.cardOf(characterName)}
           </div>
           <div className="flex flex-1 flex-col gap-2 p-3">
             <ExhibitTent n={n} />

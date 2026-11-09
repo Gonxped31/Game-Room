@@ -1,4 +1,6 @@
 import type { Role } from "@/lib/session/types";
+import type { Lang } from "@/lib/games/shared/language";
+import { DEFAULT_LANG } from "@/lib/i18n/lang";
 import { ITEMS_PER_ROUND } from "./constants";
 import { matchCount } from "./scoring";
 
@@ -33,8 +35,9 @@ export interface GameState {
   /**
    * Every distinct prompt text seen this session (shuffled past, custom-
    * written, or played), so the prompt bank doesn't repeat one within a
-   * session until every built-in prompt has come up. Capped at the bank's
-   * size since an already-seen prompt is never re-added - see addUsedPrompt.
+   * session until every built-in prompt has come up. Capped at the two
+   * banks' combined size (plus custom prompts) since an already-seen prompt
+   * is never re-added - see addUsedPrompt.
    */
   usedPrompts: string[];
   /** One entry per completed (REVEALED) round this session, oldest first - the session recap. */
@@ -44,7 +47,18 @@ export interface GameState {
    * by both. Absent means every topic - Firebase drops the empty array anyway.
    */
   topics?: string[];
+  /**
+   * The language built-in prompts are drawn in (prompts.json or
+   * prompts.fr.json) - the master's choice, seen by both, applied from the
+   * next prompt like `topics`. A new game starts in its creator's interface
+   * language; rooms made before it have no field, which means English (read
+   * it with `contentLang`).
+   */
+  lang?: Lang;
 }
+
+/** The room's content language: `lang`, or English for a room made before it existed. */
+export const contentLang = (game: Pick<GameState, "lang">): Lang => game.lang ?? DEFAULT_LANG;
 
 export interface RoundRecord {
   round: number;
@@ -84,9 +98,50 @@ function isValidOrder(order: string[] | undefined, items: RoundItem[]): order is
   return order.every((id) => ids.has(id));
 }
 
-export function newGame(firstRound: CurrentRound, topics: string[] = []): GameState {
-  const game: GameState = { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], history: [] };
+/** A fresh game: `firstRound` should come from the bank of `lang`, the content language (the creator's interface language for a new room). */
+export function newGame(firstRound: CurrentRound, topics: string[] = [], lang: Lang = DEFAULT_LANG): GameState {
+  const game: GameState = { round: 1, totals: { p1: 0, p2: 0 }, current: firstRound, usedPrompts: [firstRound.prompt], history: [], lang };
   return topics.length ? { ...game, topics } : game;
+}
+
+/**
+ * The master (`by` must be this round's master, as for `setTopics`) chooses
+ * the language built-in prompts are drawn in, at any point in the round; it
+ * applies from the next prompt (Shuffle, Next round, Reset game).
+ */
+export function setLang(game: GameState, by: Role, lang: Lang): GameState {
+  if (by !== masterOf(game.round)) {
+    throw new Error("Only the master chooses the prompt language.");
+  }
+  if (lang !== "en" && lang !== "fr") {
+    throw new Error("Unknown language.");
+  }
+  return { ...game, lang };
+}
+
+/** FNV-1a, in base 36: a short fingerprint of a string, the same on every device. */
+function fingerprint(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * The id of the round on show once it's REVEALED (its result), else null: the
+ * same on every device, for the "game finished" report (lib/tracking). Same
+ * Page has no final result - rounds go on as long as the players like - so
+ * each revealed round counts. The round number alone would repeat after
+ * Reset game, so a fingerprint of what was played (the prompt and both
+ * orders) goes with it. Letters, digits and "-" only.
+ */
+export function revealedRoundId(game: GameState): string | null {
+  const { current } = game;
+  if (current.status !== "REVEALED") return null;
+  const played = [current.prompt, ...(current.masterOrder ?? []), "|", ...(current.guessOrder ?? [])].join("\n");
+  return `r${game.round}-${fingerprint(played)}`;
 }
 
 /**
@@ -181,7 +236,7 @@ export function setPrompt(game: GameState, round: CurrentRound): GameState {
   return { ...game, current: round, usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt) };
 }
 
-/** REVEALED -> next round's RANKING. Roles swap because masterOf(round) alternates. */
+/** REVEALED -> next round's RANKING (`round` drawn in `contentLang(game)`). Roles swap because masterOf(round) alternates. */
 export function nextRound(game: GameState, round: CurrentRound): GameState {
   if (game.current.status !== "REVEALED") {
     throw new Error(`Cannot advance to the next round while status is ${game.current.status}.`);
@@ -195,6 +250,7 @@ export function nextRound(game: GameState, round: CurrentRound): GameState {
     current: round,
     usedPrompts: addUsedPrompt(game.usedPrompts, round.prompt),
     history: game.history ?? [],
+    ...(game.lang ? { lang: game.lang } : {}),
   };
   return game.topics?.length ? { ...next, topics: game.topics } : next;
 }

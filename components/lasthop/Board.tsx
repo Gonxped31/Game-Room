@@ -4,7 +4,9 @@ import { type CSSProperties, useMemo, useState } from "react";
 import type { Role } from "@/lib/session/types";
 import { type Board as BoardData, type Colour, legalMoves } from "@/lib/games/lasthop/board";
 import type { Pawn } from "@/lib/games/lasthop/constants";
+import { useText } from "@/lib/i18n/useLang";
 import { PawnShape } from "./pawns";
+import { TEXT } from "./text";
 import { FOCUS, seatColor, seatShade } from "./ui";
 
 interface BoardProps {
@@ -33,6 +35,7 @@ interface BoardProps {
  * can go; a tap there moves it. Pieces that can't move on your turn are dimmed.
  */
 export default function Board({ board, seatOf, pawnOf, rotated, moving, last, moveKey, onMove, nameOf }: BoardProps) {
+  const t = useText(TEXT);
   const [selected, setSelected] = useState<{ cell: number; key: number } | null>(null);
   const moves = useMemo(() => (moving ? legalMoves(board, moving) : []), [board, moving]);
   // A selection belongs to the move it was made in; any move clears it.
@@ -60,18 +63,18 @@ export default function Board({ board, seatOf, pawnOf, rotated, moving, last, mo
 
   const describe = (cell: number) => {
     const { x, y } = xy(cell);
-    const where = track ? `Square ${x + 1}` : `Row ${y + 1}, column ${x + 1}`;
+    const where = track ? t.square(x + 1) : t.cell(y + 1, x + 1);
     const c = board.cells[cell];
-    if (c === ".") return targets.has(cell) ? `${where}: move here` : `${where}: empty`;
+    if (c === ".") return targets.has(cell) ? t.moveHere(where) : t.empty(where);
     const owner = nameOf(seatOf(c as Colour));
     const mine = moving === c;
-    const state = !mine ? "" : pick === cell ? ", selected" : movable.has(cell) ? ", can move" : ", can't move";
-    return `${where}: ${owner}'s piece${state}`;
+    const state = !mine ? "" : pick === cell ? "selected" : movable.has(cell) ? "canMove" : "cantMove";
+    return t.piece(where, owner, state);
   };
 
   const style = { "--w": board.w } as CSSProperties;
   return (
-    <div role="group" aria-label={track ? "The track" : "The grid"} className={`lh-board ${track ? "lh-track" : "lh-grid"} ${rotated ? "lh-rot" : ""}`} style={style}>
+    <div role="group" aria-label={track ? t.track : t.grid} className={`lh-board ${track ? "lh-track" : "lh-grid"} ${rotated ? "lh-rot" : ""}`} style={style}>
       {order.map((cell) => {
         const c = board.cells[cell];
         const piece = c === "A" || c === "B" ? (c as Colour) : null;

@@ -3,6 +3,8 @@ import { COLOR } from "@/lib/games/cocounsel/theme";
 import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import Wordmark from "./Wordmark";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface ConfirmRoleScreenProps {
   caseDef: CaseDefinition;
@@ -28,7 +30,7 @@ interface ConfirmRoleScreenProps {
  */
 export default function ConfirmRoleScreen({ caseDef, myRole, onContinue, onSwitchRole, onBack, theme, onToggleTheme }: ConfirmRoleScreenProps) {
   const myName = caseDef.characters[myRole];
-  const roleLabel = myRole === "investigator" ? "Investigator" : "Defendant";
+  const t = useText(CC_TEXT);
 
   return (
     <div>
@@ -38,19 +40,19 @@ export default function ConfirmRoleScreen({ caseDef, myRole, onContinue, onSwitc
           {caseDef.title}
         </p>
         <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-[1.15]" style={{ color: COLOR.ink }}>
-          Welcome back!
+          {t.welcomeBack}
         </h1>
         <p className="mt-1 font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-          Last time you were {myName}, the {roleLabel}.
+          {t.lastTime(myName, myRole)}
         </p>
       </div>
       <div className="px-4 pb-8">
         <div className="flex flex-col gap-3">
           <Button onClick={onContinue}>
-            Continue as {myName}, the {roleLabel}
+            {t.continueAs(myName, myRole)}
           </Button>
           <Button variant="secondary" onClick={onSwitchRole}>
-            Switch role instead
+            {t.switchRole}
           </Button>
         </div>
       </div>

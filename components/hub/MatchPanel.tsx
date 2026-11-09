@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
-import { CONNECTION_ERROR_MESSAGE, ensureGuestUid } from "@/lib/session/shared/auth";
+import { CONNECTION_ERROR_TEXT, ensureGuestUid } from "@/lib/session/shared/auth";
 import { findMatch, type MatchGame } from "@/lib/session/shared/findMatch";
 import { ANY_LANG } from "@/lib/session/shared/matchmaking";
 import { roomHref } from "@/lib/games/registry";
-import { defaultLang, type Lang, LANG_LABELS, LANGS } from "@/lib/games/shared/language";
+import { type Lang, LANG_LABELS, LANGS } from "@/lib/games/shared/language";
+import { useLang } from "@/lib/i18n/useLang";
 import ModeChoice, { type GameMode } from "./ModeChoice";
+import { HUB_TEXT } from "./text";
 
 /** Visible focus on the white panel: a 3px teal outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
 const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0F7983]";
@@ -30,13 +32,12 @@ function saveName(name: string) {
     // storage unavailable - the name just isn't remembered
   }
 }
-const browserLang = () => defaultLang(navigator.languages);
-
-function LangSwitch({ lang, onChange, disabled }: { lang: Lang; onChange: (lang: Lang) => void; disabled: boolean }) {
+/** The content language (questions, words), not the interface's: labelled by the line beside it. */
+function ContentLangSwitch({ lang, onChange, disabled, labelledBy }: { lang: Lang; onChange: (lang: Lang) => void; disabled: boolean; labelledBy: string }) {
   return (
     <div
       role="radiogroup"
-      aria-label="Language"
+      aria-labelledby={labelledBy}
       className="inline-flex shrink-0 items-center self-start rounded-[10px] bg-[#E9EEEF] p-[3px]"
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
@@ -88,8 +89,10 @@ interface MatchPanelProps {
  * opens straight on its lobby.
  */
 export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet }: MatchPanelProps) {
+  // The interface language: words and links. A new room's content language defaults to it.
+  const lang = useLang();
+  const t = HUB_TEXT[lang];
   const savedName = useSyncExternalStore(noSubscribe, readSavedName, () => "");
-  const suggestedLang = useSyncExternalStore(noSubscribe, browserLang, (): Lang => "en");
   const [typedName, setTypedName] = useState<string | null>(null);
   const [pickedLang, setPickedLang] = useState<Lang | null>(null);
   const [pickedMode, setPickedMode] = useState<string | null>(null);
@@ -97,9 +100,10 @@ export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet 
   const [destination, setDestination] = useState<string | null>(null);
   const errorId = useId();
   const nameId = useId();
+  const contentLangId = useId();
 
   const name = typedName ?? savedName;
-  const lang = pickedLang ?? suggestedLang;
+  const contentLang = pickedLang ?? lang;
   const busy = status === "searching" || destination != null;
   const chosen = modes ? (modes.find((mode) => mode.key === pickedMode)?.game ?? null) : (game ?? null);
   const canSubmit = !busy && name.trim().length > 0 && chosen !== null;
@@ -117,8 +121,8 @@ export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet 
     saveName(trimmed);
     try {
       const uid = await ensureGuestUid();
-      const code = await findMatch({ uid, name: trimmed, lang: chosen.queue ?? (chosen.languages ? lang : ANY_LANG), game: chosen });
-      setDestination(roomHref(chosen.gameSlug, code));
+      const code = await findMatch({ uid, name: trimmed, lang: chosen.queue ?? (chosen.languages ? contentLang : ANY_LANG), game: chosen });
+      setDestination(roomHref(chosen.gameSlug, code, lang));
     } catch {
       setStatus("offline");
     }
@@ -128,18 +132,18 @@ export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet 
     <form onSubmit={search} aria-busy={busy} className="grid gap-2.5">
       {inSheet ? null : (
         <h2 id={headingId} className="m-0 font-[family-name:var(--font-fredoka)] text-[17px] font-bold">
-          {gameTitle} matchmaking
+          {t.matchTitle(gameTitle)}
         </h2>
       )}
 
       <p className="m-0 text-sm font-medium" style={{ color: "#444444" }}>
-        We&apos;ll match you with other players. The game starts by itself once enough of you are in.
+        {t.match.intro}
       </p>
 
       {modes ? <ModeChoice modes={modes} value={pickedMode} onChange={setPickedMode} disabled={busy} /> : null}
 
       <label htmlFor={nameId} className="text-sm font-semibold text-black">
-        Your name
+        {t.match.yourName}
       </label>
       <input
         id={nameId}
@@ -152,7 +156,7 @@ export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet 
           setTypedName(e.target.value);
           setStatus("idle");
         }}
-        placeholder="What should others call you?"
+        placeholder={t.match.namePlaceholder}
         aria-describedby={status === "offline" ? errorId : undefined}
         autoComplete="nickname"
         className={`h-12 w-full rounded-xl border-2 bg-white px-3.5 font-[family-name:var(--font-fredoka)] text-base font-semibold text-black outline-none disabled:bg-[#F1F4F4] disabled:text-black/60 ${busy ? "border-[#C9D1D2]" : "border-[#7C8A8C] focus:border-[#0F7983]"}`}
@@ -160,14 +164,16 @@ export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet 
 
       {chosen?.languages ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-black">Questions and words in</span>
-          <LangSwitch lang={lang} onChange={setPickedLang} disabled={busy} />
+          <span id={contentLangId} className="text-sm font-semibold text-black">
+            {t.match.contentLang}
+          </span>
+          <ContentLangSwitch lang={contentLang} onChange={setPickedLang} disabled={busy} labelledBy={contentLangId} />
         </div>
       ) : null}
 
       {status === "offline" ? (
         <p id={errorId} role="alert" className="m-0 text-sm font-semibold" style={{ color: "#B3261E" }}>
-          {CONNECTION_ERROR_MESSAGE}
+          {CONNECTION_ERROR_TEXT[lang]}
         </p>
       ) : null}
 
@@ -181,7 +187,7 @@ export default function MatchPanel({ game, modes, gameTitle, headingId, inSheet 
           cursor: busy ? "progress" : undefined,
         }}
       >
-        <span aria-live="polite">{busy ? "Finding players…" : "Find players"}</span>
+        <span aria-live="polite">{busy ? t.match.finding : t.match.find}</span>
       </button>
     </form>
   );

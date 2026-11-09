@@ -4,7 +4,9 @@ import { useEffect } from "react";
 import type { SeatId } from "@/lib/session/types";
 import { TOPIC_LABELS, type TopicId } from "@/lib/games/buzzerquiz/constants";
 import { choicesLeft, type Outcome, pointsFor } from "@/lib/games/buzzerquiz/game";
+import { useLang } from "@/lib/i18n/useLang";
 import { NextPill } from "./Screens";
+import { WORDS } from "./text";
 import {
   BoltIcon,
   Buzzer,
@@ -79,8 +81,10 @@ export interface CardsView {
 }
 
 export default function QuestionScreen({ view, onBuzz, onPick, onPlay }: { view: QuestionView; onBuzz: () => void; onPick: (bank: number) => void; onPlay: (card: Card) => void }) {
+  const lang = useLang();
+  const t = WORDS[lang];
   const { phase, me, playing, names, buzzer, lastPick, outcome } = view;
-  const name = (seat?: SeatId) => (seat ? (names[seat] ?? "Someone") : "Someone");
+  const name = (seat?: SeatId) => (seat ? (names[seat] ?? t.someone) : t.someone);
   const myTurn = phase === "answering" && buzzer === me;
   const lockedOut = me != null && view.locked.includes(me);
   const left = choicesLeft(view);
@@ -111,38 +115,39 @@ export default function QuestionScreen({ view, onBuzz, onPick, onPlay }: { view:
   const worth =
     phase === "result"
       ? outcome?.kind === "right"
-        ? `Worth ${outcome.points} point${outcome.points === 1 ? "" : "s"}`
-        : "No points this time"
+        ? t.worth(outcome.points)
+        : t.noPoints
       : left <= 1
-        ? "No points this time"
-        : `${view.struck.length ? "Now worth" : "Worth"} ${pointsFor(left)} point${pointsFor(left) === 1 ? "" : "s"}`;
+        ? t.noPoints
+        : view.struck.length
+          ? t.nowWorth(pointsFor(left))
+          : t.worth(pointsFor(left));
 
   // The status banner, if any.
   let banner = null;
   if (phase === "answering" && buzzer && buzzer !== me) {
-    banner = <StatusBanner fill={seatColor(buzzer)} color="var(--ink)" icon={<BoltIcon />} text={`${name(buzzer)} buzzed!`} side={`Choosing… ${view.answerSeconds} s`} />;
+    banner = <StatusBanner fill={seatColor(buzzer)} color="var(--ink)" icon={<BoltIcon />} text={t.buzzed(name(buzzer))} side={t.choosing(view.answerSeconds)} />;
   } else if (myTurn) {
     banner = (
-      <StatusBanner fill={seatColor(me!)} color="var(--ink)" text="Your turn! Pick an answer" side={`${view.answerSeconds} s`}>
-        <div role="progressbar" aria-label="Time to answer" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(view.answerFraction * 100)} className="mt-2 h-1.5 overflow-hidden rounded-full bg-[rgba(22,17,58,.25)]">
+      <StatusBanner fill={seatColor(me!)} color="var(--ink)" text={t.yourTurn} side={`${view.answerSeconds} s`}>
+        <div role="progressbar" aria-label={t.timeToAnswer} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(view.answerFraction * 100)} className="mt-2 h-1.5 overflow-hidden rounded-full bg-[rgba(22,17,58,.25)]">
           <div className="h-full rounded-full bg-[var(--ink)]" style={{ width: `${view.answerFraction * 100}%` }} />
         </div>
       </StatusBanner>
     );
   } else if (phase === "result" && outcome?.kind === "right") {
     const thieves = view.cards?.stealers ?? [];
-    const stolen = thieves.length ? ` ${thieves.map((seat) => (seat === me ? "You" : name(seat))).join(" and ")} stole ${thieves.length === 1 ? "1 point" : "a point each"}.` : "";
-    banner = <StatusBanner fill="var(--right)" color="var(--right-ink)" icon={<CheckIcon />} text={`${outcome.seat === me ? "You got it!" : `${name(outcome.seat)} got it!`}${stolen}`} side={`+${outcome.points}`} />;
+    const stolen = thieves.length ? t.stole(thieves.map((seat) => ({ name: name(seat), me: seat === me }))) : "";
+    banner = <StatusBanner fill="var(--right)" color="var(--right-ink)" icon={<CheckIcon />} text={`${t.gotIt(outcome.seat === me ? null : name(outcome.seat))}${stolen}`} side={`+${outcome.points}`} />;
   } else if (phase === "result" && outcome?.kind === "none") {
     const answer = view.choices.find((c) => c.bank === 0)?.text ?? "";
-    const why = outcome.reason === "timeout" ? `Time's up. The answer was ${answer}.` : outcome.reason === "one-left" ? `Only one choice was left. The answer was ${answer}.` : `Everyone is out. The answer was ${answer}.`;
-    banner = <StatusBanner fill="var(--text)" color="var(--ink)" text={`Nobody scored. ${why}`} />;
+    banner = <StatusBanner fill="var(--text)" color="var(--ink)" text={t.nobodyScored(outcome.reason, answer)} />;
   } else if (lastPick && !lastPick.right && lastPick.seat === me && phase === "question") {
-    banner = <StatusBanner fill="var(--disabled)" color="var(--text)" icon={<LockIcon />} text="Wrong. You're out for this one." />;
+    banner = <StatusBanner fill="var(--disabled)" color="var(--text)" icon={<LockIcon />} text={t.wrongMe} />;
   } else if (lastPick && !lastPick.right && phase === "question") {
-    banner = <StatusBanner fill="var(--text)" color="var(--ink)" icon={<span className="text-[var(--buzz)]"><CrossIcon /></span>} text={`${name(lastPick.seat)} was wrong.${playing && !lockedOut ? " Buzz again!" : ""}`} />;
+    banner = <StatusBanner fill="var(--text)" color="var(--ink)" icon={<span className="text-[var(--buzz)]"><CrossIcon /></span>} text={t.wrongOther(name(lastPick.seat), playing && !lockedOut)} />;
   } else if (lockedOut && phase === "question") {
-    banner = <StatusBanner fill="var(--disabled)" color="var(--text)" icon={<LockIcon />} text="Too slow. You're out for this one." />;
+    banner = <StatusBanner fill="var(--disabled)" color="var(--text)" icon={<LockIcon />} text={t.tooSlow} />;
   }
 
   // Each choice's look.
@@ -157,23 +162,23 @@ export default function QuestionScreen({ view, onBuzz, onPick, onPlay }: { view:
     if (hidden(bank)) return "dimmed";
     return myTurn ? "pickable" : "default";
   };
-  const struckBy = (bank: number) => (lastPick && lastPick.choice === bank ? (lastPick.seat === me ? "your pick" : name(lastPick.seat)) : undefined);
+  const struckBy = (bank: number) => (lastPick && lastPick.choice === bank ? (lastPick.seat === me ? t.yourPick : name(lastPick.seat)) : undefined);
 
   // The buzzer area.
   let buzzerState: BuzzerState = "ready";
-  let caption = "Tap as soon as you know it";
+  let caption = t.tapCaption;
   if (frozenFor > 0 && phase === "question" && !lockedOut) {
     buzzerState = "wait";
-    caption = `Frozen! ${frozenFor} s`;
+    caption = t.frozen(frozenFor);
   } else if (lockedOut) {
     buzzerState = "locked";
-    caption = "The others can still buzz";
+    caption = t.othersCanBuzz;
   } else if (phase === "answering") {
     buzzerState = "wait";
-    caption = buzzer === me ? "Pick an answer above" : `${name(buzzer)} is answering`;
+    caption = buzzer === me ? t.pickAbove : t.isAnswering(name(buzzer));
   } else if (phase === "buzzing" || view.buzzedHere) {
     buzzerState = "pressed";
-    caption = "Buzzed!";
+    caption = t.buzzedCaption;
   }
 
   const timer = (
@@ -181,7 +186,7 @@ export default function QuestionScreen({ view, onBuzz, onPick, onPlay }: { view:
       seconds={view.questionSeconds}
       fraction={view.questionFraction}
       paused={phase === "buzzing" || phase === "answering"}
-      label={`${view.questionSeconds} seconds left`}
+      label={t.secondsLeft(view.questionSeconds)}
     />
   );
 
@@ -193,7 +198,7 @@ export default function QuestionScreen({ view, onBuzz, onPick, onPlay }: { view:
           <span className={`${DISPLAY} rounded-full bg-[var(--surface)] px-3 py-1.5 text-[15px] font-extrabold`}>
             {view.index + 1} / {view.total}
           </span>
-          <span className={`${LABEL} min-w-0 flex-1 truncate`}>{view.topic ? TOPIC_LABELS[view.topic].en : ""}</span>
+          <span className={`${LABEL} min-w-0 flex-1 truncate`}>{view.topic ? TOPIC_LABELS[view.topic][lang] : ""}</span>
           {phase !== "result" ? timer : null}
           <RulesButton />
         </header>
@@ -223,18 +228,18 @@ export default function QuestionScreen({ view, onBuzz, onPick, onPlay }: { view:
             </ul>
             <div className="mt-2 flex min-h-[200px] flex-col items-center justify-center gap-3">
               {phase === "result" ? (
-                <NextPill text={view.index + 1 >= view.total ? `Results in ${view.nextSeconds}` : `Next question in ${view.nextSeconds}`} />
+                <NextPill text={view.index + 1 >= view.total ? t.resultsIn(view.nextSeconds) : t.nextQuestionIn(view.nextSeconds)} />
               ) : playing ? (
                 <>
                   <Buzzer state={buzzerState} caption={caption} onBuzz={onBuzz} small={banner != null} />
                   {view.cards ? <PowerHand hand={view.cards.hand} canPlay={view.cards.canPlay} freezeOk={false} onPlay={onPlay} /> : null}
                   <p className={`${TEXT} m-0 hidden items-center gap-2 text-[14px] text-[var(--text-muted)] min-[900px]:flex`}>
-                    Press <kbd className="rounded-md border-2 border-[var(--text-muted)] px-1.5 font-bold">Space</kbd> or click to buzz · Then pick with{" "}
+                    {t.keysPress} <kbd className="rounded-md border-2 border-[var(--text-muted)] px-1.5 font-bold">{t.keysSpace}</kbd> {t.keysThen}{" "}
                     <kbd className="rounded-md border-2 border-[var(--text-muted)] px-1.5 font-bold">A–D</kbd>
                   </p>
                 </>
               ) : (
-                <p className={`${TEXT} m-0 rounded-2xl bg-[var(--surface)] px-4 py-3 text-[16px] font-bold text-[var(--text-muted)]`}>You&apos;re watching. Join at the next rematch.</p>
+                <p className={`${TEXT} m-0 rounded-2xl bg-[var(--surface)] px-4 py-3 text-[16px] font-bold text-[var(--text-muted)]`}>{t.watching}</p>
               )}
             </div>
           </main>

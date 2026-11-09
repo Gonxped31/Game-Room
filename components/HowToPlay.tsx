@@ -1,6 +1,13 @@
 "use client";
 
 import { type ButtonHTMLAttributes, type ComponentType, type CSSProperties, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { texts } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
+
+const TEXT = texts({
+  en: { howToPlay: "How to play", close: "Close", gotIt: "Got it" },
+  fr: { howToPlay: "Comment jouer", close: "Fermer", gotIt: "Compris" },
+});
 
 type ButtonComponent = ComponentType<ButtonHTMLAttributes<HTMLButtonElement>>;
 
@@ -30,13 +37,14 @@ export interface HowToPlayLook {
  * so they scroll with the keyboard.
  *
  * `variant`: "icon" is the header's round ? button, "link" a text button for a
- * lobby or setup screen (`label`, "How to play" by default).
+ * lobby or setup screen (`label`, "How to play" by default, in the page's
+ * language like `title`; a game passing its own passes it translated).
  */
 export default function HowToPlay({
   look,
   variant = "icon",
-  label = "How to play",
-  title = "How to play",
+  label,
+  title: givenTitle,
   children,
 }: {
   look: HowToPlayLook;
@@ -46,6 +54,8 @@ export default function HowToPlay({
   /** The game's rules: its sections, in the order the spec gives. */
   children: ReactNode;
 }) {
+  const t = useText(TEXT);
+  const title = givenTitle ?? t.howToPlay;
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -55,7 +65,7 @@ export default function HowToPlay({
         </button>
       ) : (
         <button type="button" onClick={() => setOpen(true)} className={look.linkClassName}>
-          {label}
+          {label ?? t.howToPlay}
         </button>
       )}
       {open ? (
@@ -78,6 +88,7 @@ function RulesDialog({ look, title, onClose, children }: { look: HowToPlayLook; 
     body.current?.focus();
     return () => dialog?.close();
   }, []);
+  const t = useText(TEXT);
   const { DoneButton } = look;
   return (
     <dialog
@@ -98,14 +109,14 @@ function RulesDialog({ look, title, onClose, children }: { look: HowToPlayLook; 
           <h2 id={titleId} className={`m-0 ${look.titleClassName ?? ""}`}>
             {title}
           </h2>
-          <button type="button" aria-label="Close" onClick={onClose} className={look.closeClassName}>
+          <button type="button" aria-label={t.close} onClick={onClose} className={look.closeClassName}>
             ×
           </button>
         </div>
         <div ref={body} tabIndex={-1} className="overflow-y-auto px-5 py-4 outline-none">
           {children}
           <DoneButton className="mt-5" onClick={onClose}>
-            Got it
+            {t.gotIt}
           </DoneButton>
         </div>
       </div>

@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { texts } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
 import { watchConnection } from "@/lib/store";
+
+const TEXT = texts({
+  en: { reconnecting: "Reconnecting… your moves will sync when you're back online." },
+  fr: { reconnecting: "Reconnexion… tes actions seront synchronisées dès ton retour en ligne." },
+});
 
 /** How long the connection must be down before saying so: a blip shouldn't flash a banner. */
 const AFTER_DROP_MS = 2000;
@@ -17,6 +24,7 @@ const AT_START_MS = 8000;
  * browser.
  */
 export default function ConnectionBanner() {
+  const t = useText(TEXT);
   const pathname = usePathname();
   const solo = pathname.endsWith("/solo") || pathname.startsWith("/admin");
   const [down, setDown] = useState(false);
@@ -46,7 +54,7 @@ export default function ConnectionBanner() {
       role="status"
       className="pointer-events-none fixed left-1/2 top-2 z-[60] w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-full bg-black/85 px-3.5 py-1.5 text-center text-[13px] font-semibold text-white shadow-[0_2px_6px_rgba(0,0,0,.3)]"
     >
-      Reconnecting… your moves will sync when you&apos;re back online.
+      {t.reconnecting}
     </div>
   );
 }

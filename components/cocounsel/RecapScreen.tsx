@@ -3,6 +3,8 @@ import { COLOR } from "@/lib/games/cocounsel/theme";
 import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
 import Button from "./Button";
 import Wordmark from "./Wordmark";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface RecapScreenProps {
   caseDef: CaseDefinition;
@@ -16,14 +18,15 @@ interface RecapScreenProps {
 
 /** "See the full case file" - every Part side by side with both private screens, the first time either player sees the other's text. */
 export default function RecapScreen({ caseDef, onBackToVerdict, onBack, theme, onToggleTheme }: RecapScreenProps) {
+  const t = useText(CC_TEXT);
   return (
     <div className="px-4 pb-8 pt-3.5">
       <Wordmark onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <h1 className="mt-4 font-[family-name:var(--font-archivo)] text-2xl font-extrabold" style={{ color: COLOR.ink }}>
-        The full case file
+        {t.fullCaseFile}
       </h1>
       <p className="mt-1 font-[family-name:var(--font-archivo)] text-sm" style={{ color: COLOR.text2 }}>
-        Every Part, both sides of the story.
+        {t.everyPart}
       </p>
 
       {caseDef.parts.map((part) => {
@@ -32,12 +35,12 @@ export default function RecapScreen({ caseDef, onBackToVerdict, onBack, theme, o
         return (
           <div key={part.n} className="mt-6">
             <h2 className="font-[family-name:var(--font-archivo)] text-lg font-extrabold" style={{ color: COLOR.ink }}>
-              Part {part.n}: {part.title}
+              {t.partTitle(part.n, part.title)}
             </h2>
             <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-[6px] p-3" style={{ backgroundColor: COLOR.white, borderLeft: `4px solid ${COLOR.investigator}` }}>
                 <p className="text-xs font-bold" style={{ color: COLOR.investigator }}>
-                  {caseDef.characters.investigator}, Investigator
+                  {t.nameAndRole(caseDef.characters.investigator, "investigator")}
                 </p>
                 <p className="mt-1 font-[family-name:var(--font-courier-prime)] text-sm leading-[22px]" style={{ color: COLOR.ink }}>
                   {part.screens.investigator.info}
@@ -45,7 +48,7 @@ export default function RecapScreen({ caseDef, onBackToVerdict, onBack, theme, o
               </div>
               <div className="rounded-[6px] p-3" style={{ backgroundColor: COLOR.white, borderLeft: `4px solid ${COLOR.defendant}` }}>
                 <p className="text-xs font-bold" style={{ color: COLOR.defendant }}>
-                  {caseDef.characters.defendant}, Defendant
+                  {t.nameAndRole(caseDef.characters.defendant, "defendant")}
                 </p>
                 <p className="mt-1 font-[family-name:var(--font-courier-prime)] text-sm leading-[22px]" style={{ color: COLOR.ink }}>
                   {part.screens.defendant.info}
@@ -53,7 +56,7 @@ export default function RecapScreen({ caseDef, onBackToVerdict, onBack, theme, o
               </div>
             </div>
             <div className="mt-2 rounded-[6px] p-3" style={{ backgroundColor: COLOR.green, color: "#FFFFFF" }}>
-              <p className="text-xs font-bold uppercase tracking-wide">The correct pair</p>
+              <p className="text-xs font-bold uppercase tracking-wide">{t.correctPair}</p>
               <p className="mt-1 text-sm">
                 {investigatorCorrect?.text} + {defendantCorrect?.text}
               </p>
@@ -64,7 +67,7 @@ export default function RecapScreen({ caseDef, onBackToVerdict, onBack, theme, o
 
       <div className="mt-8">
         <Button variant="secondary" onClick={onBackToVerdict}>
-          Back to the verdict
+          {t.backToVerdict}
         </Button>
       </div>
     </div>

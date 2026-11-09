@@ -2,7 +2,10 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import GameArt from "@/components/gameRoom/HubArt";
-import type { GameEntry } from "@/lib/games/registry";
+import { type GameEntry, gameText } from "@/lib/games/registry";
+import { localizePath } from "@/lib/i18n/lang";
+import { useLang, useText } from "@/lib/i18n/useLang";
+import { HUB_TEXT } from "./text";
 
 /** On white cards: a 3px black focus outline (references/game-room/game-room-ui-spec.md, "Accessibility"). */
 const FOCUS_RING = "focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-black";
@@ -65,6 +68,7 @@ function ComputerIcon() {
  * card spells it out in a notice instead).
  */
 function Chips({ game, tags, className, computer = true }: { game: GameEntry; tags: string[]; className: string; computer?: boolean }) {
+  const t = useText(HUB_TEXT).card;
   return (
     <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0 pl-0.5">
       {tags.map((tag) => (
@@ -76,7 +80,7 @@ function Chips({ game, tags, className, computer = true }: { game: GameEntry; ta
         <li className={`${SLANT} rounded-[6px] border-2 px-[11px] py-0.5 font-bold ${className}`} style={{ borderColor: game.ink, backgroundColor: game.ink, color: "#FFFFFF" }}>
           <span className="inline-flex skew-x-10 items-center gap-1.5">
             <ComputerIcon />
-            Best on a computer
+            {t.bestOnComputer}
           </span>
         </li>
       ) : null}
@@ -95,6 +99,7 @@ function StartJoin({
   size,
   className = "",
 }: GameCardProps & { size: "desktop" | "mobile"; className?: string }) {
+  const t = useText(HUB_TEXT);
   const starting = startingSlug === game.slug;
   const base = `flex flex-1 cursor-pointer items-center justify-center ${SLANT} rounded-[12px] border-2 disabled:cursor-not-allowed ${PRESS} ${FOCUS_RING} ${game.titleClassName} ${
     size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"
@@ -103,7 +108,7 @@ function StartJoin({
     <div className={`flex gap-2.5 ${className}`}>
       <button
         type="button"
-        aria-label={`Start a ${game.title} room`}
+        aria-label={t.startTitle(game.title)}
         aria-haspopup={game.modes ? "dialog" : undefined}
         aria-expanded={game.modes ? startOpen : undefined}
         disabled={startingSlug != null}
@@ -116,18 +121,18 @@ function StartJoin({
           cursor: starting ? "progress" : undefined,
         }}
       >
-        <span className={UPRIGHT}>{starting ? "Starting…" : "Start"}</span>
+        <span className={UPRIGHT}>{starting ? t.card.starting : t.card.start}</span>
       </button>
       <button
         type="button"
-        aria-label={`Join a ${game.title} room`}
+        aria-label={t.joinTitle(game.title)}
         aria-haspopup="dialog"
         aria-expanded={joinOpen}
         onClick={(e) => onJoin(game.slug, e.currentTarget)}
         className={`${base} bg-white ${SHADOW}`}
         style={{ borderColor: game.ink, color: game.ink }}
       >
-        <span className={UPRIGHT}>Join</span>
+        <span className={UPRIGHT}>{t.card.join}</span>
       </button>
     </div>
   );
@@ -150,11 +155,12 @@ function Matchmaking({
   size,
   className = "w-full",
 }: GameCardProps & { size: "desktop" | "mobile"; className?: string }) {
+  const t = useText(HUB_TEXT).card;
   if (!onMatchmaking) return null;
   return (
     <button
       type="button"
-      aria-label={`Matchmaking for ${game.title}: play with other players`}
+      aria-label={t.matchLabel(game.title)}
       aria-haspopup="dialog"
       aria-expanded={matchmakingOpen}
       onClick={(e) => onMatchmaking(game.slug, e.currentTarget)}
@@ -165,22 +171,24 @@ function Matchmaking({
     >
       <span className="inline-flex skew-x-10 items-center gap-2">
         <GlobeIcon />
-        Matchmaking
+        {t.matchmaking}
       </span>
     </button>
   );
 }
 
-/** "Play solo": a plain link to the solo page (no room, no invite). */
+/** "Play solo": a plain link to the solo page in the hub's language (no room, no invite). */
 function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "desktop" | "mobile" }) {
+  const lang = useLang();
+  const t = HUB_TEXT[lang].card;
   return (
     <a
-      href={path}
-      aria-label={`Play ${game.title} solo`}
+      href={localizePath(path, lang)}
+      aria-label={t.soloLabel(game.title)}
       className={`flex w-full items-center justify-center ${SLANT} rounded-[12px] border-2 no-underline ${SHADOW} ${PRESS_LINK} ${FOCUS_RING} ${game.titleClassName} ${size === "desktop" ? "h-[50px] text-[18px]" : "h-12 text-[17px]"}`}
       style={{ backgroundColor: game.accentColor, borderColor: game.ink, color: game.ink }}
     >
-      <span className={UPRIGHT}>Play solo</span>
+      <span className={UPRIGHT}>{t.playSolo}</span>
     </a>
   );
 }
@@ -195,7 +203,8 @@ function PlaySolo({ game, path, size }: { game: GameEntry; path: string; size: "
  */
 export default function GameCard(props: GameCardProps) {
   const { game } = props;
-  const text = { game, description: game.description, tags: game.tags };
+  const words = gameText(game, useLang());
+  const text = { game, description: words.description, tags: words.tags };
   return (
     <>
       <TallCard {...text}>
@@ -211,7 +220,7 @@ export default function GameCard(props: GameCardProps) {
           <Matchmaking {...props} size="desktop" className="flex-[1_1_180px]" />
         </div>
       </WideCard>
-      <CompactCard game={game} description={game.shortDescription} chip={game.tags[0]}>
+      <CompactCard game={game} description={words.shortDescription} chip={words.tags[0]}>
         <StartJoin {...props} size="mobile" />
         <Matchmaking {...props} size="mobile" />
       </CompactCard>
@@ -274,6 +283,7 @@ function WideCard({ game, description, tags, children }: CardText) {
 }
 
 function CompactCard({ game, description, chip, children }: { game: GameEntry; description: string; chip: string; children: ReactNode }) {
+  const notice = useText(HUB_TEXT).card.phoneNotice;
   return (
     <article className={`flex flex-col gap-3 rounded-[18px] bg-white px-2.5 pt-2.5 pb-3.5 shadow-[0_4px_0_rgba(0,0,0,.22)] min-[760px]:hidden ${LIFT}`}>
       <div className="flex items-start gap-3">
@@ -294,7 +304,8 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
         <p className={`m-0 flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold leading-snug ${game.bodyClassName}`} style={{ backgroundColor: "#FFF1C7", color: "#5C3A00" }}>
           <ComputerIcon />
           <span>
-            <b>Best on a computer.</b> On a phone it may lag.
+            <b>{notice.bold}</b>
+            {notice.rest}
           </span>
         </p>
       ) : null}
@@ -309,7 +320,7 @@ function CompactCard({ game, description, chip, children }: { game: GameEntry; d
  * compact card on mobile.
  */
 export function SoloCard({ game }: { game: GameEntry }) {
-  const solo = game.solo;
+  const solo = gameText(game, useLang()).solo;
   if (!solo) return null;
   const text = { game, description: solo.description, tags: solo.tags };
   return (

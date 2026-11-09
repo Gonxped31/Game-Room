@@ -1,3 +1,4 @@
+import type { Lang } from "@/lib/i18n/lang";
 import type { CaseDefinition, CaseScreen } from "./caseTypes";
 
 const HAND_SIZE = 3;
@@ -18,15 +19,35 @@ function pairKey(pair: [string, string]): string {
 }
 
 /** Common words too generic to give a correct pair away, even when both cards use them. */
-const COMMON_WORDS = new Set([
-  "about", "after", "again", "before", "being", "could", "every", "never", "other", "still",
-  "their", "there", "these", "those", "under", "until", "where", "which", "while", "would",
-]);
+const COMMON_WORDS: Record<Lang, Set<string>> = {
+  en: new Set([
+    "about", "after", "again", "before", "being", "could", "every", "never", "other", "still",
+    "their", "there", "these", "those", "under", "until", "where", "which", "while", "would",
+  ]),
+  fr: new Set([
+    "après", "avant", "encore", "jamais", "toujours", "autre", "autres", "chaque", "pendant", "depuis",
+    "quand", "comme", "parce", "aussi", "alors", "ainsi", "entre", "notre", "votre", "leurs",
+    "cette", "celle", "celui", "toute", "toutes", "était", "avait", "étais", "avais", "étaient",
+    "avaient", "aurait", "serait", "pourrait", "étant", "quelle", "quelles", "tandis",
+    // What an elision leaves once the apostrophe splits it: jusqu'à, lorsqu'il, aujourd'hui...
+    "jusqu", "lorsqu", "puisqu", "quelqu", "aujourd",
+  ]),
+};
+
+/**
+ * Words: runs of letters (accented ones included) and digits, joined by
+ * hyphens. English keeps an apostrophe inside a word ("didn't"); French splits
+ * on it, so an elided article ("l'alarme") never hides the word ("alarme").
+ */
+const WORD_PATTERN: Record<Lang, RegExp> = {
+  en: /[\p{L}\p{N}]+(?:[-'][\p{L}\p{N}]+)*/gu,
+  fr: /[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*/gu,
+};
 
 /** A card's distinctive words: 5+ letters, lowercased, minus common words. */
-function distinctiveWords(text: string): Set<string> {
-  const words = text.toLowerCase().match(/[a-z0-9]+(?:[-'][a-z0-9]+)*/g) ?? [];
-  return new Set(words.filter((w) => w.length >= 5 && !COMMON_WORDS.has(w)));
+function distinctiveWords(text: string, lang: Lang): Set<string> {
+  const words = text.toLowerCase().match(WORD_PATTERN[lang]) ?? [];
+  return new Set(words.filter((w) => w.length >= 5 && !COMMON_WORDS[lang].has(w)));
 }
 
 /**
@@ -34,9 +55,11 @@ function distinctiveWords(text: string): Set<string> {
  * "Content Rules" section. Returns a list of human-readable problems, empty if
  * the case is clean. Pure/no side effects - run against real shipped case data
  * in a Vitest test (mirroring how lib/games/ftw/prompts.test.ts validates
- * prompts.json), not as a runtime gate.
+ * prompts.json), not as a runtime gate. `lang` is the case's language
+ * (cases.json is English, cases.fr.json French): it picks how rule 5 splits
+ * words and which common words it ignores.
  */
-export function validateCase(caseDef: CaseDefinition): string[] {
+export function validateCase(caseDef: CaseDefinition, lang: Lang = "en"): string[] {
   const errors: string[] = [];
   const factIds = allFactIds(caseDef);
 
@@ -100,8 +123,8 @@ export function validateCase(caseDef: CaseDefinition): string[] {
     //    word, so players can't solve a Part by matching wording alone.
     const correctCards = part.correct.map((id) => [...part.hands.investigator, ...part.hands.defendant].find((c) => c.id === id));
     if (correctCards[0] && correctCards[1]) {
-      const theirs = distinctiveWords(correctCards[1].text);
-      const shared = [...distinctiveWords(correctCards[0].text)].filter((w) => theirs.has(w));
+      const theirs = distinctiveWords(correctCards[1].text, lang);
+      const shared = [...distinctiveWords(correctCards[0].text, lang)].filter((w) => theirs.has(w));
       if (shared.length) {
         errors.push(`${label}: the correct pair shares the word(s) ${shared.map((w) => `"${w}"`).join(", ")}, which gives it away.`);
       }

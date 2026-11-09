@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { langOfPath } from "@/lib/i18n/lang";
 import { createGameStore, createPathStore, emptyStore, isLocalMode, serverTimestamp, type Store, updateRoot } from "@/lib/store";
 import { type GuestAuth, useGuestAuth } from "./auth";
 import { canTakeOver, isSeatOnline, type RoomPresence, startPresence } from "./presence";
@@ -323,7 +324,8 @@ export function useRoom<TState>(opts: {
   const setRoomName = (name: string) => {
     if (!meta || !isCreator) return;
     setRoomNameError(null);
-    void renameRoom(room, meta, name).then(setRoomNameError);
+    // Errors in the page's language (an event handler: reading location is fine).
+    void renameRoom(room, meta, name, langOfPath(window.location.pathname)).then(setRoomNameError);
   };
 
   const transact = (updater: (current: TState) => TState) => {

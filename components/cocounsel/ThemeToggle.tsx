@@ -1,4 +1,6 @@
 import type { ThemeMode } from "@/lib/games/cocounsel/useTheme";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface ThemeToggleProps {
   theme: ThemeMode;
@@ -14,11 +16,12 @@ interface ThemeToggleProps {
  * the top of the viewport.
  */
 export default function ThemeToggle({ theme, onToggle, className = "" }: ThemeToggleProps) {
+  const t = useText(CC_TEXT);
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={theme === "dark" ? t.toLight : t.toDark}
       className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-black/40 text-lg leading-none text-white ${className}`}
     >
       {theme === "dark" ? "☀" : "🌙"}

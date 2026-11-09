@@ -9,11 +9,12 @@ import ExhibitTent from "./ExhibitTent";
 import HeaderBand from "./HeaderBand";
 import Hand from "./Hand";
 import TranscriptSheet from "./TranscriptSheet";
+import { useText } from "@/lib/i18n/useLang";
+import { CC_TEXT } from "./text";
 
 interface PartScreenProps {
   role: "investigator" | "defendant";
   characterName: string;
-  roleLabel: string;
   otherCharacterName: string;
   part: CasePart;
   info: string;
@@ -39,7 +40,6 @@ interface PartScreenProps {
 export default function PartScreen({
   role,
   characterName,
-  roleLabel,
   otherCharacterName,
   part,
   info,
@@ -55,6 +55,7 @@ export default function PartScreen({
   onToggleTheme,
 }: PartScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const t = useText(CC_TEXT);
 
   if (myLockedCardId != null) {
     const lockedIndex = hand.findIndex((c) => c.id === myLockedCardId);
@@ -64,7 +65,6 @@ export default function PartScreen({
         <HeaderBand
           role={role}
           characterName={characterName}
-          roleLabel={roleLabel}
           totalParts={totalParts}
           currentPartIndex={currentPartIndex}
           partTitle={part.title}
@@ -78,7 +78,7 @@ export default function PartScreen({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="mb-1 font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: COLOR.ink }}>
-                Your card
+                {t.yourCard}
               </p>
               <div className="relative aspect-[2/3] w-full rounded-xl border-[3px] p-3" style={{ backgroundColor: COLOR.white, borderColor: COLOR.ink }}>
                 <ExhibitTent n={lockedIndex + 1} />
@@ -96,21 +96,21 @@ export default function PartScreen({
             </div>
             <div>
               <p className="mb-1 font-[family-name:var(--font-archivo)] text-sm font-bold" style={{ color: COLOR.ink }}>
-                {otherCharacterName}&apos;s card
+                {t.cardOf(otherCharacterName)}
               </p>
               <div
                 className="flex aspect-[2/3] w-full items-center justify-center rounded-xl border-2 border-dashed p-3 text-center"
                 style={{ borderColor: COLOR.cardEdgeBlue, color: COLOR.text2 }}
               >
-                <span className="font-[family-name:var(--font-archivo)] text-sm">{otherCharacterName} is still choosing</span>
+                <span className="font-[family-name:var(--font-archivo)] text-sm">{t.stillChoosing(otherCharacterName)}</span>
               </div>
             </div>
           </div>
           <p aria-live="polite" className="mt-6 font-[family-name:var(--font-archivo)] text-2xl font-extrabold leading-[1.2]" style={{ color: COLOR.ink }}>
-            Locked in. Waiting for {otherCharacterName}.
+            {t.lockedWaiting(otherCharacterName)}
           </p>
           <p className="mt-1 font-[family-name:var(--font-archivo)] text-base" style={{ color: COLOR.text2 }}>
-            Keep talking. Both cards flip at the same time.
+            {t.keepTalking}
           </p>
         </div>
       </div>
@@ -122,7 +122,6 @@ export default function PartScreen({
       <HeaderBand
         role={role}
         characterName={characterName}
-        roleLabel={roleLabel}
         totalParts={totalParts}
         currentPartIndex={currentPartIndex}
         partTitle={part.title}
@@ -136,7 +135,7 @@ export default function PartScreen({
       <div className="px-4 pb-4 pt-4">
         <TranscriptSheet text={info} role={role} />
         <p className="mb-3 mt-5 font-[family-name:var(--font-archivo)] text-base font-bold" style={{ color: COLOR.ink }}>
-          Say it out loud. Don&apos;t show your screen.
+          {t.sayItOutLoud}
         </p>
         <Hand cards={hand} role={role} selectedId={selectedId} onToggle={(id) => setSelectedId((cur) => (cur === id ? null : id))} />
       </div>
@@ -146,7 +145,7 @@ export default function PartScreen({
         style={{ borderColor: COLOR.disabledBg, backgroundColor: COLOR.paper }}
       >
         <Button disabled={!selectedId} warmDisabled={role === "defendant"} onClick={() => selectedId && onLockIn(selectedId)}>
-          {selectedId ? `Lock in card ${hand.findIndex((c) => c.id === selectedId) + 1}` : "Pick a card to lock in"}
+          {selectedId ? t.lockInCard(hand.findIndex((c) => c.id === selectedId) + 1) : t.pickToLockIn}
         </Button>
       </div>
     </div>

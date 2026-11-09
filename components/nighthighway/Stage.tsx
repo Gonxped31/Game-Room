@@ -1,7 +1,10 @@
 "use client";
 
 import { memo, type ReactNode, useEffect, useRef } from "react";
+import { useLang } from "@/lib/i18n/useLang";
+import type { RunResult } from "@/lib/games/nighthighway/game";
 import type { Engine } from "./engine/engine";
+import { ENGINE_TEXT, STAGE_TEXT } from "./text";
 import "./nighthighway.css";
 import "./screens.css";
 
@@ -10,6 +13,8 @@ interface StageProps {
   mode: "solo" | "race";
   /** Called with the engine once it's running, and with null when it's torn down. */
   onEngine?: (engine: Engine | null) => void;
+  /** Solo: called once each run's 60 seconds are up (its results screen). */
+  onSoloFinish?: (result: RunResult) => void;
   /** The page's own screens, drawn over the road. */
   children?: ReactNode;
 }
@@ -18,14 +23,19 @@ interface StageProps {
  * The full-screen game: the WebGL road plus the original page's HUD, drawn by
  * the engine (./engine/engine.js). The engine writes straight into this
  * markup every frame (clock, speed, score...), so it's rendered once by a
- * memoized component that never re-renders, and React never fights it.
+ * memoized component that never re-renders, and React never fights it. Both
+ * the markup and the engine speak the page's language (`useLang`), which only
+ * changes with a new page load.
  */
-export default function Stage({ mode, onEngine, children }: StageProps) {
+export default function Stage({ mode, onEngine, onSoloFinish, children }: StageProps) {
+  const lang = useLang();
   const rootRef = useRef<HTMLDivElement>(null);
   const onEngineRef = useRef(onEngine);
+  const onSoloFinishRef = useRef(onSoloFinish);
   useEffect(() => {
     onEngineRef.current = onEngine;
-  }, [onEngine]);
+    onSoloFinishRef.current = onSoloFinish;
+  }, [onEngine, onSoloFinish]);
 
   useEffect(() => {
     let engine: Engine | null = null;
@@ -42,6 +52,8 @@ export default function Stage({ mode, onEngine, children }: StageProps) {
           body: css.getPropertyValue("--font-body").trim(),
           mono: css.getPropertyValue("--font-mono").trim(),
         },
+        text: ENGINE_TEXT[lang],
+        onSoloFinish: (result) => onSoloFinishRef.current?.(result),
         // window.NightHighway, for the live-test skill's checks (as the original page exposed it).
         exposeForTests: true,
       });
@@ -52,47 +64,50 @@ export default function Stage({ mode, onEngine, children }: StageProps) {
       engine?.destroy();
       onEngineRef.current?.(null);
     };
-  }, [mode]);
+  }, [mode, lang]);
 
   return (
     <div ref={rootRef} className="nh">
-      <StageMarkup mode={mode} />
+      <StageMarkup mode={mode} t={STAGE_TEXT[lang]} n={ENGINE_TEXT[lang]} />
       {children}
     </div>
   );
 }
 
 /** The reference page's markup (references/night-highway/Night Highway.html), as JSX. */
-const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" }) {
+const StageMarkup = memo(function StageMarkup({ mode, t, n }: { mode: "solo" | "race"; t: (typeof STAGE_TEXT)["en"]; n: (typeof ENGINE_TEXT)["en"] }) {
   return (
     <>
-      <canvas id="scene" tabIndex={0} aria-label="Night Highway driving game" />
+      <canvas id="scene" tabIndex={0} aria-label={t.canvas} />
 
       <div id="hud" className="layer" hidden>
         <div className="timebar" id="timebar">
           <i id="timefill" />
         </div>
         <div className="stat">
-          <span className="label">Time</span>
+          <span className="label">{t.time}</span>
           <span className="clock" id="clock">
-            60.0
+            {n.decimal(60, 1)}
           </span>
         </div>
         <div className="stat right">
-          <span className="label">Score</span>
+          <span className="label">{t.score}</span>
           <span className="score" id="score">
             0
           </span>
           <span className="sub">
-            <span id="dist">0.00</span> km · <span id="nm">0</span> near misses
+            <span id="dist">{n.decimal(0, 2)}</span> km · {t.nearMissesBefore}
+            <span id="nm">0</span>
+            {t.nearMissesAfter}
           </span>
           <span className="sub power" id="power" aria-live="polite" />
           {mode === "race" ? <span className="sub opp" id="opp" aria-live="off" /> : null}
         </div>
         <div className="hint" id="hint">
-          W / ↑ gas · S / ↓ brake · A D / ← → steer
+          {t.hint}
           <br />
-          Shift or Space nitro · V camera · C paint · L glow · H hide HUD · P pause
+          {t.hint2}
+          {mode === "solo" ? t.hintPause : null}
         </div>
         <div className="speedo" id="speedo">
           <svg viewBox="0 0 250 140" aria-hidden="true">
@@ -108,9 +123,10 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
           </div>
           <div className="speedo-foot">
             <span className="gear">
-              Gear<b id="gear">1</b>
+              {t.gear}
+              <b id="gear">1</b>
             </span>
-            <div className="nbar" aria-label="Nitro">
+            <div className="nbar" aria-label={t.nitro}>
               <i id="nitro" />
             </div>
           </div>
@@ -126,46 +142,36 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
             <div className="card">
               <p className="kicker">
                 {/* The engine marks the stage .nh-desert in the desert. */}
-                <span className="nh-city-only">60 seconds · one road · after midnight</span>
-                <span className="nh-desert-only">60 seconds · one canyon · at sundown</span>
+                <span className="nh-city-only">{t.kickerCity}</span>
+                <span className="nh-desert-only">{t.kickerDesert}</span>
               </p>
               <h1 className="wordmark">
                 <span>Night</span>
                 <span className="hot">Highway</span>
               </h1>
-              <p className="lede">Weave through late traffic, chain near misses for points, and see how far one minute takes you.</p>
+              <p className="lede">{t.lede}</p>
               {/* Phones and tablets only (screens.css): the race page's PhoneNote, as static markup. */}
-              <p className="nh-phone-note">Best on a computer: on a phone, Night Highway may lag.</p>
+              <p className="nh-phone-note">{t.phoneNote}</p>
               <div className="row">
                 <button className="cta" id="startBtn" type="button">
-                  Drive <kbd>Enter</kbd>
+                  {t.drive} <kbd>{t.enter}</kbd>
                 </button>
                 <span className="note" id="bestLine" />
               </div>
-              <div className="row nh-options" aria-label="Options">
+              <div className="row nh-options" aria-label={t.options}>
                 {/* The engine wires these and remembers them on this device. */}
                 <button type="button" role="switch" aria-checked="true" className="nh-switch" id="optPickups">
-                  Pickups
+                  {t.pickups}
                 </button>
                 <button type="button" role="switch" aria-checked="false" className="nh-switch" id="optRain">
-                  Rain
+                  {t.rain}
                 </button>
                 <button type="button" role="switch" aria-checked="false" className="nh-switch" id="optDesert">
-                  Desert
+                  {t.desert}
                 </button>
               </div>
               <dl className="keys">
-                {[
-                  ["W ↑", "Gas"],
-                  ["S ↓", "Brake"],
-                  ["A D ← →", "Steer"],
-                  ["Shift", "Nitro"],
-                  ["V", "Camera"],
-                  ["C", "Paint"],
-                  ["L", "Light glow"],
-                  ["M", "Sound"],
-                  ["H", "Hide HUD"],
-                ].map(([key, action]) => (
+                {t.keys.map(([key, action]) => (
                   <div key={key}>
                     <dt>{key}</dt>
                     <dd>{action}</dd>
@@ -178,7 +184,7 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
           <section id="results" className="layer screen" hidden>
             <div className="card">
               <p className="kicker" id="resKicker">
-                Run complete
+                {n.runComplete}
               </p>
               <p className="results-score" id="resScore">
                 0
@@ -186,42 +192,42 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
               <p className="best" id="resBest" />
               <dl className="stats">
                 <div>
-                  <dt>Distance</dt>
+                  <dt>{t.distance}</dt>
                   <dd>
                     <span id="rDist">0</span>
                     <small>km</small>
                   </dd>
                 </div>
                 <div>
-                  <dt>Top speed</dt>
+                  <dt>{t.topSpeed}</dt>
                   <dd>
                     <span id="rTop">0</span>
                     <small>km/h</small>
                   </dd>
                 </div>
                 <div>
-                  <dt>Average</dt>
+                  <dt>{t.average}</dt>
                   <dd>
                     <span id="rAvg">0</span>
                     <small>km/h</small>
                   </dd>
                 </div>
                 <div>
-                  <dt>Near misses</dt>
+                  <dt>{t.nearMisses}</dt>
                   <dd id="rNm">0</dd>
                 </div>
                 <div>
-                  <dt>Overtakes</dt>
+                  <dt>{t.overtakes}</dt>
                   <dd id="rOv">0</dd>
                 </div>
                 <div>
-                  <dt>Crashes</dt>
+                  <dt>{t.crashes}</dt>
                   <dd id="rCr">0</dd>
                 </div>
               </dl>
               <div className="row">
                 <button className="cta" id="againBtn" type="button">
-                  Drive again <kbd>Enter</kbd>
+                  {t.driveAgain} <kbd>{t.enter}</kbd>
                 </button>
               </div>
             </div>
@@ -231,31 +237,32 @@ const StageMarkup = memo(function StageMarkup({ mode }: { mode: "solo" | "race" 
 
       <div id="pause" className="layer" hidden>
         <p>
-          Paused<small>P to resume · R to restart</small>
+          {t.paused}
+          <small>{t.pauseHelp}</small>
         </p>
       </div>
 
       <div id="touch" hidden>
         <div className="tgroup">
-          <button className="tbtn" data-k="left" type="button" aria-label="Steer left">
+          <button className="tbtn" data-k="left" type="button" aria-label={t.steerLeft}>
             ◀
           </button>
-          <button className="tbtn" data-k="right" type="button" aria-label="Steer right">
+          <button className="tbtn" data-k="right" type="button" aria-label={t.steerRight}>
             ▶
           </button>
         </div>
         <div className="tgroup">
           <button className="tbtn" data-k="down" type="button">
-            Brake
+            {t.brake}
           </button>
           <button className="tbtn" data-k="boost" type="button">
-            Nitro
+            {t.nitro}
           </button>
         </div>
       </div>
 
       <div id="boot" className="layer">
-        <p>Warming up the engine…</p>
+        <p>{t.boot}</p>
       </div>
     </>
   );

@@ -3,8 +3,11 @@ import { ITEMS_PER_ROUND } from "@/lib/games/ftw/constants";
 import type { CurrentRound, RoundItem, RoundStatus } from "@/lib/games/ftw/game";
 import { handNotes, placeNote, rankOrder, resultHeadline, tapHandNote, tapItem, type Pick, type Placement } from "@/lib/games/ftw/placement";
 import { randomRound } from "@/lib/games/ftw/prompts";
+import type { Lang } from "@/lib/games/shared/language";
+import { useLang, useText } from "@/lib/i18n/useLang";
 import CustomPromptForm from "./CustomPromptForm";
 import Sheet, { RULED_ROW, SHEET_INSET } from "./Sheet";
+import { FTW_TEXT } from "./text";
 import { CheckIcon, DISPLAY, EyeIcon, FOCUS, HAND, PenIcon, PrimaryButton, PlayerSquare, SmallButton, StickyNote, TEXT, TILTS } from "./ui";
 
 const DRAG_THRESHOLD_PX = 8;
@@ -36,6 +39,8 @@ interface RoundBoardProps {
   usedPrompts: string[];
   /** The topics "Shuffle prompt" draws from (empty: every topic). */
   topics: string[];
+  /** The room's content language: the bank "Shuffle prompt" draws from. */
+  contentLang: Lang;
   masterOrder: string[] | null;
   guessOrder: string[] | null;
   score: number | null;
@@ -90,26 +95,24 @@ function Frame({ top, sheet, dock, rest, dockSticky }: { top: ReactNode; sheet: 
 
 /** "You're ranking" / "You're guessing": white, ink border, an icon circle, a bold and a muted line. */
 function RoleBanner({ isRanker, partnerName }: { isRanker: boolean; partnerName: string }) {
+  const t = useText(FTW_TEXT);
   return (
     <div role="status" className={`${TEXT} flex items-center gap-3 rounded-2xl border-2 border-[var(--ink)] bg-white px-3.5 py-2.5 text-[var(--ink)]`}>
       <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-white">
         {isRanker ? <PenIcon size={18} /> : <EyeIcon size={18} />}
       </span>
       <span className="min-w-0">
-        <span className="block text-base font-bold leading-tight">{isRanker ? "You're ranking" : "You're guessing"}</span>
-        <span className="block text-sm font-medium leading-tight text-[var(--muted)]">
-          {isRanker ? `${partnerName} will guess your order.` : `How did ${partnerName} rank these?`}
-        </span>
+        <span className="block text-base font-bold leading-tight">{isRanker ? t.rankingTitle : t.guessingTitle}</span>
+        <span className="block text-sm font-medium leading-tight text-[var(--muted)]">{isRanker ? t.willGuess(partnerName) : t.howDidTheyRank(partnerName)}</span>
       </span>
     </div>
   );
 }
 
-const SCALE = `1 = best · ${ITEMS_PER_ROUND} = worst`;
-
 // ---- Ranking / guessing ---------------------------------------------------------------
 
-function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPrompts, topics, placed, onPlacedChange, onLockIn, onSubmitGuess, onChangePrompt, scoreCard, extras }: RoundBoardProps) {
+function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPrompts, topics, contentLang, placed, onPlacedChange, onLockIn, onSubmitGuess, onChangePrompt, scoreCard, extras }: RoundBoardProps) {
+  const t = useText(FTW_TEXT);
   const [placement, setPlacement] = useState<Placement>({});
   const [pick, setPick] = useState<Pick>(null);
   const [ghost, setGhost] = useState<{ n: number; x: number; y: number } | null>(null);
@@ -229,16 +232,12 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
 
   const submit = () => (isRanker ? onLockIn(rankOrder(placement, itemIds)) : onSubmitGuess(rankOrder(placement, itemIds)));
 
-  const caption = pick
-    ? `Note ${pick.n} picked. Now tap an item.`
-    : ready
-      ? "Tap a note on the sheet to swap it."
-      : "Tap a note, then an item.";
+  const caption = pick ? t.notePicked(pick.n) : ready ? t.tapToSwap : t.tapNoteThenItem;
   const missing = hand.length;
 
   const sheet = (
-    <Sheet prompt={prompt} caption={SCALE}>
-      <ul aria-label="Items" className="m-0 list-none p-0">
+    <Sheet prompt={prompt} caption={t.scale}>
+      <ul aria-label={t.items} className="m-0 list-none p-0">
         {items.map((item, i) => {
           const n = placement[item.id];
           const lifted = pick?.from === item.id;
@@ -248,7 +247,7 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
               <button
                 type="button"
                 data-drop-id={item.id}
-                aria-label={n != null ? `${item.label}, rank ${n}` : `${item.label}, no rank yet`}
+                aria-label={n != null ? t.itemRanked(item.label, n) : t.itemUnranked(item.label)}
                 onClick={() => onTapItem(item.id)}
                 onKeyDown={(e) => onItemKeyDown(item.id, e)}
                 className={`flex min-h-[62px] w-full cursor-pointer items-center gap-3 border-0 py-1.5 pr-3 text-left min-[900px]:min-h-[82px] min-[900px]:pr-5 ${SHEET_INSET} ${RULED_ROW} ${FOCUS} focus-visible:outline-offset-[-3px]`}
@@ -288,7 +287,7 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
       {!isRanker ? (
         <p role="status" className={`${TEXT} m-0 flex items-center justify-center gap-2 text-[15px] font-bold text-[var(--ink)] min-[900px]:justify-start`}>
           <PlayerSquare color={partnerColor} />
-          {partnerName} locked in their order
+          {t.partnerLockedIn(partnerName)}
           <CheckIcon size={18} strokeWidth={3} />
         </p>
       ) : null}
@@ -296,7 +295,7 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
         {caption}
       </p>
       <div className="[container-type:inline-size]">
-        <div role="group" aria-label="Your notes" className="flex min-h-[calc(min(60px,(100cqw-56px)/5)+14px)] items-end justify-center gap-3.5 pt-3.5 min-[900px]:justify-start">
+        <div role="group" aria-label={t.yourNotes} className="flex min-h-[calc(min(60px,(100cqw-56px)/5)+14px)] items-end justify-center gap-3.5 pt-3.5 min-[900px]:justify-start">
           {hand.map((n) => {
             const picked = pick?.n === n && pick.from == null;
             return (
@@ -307,7 +306,7 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
                   else handRefs.current.delete(n);
                 }}
                 type="button"
-                aria-label={`Note ${n}`}
+                aria-label={t.note(n)}
                 aria-pressed={picked}
                 onClick={() => onTapHand(n)}
                 onPointerDown={(e) => startDrag(n, e)}
@@ -323,7 +322,7 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
         </div>
       </div>
       <PrimaryButton disabled={!ready} onClick={submit} className="mt-1">
-        {ready ? (isRanker ? "Lock my ranking" : "Lock my guess") : `Place ${missing} more note${missing === 1 ? "" : "s"}`}
+        {ready ? (isRanker ? t.lockRanking : t.lockGuess) : t.placeMore(missing)}
       </PrimaryButton>
     </>
   );
@@ -332,7 +331,7 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
     <>
       {isRanker ? (
         <div className="flex flex-col items-start gap-1">
-          <SmallButton onClick={() => onChangePrompt(randomRound(usedPrompts, topics))}>Shuffle prompt</SmallButton>
+          <SmallButton onClick={() => onChangePrompt(randomRound(usedPrompts, topics, contentLang))}>{t.shufflePrompt}</SmallButton>
           <CustomPromptForm onApply={onChangePrompt} />
         </div>
       ) : null}
@@ -371,19 +370,20 @@ function Placing({ isRanker, items, prompt, partnerName, partnerColor, usedPromp
  * appear face down as they're placed).
  */
 function Waiting({ status, isRanker, items, prompt, partnerName, partnerOnline, masterOrder, placed, scoreCard, extras }: RoundBoardProps) {
-  const progress = `${placed.length} of ${ITEMS_PER_ROUND} placed`;
+  const t = useText(FTW_TEXT);
+  const progress = t.progress(placed.length);
   const myNote = (id: string) => (isRanker && status === "GUESSING" && masterOrder ? masterOrder.indexOf(id) + 1 : null);
 
   const sheet = (
-    <Sheet prompt={prompt} caption={SCALE}>
-      <ol aria-label="Items" className="m-0 list-none p-0">
+    <Sheet prompt={prompt} caption={t.scale}>
+      <ol aria-label={t.items} className="m-0 list-none p-0">
         {items.map((item, i) => {
           const n = myNote(item.id);
           const faceDown = !isRanker && placed.includes(item.id);
           return (
             <li
               key={item.id}
-              aria-label={n != null ? `${item.label}, rank ${n}` : faceDown ? `${item.label}, ${partnerName} placed a note` : item.label}
+              aria-label={n != null ? t.itemRanked(item.label, n) : faceDown ? t.itemFaceDown(item.label, partnerName) : item.label}
               className={`flex min-h-[62px] items-center gap-3 py-1.5 pr-3 min-[900px]:min-h-[82px] min-[900px]:pr-5 ${SHEET_INSET} ${RULED_ROW}`}
             >
               <span className={`${HAND} min-w-0 flex-1 text-[23px] leading-[1.15] [overflow-wrap:anywhere] text-[var(--ink)] min-[900px]:text-[30px]`}>{item.label}</span>
@@ -405,9 +405,9 @@ function Waiting({ status, isRanker, items, prompt, partnerName, partnerOnline, 
 
   const dock = (
     <div role="status" className={`${TEXT} text-center text-[var(--muted)] min-[900px]:text-left`}>
-      <p className="m-0 text-base font-bold">Waiting for {partnerName}…</p>
+      <p className="m-0 text-base font-bold">{t.waitingFor(partnerName)}</p>
       <p className="m-0 mt-1 text-sm font-medium">
-        {!partnerOnline ? `${partnerName} can play later.${isRanker ? " We'll keep your answers." : ""}` : isRanker ? `${partnerName} is guessing. ${progress}` : `${partnerName} is ranking. ${progress}`}
+        {!partnerOnline ? `${t.canPlayLater(partnerName)}${isRanker ? t.weKeepAnswers : ""}` : isRanker ? t.isGuessing(partnerName, progress) : t.isRanking(partnerName, progress)}
       </p>
     </div>
   );
@@ -440,16 +440,17 @@ function Reveal({ isRanker, round, items, prompt, partnerName, masterOrder, gues
     return () => timers.forEach(clearTimeout);
   }, [matches]);
 
-  const { headline, line } = resultHeadline(matches);
-  const points = isRanker ? `+${matches} for ${firstName(partnerName)}` : `+${matches} for you`;
-  const rankerLabel = isRanker ? "You" : firstName(partnerName);
-  const guesserLabel = isRanker ? firstName(partnerName) : "You";
+  const t = useText(FTW_TEXT);
+  const { headline, line } = resultHeadline(matches, useLang());
+  const points = isRanker ? t.pointsFor(matches, firstName(partnerName)) : t.pointsForYou(matches);
+  const rankerLabel = isRanker ? t.you : firstName(partnerName);
+  const guesserLabel = isRanker ? firstName(partnerName) : t.you;
   const afterCount = { animationDelay: `${revealEnd() + matches * COUNT_STEP}ms` };
 
   const top = (
     <>
       <p className={`${TEXT} m-0 hidden text-[15px] font-bold tracking-[0.06em] text-[var(--muted)] uppercase min-[900px]:block`}>
-        Round {round} · {isRanker ? `You ranked, ${partnerName} guessed` : `${partnerName} ranked, you guessed`}
+        {t.round(round)} · {isRanker ? t.youRanked(partnerName) : t.partnerRanked(partnerName)}
       </p>
       <div role="status" className="text-center text-[var(--ink)] min-[900px]:text-left">
         <p className="sr-only">
@@ -472,26 +473,26 @@ function Reveal({ isRanker, round, items, prompt, partnerName, masterOrder, gues
   );
 
   const sheet = (
-    <Sheet prompt={prompt} caption={SCALE}>
+    <Sheet prompt={prompt} caption={t.scale}>
       <div aria-hidden="true" className={`flex items-end gap-2 pr-3 pb-1 min-[900px]:gap-3 min-[900px]:pr-5 ${SHEET_INSET}`}>
         <span className="flex-1" />
         <span className={`${TEXT} w-11 truncate text-center text-[13px] font-bold text-[var(--muted)] min-[900px]:w-[60px]`}>{rankerLabel}</span>
         <span className={`${TEXT} w-11 truncate text-center text-[13px] font-bold text-[var(--muted)] min-[900px]:w-[60px]`}>{guesserLabel}</span>
         <span className="w-[26px]" />
       </div>
-      <ol aria-label="Results" className="m-0 list-none p-0">
+      <ol aria-label={t.results} className="m-0 list-none p-0">
         {items.map((item, i) => {
           const m = masterOrder ? masterOrder.indexOf(item.id) + 1 : 0;
           const g = guessOrder ? guessOrder.indexOf(item.id) + 1 : 0;
           const match = m === g && m > 0;
           const at = REVEAL_START + i * ROW_STEP;
           const ms = (offset: number) => ({ animationDelay: `${at + offset}ms` });
-          const rankerSays = isRanker ? `you ${m}` : `${firstName(partnerName)} ${m}`;
-          const guesserSays = isRanker ? `${firstName(partnerName)} ${g}` : `you ${g}`;
+          const rankerSays = isRanker ? t.youSaid(m) : `${firstName(partnerName)} ${m}`;
+          const guesserSays = isRanker ? `${firstName(partnerName)} ${g}` : t.youSaid(g);
           return (
             <li
               key={item.id}
-              aria-label={`${item.label}: ${rankerSays}, ${guesserSays}, ${match ? "match" : "no match"}`}
+              aria-label={`${item.label}: ${rankerSays}, ${guesserSays}, ${match ? t.match : t.noMatch}`}
               className={`flex min-h-[62px] items-center gap-2 py-1.5 pr-3 min-[900px]:min-h-[82px] min-[900px]:gap-3 min-[900px]:pr-5 ${SHEET_INSET} ${RULED_ROW}`}
             >
               <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
@@ -526,9 +527,9 @@ function Reveal({ isRanker, round, items, prompt, partnerName, masterOrder, gues
 
   const dock = (
     <>
-      <PrimaryButton onClick={onNextRound}>Next round · {isRanker ? "you guess" : "you rank"}</PrimaryButton>
+      <PrimaryButton onClick={onNextRound}>{t.nextRound(isRanker)}</PrimaryButton>
       <button type="button" onClick={onLeave} className={`${TEXT} cursor-pointer self-center rounded border-0 bg-transparent py-2 text-[15px] font-bold text-[var(--ink)] underline min-[900px]:self-start ${FOCUS}`}>
-        Leave room
+        {t.leaveRoom}
       </button>
     </>
   );

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { MODES, PLAYERS, ROOM_SEATS, type Mode, type Race, type RaceCore, type RunCore, type Runs } from "@/lib/games/race/race";
+import { useLang } from "@/lib/i18n/useLang";
 import type { MatchGame } from "@/lib/session/shared/findMatch";
 import { leaveToHub } from "@/lib/session/shared/roomActions";
 import { useDeadline, useServerClock, useTicker } from "@/lib/session/shared/serverClock";
@@ -113,7 +114,8 @@ export function useRace<S extends RaceCore, R extends RunCore>({ gameSlug, race,
   /** Ms since the round started, on the server's clock, never before `after`. */
   const roundTime = useCallback((after = 0) => Math.max(Math.round(serverNow() - (game?.startsAt ?? 0)), after, 0), [serverNow, game?.startsAt]);
 
-  const nameOf = useCallback((seat: string) => names[seat] ?? `Player ${seat.slice(1)}`, [names]);
+  const lang = useLang();
+  const nameOf = useCallback((seat: string) => names[seat] ?? `${lang === "fr" ? "Joueur" : "Player"} ${seat.slice(1)}`, [names, lang]);
   const capacity = game ? PLAYERS[game.mode].max : ROOM_SEATS;
   /** A free seat for a newcomer (within the mode's player count), if any. */
   const freeSeat = session.seats.slice(0, capacity).find((seat) => session.unclaimedSeats.includes(seat) || session.canTakeOver[seat]);

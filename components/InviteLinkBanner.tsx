@@ -1,7 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { texts } from "@/lib/i18n/text";
+import { useText } from "@/lib/i18n/useLang";
+import { inviteFromLocation } from "@/lib/session/shared/inviteFromLocation";
 import Button from "./Button";
+
+const TEXT = texts({
+  en: {
+    waiting: "Waiting for the other player to join?",
+    copied: "Copied!",
+    copy: "Copy invite link",
+    nameRoom: "Name this room (optional)",
+    findAgain: (room: string) => `So you can find this room again later by its code: ${room}`,
+  },
+  fr: {
+    waiting: "L'autre joueur n'est pas encore là ?",
+    copied: "Copié !",
+    copy: "Copier le lien d'invitation",
+    nameRoom: "Nomme ce salon (facultatif)",
+    findAgain: (room) => `Pour retrouver ce salon plus tard avec son code : ${room}`,
+  },
+});
 
 interface InviteLinkBannerProps {
   room: string;
@@ -27,6 +47,7 @@ export default function InviteLinkBanner({
   accentShadowColor = "#a3125b",
   accentTextColor = "#FFFFFF",
 }: InviteLinkBannerProps) {
+  const t = useText(TEXT);
   const [copied, setCopied] = useState(false);
   const [nameDraft, setNameDraft] = useState(roomName ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +67,8 @@ export default function InviteLinkBanner({
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      // The room's invite page in this page's language, not the address as it is (lib/share.ts).
+      await navigator.clipboard.writeText(inviteFromLocation(window.location));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -61,14 +83,14 @@ export default function InviteLinkBanner({
 
   return (
     <div className="mb-3 rounded-xl bg-white px-3.5 py-2.5 text-center text-black shadow-[0_3px_8px_rgba(0,0,0,.25)]">
-      <p className="m-0 font-semibold">Waiting for the other player to join?</p>
+      <p className="m-0 font-semibold">{t.waiting}</p>
       <Button onClick={copy} style={{ backgroundColor: accentColor, boxShadow: `0 4px 0 ${accentShadowColor}`, color: accentTextColor }}>
-        {copied ? "Copied!" : "Copy invite link"}
+        {copied ? t.copied : t.copy}
       </Button>
       {onRenameRoom ? (
         <>
           <label className="mt-2.5 block text-left text-xs font-semibold opacity-70">
-            Name this room (optional)
+            {t.nameRoom}
             <input
               ref={inputRef}
               type="text"
@@ -92,7 +114,7 @@ export default function InviteLinkBanner({
           ) : null}
         </>
       ) : null}
-      <p className="m-0 mt-1.5 text-left text-[11px] opacity-60">So you can find this room again later by its code: {room}</p>
+      <p className="m-0 mt-1.5 text-left text-[11px] opacity-60">{t.findAgain(room)}</p>
     </div>
   );
 }

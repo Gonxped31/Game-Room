@@ -1,18 +1,26 @@
 "use client";
 
-import Link from "next/link";
 import { type ReactNode, useState } from "react";
+import LocalLink from "@/components/LocalLink";
+import { useLocalHref, useText } from "@/lib/i18n/useLang";
 import type { Role } from "@/lib/session/types";
 import type { GameState, RaceOptions, RunResult } from "@/lib/games/nighthighway/game";
 import RulesButton from "./Rules";
+import { SCREENS_TEXT } from "./text";
 
 /**
  * The race page's own screens, drawn over the road in the original title
  * card's style (bottom-left, film title card). Class names are the
  * original stylesheet's (./nighthighway.css) plus ./screens.css's nh-* ones.
+ * Their words are in ./text.ts (SCREENS_TEXT).
  */
 
-const fmt = (n: number) => Math.floor(n).toLocaleString("en-US");
+type Text = (typeof SCREENS_TEXT)["en"];
+
+/** "Drive solo" / "Practice solo": a plain link to the solo page, in the page's language. */
+function useSoloHref() {
+  return useLocalHref("/nighthighway/solo");
+}
 
 /**
  * A title-card screen. Room screens have no back link: their way out is
@@ -21,12 +29,13 @@ const fmt = (n: number) => Math.floor(n).toLocaleString("en-US");
  * ? in the opposite corner.
  */
 export function Card({ children, back = false }: { children: ReactNode; back?: boolean }) {
+  const t = useText(SCREENS_TEXT);
   return (
     <section className="layer screen nh-screen">
       {back ? (
-        <Link href="/" className="nh-back" aria-label="Back to all games">
+        <LocalLink href="/" className="nh-back" aria-label={t.back}>
           ←
-        </Link>
+        </LocalLink>
       ) : (
         <span className="nh-rules">
           <RulesButton />
@@ -43,7 +52,7 @@ export function Card({ children, back = false }: { children: ReactNode; back?: b
  * plays best on a computer (the registry's `bestOnComputer`).
  */
 export function PhoneNote() {
-  return <p className="nh-phone-note">Best on a computer: on a phone, Night Highway may lag.</p>;
+  return <p className="nh-phone-note">{useText(SCREENS_TEXT).phoneNote}</p>;
 }
 
 function Wordmark() {
@@ -79,6 +88,8 @@ export function NameEntry({
   onPick: (role: Role, name: string) => void;
   onLeave: () => void;
 }) {
+  const t = useText(SCREENS_TEXT);
+  const soloHref = useSoloHref();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const open: Role | null = !names.p1 ? "p1" : !names.p2 ? "p2" : null;
@@ -87,7 +98,7 @@ export function NameEntry({
   const submit = () => {
     const name = draft.trim();
     if (!name) {
-      setError("Enter your name to race.");
+      setError(t.nameRequired);
       return;
     }
     setError("");
@@ -96,16 +107,12 @@ export function NameEntry({
 
   return (
     <Card>
-      <p className="kicker">60 seconds · one road · two drivers</p>
+      <p className="kicker">{t.entryKicker}</p>
       <Wordmark />
       <PhoneNote />
       {open ? (
         <>
-          <p className="lede">
-            {otherName
-              ? `${otherName} is waiting at the start line. What's your name?`
-              : "Race a friend down the same road after midnight: same traffic, same clock, highest score wins. What's your name?"}
-          </p>
+          <p className="lede">{otherName ? t.otherWaiting(otherName) : t.raceAFriend}</p>
           <form
             className="row"
             onSubmit={(e) => {
@@ -117,15 +124,15 @@ export function NameEntry({
               className="nh-field"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Your name"
+              placeholder={t.yourName}
               maxLength={24}
-              aria-label="Your name"
+              aria-label={t.yourName}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? "nh-name-error" : undefined}
               autoComplete="nickname"
             />
             <button className="cta" type="submit">
-              Continue
+              {t.continue}
             </button>
           </form>
           {error ? (
@@ -136,24 +143,20 @@ export function NameEntry({
         </>
       ) : (
         <>
-          <p className="lede">
-            {canTakeOver.p1 || canTakeOver.p2
-              ? "Welcome back! Which driver are you on this device?"
-              : "Both seats are taken. A seat frees up 2 minutes after its driver goes offline."}
-          </p>
+          <p className="lede">{canTakeOver.p1 || canTakeOver.p2 ? t.welcomeBack : t.seatsTaken}</p>
           <div className="row">
             {(["p1", "p2"] as Role[]).map((role) => (
               <button key={role} className="cta" type="button" disabled={!canTakeOver[role]} onClick={() => onPick(role, names[role]!)}>
-                {canTakeOver[role] ? `I'm ${names[role]}` : `${names[role]} is driving`}
+                {canTakeOver[role] ? t.iAm(names[role]!) : t.isDriving(names[role]!)}
               </button>
             ))}
           </div>
         </>
       )}
       <p className="note nh-links">
-        Or <a href="/nighthighway/solo">drive solo</a> ·{" "}
+        {t.or} <a href={soloHref}>{t.driveSoloLink}</a> ·{" "}
         <button type="button" className="nh-linkbtn" onClick={onLeave}>
-          Leave room
+          {t.leaveRoom}
         </button>
       </p>
     </Card>
@@ -162,33 +165,37 @@ export function NameEntry({
 
 /** Seated, waiting for the second driver: the invite link (the shared InviteLinkBanner, passed in). */
 export function WaitingForDriver({ invite, onLeave }: { invite: ReactNode; onLeave: () => void }) {
+  const t = useText(SCREENS_TEXT);
+  const soloHref = useSoloHref();
   return (
     <Card>
-      <p className="kicker">Waiting for the other driver</p>
+      <p className="kicker">{t.waitingKicker}</p>
       <Wordmark />
       <PhoneNote />
-      <p className="lede">Send them the link. You race the same road at the same time, and each of you sees the other as a ghost car.</p>
+      <p className="lede">{t.waitingLede}</p>
       <div className="nh-invite">{invite}</div>
       <p className="note">
-        Waiting for a while? <a href="/nighthighway/solo">Practice solo</a> in the meantime.
+        {t.waitingBefore}
+        <a href={soloHref}>{t.practiceSolo}</a>
+        {t.waitingAfter}
       </p>
       <p className="note nh-links">
         <button type="button" className="nh-linkbtn" onClick={onLeave}>
-          Leave room
+          {t.leaveRoom}
         </button>
       </p>
     </Card>
   );
 }
 
-const STATS: { label: string; get: (r: RunResult) => string }[] = [
-  { label: "Score", get: (r) => fmt(r.score) },
-  { label: "Distance", get: (r) => `${(r.distance / 1000).toFixed(2)} km` },
-  { label: "Top speed", get: (r) => `${r.top} km/h` },
-  { label: "Average", get: (r) => `${r.avg} km/h` },
-  { label: "Near misses", get: (r) => String(r.nearMiss) },
-  { label: "Overtakes", get: (r) => String(r.overtakes) },
-  { label: "Crashes", get: (r) => String(r.crashes) },
+const stats = (t: Text): { label: string; get: (r: RunResult) => string }[] => [
+  { label: t.score, get: (r) => t.num(r.score) },
+  { label: t.distance, get: (r) => t.km(r.distance) },
+  { label: t.topSpeed, get: (r) => `${r.top} km/h` },
+  { label: t.average, get: (r) => `${r.avg} km/h` },
+  { label: t.nearMisses, get: (r) => String(r.nearMiss) },
+  { label: t.overtakes, get: (r) => String(r.overtakes) },
+  { label: t.crashes, get: (r) => String(r.crashes) },
 ];
 
 /** Between races: the series score, the last race's results, and Ready. */
@@ -212,21 +219,22 @@ export function Lobby({
   onOptions: (change: Partial<RaceOptions>) => void;
   footer: ReactNode;
 }) {
-  const myName = names[me] ?? "You";
-  const otherName = names[other] ?? "The other driver";
+  const t = useText(SCREENS_TEXT);
+  const myName = names[me] ?? t.you;
+  const otherName = names[other] ?? t.theOtherDriver;
   const last = game.phase === "DONE" ? game.history.at(-1) : undefined;
   const iAmReady = Boolean(game.ready[me]);
   const theyAreReady = Boolean(game.ready[other]);
   const mine = game.results[me];
   const theirs = game.results[other];
 
-  let headline = "Ready to race?";
-  if (last) headline = last.winner === "tie" ? "Dead heat" : last.winner === me ? "You win" : `${otherName} wins`;
+  let headline = t.readyToRace;
+  if (last) headline = last.winner === "tie" ? t.deadHeat : last.winner === me ? t.youWin : t.wins(otherName);
 
   return (
     <Card>
       <p className="kicker">
-        {last ? `Race ${last.race} result` : "Start line"} · {myName} {game.wins[me]} – {game.wins[other]} {otherName}
+        {last ? t.raceResult(last.race) : t.startLine} · {myName} {game.wins[me]} – {game.wins[other]} {otherName}
       </p>
       <p className={`results-score nh-headline${last && last.winner === me ? " nh-win" : ""}`}>{headline}</p>
       {last && (mine || theirs) ? (
@@ -235,32 +243,32 @@ export function Lobby({
             <thead>
               <tr>
                 <th scope="col">
-                  <span className="sr-only">Stat</span>
+                  <span className="sr-only">{t.stat}</span>
                 </th>
                 <th scope="col">{myName}</th>
                 <th scope="col">{otherName}</th>
               </tr>
             </thead>
             <tbody>
-              {STATS.map(({ label, get }) => (
+              {stats(t).map(({ label, get }) => (
                 <tr key={label}>
                   <th scope="row">{label}</th>
-                  <td>{mine ? get(mine) : "Didn't finish"}</td>
-                  <td>{theirs ? get(theirs) : "Didn't finish"}</td>
+                  <td>{mine ? get(mine) : t.didntFinish}</td>
+                  <td>{theirs ? get(theirs) : t.didntFinish}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <p className="lede">Same road, same traffic, same 60 seconds. Weave through it, chain near misses, and outscore {otherName}.</p>
+        <p className="lede">{t.lobbyLede(otherName)}</p>
       )}
-      <div className="row nh-options" role="group" aria-label="Next race">
+      <div className="row nh-options" role="group" aria-label={t.nextRace}>
         {(
           [
-            ["pickups", "Pickups"],
-            ["rain", "Rain"],
-            ["desert", "Desert"],
+            ["pickups", t.pickups],
+            ["rain", t.rain],
+            ["desert", t.desert],
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" role="switch" aria-checked={game.options[key]} className="nh-switch" onClick={() => onOptions({ [key]: !game.options[key] })}>
@@ -273,18 +281,18 @@ export function Lobby({
       </div>
       <div className="row">
         <button className="cta" type="button" onClick={() => onReady(!iAmReady)} aria-pressed={iAmReady}>
-          {iAmReady ? "Not ready" : last ? "Race again" : "Ready"}
+          {iAmReady ? t.notReady : last ? t.raceAgain : t.ready}
         </button>
         <span className="note" aria-live="polite">
           {!otherOnline
-            ? `${otherName} is offline.`
+            ? t.offline(otherName)
             : iAmReady && theyAreReady
-              ? "Starting…"
+              ? t.starting
               : iAmReady
-                ? `Waiting for ${otherName}…`
+                ? t.waitingFor(otherName)
                 : theyAreReady
-                  ? `${otherName} is ready.`
-                  : "The race starts when you're both ready."}
+                  ? t.isReady(otherName)
+                  : t.startsWhenBoth}
         </span>
       </div>
       {footer}
@@ -292,14 +300,15 @@ export function Lobby({
   );
 }
 
-/** This device finished; the other driver hasn't yet. */
-export function WaitingForResult({ result, otherName }: { result: RunResult; otherName: string }) {
+/** This device finished; the other driver hasn't yet (`otherName` missing: "the other driver"). */
+export function WaitingForResult({ result, otherName }: { result: RunResult; otherName?: string }) {
+  const t = useText(SCREENS_TEXT);
   return (
     <Card>
-      <p className="kicker">Run complete</p>
-      <p className="results-score">{fmt(result.score)}</p>
+      <p className="kicker">{t.runComplete}</p>
+      <p className="results-score">{t.num(result.score)}</p>
       <p className="best" aria-live="polite">
-        Waiting for {otherName} to finish…
+        {t.waitingToFinish(otherName)}
       </p>
     </Card>
   );
@@ -309,22 +318,24 @@ export function WaitingForResult({ result, otherName }: { result: RunResult; oth
 export function GetReady() {
   return (
     <div className="layer nh-getready" aria-live="assertive">
-      <p>Get ready</p>
+      <p>{useText(SCREENS_TEXT).getReady}</p>
     </div>
   );
 }
 
 /** Room line under the lobby: the room's name or code, and the ways out. */
 export function RoomLinks({ room, roomName, onNewRoom, onLeave }: { room: string; roomName?: string; onNewRoom: () => void; onLeave: () => void }) {
+  const t = useText(SCREENS_TEXT);
+  const soloHref = useSoloHref();
   return (
     <p className="note nh-links">
-      Room {roomName || room} ·{" "}
+      {t.room(roomName || room)} ·{" "}
       <button type="button" className="nh-linkbtn" onClick={onNewRoom}>
-        New room
+        {t.newRoom}
       </button>{" "}
-      · <a href="/nighthighway/solo">Drive solo</a> ·{" "}
+      · <a href={soloHref}>{t.driveSolo}</a> ·{" "}
       <button type="button" className="nh-linkbtn" onClick={onLeave}>
-        Leave room
+        {t.leaveRoom}
       </button>
     </p>
   );
@@ -354,22 +365,17 @@ export function MatchLobby({
   /** "Drive solo": leaves the room first, so nobody waits on an empty seat. */
   onSolo: () => void;
 }) {
+  const t = useText(SCREENS_TEXT);
   return (
     <Card>
-      <p className="kicker">{otherName ? `Matchmaking · ${myName} vs ${otherName}` : "Matchmaking"}</p>
+      <p className="kicker">{otherName ? t.matchKickerVs(myName, otherName) : t.matchKicker}</p>
       <Wordmark />
       <PhoneNote />
-      <p className="lede">
-        {left
-          ? "The other driver left the room."
-          : otherName
-            ? `Same road, same traffic, same 60 seconds. Weave through it, chain near misses, and outscore ${otherName}.`
-            : "Looking for another driver. You race whoever joins first, on the same road at the same time."}
-      </p>
+      <p className="lede">{left ? t.otherLeft : otherName ? t.lobbyLede(otherName) : t.lookingLede}</p>
       <div className="row">
         {onFindAnother ? (
           <button className="cta" type="button" onClick={onFindAnother}>
-            Find another driver
+            {t.findAnother}
           </button>
         ) : null}
         <span className="note" role="status" aria-live="polite">
@@ -378,11 +384,11 @@ export function MatchLobby({
       </div>
       <p className="note nh-links">
         <button type="button" className="nh-linkbtn" onClick={onLeave}>
-          Leave room
+          {t.leaveRoom}
         </button>{" "}
         ·{" "}
         <button type="button" className="nh-linkbtn" onClick={onSolo}>
-          Drive solo
+          {t.driveSolo}
         </button>{" "}
         · <RulesButton variant="link" />
       </p>
@@ -392,15 +398,16 @@ export function MatchLobby({
 
 /** The line under a matchmaking room's results: no room code or New room, just the way out. */
 export function MatchLinks({ onLeave, onSolo }: { onLeave: () => void; onSolo: () => void }) {
+  const t = useText(SCREENS_TEXT);
   return (
     <p className="note nh-links">
-      Matched online ·{" "}
+      {t.matchedOnline} ·{" "}
       <button type="button" className="nh-linkbtn" onClick={onLeave}>
-        Leave room
+        {t.leaveRoom}
       </button>{" "}
       ·{" "}
       <button type="button" className="nh-linkbtn" onClick={onSolo}>
-        Drive solo
+        {t.driveSolo}
       </button>
     </p>
   );

@@ -1,6 +1,8 @@
 "use client";
 
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from "react";
+import { useText } from "@/lib/i18n/useLang";
+import { HUB_TEXT } from "./text";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const POPOVER_WIDTH = 420;
@@ -130,6 +132,7 @@ function Popover({ anchor, placement, labelledBy, onClose, children }: HubOverla
 let openSheets = 0;
 
 function Sheet({ title, labelledBy, sheetMaxHeightClass = "max-h-[90vh]", onClose, children }: HubOverlayProps) {
+  const closeLabel = useText(HUB_TEXT).close;
   const ref = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
 
@@ -218,7 +221,7 @@ function Sheet({ title, labelledBy, sheetMaxHeightClass = "max-h-[90vh]", onClos
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={closeLabel}
               className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-[#E9EEEF] text-black"
             >
               <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

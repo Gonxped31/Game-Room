@@ -8,9 +8,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const base = "w-full cursor-pointer rounded-[14px] border-2 border-[#1C1F3D] font-[family-name:var(--font-archivo)] disabled:cursor-not-allowed";
 
+// min-h, not h: a label too long for one line (French runs longer) wraps instead of overflowing.
 const variants: Record<string, string> = {
-  primary: "h-14 bg-[#FFD23A] text-lg font-extrabold text-[#1C1F3D] shadow-[0_4px_0_#1C1F3D] active:translate-y-1 active:shadow-none",
-  secondary: "h-[52px] bg-transparent text-base font-bold text-[#1C1F3D]",
+  primary: "min-h-14 px-3 py-2 leading-tight bg-[#FFD23A] text-lg font-extrabold text-[#1C1F3D] shadow-[0_4px_0_#1C1F3D] active:translate-y-1 active:shadow-none",
+  secondary: "min-h-[52px] px-3 py-2 leading-tight bg-transparent text-base font-bold text-[#1C1F3D]",
 };
 
 const disabledVariants: Record<string, string> = {

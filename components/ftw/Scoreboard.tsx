@@ -1,4 +1,6 @@
 import { GAME_TITLE } from "@/lib/games/ftw/constants";
+import { useText } from "@/lib/i18n/useLang";
+import { FTW_TEXT } from "./text";
 import { DISPLAY, PlayerSquare, TEXT } from "./ui";
 import RulesButton from "./Rules";
 
@@ -8,9 +10,6 @@ export interface ScorePlayer {
   color: string;
   isMe: boolean;
 }
-
-/** "Scores: Samir (you) 10, Léa 5" - the viewer first. */
-const scoresLabel = (players: ScorePlayer[]) => `Scores: ${players.map((p) => `${p.name}${p.isMe ? " (you)" : ""} ${p.score}`).join(", ")}`;
 
 /** "Same Page", with a yellow highlighter bar behind "Page". */
 export function Wordmark({ className = "" }: { className?: string }) {
@@ -26,19 +25,21 @@ export function Wordmark({ className = "" }: { className?: string }) {
  * The game header (references/ftw/first-to-worst-game-design.md, "Header with
  * scores"). Phones: the wordmark and "Round 3" on the left, a score chip per
  * player on the right. From 900px: the larger wordmark and the room name on
- * the right (the scores move to the aside's score card).
+ * the right (the scores move to the aside's score card). Both say the scores
+ * aloud as "Scores: Samir (you) 10, Léa 5", the viewer first.
  */
 export function GameHeader({ round, players, roomLabel }: { round?: number; players?: ScorePlayer[]; roomLabel: string }) {
+  const t = useText(FTW_TEXT);
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       <div className="shrink-0">
         <h1 className="m-0">
           <Wordmark className="text-[22px] min-[900px]:text-[30px]" />
         </h1>
-        {round != null ? <p className={`${TEXT} m-0 mt-1 text-[13px] font-bold text-[var(--ink)] opacity-80 min-[900px]:hidden`}>Round {round}</p> : null}
+        {round != null ? <p className={`${TEXT} m-0 mt-1 text-[13px] font-bold text-[var(--ink)] opacity-80 min-[900px]:hidden`}>{t.round(round)}</p> : null}
       </div>
       {players ? (
-        <div role="group" aria-label={scoresLabel(players)} className="ml-auto flex min-w-0 justify-end gap-1.5 min-[900px]:hidden">
+        <div role="group" aria-label={t.scores(players)} className="ml-auto flex min-w-0 justify-end gap-1.5 min-[900px]:hidden">
           {players.map((p) => (
             <span
               key={p.name + p.isMe}
@@ -62,10 +63,11 @@ export function GameHeader({ round, players, roomLabel }: { round?: number; play
 
 /** The desktop aside's white score card, with full names. */
 export function ScoreCard({ round, players }: { round: number; players: ScorePlayer[] }) {
+  const t = useText(FTW_TEXT);
   return (
-    <div role="group" aria-label={scoresLabel(players)} className={`${TEXT} rounded-2xl border-2 border-[var(--ink)] bg-white px-4 py-3 text-[var(--ink)]`}>
+    <div role="group" aria-label={t.scores(players)} className={`${TEXT} rounded-2xl border-2 border-[var(--ink)] bg-white px-4 py-3 text-[var(--ink)]`}>
       <p aria-hidden="true" className="m-0 mb-1.5 text-[13px] font-bold tracking-[0.06em] text-[var(--muted)] uppercase">
-        Round {round}
+        {t.round(round)}
       </p>
       <ul aria-hidden="true" className="m-0 grid list-none gap-1.5 p-0">
         {players.map((p) => (
@@ -73,7 +75,7 @@ export function ScoreCard({ round, players }: { round: number; players: ScorePla
             <PlayerSquare color={p.color} size={12} />
             <span className="min-w-0 flex-1 truncate text-base font-bold">
               {p.name}
-              {p.isMe ? <span className="font-medium text-[var(--muted)]"> (you)</span> : null}
+              {p.isMe ? <span className="font-medium text-[var(--muted)]">{t.youTag}</span> : null}
             </span>
             <span className="text-xl font-bold">{p.score}</span>
           </li>

@@ -93,4 +93,14 @@ describe("resultHeadline", () => {
   ])("%i matches: %s", (matches, headline, line) => {
     expect(resultHeadline(matches)).toEqual({ headline, line });
   });
+
+  it.each([
+    [5, "Même page !", "Les 5 dans le même ordre."],
+    [3, "Presque !", "Même page pour 3 sur 5."],
+    [2, "Même chapitre.", "Même page pour 2 sur 5."],
+    [1, "Pas le même chapitre.", "Même page pour 1 sur 5."],
+    [0, "Pas le même livre.", "Aucun point commun cette fois."],
+  ])("in French, %i matches: %s", (matches, headline, line) => {
+    expect(resultHeadline(matches, "fr")).toEqual({ headline, line });
+  });
 });
