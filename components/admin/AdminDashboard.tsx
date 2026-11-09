@@ -1,24 +1,27 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { formatCount, formatDuration, formatRate } from "@/lib/analytics/format";
 import { PLAY_ESTIMATE_CAP_MS } from "@/lib/analytics/metrics";
-import type { DashboardStats, InviteLoop } from "@/lib/analytics/types";
+import type { RangeQuery } from "@/lib/analytics/tracking";
+import type { AdminStats, InviteLoop } from "@/lib/analytics/types";
 import { gameBySlug } from "@/lib/games/registry";
 import { SOLO_GAMES, soloDownloadHref, soloDownloadName } from "@/lib/games/soloDownloads";
 import { callAdmin } from "./callAdmin";
 import ConfirmDialog from "./ConfirmDialog";
+import { FinishedSection, rangeQueryString, SourceSection } from "./FinishedStats";
 import RoomList from "./RoomList";
+import { Num, Panel, StatTile } from "./ui";
 
 const REFRESH_MS = 30_000;
 
-type Load = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; stats: DashboardStats; stale?: string };
+type Load = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; stats: AdminStats; stale?: string };
 
-async function fetchStats(): Promise<{ stats: DashboardStats } | { error: string; signedOut?: boolean }> {
+async function fetchStats(range: RangeQuery): Promise<{ stats: AdminStats } | { error: string; signedOut?: boolean }> {
   try {
-    const response = await fetch("/api/admin/stats", { cache: "no-store" });
+    const response = await fetch(`/api/admin/stats?${rangeQueryString(range)}`, { cache: "no-store" });
     if (response.status === 401) return { error: "Signed out.", signedOut: true };
-    const body = (await response.json().catch(() => null)) as (DashboardStats & { error?: string }) | null;
+    const body = (await response.json().catch(() => null)) as (AdminStats & { error?: string }) | null;
     if (!response.ok || !body) return { error: body?.error ?? `The server answered ${response.status}.` };
     return { stats: body };
   } catch {
@@ -31,8 +34,8 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const formatWhen = (ms: number) => new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /**
- * Live rooms, players per game, play time and return rate, refreshed every
- * 30 s. The numbers come computed from /api/admin/stats; durations arrive as
+ * Games finished (the north star), live rooms, players per game, play time,
+ * return rate and where players come from, refreshed every 30 s. The numbers come computed from /api/admin/stats; durations arrive as
  * ages relative to the server's clock, so nothing here reads the time.
  */
 export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => void }) {
@@ -40,11 +43,13 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
   // Bumped after closing or deleting a room, to refetch at once instead of on the next tick.
   const [reloads, setReloads] = useState(0);
   const [clearing, setClearing] = useState(false);
+  // The source table's days; the server resolves them (Toronto days), so nothing here reads the clock.
+  const [range, setRange] = useState<RangeQuery>({ preset: "30d" });
 
   useEffect(() => {
     let cancelled = false;
     const refresh = () =>
-      fetchStats().then((result) => {
+      fetchStats(range).then((result) => {
         if (cancelled) return;
         if ("stats" in result) setLoad({ kind: "ready", stats: result.stats });
         // The cookie expired or the password changed: back to the login box.
@@ -58,7 +63,7 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
       cancelled = true;
       clearInterval(id);
     };
-  }, [onSignedOut, reloads]);
+  }, [onSignedOut, reloads, range]);
 
   if (load.kind === "loading") return <Panel>Loading the numbers…</Panel>;
   if (load.kind === "error")
@@ -81,6 +86,8 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         {stats.statsSince != null && ` · stats counted since ${formatWhen(stats.statsSince)}`}
         {stale && <span className="font-bold text-white"> · last refresh failed: {stale}</span>}
       </p>
+
+      <FinishedSection stats={stats.finished} />
 
       <div className="grid grid-cols-2 gap-3 min-[760px]:grid-cols-4">
         <StatTile label="Live now" value={formatCount(totals.liveRooms)} note={`${totals.playingRooms} playing · ${totals.onlineGuests} guests online`} />
@@ -145,6 +152,8 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
         </div>
       </Panel>
 
+      <SourceSection stats={stats.sources} range={range} onRange={setRange} />
+
       <Panel title="Rooms">
         <RoomList rooms={stats.rooms} games={stats.perGame.map((game) => game.gameSlug)} onChanged={() => setReloads((n) => n + 1)} />
       </Panel>
@@ -163,8 +172,9 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
 
       <Panel title="Clear stats">
         <p className="m-0 text-sm leading-relaxed text-black/75">
-          Starts every number on this page again from zero: players, play time, return rate and the invite loop only count what happens afterwards. Live rooms
-          and the Rooms list stay as they are; no room is closed or deleted, and players keep their rooms.
+          Starts every number on this page again from zero: games finished, players, play time, return rate, the invite loop and the source table only count
+          what happens afterwards. Live rooms and the Rooms list stay as they are; no room is closed or deleted, and players keep their rooms and where they
+          came from.
           {stats.statsSince != null && ` Last cleared ${formatWhen(stats.statsSince)}.`}
         </p>
         <button
@@ -180,7 +190,7 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
           request={{
             title: "Clear all stats?",
             message:
-              "Every number on this dashboard starts again from zero. Deleted rooms' summaries and guests' visit days are erased for good. This can't be undone. Enter the admin password to confirm.",
+              "Every number on this dashboard starts again from zero. Deleted rooms' summaries, guests' visit days and the finished-game records are erased for good. This can't be undone. Enter the admin password to confirm.",
             password: true,
             confirmLabel: "Clear all stats",
             busyLabel: "Clearing…",
@@ -195,8 +205,10 @@ export default function AdminDashboard({ onSignedOut }: { onSignedOut: () => voi
 
       <p className="m-0 text-xs leading-relaxed text-white/85">
         Play time counts the minutes a game was in progress. Rooms played before that count existed are estimated from when they were created to their last
-        activity, at most {formatDuration(PLAY_ESTIMATE_CAP_MS)} each. The invite loop leaves out matchmade rooms. A guest is one browser: someone who clears
-        their browser data, or switches device, counts as a new guest (and joining their own room from a second device looks like an invite).
+        activity, at most {formatDuration(PLAY_ESTIMATE_CAP_MS)} each. The invite loop leaves out matchmade rooms. A game finished is one that reached its real end
+        (a match result, a final score, the standings of a race, a solo game won or lost, a daily result), counted once however many devices report it. A guest
+        is one browser: someone who clears their browser data, or switches device, counts as a new guest (and joining their own room from a second device looks
+        like an invite).
       </p>
     </div>
   );
@@ -251,28 +263,4 @@ function InviteLoopTiles({ loop }: { loop: InviteLoop }) {
       </div>
     </section>
   );
-}
-
-function StatTile({ label, value, note }: { label: string; value: string; note: string }) {
-  return (
-    <section className="flex flex-col gap-1 rounded-2xl bg-white p-4 shadow-[0_4px_0_rgba(0,0,0,.25)]">
-      <h2 className="m-0 text-sm font-semibold text-black/60">{label}</h2>
-      <p className="m-0 text-2xl font-bold whitespace-nowrap text-black min-[760px]:text-3xl">{value}</p>
-      <p className="m-0 text-xs text-black/60">{note}</p>
-    </section>
-  );
-}
-
-function Panel({ title, children }: { title?: string; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl bg-white p-4 shadow-[0_4px_0_rgba(0,0,0,.25)] min-[760px]:p-5">
-      {title && <h2 className="m-0 mb-2 text-lg font-bold">{title}</h2>}
-      {children}
-    </section>
-  );
-}
-
-function Num({ children, head }: { children: ReactNode; head?: boolean }) {
-  const Cell = head ? "th" : "td";
-  return <Cell className={`py-2 pl-3 text-right tabular-nums ${head ? "font-semibold" : ""}`}>{children}</Cell>;
 }

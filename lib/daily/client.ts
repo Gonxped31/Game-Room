@@ -1,5 +1,6 @@
 "use client";
 
+import { langOfPath } from "@/lib/i18n/lang";
 import { guestIdToken } from "@/lib/session/shared/auth";
 import type { Attempt, BoardEntry, DailyStatus } from "./service";
 import { appCheckToken } from "./appCheck";
@@ -34,8 +35,12 @@ export class DailyRequestError extends Error {
   }
 }
 
-/** Calls /api/daily/<slug>[/<action>] as the guest. Throws DailyRequestError with the server's message. */
+/**
+ * Calls /api/daily/<slug>[/<action>] as the guest. Throws DailyRequestError with the server's message.
+ * A submit also sends the page's language, for the finished-game record (docs/tracking.md).
+ */
 export async function dailyRequest<T>(slug: string, action?: "start" | "submit", body?: unknown): Promise<T> {
+  if (action === "submit" && body && typeof body === "object") body = { ...body, lang: langOfPath(window.location.pathname) };
   let token: string;
   try {
     token = await guestIdToken();

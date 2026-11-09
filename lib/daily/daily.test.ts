@@ -125,6 +125,24 @@ describe("daily service", () => {
     expect(again.board).toHaveLength(1);
   });
 
+  it("records the result as one finished game, with the guest's first touch and the page's language", async () => {
+    const store = memoryStore();
+    await store.set("users/alice/firstTouch", { src: "tiktok", cmp: "test1", at: NOW - 60_000 });
+    const { puzzle, day } = await startDaily(ctxFor(store, "alice"), "ip-a");
+    await submitDaily(ctxFor(store, "alice", NOW + 95_000), { day, moves: solvingMoves(puzzle as Puzzle), name: "A", lang: "fr" });
+    await submitDaily(ctxFor(store, "alice", NOW + 99_000), { day, moves: solvingMoves(puzzle as Puzzle), name: "A", lang: "fr" });
+    const key = `alice_daily-regions-${day}`;
+    expect(await store.get(`finished/games/${key}`)).toEqual({ slug: "regions", mode: "daily", players: 1, lang: "fr", at: NOW + 95_000 });
+    expect(await store.get(`finished/players/${key}_alice`)).toEqual({ game: key, uid: "alice", src: "tiktok", cmp: "test1", at: NOW + 95_000 });
+    expect([...store.data.keys()].filter((path) => path.startsWith("finished/"))).toHaveLength(2);
+    // No first touch, no language: direct, in English.
+    const { puzzle: p2 } = await startDaily(ctxFor(store, "bob"), "ip-b");
+    await submitDaily(ctxFor(store, "bob", NOW + 95_000), { day, moves: solvingMoves(p2 as Puzzle), name: "B" });
+    expect(await store.get(`finished/players/alice_daily-regions-${day}_bob`)).toBeNull();
+    expect(await store.get(`finished/games/bob_daily-regions-${day}`)).toMatchObject({ lang: "en" });
+    expect(await store.get(`finished/players/bob_daily-regions-${day}_bob`)).toMatchObject({ src: "direct" });
+  });
+
   it("only a connection's first attempt is ranked", async () => {
     const store = memoryStore();
     const { puzzle, day } = await startDaily(ctxFor(store, "alice"), "same-ip");

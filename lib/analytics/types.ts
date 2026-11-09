@@ -137,3 +137,111 @@ export interface DashboardStats {
   /** Every room that still exists: live ones first (playing, then waiting), then idle, then closed; most recent first within each. */
   rooms: RoomRow[];
 }
+
+// ---- Games finished and sources (lib/analytics/tracking.ts, docs/tracking.md) ----
+
+/** One finished game: counted once, however many devices reported it. */
+export interface FinishedGameSnap {
+  key: string;
+  slug: string;
+  /** room, match, solo, daily, challenge, survival. */
+  mode: string;
+  matchmade: boolean;
+  at: number;
+}
+
+/** One guest's part in a finished game, with the source their device knew. */
+export interface FinisherSnap {
+  /** The FinishedGameSnap's key. */
+  game: string;
+  uid: string;
+  src: string;
+  cmp?: string;
+  at: number;
+}
+
+/** What tracking knows of a guest. */
+export interface TrackedGuestSnap {
+  uid: string;
+  /** Their first source, as recorded once (absent for guests tracking never saw). */
+  touch?: { src: string; cmp?: string; at: number };
+  /** Their earliest known activity: a room, a visit, a finished game. */
+  firstActiveAt?: number;
+}
+
+/** A room (live or deleted), for "rooms created" per source. */
+export interface CreatedRoomSnap {
+  code: string;
+  createdAt: number;
+  createdBy?: string;
+}
+
+export interface TrackingSnapshot {
+  games: FinishedGameSnap[];
+  finishers: FinisherSnap[];
+  guests: TrackedGuestSnap[];
+  rooms: CreatedRoomSnap[];
+  now: number;
+  /** As in Snapshot: nothing from before a stats clear counts. */
+  statsSince?: number;
+}
+
+/** A week, Monday to Sunday in the daily's time zone (America/Toronto), named by its Monday (YYYY-MM-DD). */
+export interface WeekCount {
+  start: string;
+  games: number;
+  /** Distinct guests who finished a game that week. */
+  players: number;
+}
+
+/** Games finished by one game, mode or source. */
+export interface FinishedRow {
+  key: string;
+  thisWeek: number;
+  lastWeek: number;
+  /** The 12 weeks of the trend, this one included. */
+  weeks12: number;
+  allTime: number;
+}
+
+/** The north star: games finished per week. */
+export interface FinishedStats {
+  thisWeek: WeekCount;
+  lastWeek: WeekCount;
+  /** The last 12 weeks, oldest first; the last one is this week (so far). */
+  weeks: WeekCount[];
+  /** Since the last stats clear. `players`: distinct guests who finished at least one game. */
+  allTime: { games: number; players: number };
+  byGame: FinishedRow[];
+  /** Keys: the mode, with "-matchmade" for a matchmade race. */
+  byMode: FinishedRow[];
+  /** A game counts once for each source among its finishers. */
+  bySource: FinishedRow[];
+}
+
+/** One source, or one source and campaign, over the chosen days. */
+export interface SourceRow {
+  src: string;
+  /** Campaign rows only; absent there means "no campaign". */
+  cmp?: string;
+  /** Guests first seen in the range. */
+  newGuests: number;
+  /** Rooms created in the range whose creator came from here. */
+  roomsCreated: number;
+  /** Games finished in the range with at least one finisher from here. */
+  gamesFinished: number;
+  /** Distinct guests from here who finished a game in the range. */
+  finishers: number;
+}
+
+export interface SourceStats {
+  /** First day counted (YYYY-MM-DD, Toronto); absent: since the beginning (or the last stats clear). */
+  from?: string;
+  /** Last day counted, included. */
+  to: string;
+  sources: SourceRow[];
+  campaigns: SourceRow[];
+}
+
+/** What /api/admin/stats answers. */
+export type AdminStats = DashboardStats & { finished: FinishedStats; sources: SourceStats };

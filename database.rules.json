@@ -188,6 +188,9 @@
               ".validate": "$i.matches(/^[0-9]+$/) && $i.length <= 2 && newData.isString() && newData.val().length >= 1 && newData.val().length <= 60"
             }
           },
+          "lang": {
+            ".validate": "newData.val() == 'en' || newData.val() == 'fr'"
+          },
           "$other": {
             ".validate": false
           }
@@ -707,7 +710,15 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
-        ".write": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid && (!data.child('firstTouch').exists() || (newData.child('firstTouch/src').val() == data.child('firstTouch/src').val() && newData.child('firstTouch/at').val() == data.child('firstTouch/at').val() && newData.child('firstTouch/med').val() == data.child('firstTouch/med').val() && newData.child('firstTouch/cmp').val() == data.child('firstTouch/cmp').val()))",
+        "firstTouch": {
+          ".validate": "newData.hasChildren(['src', 'at'])",
+          "src": { ".validate": "newData.isString() && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9._-]+$/)" },
+          "med": { ".validate": "newData.isString() && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9._-]+$/)" },
+          "cmp": { ".validate": "newData.isString() && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9._-]+$/)" },
+          "at": { ".validate": "newData.isNumber() && newData.val() <= now && newData.val() > now - 60000" },
+          "$other": { ".validate": false }
+        },
         "rooms": {
           ".validate": "newData.hasChildren()",
           "$room": {
@@ -731,6 +742,37 @@
           }
         },
         "$other": { ".validate": false }
+      }
+    },
+
+    "finished": {
+      "games": {
+        ".indexOn": ["at"],
+        "$game": {
+          ".write": "auth != null && !data.exists()",
+          ".validate": "newData.hasChildren(['slug', 'mode', 'players', 'lang', 'at']) && $game.length <= 88 && $game.matches(/^[A-Za-z0-9]+_[A-Za-z0-9-]+$/) && ((newData.child('room').exists() && newData.child('mode').val() != 'solo' && $game.beginsWith(newData.child('room').val() + '_') && root.child('games/' + newData.child('room').val() + '/members/' + auth.uid).exists() && root.child('games/' + newData.child('room').val() + '/meta/gameSlug').val() == newData.child('slug').val()) || (!newData.child('room').exists() && newData.child('mode').val() == 'solo' && $game.beginsWith(auth.uid + '_')))",
+          "slug": { ".validate": "newData.isString() && newData.val().length <= 24 && newData.val().matches(/^[a-z0-9]+$/)" },
+          "mode": { ".validate": "newData.val() == 'room' || newData.val() == 'match' || newData.val() == 'solo' || newData.val() == 'challenge' || newData.val() == 'survival'" },
+          "players": { ".validate": "newData.val() == 1 || newData.val() == 2 || newData.val() == 3 || newData.val() == 4 || newData.val() == 5 || newData.val() == 6 || newData.val() == 7 || newData.val() == 8" },
+          "lang": { ".validate": "newData.val() == 'en' || newData.val() == 'fr'" },
+          "at": { ".validate": "newData.isNumber() && newData.val() <= now && newData.val() > now - 60000" },
+          "room": { ".validate": "newData.isString() && newData.val().length == 6" },
+          "matchmade": { ".validate": "newData.val() == true" },
+          "$other": { ".validate": false }
+        }
+      },
+      "players": {
+        ".indexOn": ["at"],
+        "$entry": {
+          ".write": "auth != null && !data.exists() && newData.child('uid').val() == auth.uid",
+          ".validate": "newData.hasChildren(['game', 'uid', 'src', 'at']) && $entry == newData.child('game').val() + '_' + auth.uid && root.child('finished/games/' + newData.child('game').val()).exists() && ((root.child('finished/games/' + newData.child('game').val() + '/room').exists() && root.child('games/' + root.child('finished/games/' + newData.child('game').val() + '/room').val() + '/members/' + auth.uid).exists()) || (!root.child('finished/games/' + newData.child('game').val() + '/room').exists() && newData.child('game').val().beginsWith(auth.uid + '_')))",
+          "game": { ".validate": "newData.isString() && newData.val().length <= 88 && newData.val().matches(/^[A-Za-z0-9]+_[A-Za-z0-9-]+$/)" },
+          "uid": { ".validate": "newData.val() == auth.uid" },
+          "src": { ".validate": "newData.isString() && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9._-]+$/)" },
+          "cmp": { ".validate": "newData.isString() && newData.val().length <= 40 && newData.val().matches(/^[a-z0-9._-]+$/)" },
+          "at": { ".validate": "newData.isNumber() && newData.val() <= now && newData.val() > now - 60000" },
+          "$other": { ".validate": false }
+        }
       }
     }
   }

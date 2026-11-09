@@ -6,7 +6,7 @@
  */
 import { assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { lockIn as ftwLockIn, masterOf, newGame as newFtwGame, nextRound, setPlaced, setPrompt, setTopics, submitGuess } from "@/lib/games/ftw/game";
+import { contentLang, lockIn as ftwLockIn, masterOf, newGame as newFtwGame, nextRound, setLang as setFtwLang, setPlaced, setPrompt, setTopics, submitGuess } from "@/lib/games/ftw/game";
 import { customRound, randomRound, TOPICS } from "@/lib/games/ftw/prompts";
 import { continueAfterReveal, lockIn as ccLockIn, newGame as newCcGame } from "@/lib/games/cocounsel/game";
 import { CASES, getCase } from "@/lib/games/cocounsel/cases";
@@ -74,6 +74,23 @@ describe("First to Worst", () => {
     await write(setTopics(game, masterOf(game.round), [], TOPICS));
   });
 
+  it("accepts the prompt language: a French room, switched to English and back, and an old room without one", async () => {
+    const db = dbAs(env, "alice");
+    const write = <T,>(state: T) => writeAndReadBack(db, path, state);
+    let game = await write(newFtwGame(randomRound([], [], "fr"), [], "fr"));
+    expect(game.lang).toBe("fr");
+    game = await write(setFtwLang(game, masterOf(game.round), "en"));
+    game = await write(setPrompt(game, randomRound(game.usedPrompts, game.topics, contentLang(game))));
+    game = await write(setFtwLang(game, masterOf(game.round), "fr"));
+    game = await write(ftwLockIn(game, game.current.items.map((i) => i.id)));
+    game = await write(submitGuess(game, game.current.items.map((i) => i.id)));
+    game = await write(nextRound(game, randomRound(game.usedPrompts, game.topics, contentLang(game))));
+    expect(game.lang).toBe("fr");
+    await write(ftwState());
+    await write(ftwState({ lang: "en" }));
+    await write(ftwState({ lang: "fr" }));
+  });
+
   it.each([
     ["4 items", ftwState({ current: { ...ftwState().current, items: ftwState().current.items.slice(0, 4) } })],
     ["6 items", ftwState({ current: { ...ftwState().current, items: [...ftwState().current.items, { id: "x", label: "x" }] } })],
@@ -90,6 +107,9 @@ describe("First to Worst", () => {
     ["a topic over 60 chars", ftwState({ topics: ["x".repeat(61)] })],
     ["a topic that isn't text", ftwState({ topics: [7] })],
     ["placement progress carrying numbers", ftwState({ current: { ...ftwState().current, placed: [3, 1] } })],
+    ["a prompt language it doesn't have", ftwState({ lang: "de" })],
+    ["a prompt language that isn't text", ftwState({ lang: 1 })],
+    ["the prompt language spelled out", ftwState({ lang: "French" })],
   ])("rejects %s", async (_, state) => {
     await assertFails(dbAs(env, "alice").ref(path).set(state));
   });

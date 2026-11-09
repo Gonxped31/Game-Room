@@ -1,3 +1,5 @@
+import { isLang } from "@/lib/i18n/lang";
+import { entryKey, FINISHED_GAMES, FINISHED_PLAYERS, finishedEntry, finishedHeader, firstTouchPath, gameKey, readFirstTouch } from "@/lib/tracking/events";
 import { dayKey, dayNumber, previousDay } from "./day";
 import type { DailyGame } from "./types";
 
@@ -185,10 +187,31 @@ function standardDeviation(values: number[]): number {
 }
 
 /**
+ * The "game finished" record for a daily result (docs/tracking.md): one game
+ * per guest and day, with the guest's first-touch source read here, so daily
+ * pages report nothing themselves. A failure is logged, never the player's
+ * problem.
+ */
+async function recordFinished(ctx: DailyContext, day: string, lang: unknown) {
+  try {
+    const id = `daily-${ctx.game.slug}-${day}`;
+    const header = finishedHeader({ slug: ctx.game.slug, mode: "daily", id, players: 1, lang: isLang(lang) ? lang : "en" }, ctx.now);
+    if (!header) return;
+    const key = gameKey(ctx.uid, id);
+    const touch = readFirstTouch(await ctx.store.get(firstTouchPath(ctx.uid)));
+    await ctx.store.set(`${FINISHED_GAMES}/${key}`, header);
+    await ctx.store.set(`${FINISHED_PLAYERS}/${entryKey(key, ctx.uid)}`, finishedEntry(key, ctx.uid, touch, ctx.now));
+  } catch (error) {
+    console.error("Daily: couldn't record the finished game", error);
+  }
+}
+
+/**
  * Finishes an attempt: the moves must solve the day's puzzle. The time is
  * the server's, from Start to now. A second submit returns the first result.
+ * `lang`: the page's interface language, for the finished-game record.
  */
-export async function submitDaily(ctx: DailyContext, input: { day: unknown; moves: unknown; name: unknown }) {
+export async function submitDaily(ctx: DailyContext, input: { day: unknown; moves: unknown; name: unknown; lang?: unknown }) {
   const today = dayKey(ctx.now);
   const day = typeof input.day === "string" ? input.day : "";
   let oldest = today;
@@ -226,6 +249,7 @@ export async function submitDaily(ctx: DailyContext, input: { day: unknown; move
         const streak = saved && saved.lastDay === previousDay(day) ? saved.streak + 1 : 1;
         await ctx.store.set(streakPath, { streak, lastDay: day });
       }
+      await recordFinished(ctx, day, input.lang);
     }
   }
 
