@@ -1,6 +1,6 @@
 # Adding a game: field-by-field detail
 
-The detail behind the `add-game` checklist's steps 1, 3 and 4, and removing a game (`SKILL.md`, next to this file).
+The detail behind the `add-game` checklist's steps 1, 3, 3b and 4, and removing a game (`SKILL.md`, next to this file).
 
 ## Step 1: the registry entry and the art
 
@@ -47,6 +47,31 @@ game"); the folder counts and card rows follow the registry on their own.
   setup screen. What it must say, in what order, and how it looks:
   `docs/how-to-play.md`. A test (`lib/games/howToPlay.test.ts`) fails without
   it.
+- Reuse `Header`, `Footer`, `RoleStickers` and `Button` where the look fits.
+  Otherwise give the game its own components; visuals are per game.
+
+## Step 3b: the French side (`docs/i18n.md`)
+
+- **Words**: `components/<slug>/text.ts` exports `texts({ en, fr })` (French must
+  match English key for key); components read `useText(TEXT)`, pure helpers and
+  server code `TEXT[lang]`. Numbers and names are functions; plurals through
+  `plural(lang, ...)`. Links through `useLocalHref`/`gamePath(slug, lang)`, so a
+  French page never links to an English one.
+- **Pages**: `app/fr/<slug>/page.tsx` re-exports `app/<slug>/page.tsx`;
+  `app/fr/<slug>/layout.tsx` re-exports the layout with French metadata
+  (`pageMetadata(route, "fr")`). Same for a solo page and for a room game's
+  `invite/` route. Each page also has an `opengraph-image.tsx` and its copy in
+  `lib/seo/previews.ts`: `docs/link-previews.md`.
+- **Registry**: the entry's `fr` (description, short description, tags, modes,
+  solo card); `lib/games/registry.test.ts` checks it. Titles are brands and stay.
+- **Content**: both banks share their keys and ids, with a parity test. A room
+  game stores the content language as `lang` (`'en' | 'fr'`, optional where
+  older rooms lack it: absent means English), validated in the rules, set by the
+  host; interface words follow each viewer's page language instead.
+- **Finished games**: `useReportFinished({ slug, mode, players, lang, room?, id })`
+  on every seated device at the real end (`lib/tracking/useReportFinished.ts`,
+  `docs/tracking.md`). `id` is the same on every device and changes with each
+  match (letters, digits and `-`).
 
 ## Step 4: the database rules
 

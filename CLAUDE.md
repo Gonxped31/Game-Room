@@ -1,34 +1,38 @@
-# Game Room — a platform for private, link-shared games
+# Partyfox — link-shared party games
 
-A small platform for private 2-player games played through a shared link.
-- `/` is the hub (game picker, join by code or name, "Your rooms").
-- Each game lives at `/<slug>#<roomCode>`.
+Formerly Game Room (partyfox.io): private rooms shared by link for 1 to 8
+players, plus solo games, races and daily puzzles.
+- `/` is the hub (game picker, join, "Your rooms").
+- A room lives at `/<slug>#<roomCode>`.
 - No sign-in: every browser gets an invisible guest ID.
 - Games (routes, slugs, modes: `ARCHITECTURE.md`): Same Page, Co-Counsel, Night
   Highway, Buzzer Quiz, Word Scramble, Rank & File, Detour and Last Hop.
 
-This file holds what must stay true on **every** change. Skills load by their
-descriptions (Same Page's is `first-to-worst`, Rank & File's `checkmate-grid`), a
-folder's rules from its own `CLAUDE.md`, and the rest from:
+This file holds what must stay true on **every** change. Skills load by
+description (Same Page: `first-to-worst`; Rank & File: `checkmate-grid`), folder
+rules from nested `CLAUDE.md` files, the rest from:
 
 | Need | Where |
 | :--- | :--- |
-| Layout, the games and their routes | `ARCHITECTURE.md` |
-| Room data model tree, environment notes, hub components | `docs/architecture.md` |
-| Session code map (write builders, hooks, matchmaking) | `docs/session.md` |
-| The shared race layer (Challenge and Survival for solo games) | `docs/race.md` |
-| The shared daily puzzles and their leaderboard (`lib/daily/`) | `docs/daily.md` |
-| Every game's How to play: what it says, where it opens | `docs/how-to-play.md` |
-| Original specs and mockups | `references/` (per game, plus `game-room/`) |
-| Session habits (one task per session, `/clear`, reading narrowly) | `docs/workflow.md` |
+| Layout, games, routes | `ARCHITECTURE.md` |
+| Data model tree, environment notes, hub components | `docs/architecture.md` |
+| Session code map, matchmaking | `docs/session.md` |
+| Races (Challenge, Survival) | `docs/race.md` |
+| Daily puzzles, leaderboard (`lib/daily/`) | `docs/daily.md` |
+| Each game's How to play | `docs/how-to-play.md` |
+| English and French (URLs, words, style, content) | `docs/i18n.md` |
+| Source tracking, games-finished counter | `docs/tracking.md` |
+| Link previews and `/invite` routes | `docs/link-previews.md` |
+| Original specs and mockups | `references/` (per game) |
+| Session habits | `docs/workflow.md` |
 
 ## Architecture
 
 ### Guest identity (`lib/session/shared/auth.ts`)
 
 - Firebase **Anonymous Auth**, invisible. **There is no sign-in screen, and never
-  will be** (a product decision). If sign-in fails, pages show
-  `CONNECTION_ERROR_MESSAGE`. There is never a silent fallback to local mode.
+  will be.** If sign-in fails, pages show `CONNECTION_ERROR_MESSAGE`, never a
+  silent fallback to local mode.
 - **One guest ID per browser**, shared by all its tabs, and **one seat per guest
   per room**. Test two players with a normal window plus a private window (or two
   Playwright contexts), never two tabs. Only **local mode** (no Firebase config)
@@ -48,17 +52,18 @@ folder's rules from its own `CLAUDE.md`, and the rest from:
 
 ## Working here
 
-- **Start every task on a new branch from `origin/main`.** `main` is production:
-  every push auto-deploys on Vercel. `main` moves only through
-  `node scripts/merge.mjs`, after the user approves (`git` skill).
+- **Every feature, screen, game and piece of content ships in English and French
+  together** (`docs/i18n.md`); a new page needs its `/fr` twin.
+- **Start every task on a new branch from `origin/main`.** `main` is production
+  (every push deploys on Vercel) and moves only through `node scripts/merge.mjs`,
+  after the user approves (`git` skill).
 - **Before finishing any task, check the todos**
   (`node .claude/skills/todo/scripts/todo.mjs list --all`) for items this work
-  triggers. Do them, or tell the user they're now due.
+  triggers: do them, or tell the user they're now due.
 - **Deferred work is a todo with its trigger** ("when X ships, do Y"), never a note
-  in chat: `add`, tagged with the game's slug, plus a `detail` with the trigger,
-  what to do and why (`todo` skill).
-- **Todos only through that script**: never read or edit `todos/` or
-  `todo-archive.md` directly.
+  in chat: `add`, tagged with the game's slug, with a `detail` (trigger, what,
+  why). **Todos only through that script**, never `todos/` or `todo-archive.md`
+  directly (`todo` skill).
 - **New rules, skills, hooks or docs for agents** follow the `agent-setup` skill: a
   check beats a written rule, and nothing is written twice.
 - **Navigating into a room** from another page is a hard navigation (`<a>` or
@@ -67,9 +72,9 @@ folder's rules from its own `CLAUDE.md`, and the rest from:
 - **Never read the clock, `window` or storage during render.** Use effects, timer
   callbacks, or `useSyncExternalStore` with a server snapshot. Cache Components
   and the `react-hooks/*` lint rules enforce it.
-- **Ship the client before the rules.** When a rules change alters what clients
-  may write, deploy the app first: new rules under the previous client refuse its
-  writes (room creation included).
+- **Ship the client before rules that tighten.** When new rules would refuse the
+  previous client's writes (room creation included), deploy the app first. Rules
+  that only add optional paths or fields go first (`database-rules` skill).
 - **`AGENTS.md`**: this Next.js version has breaking changes. Check
   `node_modules/next/dist/docs/` before using Next APIs.
 
@@ -77,16 +82,16 @@ folder's rules from its own `CLAUDE.md`, and the rest from:
 
 | Command | What it does |
 | :--- | :--- |
-| `node scripts/check.mjs` (`./scripts/check`) | The checks in `scripts/check.json` (doctor, `tsc`, lint, `npm test`), one line per failure; `--fast` skips tests, `--rules` adds rules tests, `--verbose`. Use it instead of raw test or lint output |
-| `node scripts/doctor.mjs` | The agent setup: size limits, dead paths, hooks turned on |
+| `node scripts/check.mjs` (`./scripts/check`) | Doctor, `tsc`, lint, `npm test` (`scripts/check.json`), one line per failure; `--fast` skips tests, `--rules` adds rules tests, `--verbose`. Use it, not raw test or lint output |
+| `node scripts/doctor.mjs` | Agent setup: size limits, dead paths, hooks |
 | `npm run dev` | Dev server at localhost:3000 (one per project) |
-| `./scripts/build`, `./scripts/test-rules` | `npm run build` (also type-checks) and `npm run test:rules` (`tests/rules/` on the Database emulator, needs Java); one line unless they fail |
+| `./scripts/build`, `./scripts/test-rules` | `npm run build` (also type-checks) and `npm run test:rules` (`tests/rules/` on the emulator, needs Java), one line unless they fail |
 
 `npm test` is vitest over `lib/**/*.test.ts`. CI (`.github/workflows/ci.yml`) runs
-lint, `tsc`, `npm test` and `npm run test:rules`.
+lint, `tsc`, `npm test` and the rules tests.
 
 Before calling a change done:
-- **Every change**: `node scripts/check.mjs` (lint, `tsc`, `npm test`).
+- **Every change**: `node scripts/check.mjs`.
 - **Rules or game-state changes**: also `npm run test:rules` (`--rules`).
-- **Anything visible**: also the `ui-review` skill (phone and desktop screenshots).
+- **Anything visible**: also the `ui-review` skill (phone and desktop, `/` and `/fr`).
 - **Anything multiplayer**: also the `live-test` skill.

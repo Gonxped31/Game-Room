@@ -11,7 +11,7 @@ Americas 3-5, Africa 3-5, Asia 3-5, Europe 4-6, Europe and Asia 4-6, the world
 ## A reload loses nothing
 
 **A reload loses nothing** (`components/borderrun/storage.ts`): the tab, the
-language, the Endless route in progress (route, guesses, time spent; dropped
+Endless route in progress (route, guesses, time spent; dropped
 once complete, given up or on Change) and today's Daily guesses with the
 route (kept after finishing, for the map and the share squares; a completed
 route that never reached the server is sent on resume).
@@ -30,7 +30,7 @@ timing, scoring, how a round ends, the screens). Detour's own parts:
 - **Runs**: `borderrunRuns/{seat}` (`guesses`), rewritten whole on each guess
   (a run is a few guesses).
 - **Screens**: `components/borderrun/race/Screens.tsx` holds the shell (title
-  sign, EN/FR switch) and the lobby's settings; the page fills the shared
+  sign, `LangSwitch`, `modeLine(mode, lang)`) and the lobby's settings; the page fills the shared
   round view with `RouteHeader`, `PlayMap`, `GuessInput` and `GuessList`, and
   the results with the picked player's map and `PathLine`.
 - **Rules**: `borderrun` (`map`, `route`) and `borderrunRuns/$seat`

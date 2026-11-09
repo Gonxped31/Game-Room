@@ -200,16 +200,17 @@ await page.reload();
 await button("Start").waitFor();
 check("B10 reload after Change: the setup card, Africa still picked", (await page.getByRole("radio", { name: "Africa", exact: true }).getAttribute("aria-checked")) === "true");
 
-// B11: names switch to French, and stay French after a reload.
+// B11: names follow the page's language. The same route (kept in storage) reads in
+// French on /fr/borderrun/solo, and in English again back on /borderrun/solo.
 await button("Start").click();
 await box().waitFor();
 game = await endless();
-await page.getByRole("radiogroup", { name: "Country names" }).getByRole("radio", { name: "FR" }).click();
-check("B11 FR: the route in French", (await routeTitle()).includes(name(game.route.start, "fr")), await routeTitle());
-await page.reload();
+await page.goto(`${base}/fr/borderrun/solo`);
+await page.locator(".br-route-title").waitFor();
+check("B11 /fr: the route in French", (await routeTitle()).includes(name(game.route.start, "fr")), await routeTitle());
+await page.goto(`${base}/borderrun/solo`);
 await box().waitFor();
-check("B11 FR survives a reload", (await routeTitle()).includes(name(game.route.start, "fr")));
-await page.getByRole("radiogroup", { name: "Country names" }).getByRole("radio", { name: "EN" }).click();
+check("B11 back in English: the route in English", (await routeTitle()).includes(name(game.route.start)), await routeTitle());
 
 // B12: the map zooms (buttons, double tap or click, ctrl + wheel), drags once zoomed, and a new route starts zoomed out.
 const viewBox = async () => (await page.locator(".br-map").getAttribute("viewBox")).split(" ").map(Number);

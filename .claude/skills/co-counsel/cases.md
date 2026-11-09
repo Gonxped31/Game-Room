@@ -5,6 +5,8 @@ The cases, their loader and types, the validator, and how to write one. The `co-
 ## Case data
 
 - `cases.json` holds every case, keyed by ID, so the content can be hand-edited.
+  `cases.fr.json` is its French twin: same ids, cards, pairs and logic, French
+  text (a case added to one goes in both; the parity test checks it).
   Five ship today: Easy `ruined-birthday` (3 Parts) and `missed-arrival` (3),
   Medium `midnight-playlist` (4) and `empty-frame` (5), Hard
   `unlocked-session` (6). **Adding a case needs no code change**: `CasePicker`

@@ -62,6 +62,8 @@ single-file game (visuals, controls, physics, scoring).
 - **Leaving**: no corner ← on room screens; each has a "Leave room" link. The solo
   page keeps its ←. Back is Leave room in the lobby and on the results, never mid-race.
 - A rules change (scoring, controls, options) updates `Rules.tsx` (How to play) too.
+- Every word, the engine's included, is in `components/nighthighway/text.ts`, EN and
+  FR; the engine gets `text: ENGINE_TEXT[lang]` (never a string in `engine.js`).
 
 ## Rules
 

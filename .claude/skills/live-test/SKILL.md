@@ -69,6 +69,10 @@ Copy the patterns from `scripts/two-players.mjs`:
   Bearer owner`). Use it to assert on the database itself (seats, names, game
   state) rather than only the UI.
 - `until(fn, what)` - polls with a timeout. Prefer it over fixed sleeps.
+- **Language**: the scripts drive the English pages, so their selectors are English
+  ("Guess a country", "Start"). A French run opens `/fr/...` and needs French
+  selectors (Detour's B11 only reads text there). A context whose browser is French
+  (`locale: "fr-FR"`, or a French OS with no `locale`) is sent from English links to `/fr`.
 - **FTW card placement**: click a hand card (`button[aria-label^="Number"]`), then
   a slot (`[data-drop-id] button`).
 - **Taking over a seat** needs the holder offline for 2 minutes. Either wait, or

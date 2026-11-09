@@ -2,8 +2,12 @@
 
 The `first-to-worst` skill's `SKILL.md` (next to this file) has the rest of the game.
 
-## Prompt bank (`prompts.json`)
+## Prompt banks (`prompts.json`, `prompts.fr.json`)
 
+- One bank per content language (`BANKS.en`, `BANKS.fr`), keyed by the **same
+  English topic keys**; `topics.fr.json` maps each key to its French name
+  (`topicName(key, lang)`). A French prompt is written in French, not translated
+  word for word; `prompts.test.ts` checks both banks and the topic names.
 - The shape is `{ "Category": [{ "prompt": "...", "items": ["5 items"] }, ...] }`.
   Adding a prompt means adding an entry to its category's array; file order
   doesn't matter.

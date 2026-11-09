@@ -54,6 +54,7 @@ desktop layout entirely.
 - **Respect reduced motion.** Flips use the global `flip-inner` class, and new
   keyframes need a `prefers-reduced-motion` override in `app/globals.css`.
 - **Same Page's 5-note hand must fit one row at 375px** (the `iphone-se` profile).
+- **French runs ~20% longer**: at 375px its buttons, chips and tabs must still fit.
 
 ## 3. Screenshot it on real device profiles
 
@@ -69,11 +70,12 @@ real Firebase project, and every game page visit creates a real room.
 Then run:
 
 ```bash
-node .claude/skills/ui-review/scripts/screenshots.mjs hub same-page cocounsel --dark
+node .claude/skills/ui-review/scripts/screenshots.mjs hub fr same-page fr/same-page --dark
 ```
 
-Pages are given without a leading slash (`hub`, `same-page`, or a full URL); Git Bash
-rewrites `/same-page` into a Windows path. Every shot is checked for **horizontal
+Shoot every changed screen at `/...` **and** `/fr/...` (`fr` is the French hub).
+Pages are given without a leading slash (`hub`, `fr/same-page`, or a full URL); Git
+Bash rewrites `/same-page` into a Windows path. Every shot is checked for **horizontal
 overflow** and **console errors** (exit 1 if any). **Open and look at the images**:
 the checks catch breakage, not ugliness. Profiles (`iphone-se` 375px, `iphone`,
 `android`, `edge-760`, `desktop`), options (`--dark`, `--reduced-motion`,
@@ -90,7 +92,7 @@ setup: `reference.md`, next to this file.
 
 ## 5. Done when
 
-- The spec matches on phone and desktop.
+- The spec matches on phone and desktop, in English and in French (French fits at 375px).
 - No overflow and no console errors in the screenshots.
 - Co-Counsel checked in both themes.
 - Lint, `tsc` and `npm test` pass, plus the `live-test` skill if the change touches

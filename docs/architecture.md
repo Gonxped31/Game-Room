@@ -1,4 +1,4 @@
-# Game Room reference: data model and environment notes
+# Partyfox reference: data model and environment notes
 
 The data model, environment notes and the hub's components. The rules and code map live in the nested CLAUDE.md files (lib/session, lib/store, lib/games, components); the session's longer code map is `docs/session.md`.
 
@@ -10,6 +10,7 @@ games/{roomCode}/
   seats:      { p1: uid, ... }        members: { [uid]: "p1" }               // always written together
   players:    { p1: { name }, ... }   presence: { [uid]: { online, lastSeen } }
   lastActive: number                  ftw | cocounsel | nighthighway: { ...game state... }  // validated per game
+  ftw/lang?: 'en' | 'fr'                                                 // Same Page's content language (absent = en); master sets it
   nighthighwayCars: { p1: {...}, p2: {...} }                                 // live cars, each seat writes its own
   buzzerquiz: { ...game state, buzzes included... }                         // Buzzer Quiz, maxPlayers 4
   wordscramble: { ...game state... }  wordscrambleTyping: { pN: { at } }     // Word Scramble, maxPlayers 8; each seat its own typing signal
@@ -20,6 +21,9 @@ queue/{slug}/{lang}/{roomCode}: { players, updatedAt }                     // ma
 roomsByName/{nameKey}: roomCode                                             // unique, first come first served
 users/{uid}/rooms/{roomCode}: { gameSlug, addedAt, createdByMe?, name? }
 users/{uid}/visits/{yyyymmdd}/{roomCode}: { gameSlug, at }                 // seated in that room that UTC day; kept after "Leave room": the dashboard's player history
+users/{uid}/firstTouch: { src, med?, cmp?, at }                            // where the guest first came from; written once by its owner (docs/tracking.md)
+finished/games/{gameKey}: { slug, mode, players, lang, at, room?, matchmade? }  // one per finished game, created once; nobody reads finished/ but /admin
+finished/players/{gameKey}_{uid}: { game, uid, src, cmp?, at }             // one per finishing guest, written by that guest
 analytics/archive/{roomCode}: { gameSlug, createdAt, ..., guests }        // a deleted room's summary for /admin; no client reads or writes it
 analytics/statsSince: <ms>                                                 // when /admin last cleared the stats: history before it isn't counted
 ```

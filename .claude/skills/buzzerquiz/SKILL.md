@@ -86,7 +86,9 @@ links back to `/`.
 
 - Choices are **bank indexes** (0 = right) everywhere in the state; only the UI
   shuffles them (`choiceOrder(seed, index)`). Rules refuse striking choice 0.
-- Interface copy is English. Only the questions follow the room's language.
+- Two languages: the interface follows each viewer's page language
+  (`components/buzzerquiz/text.ts`), the questions the room's `settings.lang`. A new
+  room's questions start in the creator's interface language; the host can switch.
 - The bank must keep ≥ 20 questions per topic per language, or a 20-question
   single-topic game can't start (the test enforces it). It has 40 per topic per
   language (2026-11-01).

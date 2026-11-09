@@ -31,6 +31,7 @@ sizing and motion) and `prompts.md` (the prompt bank's shape, checks and convent
   impossible** (if four cards match, so does the fifth). Expected, not a bug.
 - `lib/games/ftw/constants.ts` - `GAME_TITLE` (the only place the title lives),
   `ITEMS_PER_ROUND` (**the only place "5" is encoded; never hardcode it**), text caps.
+- `components/ftw/text.ts` - every interface word, EN and FR (`docs/i18n.md`).
 - `components/ftw/Rules.tsx` - How to play (`docs/how-to-play.md`). A rules change
   updates it too.
 
@@ -41,6 +42,11 @@ sizing and motion) and `prompts.md` (the prompt bank's shape, checks and convent
   `history[]` and `topics?[]`.
 - **Topics** (`setTopics`): **only the round's master changes them** (it throws for
   anyone else); absent means every topic. Detail: `reference.md`.
+- **Content language** `lang?` (`'en'|'fr'`, absent = en: `contentLang`): the bank
+  prompts are drawn from. `setLang` is master only; a new room starts in the
+  creator's interface language. The interface follows each viewer's page language.
+- **Finished games**: each revealed round reports one (`useReportFinished`,
+  `docs/tracking.md`); Same Page has no final result.
 - **Live placement progress** (`current.placed`): the IDs of the filled slots, **never
   the numbers**, because the other player can read the room.
 - **Its shape is validated by `database.rules.json`** (the `ftw` node).
@@ -53,11 +59,12 @@ sizing and motion) and `prompts.md` (the prompt bank's shape, checks and convent
 - **Never write an explicit `undefined`.** Clear an optional field by building a
   fresh object without it.
 
-## Prompt bank (`prompts.json`)
+## Prompt banks (`prompts.json`, `prompts.fr.json`)
 
-Adding a prompt is adding an entry to its category's array; `npm test` checks it.
-**The categories are the topics players pick**: user-facing, ≤ 60 characters, and
-renaming one drops it from rooms that chose it. Everything else: `prompts.md`.
+`BANKS.en`/`BANKS.fr`, with the **same topic keys**; a prompt goes in its category's
+array, `npm test` checks both. **The keys are the topics players pick** (≤ 60
+characters; renaming one drops it from rooms that chose it); `topicName(key, lang)`
+shows them, French names in `topics.fr.json`. Everything else: `prompts.md`.
 
 ## Seats and page flow
 

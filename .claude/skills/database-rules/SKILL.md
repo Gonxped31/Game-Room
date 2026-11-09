@@ -11,9 +11,9 @@ match it exactly. Every room/seat write the app makes is built in
 
 ## The model
 
-Every node and who may write it, in one screen: `model.md` (next to this file). Reads: any
-signed-in guest can read one room or one name entry. Nobody can read `/games`,
-`/roomsByName` or another uid's `/users`.
+Every node and who may write it, in one screen: `model.md` (next to this file). Reads:
+any signed-in guest reads one room or name entry; nobody lists `/games`,
+`/roomsByName`, `finished/` or another uid's `/users`.
 
 ## Making a change
 
@@ -21,14 +21,13 @@ signed-in guest can read one room or one name entry. Nobody can read `/games`,
    - `rooms.test.ts` - room, seat, name and user behavior;
    - `gameState.test.ts` - per-game state shapes, valid states built by the real state machine;
    - `sessionUpdates.test.ts` - the app's own update builders sent through the rules;
-   - `matchmaking.test.ts` - public rooms, the queue and `autoStart`.
+   - `matchmaking.test.ts` - public rooms, the queue and `autoStart`;
+   - `tracking.test.ts` - `users/{uid}/firstTouch` and `finished/` (`docs/tracking.md`).
 
-   Use `assertSucceeds`/`assertFails` from `@firebase/rules-unit-testing`, and the
-   fixtures in `tests/rules/helpers.ts` (`seedRoom`, `dbAs`, `TS` for a server
-   timestamp).
+   Use `assertSucceeds`/`assertFails` (`@firebase/rules-unit-testing`) and the
+   fixtures in `tests/rules/helpers.ts` (`seedRoom`, `dbAs`, `TS` = server time).
 2. Edit `database.rules.json`.
-3. Run `npm run test:rules`. It starts the Database emulator, runs the tests, and
-   stops it (needs Java).
+3. Run `npm run test:rules` (starts and stops the Database emulator; needs Java).
 4. If the client writes something new, add or change the builder in
    `lib/session/shared/updates.ts` (plus `updates.test.ts`). Never hand-assemble
    seat paths in a component.
@@ -52,21 +51,22 @@ signed-in guest can read one room or one name entry. Nobody can read `/games`,
 
 ### Testing 3+ seat rooms
 
-- The deployed rules allow `ftw`/`cocounsel`/`nighthighway`, which all force
-  `maxPlayers == 2`, `buzzerquiz`, which forces 4, and `wordscramble`, which forces 8.
+- Each real slug fixes its `maxPlayers` (2, 4 or 8; `model.md`).
 - `setupEnv(projectId, "mptest")` in `tests/rules/helpers.ts` injects a test-only
   slug **in memory**. Never add it to the file itself.
-- `mptest` has no game-state node, so drop its game path from a create update in
-  tests.
+- `mptest` has no game-state node: drop its game path from a create update.
 
 ## Deploying
 
-**Order matters: deploy the app first, then the rules.** Under new rules, an
-older client may write in a way they refuse. This happened once: the rules went
-out before the new client, and every room creation failed with
-`permission_denied` (`transaction at /games/<code>/meta failed`).
+**Order matters, and depends on what the rules do:**
+- **Tighten or change** what the live client writes: the app first, then the rules.
+  Rules out first once made every room creation fail with `permission_denied`
+  (`transaction at /games/<code>/meta failed`).
+- **Only add** optional fields or new paths (`ftw/lang`, `users/{uid}/firstTouch`,
+  `finished/`): the rules first. Old clients never write them; a new client under
+  the old rules is refused (`$other`). Doing both: split into two deploys.
 
-1. Merge and push, and let Vercel finish deploying.
+1. Merge and push, and let Vercel finish deploying (rules that only add: step 2 first).
 2. Deploy the rules from an up-to-date `main`, with the user's go-ahead:
    ```bash
    npx firebase deploy --only database

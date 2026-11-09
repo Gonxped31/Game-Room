@@ -1,7 +1,8 @@
-# Game Room
+# Partyfox
 
-A small platform for private, link-based 2-player games. No login, no accounts, no
-lobby.
+Partyfox (formerly Game Room, [partyfox.io](https://partyfox.io)) is a small platform for
+private, link-based party games for 1 to 8 players, in English and French. No login, no
+accounts, no lobby.
 - Pick a game from `/` and you get a fresh private room, with a "Copy invite link"
   button to send the other player. Opening someone else's link drops you straight
   into their room.
@@ -218,7 +219,7 @@ These apply to every game on the platform:
   minutes.
   - Safari on iOS wipes a site's storage on its own after about 7 days without a
     visit. Apps added to the Home Screen are exempt, so the home page suggests
-    adding Game Room there.
+    adding Partyfox there.
   - In-app browsers (Messenger, Instagram, WhatsApp, ...) keep their own separate
     storage, so room pages opened in one suggest switching to Safari or Chrome.
 - **Previews share production's database** unless you give Vercel's Preview
@@ -299,7 +300,7 @@ by. To rename the platform itself, or any individual game:
 
 ```ts
 // lib/games/registry.ts
-export const APP_TITLE = "Game Room"; // the picker's title, the Home Screen app name
+export const APP_TITLE = "Partyfox"; // the picker's title, the Home Screen app name
 
 // lib/games/ftw/constants.ts
 export const GAME_TITLE = "Same Page"; // the data slug stays "ftw"

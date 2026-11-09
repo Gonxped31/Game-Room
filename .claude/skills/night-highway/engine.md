@@ -11,7 +11,10 @@ Every file and what it holds, and how the solo game ships as one offline HTML fi
   - **It's generated, but kept in git.** A port script built it from the
     reference and the changes since are small edits; edit the file directly now,
     keeping the `Game Room:` markers so the two stay comparable.
-  - `createEngine(root, { mode, fonts, ... })` boots on the stage markup and returns
+  - `createEngine(root, { mode, fonts, text, onSoloFinish, ... })` boots on the
+    stage markup. `text` is every word it draws or writes, `ENGINE_TEXT[lang]`
+    from `components/nighthighway/text.ts` (the page's other words live there
+    too); `onSoloFinish` reports a finished solo run (`docs/tracking.md`). It returns
     `{ startSolo, startRace, stopRace, setOpponent, trafficChecksum,
     raceTrafficChecksum, destroy }`.
   - Uses `three@0.128.0` from npm (the reference's version). Don't upgrade

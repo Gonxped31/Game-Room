@@ -62,10 +62,10 @@ generator tests in `board.test.ts` check it.
 | Path | What |
 | :--- | :--- |
 | `lib/games/lasthop/board.ts` | `Board` (`w`, `h`, row-major `cells` of `A`/`B`/`.`), `legalMoves`, `applyMove`, `mirrored`, `solve` (perfect play: who wins, game length), `generateBoard` (+ `playable`, `FALLBACK`) |
-| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (lobby or between matches), `vote` (matchmaking); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf` |
+| `lib/games/lasthop/game.ts` | The state machine (`LastHopState`): `startMatch`, `move`, `flag`, `nextRound`, `setMode` (lobby or between matches), `vote` (matchmaking); `dueAt`, `clockLeft`, `seatOf`/`colourOf`/`moverOf`; `matchId` (the finished-game report's id, `docs/tracking.md`) |
 | `lib/games/lasthop/constants.ts` | Modes, clocks, delays, round limits |
 | `app/lasthop/page.tsx` | Session (`useGameSession`), deadlines (`flag` or `nextRound`), screens |
-| `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock`, `PieceMark`), `pawns.tsx` (the pawn drawings), `lasthop.css` (board sizes, animation), `Rules.tsx` (How to play) |
+| `components/lasthop/` | `Board.tsx` (wells, pieces, select then move, the hop animation), `Screens.tsx` (header, player bars with clocks, lobby, round banner, match over, footer, dialog), `ui.tsx` (tokens, buttons, `formatClock(ms, lang)`, `PieceMark`), `text.ts` (every word, EN and FR), `pawns.tsx` (the pawn drawings), `lasthop.css` (board sizes, animation), `Rules.tsx` (How to play) |
 | `database.rules.json` → `lasthop` | Validates the whole state; `maxPlayers` must be 2 |
 | `lib/games/matchGames.ts` → `LASTHOP_MATCH` | The two matchmaking queues |
 | `.claude/skills/live-test/scripts/last-hop.mjs` | Desktop host vs a phone (`[phoneProfile]`, default `iphone`): Start's mode, host-only mode, a whole Track match, a Grid round; then a matchmaking pair |

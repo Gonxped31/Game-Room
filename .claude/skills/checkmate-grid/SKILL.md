@@ -54,12 +54,12 @@ per round, results, rules, the live test): `reference.md`.
 | `lib/games/regions/solver.ts` | `solutions(puzzle, limit)` (exact, branches on the unit with fewest open cells); `solveByLogic` (person-style deductions, levels 1–4; the hardest used is the difficulty) |
 | `lib/games/regions/generate.ts` | `generate(seed, { size, variant, minLevel?, maxLevel? })`: placement → regions grown evenly (weight 1/size²) → break every other solution by moving one of its cells into a neighbouring region → keep once `solveByLogic` finishes within the level range → `relabel` (region numbers in reading order, so they leak nothing) |
 | `lib/games/regions/play.ts` | A game in progress: `marks` (empty / ✕ / piece), the `moves` log `{cell, to, t}`, `setMark`, `undo`, `clearAll`, `replay`, `ruledOut` (auto-✕) |
-| `lib/games/regions/daily.ts` | The `DailyGame` for docs/daily.md: weekly `SCHEDULE` (Mon rook 6 … Sun mix 9), `verify` replays the moves |
-| `lib/games/regions/theme.ts` | Colors (match `regions.css`), region pastels, chess glyphs, rule lines |
+| `lib/games/regions/daily.ts` | The `DailyGame` for docs/daily.md: weekly `SCHEDULE` (Mon rook 6 … Sun mix 9), `verify` replays the moves; `describeDay(day, lang)` |
+| `lib/games/regions/theme.ts` | Colors (match `regions.css`), region pastels, chess glyphs; `PIECE_NAME`/`VARIANT_NAME`/`VARIANT_RULE` per language |
 | `lib/games/regions/race.ts` | Racing others, on `lib/games/race/`: `GridRaceState`, `Run`, `roundSpec`, `puzzleOf`, `playOf`, `scoreOf`, `race` |
 | `app/regions/race/page.tsx` | The race room page |
 | `components/regions/race/Screens.tsx` | The race room's shell and lobby settings; the rest is `components/race/` |
-| `components/regions/Stage.tsx` | The page shell, mode tabs; `online` adds Daily (the site), off for the export |
+| `components/regions/Stage.tsx` | The page shell, mode tabs; `online` adds Daily (the site), off for the export. Every word: `components/regions/text.ts` (EN and FR) |
 | `components/regions/Board.tsx` | The grid: tap cycles, drag from an empty cell paints ✕, arrow keys + Enter/Space |
 | `components/regions/EndlessGame.tsx`, `DailyGame.tsx` | The two modes |
 | `components/regions/Rules.tsx` | How to play (`docs/how-to-play.md`): the header's ? (Stage's `rules`, passed by the site's page, and the race shell) and a link in the race lobby's settings. Tailwind classes, so it stays out of the exported Stage. A rules change updates it too |

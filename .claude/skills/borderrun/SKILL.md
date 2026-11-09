@@ -27,9 +27,9 @@ Based on Travle, with closed borders as the twist (the user's picks,
 
 Two tabs: **Daily route** (one route a day for everyone on the shared board,
 docs/daily.md) and **Endless** (a map picker and Start; New route, Change,
-Show a route to give up). The names' language is a switch in the header (EN /
-FR, saved; first visit follows the browser), which only changes what's
-displayed: input accepts both languages always.
+Show a route to give up). Country names follow the page language (`/fr/...`;
+the header's `LangSwitch` changes both); typing accepts both languages always.
+Words: `components/borderrun/text.ts`.
 
 ## Reference, next to this file
 
@@ -58,7 +58,7 @@ displayed: input accepts both languages always.
 | `app/borderrun/solo/page.tsx` | The solo page (`Stage`) |
 | `components/borderrun/race/Screens.tsx` | The race room's shell and lobby settings; the rest is `components/race/` |
 | `lib/games/borderrun/theme.ts` | Colours (match `borderrun.css`), share squares |
-| `components/borderrun/Stage.tsx` | The page shell: title sign, EN/FR switch, mode tabs; `online` adds Daily |
+| `components/borderrun/Stage.tsx` | The page shell: title sign, mode tabs; `online` adds Daily. The site's back link and `LangSwitch` come as slots (`SiteHeader.tsx`): the offline export has neither |
 | `components/borderrun/Rules.tsx` | How to play (`docs/how-to-play.md`): the header's ? (Stage's `rules`, passed by the site's solo page, and the race shell) and a link in the race lobby's settings. Tailwind classes, so it stays out of the exported Stage. A rules change (grading, the penalty) updates it too |
 | `components/borderrun/RouteMap.tsx` | The SVG map (Miller projection, fixed size per map), its zoom (`useZoom`) and names (`placeLabels`) |
 | `components/borderrun/Controls.tsx` | `Segmented`, `RouteHeader`, `Toolbar`, `GuessInput` (combobox), `GuessList`, `PlayMap`, `CapitalLine` |

@@ -7,7 +7,7 @@ description: Co-Counsel, the 2-player cooperative deduction game - rules, cases.
 
 A 2-player cooperative, asymmetric deduction game.
 - One player is the **Investigator** (external evidence), the other the
-  **Defendant** (internal facts).
+  **Defendant** (internal facts); in French "côté enquête" / "côté défense".
 - In each "Part" of a case, both secretly lock in one card, trying to find the
   matching pair while talking it out loud.
 - There are no live scores. Trust and Focus appear at the end.
@@ -38,6 +38,10 @@ a case), `visual.md` (fonts, tokens, dark mode, layout).
   running `npm test`**: `caseValidator.test.ts` runs the design doc's 8 checks on it.
 - **The case being played is `game.caseId`, in the shared state**, read through
   `caseForState()`. The shipped cases and how to write one: `cases.md`.
+- **Two languages**: `cases.fr.json` has the same ids and logic in French (a parity
+  test checks it); `getCase`/`caseForState`/`casesByTier`/`validateCase` take a
+  `lang`. Case text follows **each viewer's** interface language, so the two
+  players can read different languages. Interface words: `components/cocounsel/text.ts`.
 
 ## State machine (`lib/games/cocounsel/game.ts`)
 

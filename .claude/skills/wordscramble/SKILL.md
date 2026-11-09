@@ -92,9 +92,9 @@ links back to `/`.
   the same language, since a right answer would otherwise be refused. It can't see
   anagrams outside the list ("LISTEN" vs a "SILENT" we don't have), so avoid
   well-known pairs by hand.
-- `ChunkyButton` drops its inline colors when disabled: inline styles beat Tailwind's
-  `disabled:` classes, which once left a disabled Confirm looking clickable.
-- Phone tiles shrink with the word's length (56 px down to about 37 px for 8 letters)
-  so the row never wraps at 375 px.
+- Two languages: the interface follows the page (`components/wordscramble/text.ts`),
+  the words `settings.lang` (new room: the creator's interface language).
+- `ChunkyButton` drops inline colors when disabled (they beat `disabled:` classes).
+- Phone tiles shrink with the word (56 px to ~37 px at 8 letters): one row at 375 px.
 - Players who leave mid-game keep their team until a Rematch, which drops them
   (`onlySeated`).

@@ -154,7 +154,7 @@ It reads each route's answer from the saved game and the map data, then covers:
 - French names without accents, arrow keys + Enter on the suggestions, a double Enter;
 - a reload or a Daily ↔ Endless round trip keeps the route, the guesses and the clock;
 - finishing (with a penalty), New route, Show a route, Change, the best per map;
-- the EN/FR switch, kept across a reload;
+- names in French on `/fr/borderrun/solo` (the same route), in English again on `/borderrun/solo`;
 - the daily: a reload resumes it on the server's clock, the penalty is on the result,
   and a reload after finishing shows the finished page with its map.
 

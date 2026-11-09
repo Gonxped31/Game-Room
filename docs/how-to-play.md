@@ -9,6 +9,7 @@ players asked "so we just have to block the other player?".
 | Every game has `components/<slug>/Rules.tsx` | `lib/games/howToPlay.test.ts` fails without it |
 | Adding a game includes it | the `add-game` skill, step 3 |
 | A rules change updates it in the same change | this file, and each game's skill |
+| It reads in English and in French, from the same `Rules.tsx` (`texts({ en, fr })`, read with `useText`; `docs/i18n.md`) | TypeScript: the French must match the English key for key |
 
 ## Files
 
@@ -74,7 +75,9 @@ Use the sections that apply; skip the rest. Headings are short and plain
 - The game's live-test script opens it from the header and from the lobby,
   and closes it (Escape, and "Got it").
 - `ui-review` screenshots of the open dialog on a phone and on desktop.
-- When a rule changes: grep the game's `Rules.tsx` for it in the same change.
+- When a rule changes: grep the game's `Rules.tsx` for it in the same change,
+  and change the English and the French together.
+- Open it at `/...` and `/fr/...`: French runs longer, so check it at phone width.
 
 ## Offline downloads
 

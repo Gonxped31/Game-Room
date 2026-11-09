@@ -12,6 +12,7 @@ games/{roomCode}/
   lastActive  members only
   activeMinutes { n, at }      -- play time: members only, n +1 with at == now, refused within 50 s of the last count
   ftw | cocounsel | nighthighway -- members of a room of that gameSlug (or the creating write); fully .validate'd
+  ftw/lang                     -- Same Page's content language, optional 'en'|'fr' (absent = en)
   nighthighwayCars/{pN}        -- Night Highway's live cars: only the uid seated in pN writes it
   buzzerquiz                   -- Buzzer Quiz (maxPlayers must be 4): the whole game, buzzes included
   wordscramble, wordscrambleTyping/{pN} -- Word Scramble (maxPlayers must be 8); each seat's own typing signal
@@ -25,6 +26,11 @@ queue/{slug}/{lang}/{room}     -- matchmaking queue: listable per slug+lang; mem
 roomsByName/{nameKey}: code    -- unique; only the room's creator can claim or delete it
 users/{uid}/rooms/{code}       -- only that uid reads or writes; fixed fields
 users/{uid}/visits/{day}/{code} -- own only, while seated in that room: { gameSlug (the room's), at (server time, last 48 h) }
+users/{uid}/firstTouch         -- { src, med?, cmp?, at }: own only, written once, never changed or removed (docs/tracking.md)
+finished/games/{gameKey}       -- { slug, mode, players, lang, at, room?, matchmade? }: created once; a room game by a member
+                                  (room + its gameSlug, key {room}_...), a solo one by its owner (key {uid}_...); no client writes daily
+finished/players/{gameKey}_{uid} -- { game, uid, src, cmp?, at }: own uid, once, after the header, seated (or solo owner)
+                                  nobody reads finished/ (firebase-admin only); both .indexOn at
 analytics/archive/{code}       -- deleted rooms' summaries, written by /admin (firebase-admin); no rule, so clients are refused
 analytics/statsSince           -- when /admin last cleared the stats; same: admin only
 ```

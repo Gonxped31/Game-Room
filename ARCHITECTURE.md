@@ -28,8 +28,10 @@ The two races (Challenge for 2-4 players, Survival for 4-8) share one layer: `do
 | `lib/session/` | Seats, presence, room hooks (`useRoom`, `useSession`, `useGameSession`) |
 | `lib/session/shared/` | Auth, seat/room write builders (`updates.ts`), presence, server clock |
 | `lib/store/` | Backend-agnostic store: Firebase, or `localDb.ts` when no config |
+| `app/fr/`, `lib/i18n/` | French twin of every page; the EN/FR words and helpers (`docs/i18n.md`) |
+| `lib/tracking/` | Source tracking and games finished (`docs/tracking.md`) |
 | `lib/admin/` | Server only: `firebase-admin` handle, admin password cookie (`session.ts`), route guard |
-| `lib/analytics/` | Dashboard metrics: pure and platform-neutral (`metrics.ts` over a `Snapshot`); `gameRoomAdapter.ts` maps Game Room's database into it; `roomFilter.ts` filters the room list |
+| `lib/analytics/` | Dashboard metrics: pure and platform-neutral (`metrics.ts` over a `Snapshot`); `gameRoomAdapter.ts` maps Partyfox's database into it; `roomFilter.ts` filters the room list |
 | `app/admin/`, `app/api/admin/` | The owner's dashboard and its route handlers (not linked from the hub) |
 | `exports/<slug>/` | A solo game as one offline HTML file: page template and entry, built by `scripts/export-solo.mjs` into `downloads/` (served only to `/admin`, by `app/api/admin/downloads/[slug]`) |
 | `tests/rules/` | Database rules tests (emulator, needs Java) |
