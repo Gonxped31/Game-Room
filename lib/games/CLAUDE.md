@@ -8,6 +8,11 @@
   - Empty arrays and objects are dropped on write, so read them as `value ?? []`.
   - An explicit `undefined` is rejected on write, so clear a field by building a
     new object without it.
+- **Content never repeats within a session.** A game that draws from a bank
+  (questions, words, prompts) keeps what the room has already seen in its state,
+  across rematches, and draws only unseen items until the chosen pool runs out,
+  then starts a new cycle (Word Scramble's `usedWordIds`, Same Page's
+  `usedPrompts`). Each bank holds enough for several sessions, in English and French.
 
 - **`lib/games/<slug>/`** - each game's pure state machine, constants, content and
   tests. `lib/games/shared/language.ts` - the room content language (`en`/`fr`). **`components/<slug>/`** and **`app/<slug>/page.tsx`** - each game's UI.

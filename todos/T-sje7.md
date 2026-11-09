@@ -1,0 +1,4 @@
+T-sje7 | 2 | - | S | ftw,admin | Same Page: decide what counts as one finished game (today every revealed round counts, inflating its share of games finished per week)
+created: 2026-11-09T13:35:19.249Z
+
+Trigger: the user picks an option. Today app/same-page/page.tsx calls useReportFinished at every REVEALED round (id: revealedRoundId(game)), because Same Page has no final result, so a 10-round session counts as 10 finished games while every other game counts a whole match once. Options: keep per-round and label Same Page's row on /admin as rounds; count a session once (at the SessionRecap, or every N rounds); or add a session id to the ftw state (database.rules.json + tests/rules, rules before the app). Why: games finished per week is the north-star metric and is compared across games (docs/tracking.md).
